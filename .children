@@ -1,0 +1,3 @@
+console/ZConsole.dart
+tests/unittests/unittests.dart
+lib/zmachine.dart
