@@ -6,7 +6,8 @@
 // Assumes first command line arguement is path to story file,
 // otherwise attempts to load default minizork.z3 file from environment.
 
-
+//VM:
+//dart ZConsole.dart ../games/minizork.z3
 
 String gameFile = 'f:\\development\\dart\\projects\\zmachine\\games\\minizork.z3';
 
