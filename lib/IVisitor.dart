@@ -7,8 +7,8 @@ interface IVisitor {
 
   visit0Operand(Operation0Operand op);
 
-  visitVarOperand(OperationVarOperand op);
-
+  visitVar2Operand(OperationVar2Operand op);
+ 
   visitExtOperand(OperationExtOperand op);
 
   visitInstruction(int instruction);

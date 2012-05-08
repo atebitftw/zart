@@ -20,7 +20,7 @@ class Version3 implements IMachine
 
   visit0Operand(Operation0Operand op){}
 
-  visitVarOperand(OperationVarOperand op){}
+  visitVarOperand(OperationVarVarOperand op){}
 
   visitExtOperand(OperationExtOperand op){}
 }

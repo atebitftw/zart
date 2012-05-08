@@ -29,7 +29,7 @@ class _MemoryMap {
   int loadw(int address){
     checkBounds(address);
     checkBounds(address + 1);
-    return getWord(address);
+    return _getWord(address);
   }
 
   //dynamic memory only (1.1.1)
@@ -43,7 +43,7 @@ class _MemoryMap {
     throw const NotImplementedException();
   }
 
-  int getWord(int address) => (_mem[address] << 8) | _mem[address + 1];
+  int _getWord(int address) => (_mem[address] << 8) | _mem[address + 1];
 
   void checkBounds(int address){
    if (address == null || address < 0 || address > _mem.length - 1){

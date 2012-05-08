@@ -31,7 +31,8 @@ class Tester implements IMachine
     out('');
     out('------- START HEADER -------');
     out('Z-Machine Version: ${Z.version}');
-    out('Flags1(binary): ${Z.mem.loadw(Header.FLAGS1+1).toRadixString(2)}');
+    out('Flags1(binary): ${Z.mem.loadw(Header.FLAGS1).toRadixString(2)}');
+    // word after flags1 is used by Inform
     out('Abbreviations Location: ${abbrAddress}');
     out('Object Table Location: ${objectsAddress}');
     out('Global Variables Location: ${globalVarsAddress}');
@@ -48,7 +49,7 @@ class Tester implements IMachine
 
     out('');
     out('pc initial addr: ${Z.pc}, value: ${Z.mem.loadb(Z.pc)}');
-    out('hmm: ${Z.mem.getRange(Z.pc, 5)}');
+    out('hmm: ${Z.mem.getRange(Z.pc, 10)}');
 
 
     out('first 10: ${Z.mem.getRange(0, 10)}');
@@ -56,59 +57,92 @@ class Tester implements IMachine
   }
 
   visitInstruction(int i){
-    //decode instruction to correct visitor
 
+    //decode instruction to correct visitor
     switch(true){
       case i >= 0 && i <= 0x1f:
         out('$i; long form; 2OP; ');
+        visit2Operand(null);
         break;
       case i >= 0x20 && i <= 0x3f:
         out('$i; long form; 2OP; ');
+      visit2Operand(null);
+      
         break;
       case i >= 0x40 && i <= 0x5f:
         out('$i; long form; 2OP; ');
+      visit2Operand(null);
         break;
       case i >= 0x60 && i <= 0x7f:
         out('$i; long form; 2OP; ');
+      visit2Operand(null);
         break;
       case i >= 0x80 && i <= 0x8f:
         out('$i; short form; 1OP; ');
+      visit1Operand(null);
         break;
       case i >= 0x90 && i <= 0x9f:
         out('$i; short form; 1OP; ');
+      visit1Operand(null);
         break;
       case i >= 0xa0 && i <= 0xaf:
         out('$i; short form; 1OP; ');
+      visit1Operand(null);
         break;
       case i == 0xbe:
-        out('$i; extended; 1OP; ');
+        if (Z.version >= 5){
+          out('$i; extended; 1OP; ');
+          visitExtOperand(null);
+        }else{
+          out('long form; 0OP; ');
+          //TODO figure out which operand base
+          visit0Operand(null);
+        }       
         //extended in v5+
         break;
       case i >= 0xb0 && i <= 0xbf:
         out('short form; 0OP; ');
+      visit0Operand(null);
         break;
       case i >= 0xc0 && i <= 0xdf:
         out('$i; variable form; 2OP; ');
+        visitVar2Operand(null);
         break;
       case i >= 0xe0 && i <= 0xff:
         out('$i; variable form; VAR; ');
+        switch(i){
+          case OpCodes.CALL:
+            new Call().visit(this);
+          default:
+            throw const Exception('Unsupported Op Code');
+        }
         break;
       default:
-        throw const Exception('Unable to decode Op Code.');
+        throw const Exception('Unsupported Op Code.');
     }
   }
 
-  visit2Operand(Operation2Operand op){}
+  visit2Operand(Operation2Operand op){
+    throw const NotImplementedException();
+  }
 
-  visit1Operand(Operation1Operand op){}
+  visit1Operand(Operation1Operand op){
+    throw const NotImplementedException();
+  }
 
-  visit0Operand(Operation0Operand op){}
+  visit0Operand(Operation0Operand op){
+    throw const NotImplementedException();
+  }
+ 
+  visitVar2Operand(OperationVar2Operand op){
+    throw const NotImplementedException();
+  }
 
-  visitVarOperand(OperationVarOperand op){}
+  visitVarVarOperand(OperationVarVarOperand op){
+    op.visit(this);
+  }
 
-  visitExtOperand(OperationExtOperand op){}
-
-  void out(String outString){
-    print(outString);
+  visitExtOperand(OperationExtOperand op){
+    throw const NotImplementedException();
   }
 }

@@ -5,6 +5,8 @@
 #source('Header.dart');
 #source('_Stack.dart');
 #source('_MemoryMap.dart');
+#source('OperandType.dart');
+#source('OpCodes.dart');
 
 #source('machines/IMachine.dart');
 #source('machines/Version3.dart');
@@ -22,6 +24,11 @@ ZMachine get Z() => new ZMachine();
 /// Kilobytes -> Bytes
 KBtoB(int kb) => kb * 1024;
 
+void out(String outString){
+  //TODO support redirect to file.
+  print(outString);
+}
+
 /**
 * Version agnostic Z-Machine.
 */
@@ -30,7 +37,7 @@ class ZMachine{
   final int FALSE = 0;
   /// Z-Machine True = 1
   final int TRUE = 1;
-
+  
   bool isLoaded = false;
 
   static ZMachine _ref;
@@ -45,8 +52,8 @@ class ZMachine{
 
   /// Z-Machine Program Counter
   int pc = 0;
-
-
+  
+  int currentValue;
 
   _MemoryMap mem;
 
@@ -103,14 +110,33 @@ class ZMachine{
     }
     _runInternal();
   }
-
+  
+  /** Reads 1 byte from the current program counter
+  * address and advances the program counter to the next
+  * unread address.
+  */ 
+  int readb(){
+    pc++;
+    currentValue = mem.loadb(pc - 1);
+    return currentValue;
+  }
+  
+  /** Reads 1 word from the current program counter
+  * address and advances the program counter to the next
+  * unread address.
+  */ 
+  int readw(){
+    pc += 2;
+    currentValue = mem.loadw(pc - 2);
+    return currentValue;
+  }
+  
   void _runInternal(){
     while(pc < mem.size - 1){
       if (checkInterrupt()){
 
       }
-      _machine.visitInstruction(mem.loadb(pc));
-      pc++;
+      _machine.visitInstruction(readb());
     }
 
     throw const Exception('Program Counter out of bounds.');
@@ -181,3 +207,4 @@ class ZVersion{
     }
   }
 }
+
