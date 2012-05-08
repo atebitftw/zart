@@ -9,12 +9,12 @@
 //VM:
 //dart ZConsole.dart ../games/minizork.z3
 
-String gameFile = 'f:\\development\\dart\\projects\\zmachine\\games\\minizork.z3';
-
 void main() {
+  var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
+  
   var args = new Options().arguments;
 
-  File f = (args.isEmpty()) ? new File(gameFile) : new File(args[0]);
+  File f = (args.isEmpty()) ? new File(defaultGameFile) : new File(args[0]);
 
   try{
     Z.load(f.readAsBytesSync());
