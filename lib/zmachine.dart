@@ -1,11 +1,12 @@
 #library('ZMachine');
 
-#source('Operation.dart');
 #source('IVisitor.dart');
 #source('Header.dart');
 #source('_Stack.dart');
 #source('_MemoryMap.dart');
-#source('OperandType.dart');
+
+#source('operations/OperandType.dart');
+#source('operations/Operation.dart');
 
 #source('machines/IMachine.dart');
 #source('machines/Tester.dart');
@@ -44,7 +45,8 @@ class ZMachine{
   static ZMachine _ref;
   ZVersion _ver;
   List<int> _rawBytes;
-  final _Stack _stack;
+  final _Stack stack;
+  final _Stack callStack;
 
   //contains machine version which are supported by z-machine.
   final List<IMachine> _supportedMachines;
@@ -67,7 +69,8 @@ class ZMachine{
 
   ZMachine._internal()
   :
-    _stack = new _Stack(),
+    stack = new _Stack(),
+    callStack = new _Stack.max(1024),
     _supportedMachines = [];
 
   int get version() => _ver != null ? _ver.toInt() : null;
@@ -107,19 +110,18 @@ class ZMachine{
       }
       _machine.visitHeader();
     }
-    _runInternal();
+    _machine.visitMainRoutine();
   }
   
-  // push a value onto the stack
+  // push a word onto the stack
   void push(int value){
-    _stack.push(value);
+    stack.push(value);
   }
   
+  // pop a word from the top of the stack
   int pop(){
-    return _stack.pop();
+    return stack.pop();
   }
-  
-  
   
   /** Reads 1 byte from the current program counter
   * address and advances the program counter to the next
@@ -140,18 +142,19 @@ class ZMachine{
     currentValue = mem.loadw(pc - 2);
     return currentValue;
   }
-  
-  void _runInternal(){
-    while(pc < mem.size - 1){
-      if (checkInterrupt()){
 
-      }
-      _machine.visitInstruction(readb());
-    }
-
-    throw const Exception('Program Counter out of bounds.');
+  void writeLocal(int local, int value){
+    var locals = callStack.peek();
+    var index = locals - local;
+    callStack[index] = value;
   }
-
+  
+  int readLocal(int local){
+    var locals = callStack.peek();
+    var index = locals - local;
+    return callStack[index];
+  }
+  
   bool checkInterrupt(){
     return false;
   }
@@ -160,14 +163,14 @@ class ZMachine{
   softReset(){
     _assertLoaded();
     pc = 0;
-    _stack.clear();
+    stack.clear();
     mem = new _MemoryMap(_rawBytes);
   }
 
   /** Reset Z-Machine to state at first load */
   hardReset(){
     pc = 0;
-    _stack.clear();
+    stack.clear();
     mem = null;
     _machine = null;
     isLoaded = false;

@@ -22,7 +22,7 @@ class _MemoryMap {
   // Reads a global variable (word)
   int readGlobal(int which){
 
-   if (which < 0 || which > 0xff)
+   if (which < 0x10 || which > 0xff)
      throw const Exception('Global lookup register out of range.');
 
    //global 0x00 means pop from stack
@@ -31,7 +31,7 @@ class _MemoryMap {
   
   // Writes a global variable (word)
   void writeGlobal(int which, int value){
-    if (which < 0 || which > 0xff)
+    if (which < 0x10 || which > 0xff)
       throw const Exception('Global lookup register out of range.');
     
     if (which == 0){

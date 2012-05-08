@@ -1,9 +1,17 @@
 interface IVisitor {
   visitHeader();
 
-  visitInstruction(int instruction);
+  visitMainRoutine();
+  
+  visitRoutine(List<int> params);
+  
+  visitInstruction();
   
   visitOperation_callvs();
   
-  List<Operand> visitOperands(int howMany, bool isVariable);
+  List<Operand> visitVarOperands(int howMany, bool isVariable);
+  
+  List<Operand> visitOperandLongForm();
+
+  List<Operand> visitOperandShortForm();
 }

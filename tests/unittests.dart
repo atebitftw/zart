@@ -76,5 +76,18 @@ void main() {
       Expect.equals(8101, Z.mem.readGlobal(0x04));
     });
     
+    test('write/read global var 0x00 (stack push/pop)', (){
+      //push
+      Z.mem.writeGlobal(0x00, 41410);
+      Expect.equals(1, Z.stack.length);
+      
+      Expect.equals(41410, Z.stack.peek());
+      
+      //pop
+      Expect.equals(41410, Z.mem.readGlobal(0x00));
+      
+      //should be empty
+      Expect.equals(0, Z.stack.length);
+    });
   });
 }

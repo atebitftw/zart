@@ -6,11 +6,28 @@ class Tester implements IMachine
 {
   Map<String, Function> ops;
   
+  bool mainCalled = false;
+    
+//  00 -- 31  long      2OP     small constant, small constant
+//  32 -- 63  long      2OP     small constant, variable
+//  64 -- 95  long      2OP     variable, small constant
+//  96 -- 127  long      2OP     variable, variable
+//  128 -- 143  short     1OP     large constant
+//  144 -- 159  short     1OP     small constant
+//  160 -- 175  short     1OP     variable
+//  176 -- 191  short     0OP
+//  except $be (190)  extended opcode given in next byte
+//  192 -- 223  variable  2OP     (operand types in next byte)
+//  224 -- 255  variable  VAR     (operand types in next byte(s))
   Tester()
   {
     ops = 
       {
-       '224' : visitOperation_callvs
+       '224' : visitOperation_callvs,
+       '20' : visitOperation_add,
+       '52' : visitOperation_add,
+       '84' : visitOperation_add,
+       '116' : visitOperation_add
       };
   }
     
@@ -36,8 +53,6 @@ class Tester implements IMachine
 
     Z.pc = Z.mem.loadw(Header.PC_INITIAL_VALUE_ADDR);
 
-    out('Disassembly');
-    out('-----------');
     out('(Story contains ${Z.mem.size} bytes.)');
     out('');
     out('------- START HEADER -------');
@@ -58,16 +73,60 @@ class Tester implements IMachine
     out('Standard Revision: ${Z.mem.loadw(Header.REVISION_NUMBER)}');
     out('-------- END HEADER ---------');
 
+    //out('main Routine: ${Z.mem.getRange(Z.pc - 4, 10)}');
+    
     out('');
-    out('pc initial addr: ${Z.pc}, value: ${Z.mem.loadb(Z.pc)}');
-    out('hmm: ${Z.mem.getRange(Z.pc, 10)}');
-
-
-    out('first 10: ${Z.mem.getRange(0, 10)}');
-    out('prove variable (should be 3): ${Z.mem.loadb(Z.pc) >> 6}');
   }
 
-  visitInstruction(int i){
+  visitMainRoutine(){
+    if (mainCalled){
+      throw const Exception('Attempt to call entry routine more than once.');
+    }
+    
+    mainCalled = true;
+    
+    Z.pc -= 1; //move to the main routine header;
+    visitRoutine([]);
+    
+    //throw if this routine returns (it never should)
+    throw const Exception('Illegal return from entry routine.');
+  }
+  
+  visitRoutine(List<int> params){
+    out('  Calling Routine at ${Z.pc.toRadixString(16)}');
+    var locals = Z.readb();
+    out('    # Locals: ${locals}');
+    if (locals > 16)
+      throw const Exception('Maximum local variable allocations (16) exceeded.');
+    
+    if (locals > 0){     
+      for(int i = 1; i <= locals; i++){
+        if (i <= params.length){
+          //if param avail, store it
+          Z.mem.storew(Z.pc, params[i - 1]);
+        }
+        //push local to call stack
+        Z.callStack.push(Z.mem.loadw(Z.pc));
+        
+        out('    Local ${i}: ${Z.mem.loadw(Z.pc).toRadixString(16)}');
+        
+        Z.pc += 2;
+      }
+    }
+    
+    //push total locals onto the call stack
+    Z.callStack.push(locals);
+    
+    //we are now past the routine header. start processing instructions.
+    int returnVal = null;
+    
+    while(returnVal == null){
+      visitInstruction();      
+    }
+  }
+  
+  visitInstruction(){
+    var i = Z.readb();
     if (ops.containsKey('$i')){
       var func = ops['$i'];
       func();
@@ -77,18 +136,29 @@ class Tester implements IMachine
   }
 
   visitOperation_callvs(){
-    out('call_vs (variable operands)');
+    out('call_vs (variable operands)(${Z.mem.loadb(Z.pc - 1)})');
     var op = new CallVS();
+    
+    //setup the stack frame
+    
     op.visit(this);
   }
+  
+  visitOperation_add(){
+    out('add(${Z.mem.loadb(Z.pc - 1)})');
     
-  List<Operand> visitOperands(int howMany, bool isVariable){
-    var operands = isVariable ? new List<Operand>() : new List<Operand>(howMany);
+    var op = new Add();
+    
+    op.visit(this);
+  }
+  
+  List<Operand> visitVarOperands(int howMany, bool isVariable){
+    var operands = new List<Operand>();
     
     //load operand types
     var shiftStart = howMany > 4 ? 14 : 6;
     var os = howMany > 4 ? Z.readw() : Z.readb();
-    
+    out('os: ${os.toRadixString(2)}');
     while(shiftStart > -2){
       var to = os >> shiftStart; //shift
       to &= 3; //mask higher order bits we don't care about
@@ -105,22 +175,50 @@ class Tester implements IMachine
     operands.forEach((Operand o){
       switch (o.type){
         case OperandType.LARGE:
+          out('    LARGE');
           o.value = Z.readw();
           break;
         case OperandType.SMALL:
+          out('   SMALL');
           o.value = Z.readb();
           break;
         case OperandType.VARIABLE:
-          throw const NotImplementedException();
+          var val = Z.readb();
+          
+          if (val == 0x00){
+            out('    var stack (program stack)');
+            o.value = Z.stack.peek();
+          }else if (val <= 0x0f){
+            
+            out('    var local (call stack) $val');
+            
+            var locals = Z.callStack.peek();
+            
+            if (locals < val){
+              throw const Exception('Attempted to access unallocated local variable.');
+            }
+            
+            o.value = Z.readLocal(val);
+          }else if (val <= 0xff){
+            out('    var global');
+            o.value = Z.mem.readGlobal(val);
+          }else{
+            throw const Exception('Variable referencer byte out of range (0-255)');
+          }
+          break;
         default:
           throw new Exception('Illegal Operand Type found: ${o.type.toRadixString(16)}');
       }
     });
     
-    out('  ${operands.length} operands.');
-    out('  values:');
-    operands.forEach((Operand o) =>  out('    ${OperandType.asString(o.type)}: ${o.value.toRadixString(16)}'));
+    out('    ${operands.length} operands:');
+    operands.forEach((Operand o) =>  out('      ${OperandType.asString(o.type)}: ${o.value.toRadixString(16)}'));
+    
+    if (!isVariable && (operands.length != howMany)){
+      throw new Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
+    }
     
     return operands;
   }
+
 }

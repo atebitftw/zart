@@ -32,7 +32,8 @@ class TestMachine implements IMachine {
     Z.pc = Z.mem.loadw(Header.PC_INITIAL_VALUE_ADDR);
   }
 
-  visitInstruction(int i){
+  visitInstruction(){
+    var i = Z.readb();
     if (ops.containsKey('$i')){
       var func = ops['$i'];
       func();
@@ -47,7 +48,7 @@ class TestMachine implements IMachine {
     op.visit(this);
   }
     
-  List<Operand> visitOperands(int howMany, bool isVariable){
+  List<Operand> visitVarOperands(int howMany, bool isVariable){
     var operands = isVariable ? new List<Operand>() : new List<Operand>(howMany);
     
     //load operand types
