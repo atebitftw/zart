@@ -4,20 +4,44 @@ class _MemoryMap {
   // (by giving the address divided by 2). (Word addresses are used only in the abbreviations table.)
 
   final List<int> _mem; //each element in the array represents a byte of z-machine memory.
-  int dynamicUpper;
-  int highMemoryLower;
 
+  // memory map address offsets
+  int abbrAddress;
+  int objectsAddress;
+  int globalVarsAddress;
+  int staticMemAddress;
+  int dictionaryAddress;
+  int highMemAddress;
+  
   _MemoryMap(this._mem);
 
   void checkMem(){
-    if (dynamicUpper == null || highMemoryLower == null) throw const Exception('One or more memory boundaries is not set.');
-    if (dynamicUpper < 64) throw const Exception('Dynamic memory allocation must be at least 64 bytes.'); // 1.1
-    if (highMemoryLower <= dynamicUpper) throw const Exception('High memory lower bound cannot overlap dynamic memory upper bound.'); //1.1
-    if (highMemoryLower > KBtoB(64) - 0x02) throw const Exception('Dynamic & Static memory exceeds 64kb limit.'); // Seciton 1 remarks
+
   }
 
-  int staticLower() => dynamicUpper + 1;
+  // Reads a global variable (word)
+  int readGlobal(int which){
 
+   if (which < 0 || which > 0xff)
+     throw const Exception('Global lookup register out of range.');
+
+   //global 0x00 means pop from stack
+   return which == 0 ? Z.pop() : loadw(globalVarsAddress + (which * 2));
+  }
+  
+  // Writes a global variable (word)
+  void writeGlobal(int which, int value){
+    if (which < 0 || which > 0xff)
+      throw const Exception('Global lookup register out of range.');
+    
+    if (which == 0){
+      //global 0x00 means push to stack
+      Z.push(value);
+    }else{
+      storew(globalVarsAddress + (which * 2), value);
+    }
+  }
+  
   //static and dynamic memory (1.1.1, 1.1.2)
   //get byte
   int loadb(int address){
@@ -35,12 +59,24 @@ class _MemoryMap {
   //dynamic memory only (1.1.1)
   //put byte
   void storeb(int address, int value){
-    throw const NotImplementedException();
+    checkBounds(address);
+    //TODO validate
+    
+    if (value > 0xff) throw const Exception('byte out of range.');
+    
+    _mem[address] = value;
   }
 
   //put word
   void storew(int address, int value){
-    throw const NotImplementedException();
+    checkBounds(address);
+    checkBounds(address + 1);
+    
+    if (value > 0xffff)
+      throw const Exception('word out of range');
+
+    _mem[address] = value >> 8;
+    _mem[address + 1] = value & 0xff;
   }
 
   int _getWord(int address) => (_mem[address] << 8) | _mem[address + 1];
@@ -59,8 +95,6 @@ class _MemoryMap {
   }
 
   int get size() => _mem.length;
-
-  void memInfo() => print('size: $size, dynamicUpper: $dynamicUpper');
 
 }
 

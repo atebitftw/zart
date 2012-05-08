@@ -1,7 +1,10 @@
 interface IMachine extends IVisitor{
+  
  // ZMachine version.
  ZVersion get version();
 
+ Map<String, Function> ops;
+ 
  /// Max file length in Kilobytes.
  int get maxFileLength();
 

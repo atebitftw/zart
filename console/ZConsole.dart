@@ -26,6 +26,7 @@ void main() {
     print('$e');
   }
 
+  Z.verbose = true;
   Z.run(new Tester());
 }
 

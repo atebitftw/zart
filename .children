@@ -1,3 +1,3 @@
-tests/unittests/unittests.dart
 lib/zmachine.dart
 console/ZConsole.dart
+tests/unittests.dart

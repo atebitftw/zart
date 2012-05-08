@@ -13,4 +13,19 @@ class OperandType {
   
   /** Omitted Flag, terminates Operand Type list */
   static final int OMITTED = 0x03;
+  
+  static String asString(int type){
+    switch(type){
+      case LARGE:
+        return 'Large';
+      case SMALL:
+        return 'Small';
+      case VARIABLE:
+        return 'Var';
+      case OMITTED:
+        return 'Omitted';
+      default:
+        return '*INVALID*';
+    }
+  }
 }

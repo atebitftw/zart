@@ -6,10 +6,8 @@
 #source('_Stack.dart');
 #source('_MemoryMap.dart');
 #source('OperandType.dart');
-#source('OpCodes.dart');
 
 #source('machines/IMachine.dart');
-#source('machines/Version3.dart');
 #source('machines/Tester.dart');
 
 /// Dart Implementation of Infocom Z-Machine
@@ -26,7 +24,8 @@ KBtoB(int kb) => kb * 1024;
 
 void out(String outString){
   //TODO support redirect to file.
-  print(outString);
+  if (Z.verbose)
+    print(outString);
 }
 
 /**
@@ -39,7 +38,9 @@ class ZMachine{
   final int TRUE = 1;
   
   bool isLoaded = false;
-
+  
+  bool verbose = false;
+  
   static ZMachine _ref;
   ZVersion _ver;
   List<int> _rawBytes;
@@ -67,9 +68,7 @@ class ZMachine{
   ZMachine._internal()
   :
     _stack = new _Stack(),
-    _supportedMachines = [
-                          new Version3()
-                          ];
+    _supportedMachines = [];
 
   int get version() => _ver != null ? _ver.toInt() : null;
 
@@ -110,6 +109,17 @@ class ZMachine{
     }
     _runInternal();
   }
+  
+  // push a value onto the stack
+  void push(int value){
+    _stack.push(value);
+  }
+  
+  int pop(){
+    return _stack.pop();
+  }
+  
+  
   
   /** Reads 1 byte from the current program counter
   * address and advances the program counter to the next
