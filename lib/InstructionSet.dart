@@ -27,14 +27,17 @@ class InstructionSet
 
     var offset = _jumpToLabelOffset(jumpByte);
 
+    //if testing for true, operand must == FALSE(0)
     if (testTrueOrFalse){
-      if (operand.value == Z.TRUE){
+      out('    [true]');
+      if (operand.value == Z.FALSE){
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return m.visitInstruction();
       }
     }else{
-      if (operand.value == Z.FALSE){
+      out('    [false]');
+      if (operand.value == Z.TRUE){
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return m.visitInstruction();
