@@ -11,7 +11,7 @@
 
 void main() {
   var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
-  
+
   var args = new Options().arguments;
 
   File f = (args.isEmpty()) ? new File(defaultGameFile) : new File(args[0]);
@@ -27,6 +27,6 @@ void main() {
   }
 
   Z.verbose = true;
-  Z.run(new Tester());
+  Z.run();
 }
 

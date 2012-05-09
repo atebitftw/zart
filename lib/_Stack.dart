@@ -3,49 +3,60 @@
 
 class _Stack {
   /// Z-Machine Stack
-  final Queue<int> _stack;
+  final List<int> _stack;
   final int max;
-  
+
   int sp = 0;
-  
+
   _Stack()
-  : 
-    _stack = new Queue<int>(),
+  :
+    _stack = new List<int>(),
     max = 0;
 
   _Stack.max(this.max)
   :
-    _stack = new Queue<int>();
-  
-  int pop() => _stack.removeFirst();
+    _stack = new List<int>();
+
+  int pop() {
+    var v = _stack[0];
+    _stack.removeRange(0, 1);
+    return v;
+  }
 
   int operator [](int index){
-    return new List.from(_stack)[index];
+    return _stack[index];
   }
-  
+
   int operator []=(int index, int value){
-    this[index] = value;
+    _stack[index] = value;
   }
-  
+
   void push(int value) {
     //ref 6.3.3
     if (max > 0 && length == (max - 1))
       throw const Exception('Stack Overflow.');
-    
-    _stack.addFirst(value);
+
+    _stack.insertRange(0, 1, value);
   }
 
-  int peek() => _stack.first();
+  int peek() => _stack[0];
 
   void clear() => _stack.clear();
-  
-  void inc(int amount){
-    sp += amount;
+
+  void dump(){
+    int p = 0;
+    _stack.forEach((i){
+      print("${p++}: 0x${i.toRadixString(16)}");
+    });
   }
-  
-  void dec(int amount){
-    sp -= amount;
-  }
-  
+
+//  void inc(int amount){
+//    sp += amount;
+//  }
+//
+//  void dec(int amount){
+//    sp -= amount;
+//  }
+
   int get length() => _stack.length;
 }

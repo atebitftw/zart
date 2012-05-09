@@ -4,21 +4,22 @@
 #source('Header.dart');
 #source('_Stack.dart');
 #source('_MemoryMap.dart');
+#source('BinaryHelper.dart');
 
-#source('operations/OperandType.dart');
-#source('operations/Operation.dart');
-
+#source('Operand.dart');
+#source('InstructionSet.dart');
 #source('machines/IMachine.dart');
-#source('machines/Tester.dart');
+#source('machines/Version3.dart');
 
 /// Dart Implementation of Infocom Z-Machine
 
 /// Z-Machine Spec Used: http://www.gnelson.demon.co.uk/zspec/
 
 /**
-* Global Z-Machine object.
+* Global Z-Machine object, capable of running any [IMachine] variant.
 */
 ZMachine get Z() => new ZMachine();
+InstructionSet get I() => new InstructionSet();
 
 /// Kilobytes -> Bytes
 KBtoB(int kb) => kb * 1024;
@@ -29,6 +30,30 @@ void out(String outString){
     print(outString);
 }
 
+void todo([String message]){
+  if (message != null)
+    print(message);
+  throw const NotImplementedException();
+}
+
+/**
+* Routine Stack frame
+*
+* # locals
+* local 1
+* ...
+* local n
+* routine base address  (Z._readLocal(-1))
+*/
+
+void _throwAndDump(String message, int dumpOffset, [int howMany=20]){
+
+  for(final v in Z.mem.getRange(Z.pc + dumpOffset, howMany)){
+    out("(${v}, 0x${v.toRadixString(16)}, 0b${v.toRadixString(2)})");
+  }
+  throw new Exception(message);
+}
+
 /**
 * Version agnostic Z-Machine.
 */
@@ -37,11 +62,11 @@ class ZMachine{
   final int FALSE = 0;
   /// Z-Machine True = 1
   final int TRUE = 1;
-  
+
   bool isLoaded = false;
-  
+
   bool verbose = false;
-  
+
   static ZMachine _ref;
   ZVersion _ver;
   List<int> _rawBytes;
@@ -55,7 +80,7 @@ class ZMachine{
 
   /// Z-Machine Program Counter
   int pc = 0;
-  
+
   int currentValue;
 
   _MemoryMap mem;
@@ -71,9 +96,11 @@ class ZMachine{
   :
     stack = new _Stack(),
     callStack = new _Stack.max(1024),
-    _supportedMachines = [];
+    _supportedMachines = [new Version3()];
 
   int get version() => _ver != null ? _ver.toInt() : null;
+
+  InstructionSet get i() => new InstructionSet();
 
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
@@ -95,66 +122,105 @@ class ZMachine{
   void run([IMachine machineOverride = null]){
     _assertLoaded();
 
-    if (_machine == null){
-      if (machineOverride != null){
-        _machine = machineOverride;
-      }else{
-        var result = _supportedMachines
-            .filter(((IMachine m) => m.version == _ver));
-
-        if (result.length != 1){
-          throw new Exception('Z-Machine version ${_ver} not supported.');
-        }else{
-          _machine = result[0];
-        }
-      }
+    if (machineOverride != null){
+      _machine = machineOverride;
       _machine.visitHeader();
     }
+
+    if (_machine == null){
+      var result = _supportedMachines
+                      .filter(((IMachine m) => m.version == _ver));
+
+      if (result.length != 1){
+        throw new Exception('Z-Machine version ${_ver} not supported.');
+      }else{
+        _machine = result[0];
+      }
+
+      _machine.visitHeader();
+    }
+
+
+
     _machine.visitMainRoutine();
   }
-  
-  // push a word onto the stack
-  void push(int value){
-    stack.push(value);
-  }
-  
-  // pop a word from the top of the stack
-  int pop(){
-    return stack.pop();
-  }
-  
+
   /** Reads 1 byte from the current program counter
   * address and advances the program counter to the next
   * unread address.
-  */ 
+  */
   int readb(){
     pc++;
     currentValue = mem.loadb(pc - 1);
     return currentValue;
   }
-  
+
   /** Reads 1 word from the current program counter
   * address and advances the program counter to the next
   * unread address.
-  */ 
+  */
   int readw(){
     pc += 2;
     currentValue = mem.loadw(pc - 2);
     return currentValue;
   }
 
-  void writeLocal(int local, int value){
-    var locals = callStack.peek();
-    var index = locals - local;
-    callStack[index] = value;
+  int readVariable(int varNum){
+    if (varNum == 0x00){
+      //top of stack
+      return stack.peek();
+    }else if (varNum <= 0x0f){
+      return _readLocal(varNum);
+    }else if (varNum <= 0xff){
+      return mem.readGlobal(varNum);
+    }else{
+      out('${mem.getRange(pc - 10, 20)}');
+      throw new Exception('Variable referencer byte out of range (0-255): ${varNum}');
+    }
   }
-  
-  int readLocal(int local){
-    var locals = callStack.peek();
-    var index = locals - local;
-    return callStack[index];
+
+  void writeVariable(int varNum, int value){
+    if (varNum == 0x00){
+      //top of stack
+      stack.push(value);
+    }else if (varNum <= 0x0f){
+      _writeLocal(varNum, value);
+    }else if (varNum <= 0xff){
+      mem.writeGlobal(varNum, value);
+    }else{
+      throw const Exception('Variable referencer byte out of range (0-255)');
+    }
+
   }
-  
+
+  void _writeLocal(int local, int value){
+    var locals = callStack.peek();
+
+    if (locals < local){
+      throw const Exception('Attempted to access unallocated local variable.');
+    }
+
+    var index = locals - local;
+
+    if (index == -1){
+      print('locals: $locals, local: $local');
+      throw const Exception('bad index');
+    }
+
+    callStack[index + 1] = value;
+  }
+
+  int _readLocal(int local){
+    var locals = callStack.peek();
+
+    if (locals < local){
+      throw const Exception('Attempted to access unallocated local variable.');
+    }
+
+    var index = locals - local;
+    return callStack[index + 1];
+  }
+
   bool checkInterrupt(){
     return false;
   }

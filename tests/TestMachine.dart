@@ -1,15 +1,15 @@
 class TestMachine implements IMachine {
   Map<String, Function> ops;
-  
+
   Tester()
   {
-    ops = 
+    ops =
       {
  //      '224' : visitOperation_callvs
       };
   }
-    
-  
+
+
   ZVersion get version() => ZVersion.S;
 
   int get maxFileLength() => 128;
@@ -44,17 +44,16 @@ class TestMachine implements IMachine {
 
   visitOperation_callvs(){
     out('call_vs (variable operands)');
-    var op = new CallVS();
-    op.visit(this);
+    Z.i.callVS(this);
   }
-    
+
   List<Operand> visitVarOperands(int howMany, bool isVariable){
     var operands = isVariable ? new List<Operand>() : new List<Operand>(howMany);
-    
+
     //load operand types
     var shiftStart = howMany > 4 ? 14 : 6;
     var os = howMany > 4 ? Z.readw() : Z.readb();
-    
+
     while(shiftStart > -2){
       var to = os >> shiftStart; //shift
       to &= 3; //mask higher order bits we don't care about
@@ -82,11 +81,11 @@ class TestMachine implements IMachine {
           throw new Exception('Illegal Operand Type found: ${o.type.toRadixString(16)}');
       }
     });
-    
+
     out('  ${operands.length} operands.');
     out('  values:');
     operands.forEach((Operand o) =>  out('    ${OperandType.asString(o.type)}: ${o.value.toRadixString(16)}'));
-    
+
     return operands;
   }
 }

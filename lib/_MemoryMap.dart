@@ -12,7 +12,7 @@ class _MemoryMap {
   int staticMemAddress;
   int dictionaryAddress;
   int highMemAddress;
-  
+
   _MemoryMap(this._mem);
 
   void checkMem(){
@@ -22,26 +22,25 @@ class _MemoryMap {
   // Reads a global variable (word)
   int readGlobal(int which){
 
+   if (which == 0) return Z.stack.pop();
+
    if (which < 0x10 || which > 0xff)
      throw const Exception('Global lookup register out of range.');
 
    //global 0x00 means pop from stack
-   return which == 0 ? Z.pop() : loadw(globalVarsAddress + (which * 2));
+   return loadw(globalVarsAddress + ((which - 0x10) * 2));
   }
-  
+
   // Writes a global variable (word)
   void writeGlobal(int which, int value){
+    if (which == 0) return Z.stack.push(value);
+
     if (which < 0x10 || which > 0xff)
       throw const Exception('Global lookup register out of range.');
-    
-    if (which == 0){
-      //global 0x00 means push to stack
-      Z.push(value);
-    }else{
-      storew(globalVarsAddress + (which * 2), value);
-    }
+
+      storew(globalVarsAddress + ((which - 0x10) * 2), value);
   }
-  
+
   //static and dynamic memory (1.1.1, 1.1.2)
   //get byte
   int loadb(int address){
@@ -61,9 +60,9 @@ class _MemoryMap {
   void storeb(int address, int value){
     checkBounds(address);
     //TODO validate
-    
+
     if (value > 0xff) throw const Exception('byte out of range.');
-    
+
     _mem[address] = value;
   }
 
@@ -71,7 +70,7 @@ class _MemoryMap {
   void storew(int address, int value){
     checkBounds(address);
     checkBounds(address + 1);
-    
+
     if (value > 0xffff)
       throw const Exception('word out of range');
 
