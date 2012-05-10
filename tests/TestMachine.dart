@@ -70,10 +70,10 @@ class TestMachine implements IMachine {
     operands.forEach((Operand o){
       switch (o.type){
         case OperandType.LARGE:
-          o.value = Z.readw();
+          o.rawValue = Z.readw();
           break;
         case OperandType.SMALL:
-          o.value = Z.readb();
+          o.rawValue = Z.readb();
           break;
         case OperandType.VARIABLE:
           throw const NotImplementedException();
@@ -84,7 +84,7 @@ class TestMachine implements IMachine {
 
     out('  ${operands.length} operands.');
     out('  values:');
-    operands.forEach((Operand o) =>  out('    ${OperandType.asString(o.type)}: ${o.value.toRadixString(16)}'));
+    operands.forEach((Operand o) =>  out('    ${OperandType.asString(o.type)}: ${o.peekValue.toRadixString(16)}'));
 
     return operands;
   }

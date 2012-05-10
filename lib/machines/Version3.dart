@@ -24,7 +24,16 @@ class Version3 implements IMachine
     ops =
       {
        '224' : I.callVS,
-       '225' : I.storew,
+       '225' : I.storewv,
+       '79' : I.loadw,
+       '13' : I.store,
+       '45' : I.store,
+       '77' : I.store,
+       '109' : I.store,
+       '14' : I.insertObj,
+       '46' : I.insertObj,
+       '78' : I.insertObj,
+       '110' : I.insertObj,
        '20' : I.add,
        '52' : I.add,
        '84' : I.add,
@@ -33,13 +42,18 @@ class Version3 implements IMachine
        '53' : I.sub,
        '85' : I.sub,
        '117' : I.sub,
-       '1' : I.je,
-       '33' : I.je,
-       '65' : I.je,
-       '97' : I.je,
+       '1' : I.je,    
+       '33' : I.je,  
+       '65' : I.je,   
+       '97' : I.je,  
        '160' : I.jz,
-       '144' : I.jz,
-       '128' : I.jz,
+       '140' : I.jump,
+       '165' : I.jump,
+       '144' : I.jz,  
+       '128' : I.jz,  
+       '139' : I.ret, 
+       '155' : I.ret, 
+       '171' : I.ret 
       };
   }
 
@@ -84,6 +98,7 @@ class Version3 implements IMachine
           //if param avail, store it
           Z.mem.storew(Z.pc, params[i - 1]);
         }
+        
         //push local to call stack
         Z.callStack.push(Z.mem.loadw(Z.pc));
 
@@ -103,6 +118,9 @@ class Version3 implements IMachine
       returnVal = visitInstruction();
     }
 
+    out('Instruction returned: 0x${returnVal.toRadixString(16)}');
+    Z._unwind1();
+    return returnVal;
     //TODO unwind stack frame and assign returnVal;
     todo('unwind stack and assign returnVal');
   }
@@ -111,9 +129,9 @@ class Version3 implements IMachine
     var i = Z.readb();
     if (ops.containsKey('$i')){
       var func = ops['$i'];
-      func(this);
+      return func(this);
     }else{
-      _throwAndDump('Unsupported Op Code: $i', -1, howMany:0);
+      _throwAndDump('Unsupported Op Code: $i', -1, howMany:10);
     }
   }
 
@@ -189,7 +207,18 @@ class Version3 implements IMachine
 
     out('    ${operands.length} operands:');
 
-    operands.forEach((Operand o) =>  out('      ${OperandType.asString(o.type)}: 0x${o.value.toRadixString(16)}'));
+    operands.forEach((Operand o) {
+      if (o.type == OperandType.VARIABLE){
+        if (o.rawValue == 0){
+          out('      ${OperandType.asString(o.type)}: SP (0x${o.peekValue.toRadixString(16)})');
+        }else{
+          out('      ${OperandType.asString(o.type)}: 0x${o.rawValue.toRadixString(16)} (0x${o.peekValue.toRadixString(16)})');
+        }
+
+      }else{
+        out('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}'); 
+      }     
+    });
 
     if (!isVariable && (operands.length != howMany)){
       throw new Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');

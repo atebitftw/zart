@@ -45,7 +45,49 @@ class InstructionSet
     }
   }
 
+  int insertObj(IMachine m){
+    out('  [insert_obj]');
+    todo();
+  }
+  
+  int store(IMachine m){
+    out('  [store]');
+    
+    var operands = m.visitOperandsLongForm();
+    
+    Z.writeVariable(operands[0].rawValue, operands[1].value);   
+ }
 
+  int jump(IMachine m){   
+    out('  [jump]');
+    
+    int decodeOffset(int val){
+      var sign = val & 0x8000;
+      if (sign != 0){
+        return -(65536 - val) - 2;
+      }else{
+        return val - 2;
+      }
+    }
+               
+    var operand = m.visitOperandsShortForm();
+    
+    var offset = decodeOffset(operand.value);
+   
+    Z.pc += offset;
+    
+    out('  (to 0x${Z.pc.toRadixString(16)})');
+  }
+  
+  
+  int ret(IMachine m){
+    out('  [ret]');
+    var operand = m.visitOperandsShortForm();
+    
+    out('    returning 0x${operand.peekValue.toRadixString(16)}');
+    return operand.value;
+  }
+  
   int je(IMachine m){
     out('  [je]');
     var operands = m.visitOperandsLongForm();
@@ -72,6 +114,7 @@ class InstructionSet
         return m.visitInstruction();
       }
     }
+    out('    continuing to next instruction');
   }
 
   void sub(IMachine m){
@@ -92,8 +135,24 @@ class InstructionSet
     out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
   }
 
-  int storew(IMachine m){
-    out('  [storew]');
+  
+  
+  int loadw(IMachine m){
+    out('  [loadw]');
+    
+    var operands = m.visitOperandsLongForm();
+    
+    var resultTo = Z.readb();
+    
+    var addr = operands[0].value + (2 * operands[1].value);
+    
+    Z.writeVariable(resultTo, Z.mem.loadw(addr));
+    out('    loaded 0x${Z.peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
+  }
+  
+  //variable arguement version of storew
+  int storewv(IMachine m){
+    out('  [storewv]');
 
     var operands = m.visitOperandsVar(4, true);
 
@@ -104,7 +163,7 @@ class InstructionSet
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
     var addr = operands[0].value + (2 * operands[1].value);
     Z.mem.storew(addr, operands[2].value);
-    out('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
+    out('    stored 0x${operands[2].peekValue.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
   int callVS(IMachine m){
@@ -113,21 +172,31 @@ class InstructionSet
 
     if (operands.isEmpty())
       throw const Exception('Call function address not given.');
-
+    
+    var storeTo = Z.readb();
+//    out('>>>storing to: 0x${storeTo}');
+    var returnTo = Z.pc;
+//    out('>>>returning to: 0x${Z.pc.toRadixString(16)}');
+    
     //unpack function address
     operands[0].rawValue = m.unpack(operands[0].value);
 
-    out('    (unpacked first operand to: 0x${operands[0].value.toRadixString(16)})');
+    out('    (unpacked first operand to: 0x${operands[0].peekValue.toRadixString(16)})');
 
     if (operands[0].value == 0){
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
-      return Z.FALSE;
+      Z.writeVariable(storeTo, Z.FALSE);
     }else{
       Z.pc = operands[0].value;
-      m.visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      var result = m.visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      Z.writeVariable(storeTo, result);
     }
+    
+    //Z.pc = Z.callStack.pop();
+    out('>>> returning control to: 0x${returnTo.toRadixString(16)}');
+    Z.pc = returnTo;
   }
-
+    
   //calculates the local jump offset (ref 4.7)
   int _jumpToLabelOffset(int jumpByte){
 
@@ -139,6 +208,4 @@ class InstructionSet
       todo('implement 2-byte offset calc');
     }
   }
-
-
 }

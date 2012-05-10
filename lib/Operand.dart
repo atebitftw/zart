@@ -6,6 +6,10 @@ class Operand
 
   Operand(this.type);
 
+  /// Gets a read of the [rawValue].
+  /// If the type is VARIABLE, then performns an implicit
+  /// read of the variable's address, otherwise just
+  /// returns the rawValue (SMALL or LARGE);
   int get value(){
     switch(type){
       case OperandType.LARGE:
@@ -18,8 +22,20 @@ class Operand
     }
   }
 
+  int get peekValue(){
+    switch(type){
+      case OperandType.LARGE:
+      case OperandType.SMALL:
+        return rawValue;
+      case OperandType.VARIABLE:
+        return Z.peekVariable(rawValue);
+      default:
+        throw new Exception('Invalid Operand Type: $type');
+    }
+  }
+  
 
-  String toString() => '[${OperandType.asString(type)}, 0x${value.toRadixString(16)}]';
+  String toString() => '[${OperandType.asString(type)}, 0x${peekValue.toRadixString(16)}]';
 }
 
 /// Declares the 4 different operand types

@@ -165,10 +165,28 @@ class ZMachine{
     return currentValue;
   }
 
+  int peekVariable(int varNum){
+    if (varNum == 0x00){
+      //top of stack
+      var result = stack.peek();
+      out('    (peeked 0x${result.toRadixString(16)} from stack)');
+      return result;
+    }else if (varNum <= 0x0f){
+      return _readLocal(varNum);
+    }else if (varNum <= 0xff){
+      return mem.readGlobal(varNum);
+    }else{
+      out('${mem.getRange(pc - 10, 20)}');
+      throw new Exception('Variable referencer byte out of range (0-255): ${varNum}');
+    }
+  }
+  
   int readVariable(int varNum){
     if (varNum == 0x00){
       //top of stack
-      return stack.peek();
+      var result = stack.pop();
+      out('    (popped 0x${result.toRadixString(16)} from stack)');
+      return result;
     }else if (varNum <= 0x0f){
       return _readLocal(varNum);
     }else if (varNum <= 0xff){
@@ -182,17 +200,31 @@ class ZMachine{
   void writeVariable(int varNum, int value){
     if (varNum == 0x00){
       //top of stack
+      out('    (pushed 0x${value.toRadixString(16)} to stack)');
       stack.push(value);
     }else if (varNum <= 0x0f){
+      out('    (wrote 0x${value.toRadixString(16)} to local 0x${varNum.toRadixString(16)})');
       _writeLocal(varNum, value);
     }else if (varNum <= 0xff){
+      out('    (wrote 0x${value.toRadixString(16)} to global 0x${varNum.toRadixString(16)})');
       mem.writeGlobal(varNum, value);
     }else{
       throw const Exception('Variable referencer byte out of range (0-255)');
     }
+ }
 
+  //unwinds one frame from the call stack
+  void _unwind1(){
+    var frameSize = Z.callStack.peek() + 1;
+    
+    out('(unwinding stack 1 frame)');
+
+    while(frameSize >= 0){
+      Z.callStack.pop();
+      frameSize--;
+    }
   }
-
+  
   void _writeLocal(int local, int value){
     var locals = callStack.peek();
 
@@ -203,7 +235,7 @@ class ZMachine{
     var index = locals - local;
 
     if (index == -1){
-      print('locals: $locals, local: $local');
+      out('locals: $locals, local: $local');
       throw const Exception('bad index');
     }
 
