@@ -31,6 +31,18 @@ void main() {
 
   machine.visitHeader();
 
+  StringBuffer s = new StringBuffer();
+
+  for(int i = 155; i <= 223; i++){
+    s.add('($i, ${ZSCII.ZCharToChar(i)})');
+  }
+
+  print(s.toString());
+
+  group('ZSCII Tests>', (){
+
+  });
+
   group('BinaryHelper Tests>', (){
     test('isSet() true', (){
       Expect.equals('1111', 15.toRadixString(2));

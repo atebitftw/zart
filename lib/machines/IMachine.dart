@@ -1,10 +1,15 @@
-interface IMachine extends IVisitor{
-  
+
+/**
+* Defines the contract for any Z-Machine implementations.
+*/
+interface IMachine default Version3
+{
+
  // ZMachine version.
  ZVersion get version();
 
  Map<String, Function> ops;
- 
+
  /// Max file length in Kilobytes.
  int get maxFileLength();
 
@@ -19,5 +24,56 @@ interface IMachine extends IVisitor{
 
  int fileLengthMultiplier();
 
+ void visitHeader();
+
+ void visitMainRoutine();
+
+ void visitRoutine(List<int> params);
+
+ void visitInstruction();
+
+ List<Operand> visitOperandsVar(int howMany, bool isVariable);
+
+ List<Operand> visitOperandsLongForm();
+
+ Operand visitOperandsShortForm();
+
+ int testAttribute();
+
+ int setAttribute();
+
+ int clearAttribute();
+
+ int getProperty();
+
+ int getPropertyAddress();
+
+ int getNextProperty();
+
+ int getObjectAddress(int objectNumber);
+
+ String getObjectShortName(int objectNumber);
+
+ int je();
+
+ int jin();
+
+ int add();
+
+ int sub();
+
+ int loadw();
+
+ int callVS();
+
+ int insertObj();
+
+ int ret();
+
+ int jump();
+
+ int store();
+
+ int storewv();
 }
 

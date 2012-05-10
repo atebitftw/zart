@@ -1,13 +1,12 @@
 #library('ZMachine');
 
-#source('IVisitor.dart');
 #source('Header.dart');
 #source('_Stack.dart');
 #source('_MemoryMap.dart');
 #source('BinaryHelper.dart');
+#source('ZSCII.dart');
 
 #source('Operand.dart');
-#source('InstructionSet.dart');
 #source('machines/IMachine.dart');
 #source('machines/Version3.dart');
 
@@ -19,7 +18,6 @@
 * Global Z-Machine object, capable of running any [IMachine] variant.
 */
 ZMachine get Z() => new ZMachine();
-InstructionSet get I() => new InstructionSet();
 
 /// Kilobytes -> Bytes
 KBtoB(int kb) => kb * 1024;
@@ -100,8 +98,6 @@ class ZMachine{
 
   int get version() => _ver != null ? _ver.toInt() : null;
 
-  InstructionSet get i() => new InstructionSet();
-
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
@@ -180,7 +176,7 @@ class ZMachine{
       throw new Exception('Variable referencer byte out of range (0-255): ${varNum}');
     }
   }
-  
+
   int readVariable(int varNum){
     if (varNum == 0x00){
       //top of stack
@@ -216,7 +212,7 @@ class ZMachine{
   //unwinds one frame from the call stack
   void _unwind1(){
     var frameSize = Z.callStack.peek() + 1;
-    
+
     out('(unwinding stack 1 frame)');
 
     while(frameSize >= 0){
@@ -224,7 +220,7 @@ class ZMachine{
       frameSize--;
     }
   }
-  
+
   void _writeLocal(int local, int value){
     var locals = callStack.peek();
 

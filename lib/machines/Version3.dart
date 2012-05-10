@@ -8,6 +8,8 @@ class Version3 implements IMachine
 
   bool mainCalled = false;
 
+  int get propertyDefaultsTableSize() => 31;
+
 //  00 -- 31  long      2OP     small constant, small constant
 //  32 -- 63  long      2OP     small constant, variable
 //  64 -- 95  long      2OP     variable, small constant
@@ -23,37 +25,37 @@ class Version3 implements IMachine
   {
     ops =
       {
-       '224' : I.callVS,
-       '225' : I.storewv,
-       '79' : I.loadw,
-       '13' : I.store,
-       '45' : I.store,
-       '77' : I.store,
-       '109' : I.store,
-       '14' : I.insertObj,
-       '46' : I.insertObj,
-       '78' : I.insertObj,
-       '110' : I.insertObj,
-       '20' : I.add,
-       '52' : I.add,
-       '84' : I.add,
-       '116' : I.add,
-       '21' : I.sub,
-       '53' : I.sub,
-       '85' : I.sub,
-       '117' : I.sub,
-       '1' : I.je,    
-       '33' : I.je,  
-       '65' : I.je,   
-       '97' : I.je,  
-       '160' : I.jz,
-       '140' : I.jump,
-       '165' : I.jump,
-       '144' : I.jz,  
-       '128' : I.jz,  
-       '139' : I.ret, 
-       '155' : I.ret, 
-       '171' : I.ret 
+       '224' : callVS,
+       '225' : storewv,
+       '79' : loadw,
+       '13' : store,
+       '45' : store,
+       '77' : store,
+       '109' : store,
+       '14' : insertObj,
+       '46' : insertObj,
+       '78' : insertObj,
+       '110' : insertObj,
+       '20' : add,
+       '52' : add,
+       '84' : add,
+       '116' : add,
+       '21' : sub,
+       '53' : sub,
+       '85' : sub,
+       '117' : sub,
+       '1' : je,
+       '33' : je,
+       '65' : je,
+       '97' : je,
+       '160' : jz,
+       '140' : jump,
+       '165' : jump,
+       '144' : jz,
+       '128' : jz,
+       '139' : ret,
+       '155' : ret,
+       '171' : ret
       };
   }
 
@@ -98,7 +100,7 @@ class Version3 implements IMachine
           //if param avail, store it
           Z.mem.storew(Z.pc, params[i - 1]);
         }
-        
+
         //push local to call stack
         Z.callStack.push(Z.mem.loadw(Z.pc));
 
@@ -129,11 +131,263 @@ class Version3 implements IMachine
     var i = Z.readb();
     if (ops.containsKey('$i')){
       var func = ops['$i'];
-      return func(this);
+      return func();
     }else{
       _throwAndDump('Unsupported Op Code: $i', -1, howMany:10);
     }
   }
+
+  int testAttribute()  {
+    todo();
+  }
+
+  int setAttribute()  {
+    todo();
+  }
+
+  int clearAttribute()  {
+    todo();
+  }
+
+  int getProperty()  {
+    todo();
+  }
+
+  int getPropertyAddress()  {
+    todo();
+  }
+
+  int getNextProperty()  {
+    todo();
+  }
+
+  int getObjectAddress(int objectNumber){
+    // skip header bytes (ref 12.2)
+    var objStart = Z.mem.objectsAddress + 62;
+
+    return objStart += (objectNumber - 1) * 9;
+  }
+
+
+
+  int jin()  {
+    todo();
+  }
+
+
+  int jz(){
+    out('  [jz]');
+    var operand = this.visitOperandsShortForm();
+
+    var jumpByte = Z.readb();
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+
+    var offset = _jumpToLabelOffset(jumpByte);
+
+    //if testing for true, operand must == FALSE(0)
+    if (testTrueOrFalse){
+      out('    [true]');
+      if (operand.value == Z.FALSE){
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      out('    [false]');
+      if (operand.value == Z.TRUE){
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+  }
+
+  int insertObj(){
+    out('  [insert_obj]');
+
+    var operands = this.visitOperandsLongForm();
+
+    out('Insert Object ${operands[0].peekValue} into ${operands[1].peekValue}');
+
+
+    getObjectShortName(8);
+//    getObjectShortName(4);
+//    getObjectShortName(5);
+//    getObjectShortName(operands[0].peekValue);
+//    getObjectShortName(operands[1].peekValue);
+
+    todo('complete insert object');
+  }
+
+  String getObjectShortName(int oNum){
+    var addr = getObjectAddress(oNum);
+//    out('object address: 0x${addr.toRadixString(16)}');
+
+    var propertyTableAddr = Z.mem.loadw(addr + 7);
+
+//    out('property table: ${Z.mem.getRange(propertyTableAddr, 20)}');
+    out('${ZSCII.readZString(propertyTableAddr + 1)}');
+  }
+
+  int store(){
+    out('  [store]');
+
+    var operands = this.visitOperandsLongForm();
+
+    Z.writeVariable(operands[0].rawValue, operands[1].value);
+ }
+
+  int jump(){
+    out('  [jump]');
+
+    int decodeOffset(int val){
+      var sign = val & 0x8000;
+      if (sign != 0){
+        return -(65536 - val) - 2;
+      }else{
+        return val - 2;
+      }
+    }
+
+    var operand = this.visitOperandsShortForm();
+
+    var offset = decodeOffset(operand.value);
+
+    Z.pc += offset;
+
+    out('  (to 0x${Z.pc.toRadixString(16)})');
+  }
+
+
+  int ret(){
+    out('  [ret]');
+    var operand = this.visitOperandsShortForm();
+
+    out('    returning 0x${operand.peekValue.toRadixString(16)}');
+    return operand.value;
+  }
+
+  int je(){
+    out('  [je]');
+    var operands = this.visitOperandsLongForm();
+
+    var jumpByte = Z.readb();
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+
+    var offset = _jumpToLabelOffset(jumpByte);
+
+    //TODO refactor
+    if (testTrueOrFalse){
+      out('    [true]');
+      if (operands[0].value == operands[1].value){
+        //(ref 4.7.2)
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      out('    [false]');
+      if (operands[0].value != operands[1].value){
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    out('    continuing to next instruction');
+  }
+
+  int sub(){
+    out('  [subtract]');
+    var operands = this.visitOperandsLongForm();
+    var resultTo = Z.readb();
+
+    Z.writeVariable(resultTo, operands[0].value - operands[1].value);
+    out('    Wrote 0x${(operands[0].value - operands[1].value).toRadixString(16)} (${operands[0].value} - ${operands[1].value}) to 0x${resultTo}');
+  }
+
+  int add(){
+    out('  [add]');
+    var operands = this.visitOperandsLongForm();
+    var resultTo = Z.readb();
+
+    Z.writeVariable(resultTo, operands[0].value + operands[1].value);
+    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
+  }
+
+
+
+  int loadw(){
+    out('  [loadw]');
+
+    var operands = this.visitOperandsLongForm();
+
+    var resultTo = Z.readb();
+
+    var addr = operands[0].value + (2 * operands[1].value);
+
+    Z.writeVariable(resultTo, Z.mem.loadw(addr));
+    out('    loaded 0x${Z.peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
+  }
+
+  //variable arguement version of storew
+  int storewv(){
+    out('  [storewv]');
+
+    var operands = this.visitOperandsVar(4, true);
+
+    if (operands.length != 3){
+      throw const Exception('Expected operand count of 3 for storew instruction.');
+    }
+
+    //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
+    var addr = operands[0].value + (2 * operands[1].value);
+    Z.mem.storew(addr, operands[2].value);
+    out('    stored 0x${operands[2].peekValue.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
+  }
+
+  int callVS(){
+    out('  [call_vs]');
+    var operands = this.visitOperandsVar(4, true);
+
+    if (operands.isEmpty())
+      throw const Exception('Call function address not given.');
+
+    var storeTo = Z.readb();
+//    out('>>>storing to: 0x${storeTo}');
+    var returnTo = Z.pc;
+//    out('>>>returning to: 0x${Z.pc.toRadixString(16)}');
+
+    //unpack function address
+    operands[0].rawValue = this.unpack(operands[0].value);
+
+    out('    (unpacked first operand to: 0x${operands[0].peekValue.toRadixString(16)})');
+
+    if (operands[0].value == 0){
+      //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
+      Z.writeVariable(storeTo, Z.FALSE);
+    }else{
+      Z.pc = operands[0].value;
+      var result = this.visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      Z.writeVariable(storeTo, result);
+    }
+
+    //Z.pc = Z.callStack.pop();
+    out('>>> returning control to: 0x${returnTo.toRadixString(16)}');
+    Z.pc = returnTo;
+  }
+
+  //calculates the local jump offset (ref 4.7)
+  int _jumpToLabelOffset(int jumpByte){
+
+    if (BinaryHelper.isSet(jumpByte, 6)){
+      //single byte offset
+      return BinaryHelper.bottomBits(jumpByte, 6);
+    }else{
+      //2-byte offset (signed)
+      todo('implement 2-byte offset calc');
+    }
+  }
+
 
   Operand visitOperandsShortForm(){
     var oc = Z.mem.loadb(Z.pc - 1);
@@ -216,8 +470,8 @@ class Version3 implements IMachine
         }
 
       }else{
-        out('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}'); 
-      }     
+        out('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}');
+      }
     });
 
     if (!isVariable && (operands.length != howMany)){
