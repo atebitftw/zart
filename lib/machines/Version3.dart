@@ -202,17 +202,47 @@ class Version3 implements IMachine
     }
   }
 
+  void _dumpObject(int objectNum){
+    out('Object #: $objectNum, "${getObjectShortName(objectNum)}"');
+    
+    var addr = getObjectAddress(objectNum);
+    
+    out('parent: ${Z.mem.loadb(addr + 4)} ${getObjectShortName(Z.mem.loadb(addr + 4))}');
+    out('sibling: ${Z.mem.loadb(addr + 5)} ${getObjectShortName(Z.mem.loadb(addr + 5))}');
+    out('child: ${Z.mem.loadb(addr + 6)} ${getObjectShortName(Z.mem.loadb(addr + 6))}');
+    out('');
+  }
+  
   int insertObj(){
     out('  [insert_obj]');
-
+    
     var operands = this.visitOperandsLongForm();
 
     out('Insert Object ${operands[0].peekValue}(${getObjectShortName(operands[0].peekValue)}) into ${operands[1].peekValue}(${getObjectShortName(operands[1].peekValue)})');
+    
+//    for(int i = 1; i <= 50; i++){
+//      _dumpObject(i);
+//    }
 
+    out('>>> before'); 
+    _dumpObject(operands[0].peekValue);
+    
+    var addr = getObjectAddress(operands[0].value);    
+    var parent = Z.mem.loadb(addr + 4);
+    var sibling = Z.mem.loadb(addr + 5);
+    var child = Z.mem.loadb(addr + 6);
+    
+    print(ZSCII.readZString(0xcb7e));
+    
+    out('>>> after');
+    _dumpObject(operands[0].peekValue);
+    
     todo('complete insert object');
   }
 
   String getObjectShortName(int oNum){
+    if (oNum == 0) return '(none)';
+    
     var addr = getObjectAddress(oNum);
 //    out('object address: 0x${addr.toRadixString(16)}');
 
