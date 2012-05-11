@@ -207,14 +207,7 @@ class Version3 implements IMachine
 
     var operands = this.visitOperandsLongForm();
 
-    out('Insert Object ${operands[0].peekValue} into ${operands[1].peekValue}');
-
-
-    getObjectShortName(11);
-//    getObjectShortName(4);
-//    getObjectShortName(5);
-//    getObjectShortName(operands[0].peekValue);
-//    getObjectShortName(operands[1].peekValue);
+    out('Insert Object ${operands[0].peekValue}(${getObjectShortName(operands[0].peekValue)}) into ${operands[1].peekValue}(${getObjectShortName(operands[1].peekValue)})');
 
     todo('complete insert object');
   }
@@ -226,7 +219,8 @@ class Version3 implements IMachine
     var propertyTableAddr = Z.mem.loadw(addr + 7);
 
 //    out('property table: ${Z.mem.getRange(propertyTableAddr, 20)}');
-    out('${ZSCII.readZString(propertyTableAddr + 1)}');
+//    out('${ZSCII.readZString(propertyTableAddr + 1)}');
+    return ZSCII.readZString(propertyTableAddr + 1);
   }
 
   int store(){
