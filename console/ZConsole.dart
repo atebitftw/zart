@@ -26,7 +26,7 @@ void main() {
     print('$e');
   }
 
-  Z.verbose = true;
+  Z.verbose = false;
   Z.run();
 }
 

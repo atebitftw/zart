@@ -28,10 +28,25 @@ class Version3 implements IMachine
        '224' : callVS,
        '225' : storewv,
        '79' : loadw,
+       '15' : loadw,
+       '47' : loadw,
+       '111' : loadw,
+       '10' : test_attr,
+       '42' : test_attr,
+       '74' : test_attr,
+       '106' : test_attr,
+       '11' : set_attr,
+       '43' : set_attr,
+       '75' : set_attr,
+       '107' : set_attr,
        '13' : store,
        '45' : store,
        '77' : store,
        '109' : store,
+       '16' : loadb,
+       '48' : loadb,
+       '80' : loadb,
+       '112' : loadb,
        '14' : insertObj,
        '46' : insertObj,
        '78' : insertObj,
@@ -56,6 +71,14 @@ class Version3 implements IMachine
        '56' : mod,
        '88' : mod,
        '120' : mod,
+       '5' : inc_chk,
+       '37' : inc_chk,
+       '69' : inc_chk,
+       '101' : inc_chk,
+       '6' : jin,
+       '38' : jin,
+       '70' : jin,
+       '102' : jin,
        '1' : je,
        '33' : je,
        '65' : je,
@@ -68,7 +91,23 @@ class Version3 implements IMachine
        '139' : ret,
        '155' : ret,
        '171' : ret,
-       '178' : printf
+       '135' : print_addr,
+       '151' : print_addr,
+       '167' : print_addr,
+       '141' : print_paddr,
+       '157' : print_paddr,
+       '173' : print_paddr,
+       '178' : printf,
+       '187' : newline,
+       '201' : andV,
+       '9' : and,
+       '230' : print_num,
+       '229' : print_char,
+       '176' : rtrue,
+       '177' : rfalse,
+       '138' : print_obj,
+       '154' : print_obj,
+       '170' : print_obj
       };
   }
 
@@ -146,7 +185,7 @@ class Version3 implements IMachine
       var func = ops['$i'];
       return func();
     }else{
-      _throwAndDump('Unsupported Op Code: $i', -10, howMany:30);
+      _throwAndDump('Unsupported Op Code: $i', 0, howMany:30);
     }
   }
 
@@ -174,11 +213,17 @@ class Version3 implements IMachine
     todo();
   }
 
-  int jin()  {
-    todo();
+  int rtrue(){
+    out('  [rtrue]');
+    return Z.TRUE;
   }
-
-
+  
+  int rfalse(){
+    out('  [rfalse]');
+    return Z.FALSE;
+  }
+  
+  
   int jz(){
     out('  [jz]');
     var operand = this.visitOperandsShortForm();
@@ -205,12 +250,75 @@ class Version3 implements IMachine
       }
     }
   }
+  
+  int newline(){
+    out('  [newline]');
+    
+    Z.printBuffer();
+  }
+  
+  int print_obj(){
+    out('  [print_obj');
+    var operand = this.visitOperandsShortForm();
+    
+    var obj = new GameObjectV3(operand.value);
+    
+    Z.sbuff.add(obj.shortName);
+  }
+  
+  int print_addr(){
+    out('  [print_addr]');
+    var operand = this.visitOperandsShortForm();
+    
+    var addr = operand.value;
+    
+    Z.sbuff.add(ZSCII.readZString(addr));
+    Z.callStack.pop();
+  }
+  
+  int print_paddr(){
+    out('  [print_paddr]');
+    
+    var operand = this.visitOperandsShortForm();
+    
+    var addr = this.unpack(operand.value);
+    
+    Z.sbuff.add(ZSCII.readZString(addr));
+    Z.callStack.pop();
+  }
  
+  int print_char(){
+    out('  [print_char]');
+      
+    var operands = this.visitOperandsVar(1, false);
+    
+    var z = operands[0].value;
+    
+    if (z < 0 || z > 1023){
+      throw const Exception('ZSCII char is out of bounds.');
+    }
+
+    Z.sbuff.add(ZSCII.ZCharToChar(z));
+  }
+  
+  int print_num(){
+    out('  [print_num]');
+    
+    var operands = this.visitOperandsVar(1, false);
+    
+    //TODO support signed nums (ref http://www.gnelson.demon.co.uk/zspec/sect15.html#print_num)
+    
+    var n = operands[0].value;
+    
+    Z.sbuff.add('$n');
+  }
+  
   int printf(){
-    out('   [print]');
-    var s = ZSCII.readZString(Z.pc);
-    print('|$s| ${s.length}');
-    Z.pc += (s.length );
+    out('  [print]');
+    
+    Z.sbuff.add(ZSCII.readZString(Z.pc));
+    
+    Z.pc = Z.callStack.pop();
   }
   
   int insertObj(){
@@ -274,6 +382,109 @@ class Version3 implements IMachine
     return operand.value;
   }
 
+  int inc_chk(){
+    out('  [inc_chk]');
+    
+    Z.mem.storeb(Z.pc - 1, 69); //force to var/small arguement types
+    
+    var operands = this.visitOperandsLongForm();
+    
+    var jumpByte = Z.readb();
+        
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+    
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    var value = operands[0].value + 1;
+
+    Z.writeVariable(operands[0].rawValue, value);
+        
+    if (testTrueOrFalse){
+      if (value > operands[1].value){
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      if (value <= operands[1].value){
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    
+    out('    continuing to next instruction');
+  }
+  
+  test_attr(){
+    out('  [test_attr]');
+    var operands = this.visitOperandsLongForm();
+    
+    var jumpByte = Z.readb();
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+    
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    GameObjectV3 obj = new GameObjectV3(operands[0].value);
+    
+    if (testTrueOrFalse){
+      if (obj.isFlagBitSet(operands[1].value)){
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      if (!obj.isFlagBitSet(operands[1].value)){
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    
+    out('    continuing to next instruction');
+  }
+  
+  int set_attr(){
+    out('  [set_attr]');
+    var operands = this.visitOperandsLongForm();
+    
+    GameObjectV3 obj = new GameObjectV3(operands[0].value);
+    
+    obj.setFlagBit(operands[1].value);
+
+  }
+  
+  int jin()  {
+    out('  [jin]');
+    
+    var operands = this.visitOperandsLongForm();
+
+    var jumpByte = Z.readb();
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    var obj1 = new GameObjectV3(operands[0].value);
+    var obj2 = new GameObjectV3(operands[1].value);
+    
+    if (testTrueOrFalse){
+      if (obj1.parent == obj2.id){
+        //(ref 4.7.2)
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      if (obj1.parent != obj2.id){
+        //(ref 4.7.2)
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    out('    continuing to next instruction');
+  }
+  
   int je(){
     out('  [je]');
     var operands = this.visitOperandsLongForm();
@@ -282,7 +493,7 @@ class Version3 implements IMachine
     bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
 
     var offset = _jumpToLabelOffset(jumpByte);
-
+    
     //TODO refactor
     if (testTrueOrFalse){
       out('    [true]');
@@ -303,13 +514,31 @@ class Version3 implements IMachine
     out('    continuing to next instruction');
   }
 
+  int andV(){
+    out('  [andV]');
+    var operands = this.visitOperandsVar(2, false);
+    
+    var resultTo = Z.readb();
+    
+    Z.writeVariable(resultTo, operands[0].value & operands[1].value);
+  }
+  
+  int and(){
+    out('  [and]');
+    
+    var operands = this.visitOperandsLongForm();
+    
+    var resultTo = Z.readb();
+    
+    Z.writeVariable(resultTo, operands[0].value & operands[1].value);
+  }
+  
   int sub(){
     out('  [subtract]');
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
 
     Z.writeVariable(resultTo, operands[0].value - operands[1].value);
-    out('    Wrote 0x${(operands[0].value - operands[1].value).toRadixString(16)} (${operands[0].value} - ${operands[1].value}) to 0x${resultTo}');
   }
 
   int add(){
@@ -318,7 +547,6 @@ class Version3 implements IMachine
     var resultTo = Z.readb();
 
     Z.writeVariable(resultTo, operands[0].value + operands[1].value);
-    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
   }
   
   int mul(){
@@ -327,7 +555,6 @@ class Version3 implements IMachine
     var resultTo = Z.readb();
     
     Z.writeVariable(resultTo, operands[0].value * operands[1].value);
-    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
   }
   
   int div(){
@@ -340,7 +567,6 @@ class Version3 implements IMachine
     }
     
     Z.writeVariable(resultTo, (operands[0].value / operands[1].value).toInt());
-    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
   }
 
   int mod(){
@@ -353,9 +579,22 @@ class Version3 implements IMachine
     }
     
     Z.writeVariable(resultTo, operands[0].value % operands[1].value);
-    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
   }
 
+  int loadb(){
+    out('  [loadb]');
+    
+    var operands = this.visitOperandsLongForm();
+
+    var resultTo = Z.readb();
+
+    var addr = operands[0].value + operands[1].value;
+
+    //todo();
+    Z.writeVariable(resultTo, Z.mem.loadb(addr));
+    out('    loaded 0x${Z.peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
+  }
+  
   int loadw(){
     out('  [loadw]');
 
@@ -706,7 +945,10 @@ class GameObjectV3
     
     var propertyTableAddr = Z.mem.loadw(_address + 7);
 
-    return ZSCII.readZString(propertyTableAddr + 1);
+    var s = ZSCII.readZString(propertyTableAddr + 1);
+    Z.callStack.pop();
+    
+    return s;
   }
   
 }

@@ -45,11 +45,12 @@ void todo([String message]){
 */
 
 void _throwAndDump(String message, int dumpOffset, [int howMany=20]){
-
+  Z.printBuffer();
+  
   for(final v in Z.mem.getRange(Z.pc + dumpOffset, howMany)){
     out("(${v}, 0x${v.toRadixString(16)}, 0b${v.toRadixString(2)})");
   }
-  throw new Exception('(0x${Z.pc.toRadixString(16)}) $message');
+  throw new Exception('(0x${(Z.pc - 1).toRadixString(16)}) $message');
 }
 
 /**
@@ -94,7 +95,10 @@ class ZMachine{
   :
     stack = new _Stack(),
     callStack = new _Stack.max(1024),
-    _supportedMachines = [new Version3()];
+    _supportedMachines = [new Version3()]
+  {
+    sbuff = new StringBuffer();
+  }
 
   int get version() => _ver != null ? _ver.toInt() : null;
 
@@ -140,7 +144,15 @@ class ZMachine{
 
     _machine.visitMainRoutine();
   }
-
+  
+  StringBuffer sbuff;
+  
+  void printBuffer(){
+    //TODO(hook in configuration)
+    print(sbuff.toString());
+    sbuff.clear();
+  }
+  
   /** Reads 1 byte from the current program counter
   * address and advances the program counter to the next
   * unread address.
@@ -165,7 +177,7 @@ class ZMachine{
     if (varNum == 0x00){
       //top of stack
       var result = stack.peek();
-      out('    (peeked 0x${result.toRadixString(16)} from stack)');
+      //out('    (peeked 0x${result.toRadixString(16)} from stack)');
       return result;
     }else if (varNum <= 0x0f){
       return _readLocal(varNum);
@@ -246,6 +258,7 @@ class ZMachine{
     }
 
     var index = locals - local;
+
     return callStack[index + 1];
   }
 

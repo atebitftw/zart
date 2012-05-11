@@ -63,9 +63,14 @@ class ZSCII {
        '219':  0xa3, '220': 0x153, '221':  0x152,'222':  0xa1,
        '223':  0xbf
       };
-
+      
   /// Reads a string of Z characters and returns
-  /// the decoded version.
+  /// the decoded version.  Also pushes the address after the
+  /// string to the call stack.
+  ///
+  /// The value MUST be popped off the stack by the caller.
+  ///
+  ///     Z.callStack.pop();
   static String readZString(int fromAddress){
     bool finished = false;
     StringBuffer s = new StringBuffer();
@@ -84,6 +89,8 @@ class ZSCII {
 
       charList.addAll(nextz.toCollection());
     }
+    
+    Z.callStack.push(fromAddress);
 
     //now decode into output string
 
@@ -102,7 +109,8 @@ class ZSCII {
         var abbrAddress = 2 * Z.mem.loadw(Z.mem.abbrAddress + (abbrNum * 2));
 
         String abbrString = readZString(abbrAddress);
-
+        Z.callStack.pop();
+        
         s.add(abbrString);
 
         currentAlphabet = ZSCII.A0;
@@ -167,7 +175,9 @@ class ZSCII {
   }
 
   static String ZCharToChar(int c){
-    if (c == 9){
+    if(c == 0){
+      return '';
+    }else if(c == 9){
       return '\t';
     }else if (c == 11){
       return ' ';
