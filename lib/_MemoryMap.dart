@@ -87,6 +87,10 @@ class _MemoryMap {
    }
   }
 
+  void dump(int address, int howMany){
+    print('${getRange(address, howMany)}');
+  }
+
   List getRange(int address, int howMany){
     checkBounds(address);
     checkBounds(address + howMany);

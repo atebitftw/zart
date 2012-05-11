@@ -165,9 +165,9 @@ class Version3 implements IMachine
     // skip header bytes (ref 12.2)
     var objStart = Z.mem.objectsAddress + 62;
 
+    // 9 bytes per object (ref 12.3.1)
     return objStart += (objectNumber - 1) * 9;
   }
-
 
 
   int jin()  {
@@ -210,7 +210,7 @@ class Version3 implements IMachine
     out('Insert Object ${operands[0].peekValue} into ${operands[1].peekValue}');
 
 
-    getObjectShortName(8);
+    getObjectShortName(11);
 //    getObjectShortName(4);
 //    getObjectShortName(5);
 //    getObjectShortName(operands[0].peekValue);

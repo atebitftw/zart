@@ -11,8 +11,8 @@ class ZChar{
     z3 = BinaryHelper.bottomBits(word, 5),
     z2 = BinaryHelper.bottomBits(word >> 5, 5),
     z1 = BinaryHelper.bottomBits(word >> 10, 5)
-        {
-      print('${word.toRadixString(2)}');
+    {
+    //  print('${word.toRadixString(2)}');
     }
 
   Collection<int> toCollection() => [z1, z2, z3];
@@ -64,6 +64,8 @@ class ZSCII {
        '223':  0xbf
       };
 
+  /// Reads a string of Z characters and returns
+  /// the decoded version.
   static String readZString(int fromAddress){
     bool finished = false;
     StringBuffer s = new StringBuffer();
@@ -85,13 +87,25 @@ class ZSCII {
 
     //now decode into output string
 
-    out('charList: $charList');
-    for (final char in charList){
+   // out('charList: $charList');
+
+    int i = -1;
+    while (i < charList.length - 1){
+      i++;
+      var char = charList[i];
 
       // (ref 3.3)
       if (char >= 1 && char <= 3){
-        print('so far: ${s} $char');
-        todo('handle abbreviations');
+        //abbreviation lookup
+        var abbrNum = (32 * (char - 1)) + charList[++i];
+
+        var abbrAddress = 2 * Z.mem.loadw(Z.mem.abbrAddress + (abbrNum * 2));
+
+        String abbrString = readZString(abbrAddress);
+
+        s.add(abbrString);
+
+        currentAlphabet = ZSCII.A0;
         continue;
       }
 
