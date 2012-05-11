@@ -67,6 +67,8 @@ interface IMachine default Version3
  int callVS();
 
  int insertObj();
+ 
+ int removeObj();
 
  int ret();
 

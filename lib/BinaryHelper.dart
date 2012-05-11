@@ -11,4 +11,14 @@ class BinaryHelper {
   static int bottomBits(num n, int bits){
     return n & ((Math.pow(2, bits)) - 1);
   }
+  
+  static num set(num n, int bit){
+    n |= (1 << bit);
+    return n;
+  }
+  
+  static num unset(num n, int bit){
+    n &= ~(1 << bit);
+    return n;
+  }
 }

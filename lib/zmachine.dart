@@ -49,7 +49,7 @@ void _throwAndDump(String message, int dumpOffset, [int howMany=20]){
   for(final v in Z.mem.getRange(Z.pc + dumpOffset, howMany)){
     out("(${v}, 0x${v.toRadixString(16)}, 0b${v.toRadixString(2)})");
   }
-  throw new Exception(message);
+  throw new Exception('(0x${Z.pc.toRadixString(16)}) $message');
 }
 
 /**

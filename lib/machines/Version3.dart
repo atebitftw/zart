@@ -44,6 +44,18 @@ class Version3 implements IMachine
        '53' : sub,
        '85' : sub,
        '117' : sub,
+       '22' : mul,
+       '54' : mul,
+       '86' : mul,
+       '118' : mul,
+       '23' : div,
+       '55' : div,
+       '87' : div,
+       '119' : div,
+       '24' : mod,
+       '56' : mod,
+       '88' : mod,
+       '120' : mod,
        '1' : je,
        '33' : je,
        '65' : je,
@@ -55,7 +67,8 @@ class Version3 implements IMachine
        '128' : jz,
        '139' : ret,
        '155' : ret,
-       '171' : ret
+       '171' : ret,
+       '178' : printf
       };
   }
 
@@ -133,7 +146,7 @@ class Version3 implements IMachine
       var func = ops['$i'];
       return func();
     }else{
-      _throwAndDump('Unsupported Op Code: $i', -1, howMany:10);
+      _throwAndDump('Unsupported Op Code: $i', -10, howMany:30);
     }
   }
 
@@ -160,15 +173,6 @@ class Version3 implements IMachine
   int getNextProperty()  {
     todo();
   }
-
-  int getObjectAddress(int objectNumber){
-    // skip header bytes (ref 12.2)
-    var objStart = Z.mem.objectsAddress + 62;
-
-    // 9 bytes per object (ref 12.3.1)
-    return objStart += (objectNumber - 1) * 9;
-  }
-
 
   int jin()  {
     todo();
@@ -201,16 +205,12 @@ class Version3 implements IMachine
       }
     }
   }
-
-  void _dumpObject(int objectNum){
-    out('Object #: $objectNum, "${getObjectShortName(objectNum)}"');
-    
-    var addr = getObjectAddress(objectNum);
-    
-    out('parent: ${Z.mem.loadb(addr + 4)} ${getObjectShortName(Z.mem.loadb(addr + 4))}');
-    out('sibling: ${Z.mem.loadb(addr + 5)} ${getObjectShortName(Z.mem.loadb(addr + 5))}');
-    out('child: ${Z.mem.loadb(addr + 6)} ${getObjectShortName(Z.mem.loadb(addr + 6))}');
-    out('');
+ 
+  int printf(){
+    out('   [print]');
+    var s = ZSCII.readZString(Z.pc);
+    print('|$s| ${s.length}');
+    Z.pc += (s.length );
   }
   
   int insertObj(){
@@ -218,41 +218,24 @@ class Version3 implements IMachine
     
     var operands = this.visitOperandsLongForm();
 
-    out('Insert Object ${operands[0].peekValue}(${getObjectShortName(operands[0].peekValue)}) into ${operands[1].peekValue}(${getObjectShortName(operands[1].peekValue)})');
+    GameObjectV3 from = new GameObjectV3(operands[0].value);
+    GameObjectV3 to = new GameObjectV3(operands[1].value);
     
-//    for(int i = 1; i <= 50; i++){
-//      _dumpObject(i);
-//    }
-
-    out('>>> before'); 
-    _dumpObject(operands[0].peekValue);
+    out('Insert Object ${from.id}(${from.shortName}) into ${to.id}(${to.shortName})');
     
-    var addr = getObjectAddress(operands[0].value);    
-    var parent = Z.mem.loadb(addr + 4);
-    var sibling = Z.mem.loadb(addr + 5);
-    var child = Z.mem.loadb(addr + 6);
-    
-    print(ZSCII.readZString(0xcb7e));
-    
-    out('>>> after');
-    _dumpObject(operands[0].peekValue);
-    
-    todo('complete insert object');
+    from.insertTo(to.id);    
   }
 
-  String getObjectShortName(int oNum){
-    if (oNum == 0) return '(none)';
+  int removeObj(){
+    out('  [remove_obj]');
+    var operand = this.visitOperandsShortForm();
     
-    var addr = getObjectAddress(oNum);
-//    out('object address: 0x${addr.toRadixString(16)}');
-
-    var propertyTableAddr = Z.mem.loadw(addr + 7);
-
-//    out('property table: ${Z.mem.getRange(propertyTableAddr, 20)}');
-//    out('${ZSCII.readZString(propertyTableAddr + 1)}');
-    return ZSCII.readZString(propertyTableAddr + 1);
+    GameObjectV3 o = new GameObjectV3(operand.value);
+    
+    out('Removing Object ${o.id}(${o.shortName}) from object tree.');
+    o.removeFromTree();
   }
-
+  
   int store(){
     out('  [store]');
 
@@ -337,8 +320,41 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, operands[0].value + operands[1].value);
     out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
   }
+  
+  int mul(){
+    out('  [mul]');
+    var operands = this.visitOperandsLongForm();
+    var resultTo = Z.readb();
+    
+    Z.writeVariable(resultTo, operands[0].value * operands[1].value);
+    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
+  }
+  
+  int div(){
+    out('  [div]');
+    var operands = this.visitOperandsLongForm();
+    var resultTo = Z.readb();
+    
+    if (operands[1].peekValue == 0){
+      throw const Exception('Divide by 0.');
+    }
+    
+    Z.writeVariable(resultTo, (operands[0].value / operands[1].value).toInt());
+    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
+  }
 
-
+  int mod(){
+    out('  [mod]');
+    var operands = this.visitOperandsLongForm();
+    var resultTo = Z.readb();
+    
+    if (operands[1].peekValue == 0){
+      throw const Exception('Divide by 0.');
+    }
+    
+    Z.writeVariable(resultTo, operands[0].value % operands[1].value);
+    out('    Wrote 0x${(operands[0].value + operands[1].value).toRadixString(16)} (${operands[0].value} + ${operands[1].value}) to 0x${resultTo}');
+  }
 
   int loadw(){
     out('  [loadw]');
@@ -540,4 +556,157 @@ class Version3 implements IMachine
     out('');
   }
 
+}
+
+
+/** Helper class for working with v3 game objects. */
+class GameObjectV3
+{
+  final int id;
+  int CHILD_ADDR;
+  int SIBLING_ADDR;
+  int PARENT_ADDR;
+  
+  int _address;
+  
+  int get parent () => Z.mem.loadb(PARENT_ADDR);
+  int get child () => Z.mem.loadb(CHILD_ADDR);
+  int get sibling () => Z.mem.loadb(SIBLING_ADDR);
+  set parent(int oid) => Z.mem.storeb(PARENT_ADDR, oid);
+  set sibling(int oid) => Z.mem.storeb(SIBLING_ADDR, oid);
+  set child(int oid) => Z.mem.storeb(CHILD_ADDR, oid);
+  
+  int flags;
+  
+  int properties;
+  
+  String shortName;
+  
+  GameObjectV3(this.id)   
+  {
+    _address = _getObjectAddress();
+    shortName = _getObjectShortName();
+    PARENT_ADDR = _address + 4;
+    SIBLING_ADDR = _address + 5;
+    CHILD_ADDR = _address + 6;
+    
+    if (id == 0) return;
+    _readFlags();
+    properties = Z.mem.loadw(_address + 7);
+  }
+ 
+  void removeFromTree(){
+    //already an orphan
+    if (parent == 0) return;
+    
+    var pgo = new GameObjectV3(parent);
+    
+    if (pgo.child == id){
+      //we are the parent's child so...
+      if (sibling != 0){
+        //move sibling to parent's child
+        pgo.setChild(sibling);
+      }
+    }else{
+      //find the sibling to the left of us...
+      var leftSib = leftSibling();
+      
+      
+      // now set that sibling's sibling to our sibling
+      // effectively removing us from the list.
+      new GameObjectV3(leftSib).sibling = sibling;
+    }
+    parent = 0;
+    sibling = 0;
+  }
+  
+  int leftSibling(){
+    var pgo = new GameObjectV3(parent);
+    var theChild = new GameObjectV3(pgo.child);
+    
+    while(theChild.sibling != id){
+      theChild = new GameObjectV3(theChild.sibling);
+      if (theChild.id == 0){
+        throw const Exception('Sibling list not well formed.');
+      }
+    }
+    
+    return theChild.id;
+  }
+  
+  void insertTo(int obj){
+    removeFromTree();
+    
+    var p = new GameObjectV3(obj);
+    
+    if (p.child > 0){
+      //parent already has child, make that child our sibling now
+      sibling = p.child;
+    }
+
+    p.child = id;
+    parent = obj;
+  }
+  
+  void setFlagBit(int bit){
+    flags = BinaryHelper.set(flags, 31 - bit);
+    
+    _writeFlags();
+  }
+  
+  void unsetFlagBit(int bit){   
+    flags = BinaryHelper.unset(flags, 31 - bit);
+
+    _writeFlags();
+  }
+  
+  bool isFlagBitSet(int bit){
+    return BinaryHelper.isSet(flags, 31 - bit);
+  }
+  
+  void dump(){
+    print('Object #: $id, "$shortName"');
+        
+    print('parent: ${parent} ${new GameObjectV3(parent).shortName}');
+    print('sibling: ${sibling} ${new GameObjectV3(sibling).shortName}');
+    print('child: ${child} ${new GameObjectV3(child).shortName}');
+    
+    var s = new StringBuffer();
+    for (int i = 0; i <= 31; i++){
+      if (BinaryHelper.isSet(flags, 31 - i)){
+        s.add('[$i] ');
+      }
+    }
+    
+    print('set flags: $s');
+    //print(flags.toRadixString(2));
+  }  
+  
+  int _getObjectAddress(){
+    // skip header bytes (ref 12.2)
+    var objStart = Z.mem.objectsAddress + 62;
+
+    // 9 bytes per object (ref 12.3.1)
+    return objStart += (id - 1) * 9;
+  }
+  
+  void _readFlags(){
+    flags = (Z.mem.loadb(_address) << 24) | (Z.mem.loadb(_address + 1) << 16) | (Z.mem.loadb(_address + 2) << 8) | Z.mem.loadb(_address + 3);
+  }
+  
+  void _writeFlags(){
+    Z.mem.storeb(_address + 3, BinaryHelper.bottomBits(flags, 8));
+    Z.mem.storeb(_address + 2, BinaryHelper.bottomBits(flags >> 8, 8));
+    Z.mem.storeb(_address + 1, BinaryHelper.bottomBits(flags >> 16, 8));
+    Z.mem.storeb(_address, BinaryHelper.bottomBits(flags >> 24, 8));
+  }  
+  
+  String _getObjectShortName(){
+    if (id == 0) return '(none)';
+    
+    var propertyTableAddr = Z.mem.loadw(_address + 7);
+
+    return ZSCII.readZString(propertyTableAddr + 1);
+  }
+  
 }

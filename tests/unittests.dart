@@ -43,6 +43,45 @@ void main() {
 
   });
 
+  group('Object Tree Tests>', (){
+    test('remove', (){
+      
+      var o1 = new GameObjectV3(1); //forest
+
+      // check if we have the right object and
+      // assumptions are correct.
+      Expect.equals('forest', o1.shortName);
+      Expect.equals(36, o1.parent);
+      Expect.equals(147, o1.sibling);
+      Expect.equals(0, o1.child);
+      Expect.isTrue(o1.isFlagBitSet(6));
+      
+      var ls = o1.leftSibling();
+      var p = new GameObjectV3(36);
+      
+      o1.removeFromTree();
+      //check that 147 is now the sibling of o1's
+      //left sibling
+      Expect.equals(147, new GameObjectV3(ls).sibling);
+      
+      Expect.equals(0, o1.parent);
+      Expect.equals(0, o1.sibling);
+    });
+    
+    test('insert', (){
+      var o1 = new GameObjectV3(1); //forest
+      var p = new GameObjectV3(36); //parent
+      var oc = p.child;
+      
+      o1.insertTo(36);
+      Expect.equals(36, o1.parent);
+      
+      Expect.equals(1, p.child);
+      Expect.equals(oc, o1.sibling);
+    });
+    
+  });
+  
   group('BinaryHelper Tests>', (){
     test('isSet() true', (){
       Expect.equals('1111', 15.toRadixString(2));
@@ -69,6 +108,21 @@ void main() {
     test('bottomBits()', (){
       Expect.equals(24, BinaryHelper.bottomBits(88, 6));
     });
+    
+    test('setBit()', (){
+      Expect.equals(1, BinaryHelper.set(0, 0));
+      Expect.equals(Math.pow(2, 8), BinaryHelper.set(0, 8));
+      Expect.equals(Math.pow(2, 16), BinaryHelper.set(0, 16));
+      Expect.equals(Math.pow(2, 32), BinaryHelper.set(0, 32));
+    });
+    
+    test('unsetBit()', (){
+      Expect.equals(0, BinaryHelper.unset(1, 0));
+      Expect.equals(0, BinaryHelper.unset(Math.pow(2, 8), 8));
+      Expect.equals(0, BinaryHelper.unset(Math.pow(2, 16), 16));
+      Expect.equals(0, BinaryHelper.unset(Math.pow(2, 32), 32));
+    });
+    
   });
 
   group('memory tests> ', (){
