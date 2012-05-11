@@ -38,21 +38,7 @@ interface IMachine default Version3
 
  Operand visitOperandsShortForm();
 
- int testAttribute();
-
- int setAttribute();
-
- int clearAttribute();
-
- int getProperty();
-
- int getPropertyAddress();
-
- int getNextProperty();
-
- int getObjectAddress(int objectNumber);
-
- String getObjectShortName(int objectNumber);
+ int get_prop();
 
  int je();
 

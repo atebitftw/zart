@@ -7,8 +7,10 @@
 #source('ZSCII.dart');
 
 #source('Operand.dart');
+
 #source('machines/IMachine.dart');
 #source('machines/Version3.dart');
+#source('machines/GameObjectV3.dart');
 
 /// Dart Implementation of Infocom Z-Machine
 
