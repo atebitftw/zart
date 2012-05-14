@@ -87,9 +87,12 @@ class Version3 implements IMachine
        '33' : je,
        '65' : je,
        '97' : je,
-       '160' : jz,
        '140' : jump,
        '165' : jump,
+       '130' : get_child,
+       '146' : get_child,
+       '162' : get_child,
+       '160' : jz,
        '144' : jz,
        '128' : jz,
        '139' : ret,
@@ -187,6 +190,20 @@ class Version3 implements IMachine
     var i = Z.readb();
     if (ops.containsKey('$i')){
       var func = ops['$i'];
+      if (Z.debug){
+        if (Z.trace){
+          if (opCodes.containsKey('$i')){
+            print('>>> (0x${(Z.pc - 1).toRadixString(16)}) ${opCodes[i.toString()]} ($i)');          
+          }else{
+            print('>>> (0x${(Z.pc - 1).toRadixString(16)}) UNKNOWN ($i)');
+          }
+        }
+        
+        if (Z._breakPoints.indexOf(Z.pc - 1) != -1){
+          //TODO add REPL inspection and continue
+          throw const Exception('BREAK POINT');
+        }
+      }
       return func();
     }else{
       _throwAndDump('Unsupported Op Code: $i', 0, howMany:30);
@@ -218,6 +235,8 @@ class Version3 implements IMachine
     if (testTrueOrFalse){
       out('    [true]');
       if (operand.value == Z.FALSE){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -225,6 +244,8 @@ class Version3 implements IMachine
     }else{
       out('    [false]');
       if (operand.value == Z.TRUE){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -362,6 +383,55 @@ class Version3 implements IMachine
     out('    returning 0x${operand.peekValue.toRadixString(16)}');
     return operand.value;
   }
+  
+  int get_parent(){
+    out('  [get_parent]');
+    
+    var operand = this.visitOperandsShortForm();
+    
+    var resultTo = Z.readb();
+    
+    GameObjectV3 obj = new GameObjectV3(operand.value);
+    
+    
+  }
+  
+  int get_child(){
+    out('  [get_child]');
+    
+    var operand = this.visitOperandsShortForm();
+    
+    var resultTo = Z.readb();
+    
+    var jumpByte = Z.readb();
+    
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+    
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    GameObjectV3 obj = new GameObjectV3(operand.value);
+    
+    Z.writeVariable(resultTo, obj.child);
+    
+    if (testTrueOrFalse){
+      if (obj.child != 0){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      if (obj.child == 0){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    out('    continuing to next instruction');
+  }
 
   int inc_chk(){
     out('  [inc_chk]');
@@ -382,12 +452,16 @@ class Version3 implements IMachine
         
     if (testTrueOrFalse){
       if (value > operands[1].value){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
       }
     }else{
       if (value <= operands[1].value){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -410,12 +484,16 @@ class Version3 implements IMachine
     
     if (testTrueOrFalse){
       if (obj.isFlagBitSet(operands[1].value)){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
       }
     }else{
       if (!obj.isFlagBitSet(operands[1].value)){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -451,6 +529,8 @@ class Version3 implements IMachine
     if (testTrueOrFalse){
       if (obj1.parent == obj2.id){
         //(ref 4.7.2)
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -458,6 +538,8 @@ class Version3 implements IMachine
     }else{
       if (obj1.parent != obj2.id){
         //(ref 4.7.2)
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -480,6 +562,8 @@ class Version3 implements IMachine
       out('    [true]');
       if (operands[0].value == operands[1].value){
         //(ref 4.7.2)
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -487,6 +571,8 @@ class Version3 implements IMachine
     }else{
       out('    [false]');
       if (operands[0].value != operands[1].value){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
         out('    jumping to ${Z.pc.toRadixString(16)}');
         return this.visitInstruction();
@@ -569,12 +655,8 @@ class Version3 implements IMachine
     var resultTo = Z.readb();
     
     var obj = new GameObjectV3(operands[0].value);
-    print('${operands[1].peekValue}');
-    var prop = obj.getPropertyValue(operands[1].value);
 
-    obj.dump();
-    print('$prop');
-    todo();
+    var prop = obj.getPropertyValue(operands[1].value);
     
     Z.writeVariable(resultTo, prop);
   }

@@ -19,7 +19,7 @@ class GameObjectV3
   
   int get properties() => Z.mem.loadw(_address + 7);
   
-  int get propertyTableStart() => properties + Z.mem.loadb(properties) + 1;
+  int get propertyTableStart() => properties + (Z.mem.loadb(properties) * 2) + 1;
   
   String shortName;
   
@@ -42,12 +42,10 @@ class GameObjectV3
   {
     var propNum = 999999;// propertyNumber(propertyTableStart);
     int addr = propertyTableStart;
-    
+
     while(propNum > pnum){
-      propNum = propertyNumber(addr);
       var len = propertyLength(addr);
-      
-      print('propNum: $propNum, len: $len');
+      propNum = propertyNumber(addr);
       
       //(ref 12.4.1)
       if (len == 0){
@@ -57,8 +55,8 @@ class GameObjectV3
       if (propNum == pnum){
         //ding ding ding
         
-        if (len != 1 || len != 2){
-          throw const Exception('Only property length of 1 or 2 is supported by this function.');
+        if (len != 1 && len != 2){
+          throw new Exception('Only property length of 1 or 2 is supported by this function: $len');
         }
         
         if (len == 1){
@@ -81,13 +79,11 @@ class GameObjectV3
   int propertyNumber(int address) => Z.mem.loadb(address) % 32;
   
   static int getPropertyDefault(int propertyNum){
-    print('assigning default property');
     if (propertyNum < 1 || propertyNum > 31){
       throw const Exception('property number out of bounds (1-31)');
     }
     return Z.mem.loadw(Z.mem.objectsAddress + ((propertyNum) * 2));
   }
-  
   
   void removeFromTree(){
     //already an orphan
@@ -161,9 +157,9 @@ class GameObjectV3
   void dump(){
     print('Object #: $id, "$shortName"');
         
-    print('parent: ${parent} ${new GameObjectV3(parent).shortName}');
-    print('sibling: ${sibling} ${new GameObjectV3(sibling).shortName}');
-    print('child: ${child} ${new GameObjectV3(child).shortName}');
+    print('parent: ${parent} "${new GameObjectV3(parent).shortName}"');
+    print('sibling: ${sibling} "${new GameObjectV3(sibling).shortName}"');
+    print('child: ${child} "${new GameObjectV3(child).shortName}"');
     
     var s = new StringBuffer();
     for (int i = 0; i <= 31; i++){
@@ -196,7 +192,7 @@ class GameObjectV3
   }  
   
   String _getObjectShortName(){
-    if (id == 0) return '(none)';
+    if (id == 0 || Z.mem.loadb(properties) == 0) return '';
     
     var s = ZSCII.readZString(properties + 1);
     Z.callStack.pop();

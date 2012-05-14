@@ -26,7 +26,10 @@ void main() {
     print('$e');
   }
 
-  Z.verbose = false;
+  Z.debug = false; //debug enables the other flags (verbose, trace, breakpoints, etc)
+  Z.verbose = true;
+  Z.trace = true;
+  //Z.setBreaks([0x6be9]);
   Z.run();
 }
 

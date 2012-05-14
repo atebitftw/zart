@@ -24,11 +24,15 @@ ZMachine get Z() => new ZMachine();
 /// Kilobytes -> Bytes
 KBtoB(int kb) => kb * 1024;
 
+
 void out(String outString){
   //TODO support redirect to file.
-  if (Z.verbose)
-    print(outString);
+  if (Z.debug && Z.verbose)
+    debug(outString);
 }
+
+/// Debug Channel
+debug(String debugString) => print(debugString);
 
 void todo([String message]){
   if (message != null)
@@ -67,13 +71,17 @@ class ZMachine{
   bool isLoaded = false;
 
   bool verbose = false;
+  bool trace = false; 
+  bool debug = false;
 
   static ZMachine _ref;
   ZVersion _ver;
   List<int> _rawBytes;
   final _Stack stack;
   final _Stack callStack;
-
+  
+  final List<int> _breakPoints;
+  
   //contains machine version which are supported by z-machine.
   final List<IMachine> _supportedMachines;
 
@@ -97,13 +105,19 @@ class ZMachine{
   :
     stack = new _Stack(),
     callStack = new _Stack.max(1024),
-    _supportedMachines = [new Version3()]
+    _supportedMachines = [new Version3()],
+    _breakPoints = new List<int>()
   {
     sbuff = new StringBuffer();
   }
 
   int get version() => _ver != null ? _ver.toInt() : null;
 
+  void setBreaks(List<int> breakPoints){
+    _breakPoints.addAll(breakPoints);
+  }
+  
+  
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
@@ -186,7 +200,7 @@ class ZMachine{
     }else if (varNum <= 0xff){
       return mem.readGlobal(varNum);
     }else{
-      out('${mem.getRange(pc - 10, 20)}');
+      return varNum;
       throw new Exception('Variable referencer byte out of range (0-255): ${varNum}');
     }
   }
@@ -202,6 +216,7 @@ class ZMachine{
     }else if (varNum <= 0xff){
       return mem.readGlobal(varNum);
     }else{
+      return varNum;
       out('${mem.getRange(pc - 10, 20)}');
       throw new Exception('Variable referencer byte out of range (0-255): ${varNum}');
     }
@@ -330,3 +345,97 @@ class ZVersion{
   }
 }
 
+
+Map<String, String> opCodes =
+const {
+ '224' : 'callVS',
+ '225' : 'storewv',
+ '79' : 'loadw',
+ '15' : 'loadw',
+ '47' : 'loadw',
+ '111' : 'loadw',
+ '10' : 'test_attr',
+ '42' : 'test_attr',
+ '74' : 'test_attr',
+ '106' : 'test_attr',
+ '11' : 'set_attr',
+ '43' : 'set_attr',
+ '75' : 'set_attr',
+ '107' : 'set_attr',
+ '13' : 'store',
+ '45' : 'store',
+ '77' : 'store',
+ '109' : 'store',
+ '16' : 'loadb',
+ '48' : 'loadb',
+ '80' : 'loadb',
+ '112' : 'loadb',
+ '17' : 'get_prop',
+ '49' : 'get_prop',
+ '81' : 'get_prop',
+ '113' : 'get_prop',
+ '14' : 'insertObj',
+ '46' : 'insertObj',
+ '78' : 'insertObj',
+ '110' : 'insertObj',
+ '20' : 'add',
+ '52' : 'add',
+ '84' : 'add',
+ '116' : 'add',
+ '21' : 'sub',
+ '53' : 'sub',
+ '85' : 'sub',
+ '117' : 'sub',
+ '22' : 'mul',
+ '54' : 'mul',
+ '86' : 'mul',
+ '118' : 'mul',
+ '23' : 'div',
+ '55' : 'div',
+ '87' : 'div',
+ '119' : 'div',
+ '24' : 'mod',
+ '56' : 'mod',
+ '88' : 'mod',
+ '120' : 'mod',
+ '5' : 'inc_chk',
+ '37' : 'inc_chk',
+ '69' : 'inc_chk',
+ '101' : 'inc_chk',
+ '6' : 'jin',
+ '38' : 'jin',
+ '70' : 'jin',
+ '102' : 'jin',
+ '1' : 'je',
+ '33' : 'je',
+ '65' : 'je',
+ '97' : 'je',
+ '160' : 'jz',
+ '140' : 'jump',
+ '165' : 'jump',
+ '144' : 'jz',
+ '128' : 'jz',
+ '139' : 'ret',
+ '155' : 'ret',
+ '171' : 'ret',
+ '135' : 'print_addr',
+ '151' : 'print_addr',
+ '167' : 'print_addr',
+ '141' : 'print_paddr',
+ '157' : 'print_paddr',
+ '173' : 'print_paddr',
+ '178' : 'printf',
+ '187' : 'newline',
+ '201' : 'andV',
+ '9' : 'and',
+ '230' : 'print_num',
+ '229' : 'print_char',
+ '176' : 'rtrue',
+ '177' : 'rfalse',
+ '138' : 'print_obj',
+ '154' : 'print_obj',
+ '170' : 'print_obj',
+ '130' : 'get_child',
+ '146' : 'get_child',
+ '162' : 'get_child',
+};
