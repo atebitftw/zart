@@ -55,7 +55,7 @@ class GameObjectV3
       if (propNum == pnum){
         //ding ding ding
         
-        if (len != 1 && len != 2){
+        if (len > 2){
           throw new Exception('Only property length of 1 or 2 is supported by this function: $len');
         }
         
@@ -74,15 +74,18 @@ class GameObjectV3
     return GameObjectV3.getPropertyDefault(pnum);
   }
   
-  int propertyLength(int address) => ((Z.mem.loadb(address) - propertyNumber(address)) / 32).toInt() + 1;
+  static int propertyLength(int address) => ((Z.mem.loadb(address) - propertyNumber(address)) / 32).toInt() + 1;
   
-  int propertyNumber(int address) => Z.mem.loadb(address) % 32;
+  static int propertyNumber(int address) => Z.mem.loadb(address) % 32;
   
   static int getPropertyDefault(int propertyNum){
-    if (propertyNum < 1 || propertyNum > 31){
+    propertyNum -= 1;
+    propertyNum %= 31;
+    
+    if (propertyNum < 0 || propertyNum > 31){
       throw const Exception('property number out of bounds (1-31)');
     }
-    return Z.mem.loadw(Z.mem.objectsAddress + ((propertyNum) * 2));
+    return Z.mem.loadw(Z.mem.objectsAddress + (propertyNum * 2));
   }
   
   void removeFromTree(){
@@ -95,7 +98,7 @@ class GameObjectV3
       //we are the parent's child so...
       if (sibling != 0){
         //move sibling to parent's child
-        pgo.setChild(sibling);
+        pgo.child = sibling;
       }
     }else{
       //find the sibling to the left of us...
@@ -169,7 +172,9 @@ class GameObjectV3
     }
     
     print('set flags: $s');
-    //print(flags.toRadixString(2));
+
+    
+
   }  
   
   int _getObjectAddress(){

@@ -13,8 +13,19 @@ class ConsoleProvider implements IPresentationConfig
   
   void DebugOutput(String text) => print(text);
   
-  String getNextLine(){
-    return 'foo';
-    return textStream.readLine();
+  Future<String> getLine(){
+    Completer c = new Completer();
+    
+    if (!lineBuffer.isEmpty()){
+      c.complete(lineBuffer.removeLast());      
+    }else{
+      textStream.onLine = () => c.complete(textStream.readLine());      
+    }
+    
+    return c.future;
+  }
+  
+  void callAsync(func(timer)){
+    new Timer(0, func);
   }
 }

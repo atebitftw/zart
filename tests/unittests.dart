@@ -43,7 +43,7 @@ void main() {
 
   });
 
-  group('Object Tree Tests>', (){
+  group('Objects>', (){
     test('remove', (){
       
       var o1 = new GameObjectV3(1); //forest
@@ -78,6 +78,36 @@ void main() {
       
       Expect.equals(1, p.child);
       Expect.equals(oc, o1.sibling);
+    });
+    
+    test('get property', (){
+      GameObjectV3 o1 = new GameObjectV3(30); "you";
+      
+      Expect.equals('you', o1.shortName);
+      
+      Expect.equals(0, o1.getPropertyValue(18));
+      Expect.equals(0x28b5, o1.getPropertyValue(17));
+      Expect.equals(0x0006, o1.getPropertyValue(15));
+    });
+    
+    test('attributes are set', (){
+      GameObjectV3 o1 = new GameObjectV3(30); "you";
+      
+      Expect.equals('you', o1.shortName);
+      
+      Expect.isTrue(o1.isFlagBitSet(5));
+      Expect.isTrue(o1.isFlagBitSet(6));
+      Expect.isTrue(o1.isFlagBitSet(14));
+      Expect.isTrue(o1.isFlagBitSet(30));
+      
+      //check some that aren't set:
+      Expect.isFalse(o1.isFlagBitSet(1));
+      Expect.isFalse(o1.isFlagBitSet(4));
+      Expect.isFalse(o1.isFlagBitSet(7));
+      Expect.isFalse(o1.isFlagBitSet(13));
+      Expect.isFalse(o1.isFlagBitSet(15));
+      Expect.isFalse(o1.isFlagBitSet(29));
+      Expect.isFalse(o1.isFlagBitSet(31));
     });
     
   });

@@ -33,7 +33,7 @@ void main() {
   Z.debug = true; //debug enables the other flags (verbose, trace, breakpoints, etc)
   Z.verbose = false;
   Z.trace = true;
-  Z.setBreaks([0x6d8e]);
+  Z.setBreaks([0x6e0f]);
   Z.run();
 }
 

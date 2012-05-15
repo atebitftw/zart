@@ -151,11 +151,11 @@ class Version3 implements IMachine
       Z.pc--;
     }
     
-    //push routine start onto the stack
-    Z.callStack.push(Z.pc);
-
     out('  Calling Routine at ${Z.pc.toRadixString(16)}');
+
+    // assign any params passed to locals and push locals onto the call stack
     var locals = Z.readb();
+    
     out('    # Locals: ${locals}');
     if (locals > 16)
       throw const Exception('Maximum local variable allocations (16) exceeded.');
@@ -178,29 +178,75 @@ class Version3 implements IMachine
 
     //push total locals onto the call stack
     Z.callStack.push(locals);
-
-    //we are now past the routine header. start processing instructions.
-    int returnVal = null;
-
-    while(returnVal == null){
-      returnVal = visitInstruction();
-    }
-
-    out('Instruction returned: 0x${returnVal.toRadixString(16)}');
-    Z._unwind1();
-    
-    if (Z.callStack.length == 0){
-      throw const Exception('Illegal return from entry function.');
-    }
-    return returnVal;
   }
+  
+  int callVS(){
+    out('  [call_vs]');
+    var operands = this.visitOperandsVar(4, true);
 
+    var resultStore = Z.readb();
+    var returnAddr = Z.pc;
+    
+    if (operands.isEmpty())
+      throw const Exception('Call function address not given.');
+
+    //unpack function address
+    operands[0].rawValue = this.unpack(operands[0].value);
+
+    if (operands[0].value == 0){
+      //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
+      
+      Z.writeVariable(resultStore, Z.FALSE);
+    }else{
+      //move to the routine address
+      Z.pc = operands[0].rawValue;
+      
+      //setup the routine stack frame and locals
+      visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      
+      //push the result store address onto the call stack
+      Z.callStack.push(resultStore);
+      
+      //push the return address onto the call stack
+      Z.callStack.push(returnAddr);
+    }
+
+  }
+  
+  void doReturn(){
+    // pop the return value from whoever is returning
+    var result = Z.callStack.pop();
+   
+    // return address
+    var returnAddr = Z.callStack.pop();
+    
+    // result store address byte
+    var resultAddrByte = Z.callStack.pop();
+    
+    if (returnAddr == 0)
+      throw const Exception('Illegal return from entry routine.');
+    
+    // unwind the locals from the stack
+    var frameSize = Z.callStack.peek();
+
+    out('(unwinding stack 1 frame)');
+
+    while(frameSize >= 0){
+      Z.callStack.pop();
+      frameSize--;
+    }
+    
+    Z.writeVariable(resultAddrByte, result);
+
+    Z.pc = returnAddr;
+  }
+  
   visitInstruction(){
     var i = Z.readb();
     if (ops.containsKey('$i')){
       var func = ops['$i'];
       if (Z.debug){
-        if (Z.trace){
+        if (Z.trace && !Z.inBreak){
           if (opCodes.containsKey('$i')){
             print('>>> (0x${(Z.pc - 1).toRadixString(16)}) ${opCodes[i.toString()]} ($i)');          
           }else{
@@ -210,38 +256,103 @@ class Version3 implements IMachine
         
         if (Z._breakPoints.indexOf(Z.pc - 1) != -1){
           //TODO add REPL inspection and continue
-          throw const Exception('BREAK POINT');
+          Z.inBreak = true;
+          Debugger.debugStartAddr = Z.pc - 1;
         }
       }
-      return func();
+      func();
     }else{
       _throwAndDump('Unsupported Op Code: $i', 0, howMany:30);
     }
   }
-
-  int read(){
-    String line = Z.IOConfig.getNextLine();
-    if (line != null){
-      Z.IOConfig.PrimaryOutput(line);
-      print('yes!');
-    }else{
-      Z.pc -= 1;
+  
+  void testPredicate(trueFunction(), falseFunction())
+  {
+    var jumpByte = Z.readb();
+    
+    var testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+    
+    var result = testTrueOrFalse ? trueFunction() : falseFunction();
+    
+    if (result == null || result is! bool){
+      throw const Exception('Test function must return a boolean value.');
+    }   
+   
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    if (result){
+      // If the offset is 0 or 1 (FALSE or TRUE), perform a return
+      // operation.
+      if (offset == Z.FALSE){
+        Z.callStack.push(Z.FALSE);
+        doReturn();
+        return;
+      }
+      
+      if (offset == Z.TRUE){
+        Z.callStack.push(Z.TRUE);
+        doReturn();
+        return;
+      }
+      
+      //jump to the offset and continue...
+      Z.pc += offset - 2;
     }
+    
+    //otherwise continue to the next instruction...
+  }
+  
+  int read(){
+    Z.inInput = true;
+    Z.printBuffer();
+    
+    Future<String> line = Z._io.getLine();
+    
+    doIt(foo){
+      if (line.isComplete){
+        Z.inInput = false;
+        if (line == '/!'){
+          Z.inBreak = true;
+          Z._io.callAsync(Debugger.startBreak);
+        }else{
+          todo('linec: ${line.value}');
+          Z._io.callAsync(Z._runIt);
+        }
+      }else{
+        line.then((String l){
+          if (l == '/!'){
+            Z.inBreak = true;
+            Debugger.debugStartAddr = Z.pc - 1;
+            Z._io.callAsync(Debugger.startBreak);
+          }else{
+            Z.inInput = false;
+            todo('line: $l');
+            Z._io.callAsync(Z._runIt);
+          }
+        });
+      }
+    }
+
+    
+    Z._io.callAsync(doIt);
   }
   
   int ret_popped(){
     out('  [ret_popped]');
-    return Z.stack.pop();
+    Z.callStack.push(Z.stack.pop());
+    doReturn();
   }
   
   int rtrue(){
     out('  [rtrue]');
-    return Z.TRUE;
+    Z.callStack.push(Z.TRUE);
+    doReturn();
   }
   
   int rfalse(){
     out('  [rfalse]');
-    return Z.FALSE;
+    Z.callStack.push(Z.FALSE);
+    doReturn();
   }
   
   
@@ -249,7 +360,7 @@ class Version3 implements IMachine
     out('  [jz]');
     var operand = this.visitOperandsShortForm();
 
-    return testPredicate(
+    testPredicate(
       () => operand.value == Z.FALSE, 
       () => operand.value == Z.TRUE);
         
@@ -263,10 +374,10 @@ class Version3 implements IMachine
     var resultTo = Z.readb();
        
     GameObjectV3 obj = new GameObjectV3(operand.value);
-    
+
     Z.writeVariable(resultTo, obj.sibling);
     
-    return testPredicate(
+    testPredicate(
       () => obj.sibling != 0,
       () => obj.sibling == 0
       );
@@ -284,7 +395,7 @@ class Version3 implements IMachine
     
     Z.writeVariable(resultTo, obj.child);
     
-    return testPredicate(
+    testPredicate(
       () => obj.child != 0,
       () => obj.child == 0
       );
@@ -292,19 +403,21 @@ class Version3 implements IMachine
   
   int inc_chk(){
     out('  [inc_chk]');
-    var temp = Z.mem.loadb(Z.pc - 1);
+    var loc = Z.pc - 1;
     
-    Z.mem.storeb(Z.pc - 1, 69); //force to var/small arguement types
+    var temp = Z.mem.loadb(loc);
+    
+    Z.mem.storeb(loc, 69); //force to var/small arguement types
     
     var operands = this.visitOperandsLongForm();
     
-    Z.mem.storeb(Z.pc - 1, temp);
+    Z.mem.storeb(loc, temp);
     
     var value = this._convertToSigned(operands[0].value) + 1;
 
     Z.writeVariable(operands[0].rawValue, value);
     
-    return testPredicate(
+    testPredicate(
       () => value > this._convertToSigned(operands[1].value),
       () => value <= this._convertToSigned(operands[1].value)
       );
@@ -312,11 +425,12 @@ class Version3 implements IMachine
   
   test_attr(){
     out('  [test_attr]');
+    
     var operands = this.visitOperandsLongForm();
     
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
     
-    return testPredicate(
+    testPredicate(
       () => obj.isFlagBitSet(operands[1].value),
       () => !obj.isFlagBitSet(operands[1].value)
     );
@@ -330,7 +444,7 @@ class Version3 implements IMachine
     var obj1 = new GameObjectV3(operands[0].value);
     var obj2 = new GameObjectV3(operands[1].value);
     
-    return testPredicate(
+    testPredicate(
       () => obj1.parent == obj2.id,
       () => obj1.parent != obj2.id
     );
@@ -355,7 +469,7 @@ class Version3 implements IMachine
       }
     }
     
-    return testPredicate(
+    testPredicate(
       () => foundMatch,
       () => !foundMatch
     );
@@ -365,7 +479,7 @@ class Version3 implements IMachine
     out('  [jl]');
     var operands = this.visitOperandsLongForm();
 
-    return testPredicate(
+    testPredicate(
       () => this._convertToSigned(operands[0].value) < this._convertToSigned(operands[1].value),
       () => this._convertToSigned(operands[0].value) >= this._convertToSigned(operands[1].value)
     );
@@ -375,7 +489,7 @@ class Version3 implements IMachine
     out('  [jg]');
     var operands = this.visitOperandsLongForm();
     
-    return testPredicate(
+    testPredicate(
       () => this._convertToSigned(operands[0].value) > this._convertToSigned(operands[1].value),
       () => this._convertToSigned(operands[0].value) <= this._convertToSigned(operands[1].value)
     );
@@ -385,35 +499,12 @@ class Version3 implements IMachine
     out('  [je]');
     var operands = this.visitOperandsLongForm();
     
-    return testPredicate(
+    testPredicate(
       () => this._convertToSigned(operands[0].value) == this._convertToSigned(operands[1].value),
       () => this._convertToSigned(operands[0].value) != this._convertToSigned(operands[1].value)
     );
   }
-  
-  int testPredicate(trueFunction(), falseFunction())
-  {
-    var jumpByte = Z.readb();
     
-    var testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-    
-    var result = testTrueOrFalse ? trueFunction() : falseFunction();
-    
-    if (result == null || result is! bool){
-      throw const Exception('Test function must return a boolean value.');
-    }   
-   
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    if (result){
-      if (offset == Z.FALSE) return Z.FALSE;
-      if (offset == Z.TRUE) return Z.TRUE;
-      
-      Z.pc += offset - 2;
-      return this.visitInstruction();
-    }
-  }
-  
   int newline(){
     out('  [newline]');
     
@@ -421,7 +512,7 @@ class Version3 implements IMachine
   }
   
   int print_obj(){
-    out('  [print_obj');
+    out('  [print_obj]');
     var operand = this.visitOperandsShortForm();
     
     var obj = new GameObjectV3(operand.value);
@@ -484,11 +575,12 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
 
     GameObjectV3 from = new GameObjectV3(operands[0].value);
+    
     GameObjectV3 to = new GameObjectV3(operands[1].value);
     
     out('Insert Object ${from.id}(${from.shortName}) into ${to.id}(${to.shortName})');
     
-    from.insertTo(to.id);    
+    from.insertTo(to.id);  
   }
 
   int removeObj(){
@@ -525,7 +617,9 @@ class Version3 implements IMachine
     var operand = this.visitOperandsShortForm();
 
     out('    returning 0x${operand.peekValue.toRadixString(16)}');
-    return operand.value;
+    Z.callStack.push(operand.value);
+    
+    doReturn();
   }
   
   int get_parent(){
@@ -674,34 +768,6 @@ class Version3 implements IMachine
     out('    stored 0x${operands[2].peekValue.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
-  int callVS(){
-    out('  [call_vs]');
-    var operands = this.visitOperandsVar(4, true);
-
-    if (operands.isEmpty())
-      throw const Exception('Call function address not given.');
-
-    var storeTo = Z.readb();
-
-    var returnTo = Z.pc;
-
-    //unpack function address
-    operands[0].rawValue = this.unpack(operands[0].value);
-
-    out('    (unpacked first operand to: 0x${operands[0].peekValue.toRadixString(16)})');
-
-    if (operands[0].value == 0){
-      //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
-      Z.writeVariable(storeTo, Z.FALSE);
-    }else{
-      Z.pc = operands[0].rawValue;
-      var result = this.visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
-      Z.writeVariable(storeTo, result);
-    }
-
-    out('>>> returning control to: 0x${returnTo.toRadixString(16)}');
-    Z.pc = returnTo;
-  }
 
   int _convertToSigned(int val){
     if ((val & 0x8000) != 0){

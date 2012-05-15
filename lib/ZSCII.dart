@@ -70,6 +70,7 @@ class ZSCII {
   static String readZStringAndPop(int fromAddress){
    var result = readZString(fromAddress);
    Z.callStack.pop();
+   return result;
   }
       
   /// Reads a string of Z characters and returns

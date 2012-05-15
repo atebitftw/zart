@@ -6,6 +6,7 @@
 #source('BinaryHelper.dart');
 #source('ZSCII.dart');
 #source('IPresentationConfig.dart');
+#source('Debugger.dart');
 
 #source('Operand.dart');
 
@@ -35,7 +36,12 @@ void out(String outString){
 /// Debug Channel
 debug(String debugString) => Z._io.DebugOutput(debugString);
 
+
 void todo([String message]){
+  Z._io.DebugOutput('Stopped At: 0x${Z.pc.toRadixString(16)}');
+  Z._io.PrimaryOutput('Text Buffer:');
+  Z.printBuffer();
+
   if (message != null)
     Z._io.DebugOutput(message);
   throw const NotImplementedException();
@@ -43,21 +49,26 @@ void todo([String message]){
 
 /**
 * Routine Stack frame
-*
-* # locals
-* local 1
-* ...
-* local n
-* routine base address  (Z._readLocal(-1))
+* -------------------
+* 0x0: returnTo Addr
+* 0x1: returnValue Addr
+* 0x2: # locals
+* 0x3: local 1
+* 0x...
+* 0xn: local n
+* 0xn+1: routine base address  (Z._readLocal(-1))
 */
 
 void _throwAndDump(String message, int dumpOffset, [int howMany=20]){
   Z.printBuffer();
   
-  for(final v in Z.mem.getRange(Z.pc + dumpOffset, howMany)){
+  for(final v in Z.dynamic.mem.getRange(Z.dynamic.pc + dumpOffset, howMany)){
     out("(${v}, 0x${v.toRadixString(16)}, 0b${v.toRadixString(2)})");
   }
-  throw new Exception('(0x${(Z.pc - 1).toRadixString(16)}) $message');
+  
+  //Z.callStack.dump();
+  
+  throw new Exception('(0x${(Z.pc - 2).toRadixString(16)}) $message');
 }
 
 /**
@@ -74,6 +85,8 @@ class ZMachine{
   bool verbose = false;
   bool trace = false; 
   bool debug = false;
+  bool inBreak = false;
+  bool inInput = false;
 
   IPresentationConfig _io;
   
@@ -161,10 +174,32 @@ class ZMachine{
 
       _machine.visitHeader();
     }
-
+    
+    // visit the main 'routine'
     _machine.visitRoutine([]);
+    //push dummy result store onto the call stack
+    Z.callStack.push(0);    
+    //push dummy return address onto the call stack
+    Z.callStack.push(0);
+    
+    if (inBreak){
+      Z._io.callAsync(Debugger.startBreak);
+    }else{
+      Z._io.callAsync(_runIt);
+    }
   }
-   
+    
+  void _runIt(timer){
+    while(!inBreak && !inInput){
+      _machine.visitInstruction();
+    }
+    
+    if(inBreak){
+      Z._io.DebugOutput('<<< DEBUG MODE >>>');
+      Z._io.callAsync(Debugger.startBreak);
+    }
+  }
+    
   void printBuffer(){
     _io.PrimaryOutput(sbuff.toString());
     sbuff.clear();
@@ -237,20 +272,8 @@ class ZMachine{
     }
  }
 
-  //unwinds one frame from the call stack
-  void _unwind1(){
-    var frameSize = Z.callStack.peek() + 1;
-
-    out('(unwinding stack 1 frame)');
-
-    while(frameSize >= 0){
-      Z.callStack.pop();
-      frameSize--;
-    }
-  }
-
   void _writeLocal(int local, int value){
-    var locals = callStack.peek();
+    var locals = callStack[2];
 
     if (locals < local){
       throw const Exception('Attempted to access unallocated local variable.');
@@ -263,11 +286,11 @@ class ZMachine{
       throw const Exception('bad index');
     }
 
-    callStack[index + 1] = value;
+    callStack[index + 3] = value;
   }
 
   int _readLocal(int local){
-    var locals = callStack.peek();
+    var locals = callStack[2]; //locals header
 
     if (locals < local){
       throw const Exception('Attempted to access unallocated local variable.');
@@ -275,7 +298,7 @@ class ZMachine{
 
     var index = locals - local;
 
-    return callStack[index + 1];
+    return callStack[index + 3];
   }
 
   bool checkInterrupt(){
@@ -453,4 +476,5 @@ const {
  '36' : 'jg',
  '67' : 'jg',
  '99' : 'jg',
+ '228' : 'read'
 };
