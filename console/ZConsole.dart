@@ -1,6 +1,8 @@
 #import('../lib/zmachine.dart');
 #import('dart:io');
 
+#source('ConsoleProvider.dart');
+
 
 //Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
@@ -25,7 +27,9 @@ void main() {
     //TODO log then print friendly
     print('$e');
   }
-
+  
+  Z.IOConfig = new ConsoleProvider();
+  
   Z.debug = false; //debug enables the other flags (verbose, trace, breakpoints, etc)
   Z.verbose = true;
   Z.trace = true;

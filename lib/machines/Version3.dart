@@ -130,7 +130,8 @@ class Version3 implements IMachine
        '138' : print_obj,
        '154' : print_obj,
        '170' : print_obj,
-       '184' : ret_popped
+       '184' : ret_popped,
+       '228' : read
       };
   }
 
@@ -226,6 +227,16 @@ class Version3 implements IMachine
     }
   }
 
+  int read(){
+    String line = Z.IOConfig.getNextLine();
+    if (line != null){
+      Z.IOConfig.PrimaryOutput(line);
+      print('yes!');
+    }else{
+      Z.pc -= 1;
+    }
+  }
+  
   int ret_popped(){
     out('  [ret_popped]');
     return Z.stack.pop();

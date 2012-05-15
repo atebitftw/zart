@@ -5,6 +5,7 @@
 #source('_MemoryMap.dart');
 #source('BinaryHelper.dart');
 #source('ZSCII.dart');
+#source('IPresentationConfig.dart');
 
 #source('Operand.dart');
 
@@ -32,11 +33,11 @@ void out(String outString){
 }
 
 /// Debug Channel
-debug(String debugString) => print(debugString);
+debug(String debugString) => Z._io.DebugOutput(debugString);
 
 void todo([String message]){
   if (message != null)
-    print(message);
+    Z._io.DebugOutput(message);
   throw const NotImplementedException();
 }
 
@@ -67,16 +68,21 @@ class ZMachine{
   final int FALSE = 0;
   /// Z-Machine True = 1
   final int TRUE = 1;
-
+  
   bool isLoaded = false;
 
   bool verbose = false;
   bool trace = false; 
   bool debug = false;
 
+  IPresentationConfig _io;
+  
+  StringBuffer sbuff;
+  
   static ZMachine _ref;
   ZVersion _ver;
   List<int> _rawBytes;
+  
   final _Stack stack;
   final _Stack callStack;
   
@@ -89,8 +95,6 @@ class ZMachine{
 
   /// Z-Machine Program Counter
   int pc = 0;
-
-  int currentValue;
 
   _MemoryMap mem;
 
@@ -112,11 +116,11 @@ class ZMachine{
   }
 
   int get version() => _ver != null ? _ver.toInt() : null;
-
-  void setBreaks(List<int> breakPoints){
-    _breakPoints.addAll(breakPoints);
-  }
   
+  set IOConfig(IPresentationConfig config){
+    _io = config;
+  }
+  IPresentationConfig get IOConfig() => _io;
   
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
@@ -128,7 +132,7 @@ class ZMachine{
     _ver = ZVersion.intToVer(mem.loadb(Header.VERSION));
     isLoaded = true;
   }
-
+  
   /**
   * Runs the Z-Machine using the detected machine version from the story
   * file.  This can be overridden by passing [machineOverride] to the function.
@@ -160,12 +164,10 @@ class ZMachine{
 
     _machine.visitMainRoutine();
   }
-  
-  StringBuffer sbuff;
-  
+   
   void printBuffer(){
     //TODO(hook in configuration)
-    print(sbuff.toString());
+    _io.PrimaryOutput(sbuff.toString());
     sbuff.clear();
   }
   
@@ -175,9 +177,7 @@ class ZMachine{
   */
   int readb(){
     pc++;
-    currentValue = mem.loadb(pc - 1);
-
-    return currentValue;
+    return mem.loadb(pc - 1);
   }
 
   /** Reads 1 word from the current program counter
@@ -186,8 +186,7 @@ class ZMachine{
   */
   int readw(){
     pc += 2;
-    currentValue = mem.loadw(pc - 2);
-    return currentValue;
+    return mem.loadw(pc - 2);
   }
 
   int peekVariable(int varNum){
