@@ -143,7 +143,7 @@ class Version3 implements IMachine
 
   int fileLengthMultiplier() => 2;
 
-  visitRoutine(List<int> params){
+  void visitRoutine(List<int> params){
     
     //V3
     if (Z.callStack.length == 0){
@@ -180,7 +180,7 @@ class Version3 implements IMachine
     Z.callStack.push(locals);
   }
   
-  int callVS(){
+  void callVS(){
     out('  [call_vs]');
     var operands = this.visitOperandsVar(4, true);
 
@@ -241,12 +241,12 @@ class Version3 implements IMachine
     Z.pc = returnAddr;
   }
   
-  visitInstruction(){
+  void visitInstruction(){
     var i = Z.readb();
     if (ops.containsKey('$i')){
       var func = ops['$i'];
       if (Z.debug){
-        if (Z.trace && !Z.inBreak){
+        if (Z.trace && !Z.dynamic.inBreak){
           if (opCodes.containsKey('$i')){
             print('>>> (0x${(Z.pc - 1).toRadixString(16)}) ${opCodes[i.toString()]} ($i)');          
           }else{
@@ -302,7 +302,7 @@ class Version3 implements IMachine
     //otherwise continue to the next instruction...
   }
   
-  int read(){
+  void read(){
     Z.inInput = true;
     Z.printBuffer();
     
@@ -337,26 +337,26 @@ class Version3 implements IMachine
     Z._io.callAsync(doIt);
   }
   
-  int ret_popped(){
+  void ret_popped(){
     out('  [ret_popped]');
     Z.callStack.push(Z.stack.pop());
     doReturn();
   }
   
-  int rtrue(){
+  void rtrue(){
     out('  [rtrue]');
     Z.callStack.push(Z.TRUE);
     doReturn();
   }
   
-  int rfalse(){
+  void rfalse(){
     out('  [rfalse]');
     Z.callStack.push(Z.FALSE);
     doReturn();
   }
   
   
-  int jz(){
+  void jz(){
     out('  [jz]');
     var operand = this.visitOperandsShortForm();
 
@@ -366,7 +366,7 @@ class Version3 implements IMachine
         
   }
   
-  int get_sibling(){
+  void get_sibling(){
     out('  [get_sibling]');
     
     var operand = this.visitOperandsShortForm();
@@ -384,7 +384,7 @@ class Version3 implements IMachine
 
   }
   
-  int get_child(){
+  void get_child(){
     out('  [get_child]');
     
     var operand = this.visitOperandsShortForm();
@@ -401,7 +401,7 @@ class Version3 implements IMachine
       );
   }
   
-  int inc_chk(){
+  void inc_chk(){
     out('  [inc_chk]');
     var loc = Z.pc - 1;
     
@@ -423,7 +423,7 @@ class Version3 implements IMachine
       );
   }
   
-  test_attr(){
+  void test_attr(){
     out('  [test_attr]');
     
     var operands = this.visitOperandsLongForm();
@@ -436,7 +436,7 @@ class Version3 implements IMachine
     );
   }
   
-  int jin()  {
+  void jin()  {
     out('  [jin]');
     
     var operands = this.visitOperandsLongForm();
@@ -450,7 +450,7 @@ class Version3 implements IMachine
     );
   }
   
-  int jeV(){
+  void jeV(){
     out('  [jeV]');
     var operands = this.visitOperandsVar(4, true);
         
@@ -475,7 +475,7 @@ class Version3 implements IMachine
     );
   }
   
-  int jl(){
+  void jl(){
     out('  [jl]');
     var operands = this.visitOperandsLongForm();
 
@@ -485,7 +485,7 @@ class Version3 implements IMachine
     );
   }
   
-  int jg(){
+  void jg(){
     out('  [jg]');
     var operands = this.visitOperandsLongForm();
     
@@ -495,7 +495,7 @@ class Version3 implements IMachine
     );
   }
   
-  int je(){
+  void je(){
     out('  [je]');
     var operands = this.visitOperandsLongForm();
     
@@ -505,13 +505,13 @@ class Version3 implements IMachine
     );
   }
     
-  int newline(){
+  void newline(){
     out('  [newline]');
     
     Z.printBuffer();
   }
   
-  int print_obj(){
+  void print_obj(){
     out('  [print_obj]');
     var operand = this.visitOperandsShortForm();
     
@@ -520,7 +520,7 @@ class Version3 implements IMachine
     Z.sbuff.add(obj.shortName);
   }
   
-  int print_addr(){
+  void print_addr(){
     out('  [print_addr]');
     var operand = this.visitOperandsShortForm();
     
@@ -529,7 +529,7 @@ class Version3 implements IMachine
     Z.sbuff.add(ZSCII.readZStringAndPop(addr));
   }
   
-  int print_paddr(){
+  void print_paddr(){
     out('  [print_paddr]');
     
     var operand = this.visitOperandsShortForm();
@@ -539,7 +539,7 @@ class Version3 implements IMachine
     Z.sbuff.add(ZSCII.readZStringAndPop(addr));
   }
  
-  int print_char(){
+  void print_char(){
     out('  [print_char]');
       
     var operands = this.visitOperandsVar(1, false);
@@ -553,7 +553,7 @@ class Version3 implements IMachine
     Z.sbuff.add(ZSCII.ZCharToChar(z));
   }
   
-  int print_num(){
+  void print_num(){
     out('  [print_num]');
     
     var operands = this.visitOperandsVar(1, false);
@@ -561,7 +561,7 @@ class Version3 implements IMachine
     Z.sbuff.add('${_convertToSigned(operands[0].value)}');
   }
   
-  int printf(){
+  void printf(){
     out('  [print]');
     
     Z.sbuff.add(ZSCII.readZString(Z.pc));
@@ -569,7 +569,7 @@ class Version3 implements IMachine
     Z.pc = Z.callStack.pop();
   }
   
-  int insertObj(){
+  void insertObj(){
     out('  [insert_obj]');
     
     var operands = this.visitOperandsLongForm();
@@ -583,7 +583,7 @@ class Version3 implements IMachine
     from.insertTo(to.id);  
   }
 
-  int removeObj(){
+  void removeObj(){
     out('  [remove_obj]');
     var operand = this.visitOperandsShortForm();
     
@@ -593,7 +593,7 @@ class Version3 implements IMachine
     o.removeFromTree();
   }
   
-  int store(){
+  void store(){
     out('  [store]');
 
     var operands = this.visitOperandsLongForm();
@@ -601,7 +601,7 @@ class Version3 implements IMachine
     Z.writeVariable(operands[0].rawValue, operands[1].value);
  }
 
-  int jump(){
+  void jump(){
     out('  [jump]');
 
     var operand = this.visitOperandsShortForm();
@@ -612,7 +612,7 @@ class Version3 implements IMachine
   }
 
 
-  int ret(){
+  void ret(){
     out('  [ret]');
     var operand = this.visitOperandsShortForm();
 
@@ -622,7 +622,7 @@ class Version3 implements IMachine
     doReturn();
   }
   
-  int get_parent(){
+  void get_parent(){
     out('  [get_parent]');
     
     var operand = this.visitOperandsShortForm();
@@ -635,7 +635,7 @@ class Version3 implements IMachine
     
   }
   
-  int set_attr(){
+  void set_attr(){
     out('  [set_attr]');
     var operands = this.visitOperandsLongForm();
     
@@ -645,7 +645,7 @@ class Version3 implements IMachine
 
   }
      
-  int andV(){
+  void andV(){
     out('  [andV]');
     var operands = this.visitOperandsVar(2, false);
     
@@ -654,7 +654,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, operands[0].value & operands[1].value);
   }
   
-  int and(){
+  void and(){
     out('  [and]');
     
     var operands = this.visitOperandsLongForm();
@@ -664,7 +664,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, operands[0].value & operands[1].value);
   }
   
-  int sub(){
+  void sub(){
     out('  [subtract]');
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
@@ -672,7 +672,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) - this._convertToSigned(operands[1].value));
   }
 
-  int add(){
+  void add(){
     out('  [add]');
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
@@ -680,7 +680,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) + this._convertToSigned(operands[1].value));
   }
   
-  int mul(){
+  void mul(){
     out('  [mul]');
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
@@ -688,7 +688,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) * this._convertToSigned(operands[1].value));
   }
   
-  int div(){
+  void div(){
     out('  [div]');
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
@@ -700,7 +700,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, (this._convertToSigned(operands[0].value) / this._convertToSigned(operands[1].value)).toInt());
   }
 
-  int mod(){
+  void mod(){
     out('  [mod]');
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
@@ -712,7 +712,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) % this._convertToSigned(operands[1].value));
   }
 
-  int get_prop(){
+  void get_prop(){
     out('  [get_prop]');
 
     var operands = this.visitOperandsLongForm();
@@ -725,7 +725,7 @@ class Version3 implements IMachine
     Z.writeVariable(resultTo, prop);
   }
   
-  int loadb(){
+  void loadb(){
     out('  [loadb]');
     
     var operands = this.visitOperandsLongForm();
@@ -739,7 +739,7 @@ class Version3 implements IMachine
     out('    loaded 0x${Z.peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
   
-  int loadw(){
+  void loadw(){
     out('  [loadw]');
 
     var operands = this.visitOperandsLongForm();
@@ -753,7 +753,7 @@ class Version3 implements IMachine
   }
 
   //variable arguement version of storew
-  int storewv(){
+  void storewv(){
     out('  [storewv]');
 
     var operands = this.visitOperandsVar(4, true);
@@ -895,7 +895,7 @@ class Version3 implements IMachine
     return operands;
   }
 
-  visitHeader(){
+  void visitHeader(){
     Z.mem.abbrAddress = Z.mem.loadw(Header.ABBREVIATIONS_TABLE_ADDR);
     Z.mem.objectsAddress = Z.mem.loadw(Header.OBJECT_TABLE_ADDR);
     Z.mem.globalVarsAddress = Z.mem.loadw(Header.GLOBAL_VARS_TABLE_ADDR);

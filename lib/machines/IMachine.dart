@@ -17,7 +17,7 @@ interface IMachine default Version3
 // 2P           versions 1, 2 and 3
 // 4P           versions 4 and 5
 // 4P + 8R_O    versions 6 and 7, for routine calls
-// 4P + 8S_O    versions 6 and 7, for print_paddr
+// 4P + 8S_O    versions 6 and 7, for prvoid_paddr
 // 8P           version 8
 // R_O and S_O are the routine and strings offsets (specified in the header as words at $28 and $2a, respectively).
  int unpack(int packedAddr);
@@ -36,30 +36,30 @@ interface IMachine default Version3
 
  Operand visitOperandsShortForm();
 
- int get_prop();
+ void get_prop();
 
- int je();
+ void je();
 
- int jin();
+ void jin();
 
- int add();
+ void add();
 
- int sub();
+ void sub();
 
- int loadw();
+ void loadw();
 
- int callVS();
+ void callVS();
 
- int insertObj();
+ void insertObj();
  
- int removeObj();
+ void removeObj();
 
- int ret();
+ void ret();
 
- int jump();
+ void jump();
 
- int store();
+ void store();
 
- int storewv();
+ void storewv();
 }
 
