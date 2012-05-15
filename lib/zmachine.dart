@@ -160,9 +160,7 @@ class ZMachine{
       _machine.visitHeader();
     }
 
-
-
-    _machine.visitMainRoutine();
+    _machine.visitRoutine([]);
   }
    
   void printBuffer(){

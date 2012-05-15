@@ -26,8 +26,6 @@ interface IMachine default Version3
 
  void visitHeader();
 
- void visitMainRoutine();
-
  void visitRoutine(List<int> params);
 
  void visitInstruction();

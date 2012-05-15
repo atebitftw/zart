@@ -63,7 +63,8 @@ class ZSCII {
        '219':  0xa3, '220': 0x153, '221':  0x152,'222':  0xa1,
        '223':  0xbf
       };
-      
+   
+        
   /// Reads a string of Z characters and returns
   /// the decoded version.  Also pushes the address after the
   /// string to the call stack.

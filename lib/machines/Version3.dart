@@ -6,8 +6,6 @@ class Version3 implements IMachine
 {
   Map<String, Function> ops;
 
-  bool mainCalled = false;
-
   int get propertyDefaultsTableSize() => 31;
 
 //  00 -- 31  long      2OP     small constant, small constant
@@ -145,22 +143,14 @@ class Version3 implements IMachine
 
   int fileLengthMultiplier() => 2;
 
-  visitMainRoutine(){
-    if (mainCalled){
-      throw const Exception('Attempt to call entry routine more than once.');
-    }
-
-    mainCalled = true;
-
-    Z.pc -= 1; //move to the main routine header;
-    visitRoutine([]);
-
-    //throw if this routine returns (it never should)
-    throw const Exception('Illegal return from entry routine.');
-  }
-
   visitRoutine(List<int> params){
-
+    
+    //V3
+    if (Z.callStack.length == 0){
+      //main routine
+      Z.pc--;
+    }
+    
     //push routine start onto the stack
     Z.callStack.push(Z.pc);
 
