@@ -64,7 +64,14 @@ class ZSCII {
        '223':  0xbf
       };
    
-        
+
+  /// Reads a string of Z characters and returns
+  /// the decoded version.
+  static String readZStringAndPop(int fromAddress){
+   var result = readZString(fromAddress);
+   Z.callStack.pop();
+  }
+      
   /// Reads a string of Z characters and returns
   /// the decoded version.  Also pushes the address after the
   /// string to the call stack.

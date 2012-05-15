@@ -292,15 +292,18 @@ class Version3 implements IMachine
   
   int inc_chk(){
     out('  [inc_chk]');
+    var temp = Z.mem.loadb(Z.pc - 1);
     
     Z.mem.storeb(Z.pc - 1, 69); //force to var/small arguement types
     
     var operands = this.visitOperandsLongForm();
-        
+    
+    Z.mem.storeb(Z.pc - 1, temp);
+    
     var value = this._convertToSigned(operands[0].value) + 1;
 
     Z.writeVariable(operands[0].rawValue, value);
-        
+    
     return testPredicate(
       () => value > this._convertToSigned(operands[1].value),
       () => value <= this._convertToSigned(operands[1].value)
@@ -432,8 +435,7 @@ class Version3 implements IMachine
     
     var addr = operand.value;
     
-    Z.sbuff.add(ZSCII.readZString(addr));
-    Z.callStack.pop();
+    Z.sbuff.add(ZSCII.readZStringAndPop(addr));
   }
   
   int print_paddr(){
@@ -443,8 +445,7 @@ class Version3 implements IMachine
     
     var addr = this.unpack(operand.value);
     
-    Z.sbuff.add(ZSCII.readZString(addr));
-    Z.callStack.pop();
+    Z.sbuff.add(ZSCII.readZStringAndPop(addr));
   }
  
   int print_char(){
@@ -466,11 +467,7 @@ class Version3 implements IMachine
     
     var operands = this.visitOperandsVar(1, false);
     
-    //TODO support signed nums (ref http://www.gnelson.demon.co.uk/zspec/sect15.html#print_num)
-    
-    var n = this._convertToSigned(operands[0].value);
-    
-    Z.sbuff.add('$n');
+    Z.sbuff.add('${_convertToSigned(operands[0].value)}');
   }
   
   int printf(){
