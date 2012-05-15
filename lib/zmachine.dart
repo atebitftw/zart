@@ -122,6 +122,8 @@ class ZMachine{
   }
   IPresentationConfig get IOConfig() => _io;
   
+  void setBreaks(List breakPoints) => _breakPoints.addAll(breakPoints);
+  
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
@@ -164,7 +166,6 @@ class ZMachine{
   }
    
   void printBuffer(){
-    //TODO(hook in configuration)
     _io.PrimaryOutput(sbuff.toString());
     sbuff.clear();
   }

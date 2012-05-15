@@ -188,9 +188,11 @@ class Version3 implements IMachine
 
     out('Instruction returned: 0x${returnVal.toRadixString(16)}');
     Z._unwind1();
+    
+    if (Z.callStack.length == 0){
+      throw const Exception('Illegal return from entry function.');
+    }
     return returnVal;
-    //TODO unwind stack frame and assign returnVal;
-    todo('unwind stack and assign returnVal');
   }
 
   visitInstruction(){
@@ -247,30 +249,165 @@ class Version3 implements IMachine
     out('  [jz]');
     var operand = this.visitOperandsShortForm();
 
+    return testPredicate(
+      () => operand.value == Z.FALSE, 
+      () => operand.value == Z.TRUE);
+        
+  }
+  
+  int get_sibling(){
+    out('  [get_sibling]');
+    
+    var operand = this.visitOperandsShortForm();
+    
+    var resultTo = Z.readb();
+       
+    GameObjectV3 obj = new GameObjectV3(operand.value);
+    
+    Z.writeVariable(resultTo, obj.sibling);
+    
+    return testPredicate(
+      () => obj.sibling != 0,
+      () => obj.sibling == 0
+      );
+
+  }
+  
+  int get_child(){
+    out('  [get_child]');
+    
+    var operand = this.visitOperandsShortForm();
+        
+    var resultTo = Z.readb();
+    
+    GameObjectV3 obj = new GameObjectV3(operand.value);
+    
+    Z.writeVariable(resultTo, obj.child);
+    
+    return testPredicate(
+      () => obj.child != 0,
+      () => obj.child == 0
+      );
+  }
+  
+  int inc_chk(){
+    out('  [inc_chk]');
+    
+    Z.mem.storeb(Z.pc - 1, 69); //force to var/small arguement types
+    
+    var operands = this.visitOperandsLongForm();
+        
+    var value = this._convertToSigned(operands[0].value) + 1;
+
+    Z.writeVariable(operands[0].rawValue, value);
+        
+    return testPredicate(
+      () => value > this._convertToSigned(operands[1].value),
+      () => value <= this._convertToSigned(operands[1].value)
+      );
+  }
+  
+  test_attr(){
+    out('  [test_attr]');
+    var operands = this.visitOperandsLongForm();
+    
+    GameObjectV3 obj = new GameObjectV3(operands[0].value);
+    
+    return testPredicate(
+      () => obj.isFlagBitSet(operands[1].value),
+      () => !obj.isFlagBitSet(operands[1].value)
+    );
+  }
+  
+  int jin()  {
+    out('  [jin]');
+    
+    var operands = this.visitOperandsLongForm();
+    
+    var obj1 = new GameObjectV3(operands[0].value);
+    var obj2 = new GameObjectV3(operands[1].value);
+    
+    return testPredicate(
+      () => obj1.parent == obj2.id,
+      () => obj1.parent != obj2.id
+    );
+  }
+  
+  int jeV(){
+    out('  [jeV]');
+    var operands = this.visitOperandsVar(4, true);
+        
+    if (operands.length < 2){
+      throw const Exception('At least 2 operands required for jeV instruction.');
+    }
+    
+    var l = operands.length;
+    
+    var foundMatch = false;
+    var testVal = this._convertToSigned(operands[0].value);
+    for(int i = 1; i < l; i++){
+      if (foundMatch == true) continue;
+      if (testVal == this._convertToSigned(operands[i].value)){
+        foundMatch == true;
+      }
+    }
+    
+    return testPredicate(
+      () => foundMatch,
+      () => !foundMatch
+    );
+  }
+  
+  int jl(){
+    out('  [jl]');
+    var operands = this.visitOperandsLongForm();
+
+    return testPredicate(
+      () => this._convertToSigned(operands[0].value) < this._convertToSigned(operands[1].value),
+      () => this._convertToSigned(operands[0].value) >= this._convertToSigned(operands[1].value)
+    );
+  }
+  
+  int jg(){
+    out('  [jg]');
+    var operands = this.visitOperandsLongForm();
+    
+    return testPredicate(
+      () => this._convertToSigned(operands[0].value) > this._convertToSigned(operands[1].value),
+      () => this._convertToSigned(operands[0].value) <= this._convertToSigned(operands[1].value)
+    );
+  }
+  
+  int je(){
+    out('  [je]');
+    var operands = this.visitOperandsLongForm();
+    
+    return testPredicate(
+      () => this._convertToSigned(operands[0].value) == this._convertToSigned(operands[1].value),
+      () => this._convertToSigned(operands[0].value) != this._convertToSigned(operands[1].value)
+    );
+  }
+  
+  int testPredicate(trueFunction(), falseFunction())
+  {
     var jumpByte = Z.readb();
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-
+    
+    var testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+    
+    var result = testTrueOrFalse ? trueFunction() : falseFunction();
+    
+    if (result == null || result is! bool){
+      throw const Exception('Test function must return a boolean value.');
+    }   
+   
     var offset = _jumpToLabelOffset(jumpByte);
-
-    //if testing for true, operand must == FALSE(0)
-    if (testTrueOrFalse){
-      out('    [true]');
-      if (operand.value == Z.FALSE){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      out('    [false]');
-      if (operand.value == Z.TRUE){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
+    
+    if (result){
+      if (offset == Z.FALSE) return Z.FALSE;
+      if (offset == Z.TRUE) return Z.TRUE;
+      
+      Z.pc += offset - 2;
+      return this.visitInstruction();
     }
   }
   
@@ -407,150 +544,6 @@ class Version3 implements IMachine
     
   }
   
-  int get_sibling(){
-    out('  [get_sibling]');
-    
-    var operand = this.visitOperandsShortForm();
-    
-    var resultTo = Z.readb();
-    
-    var jumpByte = Z.readb();
-    
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-    
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    GameObjectV3 obj = new GameObjectV3(operand.value);
-    
-    Z.writeVariable(resultTo, obj.sibling);
-    
-    if (testTrueOrFalse){
-      if (obj.sibling != 0){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      if (obj.sibling == 0){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    out('    continuing to next instruction');
-  }
-  
-  int get_child(){
-    out('  [get_child]');
-    
-    var operand = this.visitOperandsShortForm();
-    
-    var resultTo = Z.readb();
-    
-    var jumpByte = Z.readb();
-    
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-    
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    GameObjectV3 obj = new GameObjectV3(operand.value);
-    
-    Z.writeVariable(resultTo, obj.child);
-    
-    if (testTrueOrFalse){
-      if (obj.child != 0){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      if (obj.child == 0){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    out('    continuing to next instruction');
-  }
-
-  int inc_chk(){
-    out('  [inc_chk]');
-    
-    Z.mem.storeb(Z.pc - 1, 69); //force to var/small arguement types
-    
-    var operands = this.visitOperandsLongForm();
-    
-    var jumpByte = Z.readb();
-        
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-    
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    var value = this._convertToSigned(operands[0].value) + 1;
-
-    Z.writeVariable(operands[0].rawValue, value);
-        
-    if (testTrueOrFalse){
-      if (value > this._convertToSigned(operands[1].value)){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      if (value <= this._convertToSigned(operands[1].value)){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    
-    out('    continuing to next instruction');
-  }
-  
-  test_attr(){
-    out('  [test_attr]');
-    var operands = this.visitOperandsLongForm();
-    
-    var jumpByte = Z.readb();
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-    
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    GameObjectV3 obj = new GameObjectV3(operands[0].value);
-    
-    if (testTrueOrFalse){
-      if (obj.isFlagBitSet(operands[1].value)){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      if (!obj.isFlagBitSet(operands[1].value)){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    
-    out('    continuing to next instruction');
-  }
-  
   int set_attr(){
     out('  [set_attr]');
     var operands = this.visitOperandsLongForm();
@@ -560,190 +553,7 @@ class Version3 implements IMachine
     obj.setFlagBit(operands[1].value);
 
   }
-  
-  int jin()  {
-    out('  [jin]');
-    
-    var operands = this.visitOperandsLongForm();
-
-    var jumpByte = Z.readb();
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    var obj1 = new GameObjectV3(operands[0].value);
-    var obj2 = new GameObjectV3(operands[1].value);
-    
-    if (testTrueOrFalse){
-      if (obj1.parent == obj2.id){
-        //(ref 4.7.2)
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      if (obj1.parent != obj2.id){
-        //(ref 4.7.2)
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    out('    continuing to next instruction');
-  }
-  
-  int jeV(){
-    out('  [jeV]');
-    var operands = this.visitOperandsVar(4, true);
-    
-    var jumpByte = Z.readb();
-    
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    if (operands.length < 2){
-      throw const Exception('At least 2 operands required for jeV instruction.');
-    }
-    
-    var l = operands.length;
-    
-    var foundMatch = false;
-    for(int i = 1; i < l; i++){
-      if (foundMatch == true) continue;
-      if (operands[0].value == operands[i].value){
-        foundMatch == true;
-      }
-    }
-    
-    //TODO refactor
-    
-    if (testTrueOrFalse){
-      out('    [true]');
-      if (foundMatch){
-        //(ref 4.7.2)
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      out('    [false]');
-      if (!foundMatch){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    out('    continuing to next instruction');
-  }
-  
-  int jl(){
-    out('  [jl]');
-    var operands = this.visitOperandsLongForm();
-
-    var jumpByte = Z.readb();
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    //TODO refactor
-    if (testTrueOrFalse){
-      out('    [true]');
-      if (this._convertToSigned(operands[0].value) < this._convertToSigned(operands[1].value)){
-        //(ref 4.7.2)
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      out('    [false]');
-      if (this._convertToSigned(operands[0].value) >= this._convertToSigned(operands[1].value)){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    out('    continuing to next instruction');
-  }
-  
-  int jg(){
-    out('  [jg]');
-    var operands = this.visitOperandsLongForm();
-
-    var jumpByte = Z.readb();
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    //TODO refactor
-    if (testTrueOrFalse){
-      out('    [true]');
-      if (this._convertToSigned(operands[0].value) > this._convertToSigned(operands[1].value)){
-        //(ref 4.7.2)
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      out('    [false]');
-      if (this._convertToSigned(operands[0].value) <= this._convertToSigned(operands[1].value)){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    out('    continuing to next instruction');
-  }
-  
-  int je(){
-    out('  [je]');
-    var operands = this.visitOperandsLongForm();
-
-    var jumpByte = Z.readb();
-    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
-
-    var offset = _jumpToLabelOffset(jumpByte);
-    
-    //TODO refactor
-    if (testTrueOrFalse){
-      out('    [true]');
-      if (operands[0].value == operands[1].value){
-        //(ref 4.7.2)
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }else{
-      out('    [false]');
-      if (operands[0].value != operands[1].value){
-        if (offset == Z.FALSE) return Z.FALSE;
-        if (offset == Z.TRUE) return Z.TRUE;
-        Z.pc += (offset - 2);
-        out('    jumping to ${Z.pc.toRadixString(16)}');
-        return this.visitInstruction();
-      }
-    }
-    out('    continuing to next instruction');
-  }
-
+     
   int andV(){
     out('  [andV]');
     var operands = this.visitOperandsVar(2, false);
@@ -897,8 +707,7 @@ class Version3 implements IMachine
   }
 
   int _convertToSigned(int val){
-    var sign = val & 0x8000;
-    if (sign != 0){
+    if ((val & 0x8000) != 0){
       return -(65536 - val);
     }else{
       return val;
@@ -916,11 +725,8 @@ class Version3 implements IMachine
         var sign = val & 0x2000;
         if (sign != 0)
         {
-         // print('negative offset to: 0x${(Z.pc + -(16384 - val)).toRadixString(16)}');
           return -(16384 - val);
         }else{
-          
-         // print('val: $val, positive offset to: 0x${(Z.pc + val).toRadixString(16)}');
           return val;
         }
       }
@@ -928,7 +734,6 @@ class Version3 implements IMachine
       var secondByte = Z.readb();
       
       var jumpWord = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | secondByte;
-     // print('jumpByte: $jumpByte, secondByte: $secondByte, jumpWord: $jumpWord');
       
       return _convertTo14BitSigned(jumpWord);
     }

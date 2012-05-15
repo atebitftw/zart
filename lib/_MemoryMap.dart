@@ -82,8 +82,8 @@ class _MemoryMap {
 
   void checkBounds(int address){
    if (address == null || address < 0 || address > _mem.length - 1){
-     throw const Exception('Attempted access to memory address'
-       ' that is out of bounds.');
+     throw new Exception('Attempted access to memory address'
+       ' that is out of bounds: 0x${address.toRadixString(16)}');
    }
   }
 
