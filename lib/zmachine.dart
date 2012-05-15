@@ -176,6 +176,7 @@ class ZMachine{
   int readb(){
     pc++;
     currentValue = mem.loadb(pc - 1);
+
     return currentValue;
   }
 
@@ -438,4 +439,20 @@ const {
  '130' : 'get_child',
  '146' : 'get_child',
  '162' : 'get_child',
+ '193' : 'jeV',
+ '131' : 'get_parent',
+ '147' : 'get_parent',
+ '163' : 'get_parent',
+ '161' : 'get_sibling',
+ '145' : 'get_sibling',
+ '129' : 'get_sibling',
+ '184' : 'ret_popped',
+ '2' : 'jl',
+ '35' : 'jl',
+ '66' : 'jl',
+ '98' : 'jl',
+ '3' : 'jg',
+ '36' : 'jg',
+ '67' : 'jg',
+ '99' : 'jg',
 };

@@ -3,7 +3,9 @@ class Operand
 {
   final int type;
   int rawValue;
-
+  
+  int _cachedValue;
+  
   Operand(this.type);
 
   /// Gets a read of the [rawValue].
@@ -16,7 +18,12 @@ class Operand
       case OperandType.SMALL:
         return rawValue;
       case OperandType.VARIABLE:
-        return Z.readVariable(rawValue);
+        //prevents popping the stack more than once for
+        //value inspection.
+        if (_cachedValue == null){
+          _cachedValue = Z.readVariable(rawValue);
+        }
+        return _cachedValue;
       default:
         throw new Exception('Invalid Operand Type: $type');
     }

@@ -87,11 +87,26 @@ class Version3 implements IMachine
        '33' : je,
        '65' : je,
        '97' : je,
+       '2' : jl,
+       '35' : jl,
+       '66' : jl,
+       '98' : jl,
+       '3' : jg,
+       '36' : jg,
+       '67' : jg,
+       '99' : jg,
+       '193' : jeV,
        '140' : jump,
        '165' : jump,
        '130' : get_child,
        '146' : get_child,
        '162' : get_child,
+       '131' : get_parent,
+       '147' : get_parent,
+       '163' : get_parent,
+       '161' : get_sibling,
+       '145' : get_sibling,
+       '129' : get_sibling,
        '160' : jz,
        '144' : jz,
        '128' : jz,
@@ -114,7 +129,8 @@ class Version3 implements IMachine
        '177' : rfalse,
        '138' : print_obj,
        '154' : print_obj,
-       '170' : print_obj
+       '170' : print_obj,
+       '184' : ret_popped
       };
   }
 
@@ -210,7 +226,11 @@ class Version3 implements IMachine
     }
   }
 
-
+  int ret_popped(){
+    out('  [ret_popped]');
+    return Z.stack.pop();
+  }
+  
   int rtrue(){
     out('  [rtrue]');
     return Z.TRUE;
@@ -310,7 +330,7 @@ class Version3 implements IMachine
     
     //TODO support signed nums (ref http://www.gnelson.demon.co.uk/zspec/sect15.html#print_num)
     
-    var n = operands[0].value;
+    var n = this._convertToSigned(operands[0].value);
     
     Z.sbuff.add('$n');
   }
@@ -357,22 +377,11 @@ class Version3 implements IMachine
   int jump(){
     out('  [jump]');
 
-    int decodeOffset(int val){
-      var sign = val & 0x8000;
-      if (sign != 0){
-        return -(65536 - val) - 2;
-      }else{
-        return val - 2;
-      }
-    }
-
     var operand = this.visitOperandsShortForm();
 
-    var offset = decodeOffset(operand.value);
+    var offset = _convertToSigned(operand.value) - 2;
 
     Z.pc += offset;
-
-    out('  (to 0x${Z.pc.toRadixString(16)})');
   }
 
 
@@ -393,7 +402,45 @@ class Version3 implements IMachine
     
     GameObjectV3 obj = new GameObjectV3(operand.value);
     
+    Z.writeVariable(resultTo, obj.parent);
     
+  }
+  
+  int get_sibling(){
+    out('  [get_sibling]');
+    
+    var operand = this.visitOperandsShortForm();
+    
+    var resultTo = Z.readb();
+    
+    var jumpByte = Z.readb();
+    
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+    
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    GameObjectV3 obj = new GameObjectV3(operand.value);
+    
+    Z.writeVariable(resultTo, obj.sibling);
+    
+    if (testTrueOrFalse){
+      if (obj.sibling != 0){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      if (obj.sibling == 0){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    out('    continuing to next instruction');
   }
   
   int get_child(){
@@ -446,12 +493,12 @@ class Version3 implements IMachine
     
     var offset = _jumpToLabelOffset(jumpByte);
     
-    var value = operands[0].value + 1;
+    var value = this._convertToSigned(operands[0].value) + 1;
 
     Z.writeVariable(operands[0].rawValue, value);
         
     if (testTrueOrFalse){
-      if (value > operands[1].value){
+      if (value > this._convertToSigned(operands[1].value)){
         if (offset == Z.FALSE) return Z.FALSE;
         if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
@@ -459,7 +506,7 @@ class Version3 implements IMachine
         return this.visitInstruction();
       }
     }else{
-      if (value <= operands[1].value){
+      if (value <= this._convertToSigned(operands[1].value)){
         if (offset == Z.FALSE) return Z.FALSE;
         if (offset == Z.TRUE) return Z.TRUE;
         Z.pc += (offset - 2);
@@ -548,6 +595,121 @@ class Version3 implements IMachine
     out('    continuing to next instruction');
   }
   
+  int jeV(){
+    out('  [jeV]');
+    var operands = this.visitOperandsVar(4, true);
+    
+    var jumpByte = Z.readb();
+    
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    if (operands.length < 2){
+      throw const Exception('At least 2 operands required for jeV instruction.');
+    }
+    
+    var l = operands.length;
+    
+    var foundMatch = false;
+    for(int i = 1; i < l; i++){
+      if (foundMatch == true) continue;
+      if (operands[0].value == operands[i].value){
+        foundMatch == true;
+      }
+    }
+    
+    //TODO refactor
+    
+    if (testTrueOrFalse){
+      out('    [true]');
+      if (foundMatch){
+        //(ref 4.7.2)
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      out('    [false]');
+      if (!foundMatch){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    out('    continuing to next instruction');
+  }
+  
+  int jl(){
+    out('  [jl]');
+    var operands = this.visitOperandsLongForm();
+
+    var jumpByte = Z.readb();
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    //TODO refactor
+    if (testTrueOrFalse){
+      out('    [true]');
+      if (this._convertToSigned(operands[0].value) < this._convertToSigned(operands[1].value)){
+        //(ref 4.7.2)
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      out('    [false]');
+      if (this._convertToSigned(operands[0].value) >= this._convertToSigned(operands[1].value)){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    out('    continuing to next instruction');
+  }
+  
+  int jg(){
+    out('  [jg]');
+    var operands = this.visitOperandsLongForm();
+
+    var jumpByte = Z.readb();
+    bool testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+
+    var offset = _jumpToLabelOffset(jumpByte);
+    
+    //TODO refactor
+    if (testTrueOrFalse){
+      out('    [true]');
+      if (this._convertToSigned(operands[0].value) > this._convertToSigned(operands[1].value)){
+        //(ref 4.7.2)
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }else{
+      out('    [false]');
+      if (this._convertToSigned(operands[0].value) <= this._convertToSigned(operands[1].value)){
+        if (offset == Z.FALSE) return Z.FALSE;
+        if (offset == Z.TRUE) return Z.TRUE;
+        Z.pc += (offset - 2);
+        out('    jumping to ${Z.pc.toRadixString(16)}');
+        return this.visitInstruction();
+      }
+    }
+    out('    continuing to next instruction');
+  }
+  
   int je(){
     out('  [je]');
     var operands = this.visitOperandsLongForm();
@@ -605,7 +767,7 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
 
-    Z.writeVariable(resultTo, operands[0].value - operands[1].value);
+    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) - this._convertToSigned(operands[1].value));
   }
 
   int add(){
@@ -613,7 +775,7 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
 
-    Z.writeVariable(resultTo, operands[0].value + operands[1].value);
+    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) + this._convertToSigned(operands[1].value));
   }
   
   int mul(){
@@ -621,7 +783,7 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
     
-    Z.writeVariable(resultTo, operands[0].value * operands[1].value);
+    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) * this._convertToSigned(operands[1].value));
   }
   
   int div(){
@@ -633,7 +795,7 @@ class Version3 implements IMachine
       throw const Exception('Divide by 0.');
     }
     
-    Z.writeVariable(resultTo, (operands[0].value / operands[1].value).toInt());
+    Z.writeVariable(resultTo, (this._convertToSigned(operands[0].value) / this._convertToSigned(operands[1].value)).toInt());
   }
 
   int mod(){
@@ -645,7 +807,7 @@ class Version3 implements IMachine
       throw const Exception('Divide by 0.');
     }
     
-    Z.writeVariable(resultTo, operands[0].value % operands[1].value);
+    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) % this._convertToSigned(operands[1].value));
   }
 
   int get_prop(){
@@ -668,7 +830,7 @@ class Version3 implements IMachine
 
     var resultTo = Z.readb();
 
-    var addr = operands[0].value + operands[1].value;
+    var addr = operands[0].value + this._convertToSigned(operands[1].value);
 
     //todo();
     Z.writeVariable(resultTo, Z.mem.loadb(addr));
@@ -682,7 +844,7 @@ class Version3 implements IMachine
 
     var resultTo = Z.readb();
 
-    var addr = operands[0].value + (2 * operands[1].value);
+    var addr = operands[0].value + (2 * this._convertToSigned(operands[1].value));
 
     Z.writeVariable(resultTo, Z.mem.loadw(addr));
     out('    loaded 0x${Z.peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
@@ -699,7 +861,7 @@ class Version3 implements IMachine
     }
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    var addr = operands[0].value + (2 * operands[1].value);
+    var addr = operands[0].value + (2 * this._convertToSigned(operands[1].value));
     Z.mem.storew(addr, operands[2].value);
     out('    stored 0x${operands[2].peekValue.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
@@ -712,9 +874,8 @@ class Version3 implements IMachine
       throw const Exception('Call function address not given.');
 
     var storeTo = Z.readb();
-//    out('>>>storing to: 0x${storeTo}');
+
     var returnTo = Z.pc;
-//    out('>>>returning to: 0x${Z.pc.toRadixString(16)}');
 
     //unpack function address
     operands[0].rawValue = this.unpack(operands[0].value);
@@ -725,16 +886,24 @@ class Version3 implements IMachine
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
       Z.writeVariable(storeTo, Z.FALSE);
     }else{
-      Z.pc = operands[0].value;
+      Z.pc = operands[0].rawValue;
       var result = this.visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
       Z.writeVariable(storeTo, result);
     }
 
-    //Z.pc = Z.callStack.pop();
     out('>>> returning control to: 0x${returnTo.toRadixString(16)}');
     Z.pc = returnTo;
   }
 
+  int _convertToSigned(int val){
+    var sign = val & 0x8000;
+    if (sign != 0){
+      return -(65536 - val);
+    }else{
+      return val;
+    }
+  }
+  
   //calculates the local jump offset (ref 4.7)
   int _jumpToLabelOffset(int jumpByte){
 
@@ -742,8 +911,25 @@ class Version3 implements IMachine
       //single byte offset
       return BinaryHelper.bottomBits(jumpByte, 6);
     }else{
-      //2-byte offset (signed)
-      todo('implement 2-byte offset calc');
+      _convertTo14BitSigned(int val){
+        var sign = val & 0x2000;
+        if (sign != 0)
+        {
+         // print('negative offset to: 0x${(Z.pc + -(16384 - val)).toRadixString(16)}');
+          return -(16384 - val);
+        }else{
+          
+         // print('val: $val, positive offset to: 0x${(Z.pc + val).toRadixString(16)}');
+          return val;
+        }
+      }
+     
+      var secondByte = Z.readb();
+      
+      var jumpWord = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | secondByte;
+     // print('jumpByte: $jumpByte, secondByte: $secondByte, jumpWord: $jumpWord');
+      
+      return _convertTo14BitSigned(jumpWord);
     }
   }
 
