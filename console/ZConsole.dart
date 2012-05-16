@@ -30,10 +30,10 @@ void main() {
   
   Z.IOConfig = new ConsoleProvider();
   
-  Z.debug = true; //debug enables the other flags (verbose, trace, breakpoints, etc)
-  Z.verbose = false;
-  Z.trace = true;
-  Z.setBreaks([0x6e0f]);
+  Z.debug = false; //debug enables the other flags (verbose, trace, breakpoints, etc)
+  Z.verbose = true;
+  Z.trace = false;
+  //Z.setBreaks([0x6e0f]);
   Z.run();
 }
 

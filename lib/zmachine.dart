@@ -68,7 +68,7 @@ void _throwAndDump(String message, int dumpOffset, [int howMany=20]){
   
   //Z.callStack.dump();
   
-  throw new Exception('(0x${(Z.pc - 2).toRadixString(16)}) $message');
+  throw new Exception('(0x${(Z.pc - 1).toRadixString(16)}) $message');
 }
 
 /**
@@ -434,7 +434,7 @@ const {
  '97' : 'je',
  '160' : 'jz',
  '140' : 'jump',
- '165' : 'jump',
+ '156' : 'jump',
  '144' : 'jz',
  '128' : 'jz',
  '139' : 'ret',
@@ -476,5 +476,11 @@ const {
  '36' : 'jg',
  '67' : 'jg',
  '99' : 'jg',
- '228' : 'read'
+ '228' : 'read',
+ '133' : 'inc',
+ '149' : 'inc',
+ '165' : 'inc',
+ '134' : 'dec',
+ '150' : 'dec',
+ '166' : 'dec',
 };

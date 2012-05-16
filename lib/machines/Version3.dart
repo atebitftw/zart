@@ -95,7 +95,7 @@ class Version3 implements IMachine
        '99' : jg,
        '193' : jeV,
        '140' : jump,
-       '165' : jump,
+       '156' : jump,
        '130' : get_child,
        '146' : get_child,
        '162' : get_child,
@@ -111,6 +111,12 @@ class Version3 implements IMachine
        '139' : ret,
        '155' : ret,
        '171' : ret,
+       '133' : inc,
+       '149' : inc,
+       '165' : inc,
+       '134' : dec,
+       '150' : dec,
+       '166' : dec,
        '135' : print_addr,
        '151' : print_addr,
        '167' : print_addr,
@@ -243,8 +249,7 @@ class Version3 implements IMachine
   
   void visitInstruction(){
     var i = Z.readb();
-    if (ops.containsKey('$i')){
-      var func = ops['$i'];
+    if (ops.containsKey('$i')){     
       if (Z.debug){
         if (Z.trace && !Z.dynamic.inBreak){
           if (opCodes.containsKey('$i')){
@@ -260,7 +265,8 @@ class Version3 implements IMachine
           Debugger.debugStartAddr = Z.pc - 1;
         }
       }
-      func();
+      
+      ops['$i']();
     }else{
       _throwAndDump('Unsupported Op Code: $i', 0, howMany:30);
     }
@@ -270,9 +276,9 @@ class Version3 implements IMachine
   {
     var jumpByte = Z.readb();
     
-    var testTrueOrFalse = BinaryHelper.isSet(jumpByte, 7);
+    bool branchOn = BinaryHelper.isSet(jumpByte, 7);
     
-    var result = testTrueOrFalse ? trueFunction() : falseFunction();
+    bool result = trueFunction();
     
     if (result == null || result is! bool){
       throw const Exception('Test function must return a boolean value.');
@@ -280,7 +286,7 @@ class Version3 implements IMachine
    
     var offset = _jumpToLabelOffset(jumpByte);
     
-    if (result){
+    if ((branchOn && result) || (!branchOn && !result)){
       // If the offset is 0 or 1 (FALSE or TRUE), perform a return
       // operation.
       if (offset == Z.FALSE){
@@ -299,7 +305,7 @@ class Version3 implements IMachine
       Z.pc += offset - 2;
     }
     
-    //otherwise continue to the next instruction...
+    //otherwise just continue to the next instruction...
   }
   
   void read(){
@@ -336,7 +342,7 @@ class Version3 implements IMachine
     
     Z._io.callAsync(doIt);
   }
-  
+    
   void ret_popped(){
     out('  [ret_popped]');
     Z.callStack.push(Z.stack.pop());
@@ -354,8 +360,7 @@ class Version3 implements IMachine
     Z.callStack.push(Z.FALSE);
     doReturn();
   }
-  
-  
+    
   void jz(){
     out('  [jz]');
     var operand = this.visitOperandsShortForm();
@@ -363,7 +368,6 @@ class Version3 implements IMachine
     testPredicate(
       () => operand.value == Z.FALSE, 
       () => operand.value == Z.TRUE);
-        
   }
   
   void get_sibling(){
@@ -381,7 +385,6 @@ class Version3 implements IMachine
       () => obj.sibling != 0,
       () => obj.sibling == 0
       );
-
   }
   
   void get_child(){
@@ -401,25 +404,40 @@ class Version3 implements IMachine
       );
   }
   
+  void inc(){
+    out('  [inc]');
+    
+    var operand = this.visitOperandsShortForm();
+    
+    var value = _toSigned(Z.readVariable(operand.rawValue)) + 1;
+    
+    Z.writeVariable(operand.rawValue, value);
+    
+  }
+  
+  void dec(){
+    out('  [dec]');
+    
+    var operand = this.visitOperandsShortForm();
+    
+    var value = _toSigned(Z.readVariable(operand.rawValue)) - 1;
+    
+    Z.writeVariable(operand.rawValue, value);
+  }
+  
   void inc_chk(){
     out('  [inc_chk]');
-    var loc = Z.pc - 1;
-    
-    var temp = Z.mem.loadb(loc);
-    
-    Z.mem.storeb(loc, 69); //force to var/small arguement types
     
     var operands = this.visitOperandsLongForm();
     
-    Z.mem.storeb(loc, temp);
-    
-    var value = this._convertToSigned(operands[0].value) + 1;
+    var value = _toSigned(Z.readVariable(operands[0].rawValue)) + 1;
 
+    //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     Z.writeVariable(operands[0].rawValue, value);
     
     testPredicate(
-      () => value > this._convertToSigned(operands[1].value),
-      () => value <= this._convertToSigned(operands[1].value)
+      () => value > _toSigned(operands[1].value),
+      () => value <= _toSigned(operands[1].value)
       );
   }
   
@@ -441,12 +459,12 @@ class Version3 implements IMachine
     
     var operands = this.visitOperandsLongForm();
     
-    var obj1 = new GameObjectV3(operands[0].value);
-    var obj2 = new GameObjectV3(operands[1].value);
+    var child = new GameObjectV3(operands[0].value);
+    var parent = new GameObjectV3(operands[1].value);
     
     testPredicate(
-      () => obj1.parent == obj2.id,
-      () => obj1.parent != obj2.id
+      () => child.parent == parent.id,
+      () => child.parent != parent.id
     );
   }
   
@@ -457,14 +475,14 @@ class Version3 implements IMachine
     if (operands.length < 2){
       throw const Exception('At least 2 operands required for jeV instruction.');
     }
-    
-    var l = operands.length;
-    
+        
     var foundMatch = false;
-    var testVal = this._convertToSigned(operands[0].value);
-    for(int i = 1; i < l; i++){
-      if (foundMatch == true) continue;
-      if (testVal == this._convertToSigned(operands[i].value)){
+    
+    var testVal = _toSigned(operands[0].value);
+    
+    for(int i = 1; i < operands.length; i++){
+      if (foundMatch == true) break;
+      if (testVal == _toSigned(operands[i].value)){
         foundMatch == true;
       }
     }
@@ -477,11 +495,11 @@ class Version3 implements IMachine
   
   void jl(){
     out('  [jl]');
-    var operands = this.visitOperandsLongForm();
+    var operands = visitOperandsLongForm();
 
     testPredicate(
-      () => this._convertToSigned(operands[0].value) < this._convertToSigned(operands[1].value),
-      () => this._convertToSigned(operands[0].value) >= this._convertToSigned(operands[1].value)
+      () => _toSigned(operands[0].value) < _toSigned(operands[1].value),
+      () => _toSigned(operands[0].value) >= _toSigned(operands[1].value)
     );
   }
   
@@ -490,8 +508,8 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     
     testPredicate(
-      () => this._convertToSigned(operands[0].value) > this._convertToSigned(operands[1].value),
-      () => this._convertToSigned(operands[0].value) <= this._convertToSigned(operands[1].value)
+      () => _toSigned(operands[0].value) > _toSigned(operands[1].value),
+      () => _toSigned(operands[0].value) <= _toSigned(operands[1].value)
     );
   }
   
@@ -500,8 +518,8 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     
     testPredicate(
-      () => this._convertToSigned(operands[0].value) == this._convertToSigned(operands[1].value),
-      () => this._convertToSigned(operands[0].value) != this._convertToSigned(operands[1].value)
+      () => _toSigned(operands[0].value) == _toSigned(operands[1].value),
+      () => _toSigned(operands[0].value) != _toSigned(operands[1].value)
     );
   }
     
@@ -558,7 +576,7 @@ class Version3 implements IMachine
     
     var operands = this.visitOperandsVar(1, false);
     
-    Z.sbuff.add('${_convertToSigned(operands[0].value)}');
+    Z.sbuff.add('${_toSigned(operands[0].value)}');
   }
   
   void printf(){
@@ -597,7 +615,7 @@ class Version3 implements IMachine
     out('  [store]');
 
     var operands = this.visitOperandsLongForm();
-
+    
     Z.writeVariable(operands[0].rawValue, operands[1].value);
  }
 
@@ -606,7 +624,7 @@ class Version3 implements IMachine
 
     var operand = this.visitOperandsShortForm();
 
-    var offset = _convertToSigned(operand.value) - 2;
+    var offset = _toSigned(operand.value) - 2;
 
     Z.pc += offset;
   }
@@ -669,7 +687,7 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
 
-    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) - this._convertToSigned(operands[1].value));
+    Z.writeVariable(resultTo, _toSigned(operands[0].value) - _toSigned(operands[1].value));
   }
 
   void add(){
@@ -677,7 +695,7 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
 
-    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) + this._convertToSigned(operands[1].value));
+    Z.writeVariable(resultTo, _toSigned(operands[0].value) + _toSigned(operands[1].value));
   }
   
   void mul(){
@@ -685,7 +703,7 @@ class Version3 implements IMachine
     var operands = this.visitOperandsLongForm();
     var resultTo = Z.readb();
     
-    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) * this._convertToSigned(operands[1].value));
+    Z.writeVariable(resultTo, _toSigned(operands[0].value) * _toSigned(operands[1].value));
   }
   
   void div(){
@@ -697,7 +715,7 @@ class Version3 implements IMachine
       throw const Exception('Divide by 0.');
     }
     
-    Z.writeVariable(resultTo, (this._convertToSigned(operands[0].value) / this._convertToSigned(operands[1].value)).toInt());
+    Z.writeVariable(resultTo, (_toSigned(operands[0].value) / _toSigned(operands[1].value)).toInt());
   }
 
   void mod(){
@@ -709,7 +727,7 @@ class Version3 implements IMachine
       throw const Exception('Divide by 0.');
     }
     
-    Z.writeVariable(resultTo, this._convertToSigned(operands[0].value) % this._convertToSigned(operands[1].value));
+    Z.writeVariable(resultTo, _toSigned(operands[0].value) % _toSigned(operands[1].value));
   }
 
   void get_prop(){
@@ -732,7 +750,7 @@ class Version3 implements IMachine
 
     var resultTo = Z.readb();
 
-    var addr = operands[0].value + this._convertToSigned(operands[1].value);
+    var addr = operands[0].value + _toSigned(operands[1].value);
 
     //todo();
     Z.writeVariable(resultTo, Z.mem.loadb(addr));
@@ -746,7 +764,7 @@ class Version3 implements IMachine
 
     var resultTo = Z.readb();
 
-    var addr = operands[0].value + (2 * this._convertToSigned(operands[1].value));
+    var addr = operands[0].value + (2 * _toSigned(operands[1].value));
 
     Z.writeVariable(resultTo, Z.mem.loadw(addr));
     out('    loaded 0x${Z.peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
@@ -763,19 +781,13 @@ class Version3 implements IMachine
     }
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    var addr = operands[0].value + (2 * this._convertToSigned(operands[1].value));
+    var addr = operands[0].value + (2 * _toSigned(operands[1].value));
     Z.mem.storew(addr, operands[2].value);
     out('    stored 0x${operands[2].peekValue.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
-
-  int _convertToSigned(int val){
-    if ((val & 0x8000) != 0){
-      return -(65536 - val);
-    }else{
-      return val;
-    }
-  }
+  int _toSigned(int val) => 
+      ((val & 0x8000) != 0) ? -(65536 - val) : val;
   
   //calculates the local jump offset (ref 4.7)
   int _jumpToLabelOffset(int jumpByte){
