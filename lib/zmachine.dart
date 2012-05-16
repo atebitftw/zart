@@ -1,22 +1,24 @@
 #library('ZMachine');
 
+#import('IO/ConsoleProvider.dart');
+
 #source('Header.dart');
 #source('_Stack.dart');
 #source('_MemoryMap.dart');
 #source('BinaryHelper.dart');
 #source('ZSCII.dart');
-#source('IPresentationConfig.dart');
 #source('Debugger.dart');
-
 #source('Operand.dart');
 
-#source('machines/IMachine.dart');
+#source('IO/IOProvider.dart');
+
+#source('machines/Machine.dart');
 #source('machines/Version3.dart');
-#source('machines/GameObjectV3.dart');
+#source('GameObjectV3.dart');
 
-/// Dart Implementation of Infocom Z-Machine
-
-/// Z-Machine Spec Used: http://www.gnelson.demon.co.uk/zspec/
+//
+// Dart Implementation of the Infocom Z-Machine.
+//
 
 /**
 * Global Z-Machine object, capable of running any [IMachine] variant.
@@ -27,89 +29,27 @@ ZMachine get Z() => new ZMachine();
 KBtoB(int kb) => kb * 1024;
 
 
-void out(String outString){
-  //TODO support redirect to file.
-  if (Z.debug && Z.verbose)
-    debug(outString);
-}
-
-/// Debug Channel
-debug(String debugString) => Z._io.DebugOutput(debugString);
-
-
-void todo([String message]){
-  Z._io.DebugOutput('Stopped At: 0x${Z.pc.toRadixString(16)}');
-  Z._io.PrimaryOutput('Text Buffer:');
-  Z.printBuffer();
-
-  if (message != null)
-    Z._io.DebugOutput(message);
-  throw const NotImplementedException();
-}
-
-/**
-* Routine Stack frame
-* -------------------
-* 0x0: returnTo Addr
-* 0x1: returnValue Addr
-* 0x2: # locals
-* 0x3: local 1
-* 0x...
-* 0xn: local n
-* 0xn+1: routine base address  (Z._readLocal(-1))
-*/
-
-void _throwAndDump(String message, int dumpOffset, [int howMany=20]){
-  Z.printBuffer();
-  
-  for(final v in Z.dynamic.mem.getRange(Z.dynamic.pc + dumpOffset, howMany)){
-    out("(${v}, 0x${v.toRadixString(16)}, 0b${v.toRadixString(2)})");
-  }
-  
-  //Z.callStack.dump();
-  
-  throw new Exception('(0x${(Z.pc - 1).toRadixString(16)}) $message');
-}
-
 /**
 * Version agnostic Z-Machine.
 */
 class ZMachine{
-  /// Z-Machine False = 0
-  final int FALSE = 0;
-  /// Z-Machine True = 1
-  final int TRUE = 1;
-  
+ 
   bool isLoaded = false;
-
-  bool verbose = false;
-  bool trace = false; 
-  bool debug = false;
   bool inBreak = false;
   bool inInput = false;
 
-  IPresentationConfig _io;
+  IOProvider _io;
   
   StringBuffer sbuff;
   
   static ZMachine _ref;
   ZVersion _ver;
   List<int> _rawBytes;
-  
-  final _Stack stack;
-  final _Stack callStack;
-  
-  final List<int> _breakPoints;
-  
+      
   //contains machine version which are supported by z-machine.
-  final List<IMachine> _supportedMachines;
+  final List<Machine> _supportedMachines;
 
-  IMachine _machine;
-
-  /// Z-Machine Program Counter
-  int pc = 0;
-
-  _MemoryMap mem;
+  Machine _machine;
 
   factory ZMachine(){
    if (_ref != null) return _ref;
@@ -120,31 +60,41 @@ class ZMachine{
 
   ZMachine._internal()
   :
-    stack = new _Stack(),
-    callStack = new _Stack.max(1024),
-    _supportedMachines = [new Version3()],
-    _breakPoints = new List<int>()
+    _supportedMachines = [new Version3()]
   {
     sbuff = new StringBuffer();
+    IOConfig = new ConsoleProvider();
   }
 
   int get version() => _ver != null ? _ver.toInt() : null;
   
-  set IOConfig(IPresentationConfig config){
+  set IOConfig(IOProvider config){
     _io = config;
   }
-  IPresentationConfig get IOConfig() => _io;
   
-  void setBreaks(List breakPoints) => _breakPoints.addAll(breakPoints);
-  
+  IOProvider get IOConfig() => _io;
+    
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
   void load(List<int> storyBytes){
-    mem = new _MemoryMap(storyBytes);
     _rawBytes = storyBytes;
 
-    _ver = ZVersion.intToVer(mem.loadb(Header.VERSION));
+    _ver = ZVersion.intToVer(_rawBytes[Header.VERSION]);
+    
+    var result = _supportedMachines
+                    .filter(((Machine m) => m.version == _ver));
+    
+    if (result.length != 1){
+      throw new Exception('Z-Machine version ${_ver} not supported.');
+    }else{
+      _machine = result[0];
+    }
+       
+    _machine.mem = new _MemoryMap(_rawBytes);
+    
+    _machine.visitHeader();
+    
     isLoaded = true;
   }
   
@@ -154,33 +104,23 @@ class ZMachine{
   * Doing so will cause given IMachine to be used for execution.  This is handy
   * for using the [Disassembler] machine, or any other custome machine.
   */
-  void run([IMachine machineOverride = null]){
+  void run([Machine machineOverride = null]){
     _assertLoaded();
 
     if (machineOverride != null){
       _machine = machineOverride;
+      _machine.mem = new _MemoryMap(_rawBytes);
       _machine.visitHeader();
     }
-
-    if (_machine == null){
-      var result = _supportedMachines
-                      .filter(((IMachine m) => m.version == _ver));
-
-      if (result.length != 1){
-        throw new Exception('Z-Machine version ${_ver} not supported.');
-      }else{
-        _machine = result[0];
-      }
-
-      _machine.visitHeader();
-    }
-    
+   
     // visit the main 'routine'
     _machine.visitRoutine([]);
+    
     //push dummy result store onto the call stack
-    Z.callStack.push(0);    
+    _machine.callStack.push(0);    
+    
     //push dummy return address onto the call stack
-    Z.callStack.push(0);
+    _machine.callStack.push(0);
     
     if (inBreak){
       Z._io.callAsync(Debugger.startBreak);
@@ -200,124 +140,26 @@ class ZMachine{
     }
   }
     
-  void printBuffer(){
+  void _printBuffer(){
     _io.PrimaryOutput(sbuff.toString());
     sbuff.clear();
   }
   
-  /** Reads 1 byte from the current program counter
-  * address and advances the program counter to the next
-  * unread address.
-  */
-  int readb(){
-    pc++;
-    return mem.loadb(pc - 1);
-  }
-
-  /** Reads 1 word from the current program counter
-  * address and advances the program counter to the next
-  * unread address.
-  */
-  int readw(){
-    pc += 2;
-    return mem.loadw(pc - 2);
-  }
-
-  int peekVariable(int varNum){
-    if (varNum == 0x00){
-      //top of stack
-      var result = stack.peek();
-      //out('    (peeked 0x${result.toRadixString(16)} from stack)');
-      return result;
-    }else if (varNum <= 0x0f){
-      return _readLocal(varNum);
-    }else if (varNum <= 0xff){
-      return mem.readGlobal(varNum);
-    }else{
-      return varNum;
-      throw new Exception('Variable referencer byte out of range (0-255): ${varNum}');
-    }
-  }
-
-  int readVariable(int varNum){
-    if (varNum == 0x00){
-      //top of stack
-      var result = stack.pop();
-      out('    (popped 0x${result.toRadixString(16)} from stack)');
-      return result;
-    }else if (varNum <= 0x0f){
-      return _readLocal(varNum);
-    }else if (varNum <= 0xff){
-      return mem.readGlobal(varNum);
-    }else{
-      return varNum;
-      out('${mem.getRange(pc - 10, 20)}');
-      throw new Exception('Variable referencer byte out of range (0-255): ${varNum}');
-    }
-  }
-
-  void writeVariable(int varNum, int value){
-    if (varNum == 0x00){
-      //top of stack
-      out('    (pushed 0x${value.toRadixString(16)} to stack)');
-      stack.push(value);
-    }else if (varNum <= 0x0f){
-      out('    (wrote 0x${value.toRadixString(16)} to local 0x${varNum.toRadixString(16)})');
-      _writeLocal(varNum, value);
-    }else if (varNum <= 0xff){
-      out('    (wrote 0x${value.toRadixString(16)} to global 0x${varNum.toRadixString(16)})');
-      mem.writeGlobal(varNum, value);
-    }else{
-      throw const Exception('Variable referencer byte out of range (0-255)');
-    }
- }
-
-  void _writeLocal(int local, int value){
-    var locals = callStack[2];
-
-    if (locals < local){
-      throw const Exception('Attempted to access unallocated local variable.');
-    }
-
-    var index = locals - local;
-
-    if (index == -1){
-      out('locals: $locals, local: $local');
-      throw const Exception('bad index');
-    }
-
-    callStack[index + 3] = value;
-  }
-
-  int _readLocal(int local){
-    var locals = callStack[2]; //locals header
-
-    if (locals < local){
-      throw const Exception('Attempted to access unallocated local variable.');
-    }
-
-    var index = locals - local;
-
-    return callStack[index + 3];
-  }
-
-  bool checkInterrupt(){
-    return false;
-  }
-
   /** Reset Z-Machine to state at first load */
   softReset(){
     _assertLoaded();
-    pc = 0;
-    stack.clear();
-    mem = new _MemoryMap(_rawBytes);
+    _machine.pc = 0;
+    _machine.stack.clear();
+    _machine.callStack.clear();
+    _machine.mem = new _MemoryMap(_rawBytes);
   }
 
   /** Reset Z-Machine to state at first load */
   hardReset(){
-    pc = 0;
-    stack.clear();
-    mem = null;
+    _machine.pc = 0;
+    _machine.stack.clear();
+    _machine.callStack.clear();
+    _machine.mem = null;
     _machine = null;
     isLoaded = false;
   }

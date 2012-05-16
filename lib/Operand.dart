@@ -21,7 +21,7 @@ class Operand
         //prevents popping the stack more than once for
         //value inspection.
         if (_cachedValue == null){
-          _cachedValue = Z.readVariable(rawValue);
+          _cachedValue = Z._machine.readVariable(rawValue);
         }
         return _cachedValue;
       default:
@@ -35,7 +35,7 @@ class Operand
       case OperandType.SMALL:
         return rawValue;
       case OperandType.VARIABLE:
-        return Z.peekVariable(rawValue);
+        return Z._machine.peekVariable(rawValue);
       default:
         throw new Exception('Invalid Operand Type: $type');
     }

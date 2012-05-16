@@ -1,3 +1,4 @@
+lib/IO/ConsoleProvider.dart
 lib/zmachine.dart
 console/ZConsole.dart
 tests/unittests.dart

@@ -1,5 +1,8 @@
+#library('Console_Provider');
+#import('dart:io');
+#import('../zmachine.dart');
 
-class ConsoleProvider implements IPresentationConfig
+class ConsoleProvider implements IOProvider
 {
   final StringInputStream textStream;
   final Queue<String> lineBuffer;

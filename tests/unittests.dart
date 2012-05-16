@@ -2,8 +2,6 @@
 #import('../../../src/lib/unittest/unittest.dart');
 #import('../lib/zmachine.dart');
 
-#source('TestMachine.dart');
-
 //#import('../../../../src/lib/unittest/html_enhanced_config.dart');
 
 
@@ -27,7 +25,7 @@ void main() {
 
   final int version = 3;
   final int pcAddr = 14297;
-  final IMachine machine = new TestMachine();
+  final Machine machine = new Version3();
 
   machine.visitHeader();
 
@@ -157,61 +155,47 @@ void main() {
 
   group('memory tests> ', (){
     test('read byte', (){
-      Expect.equals(version, Z.mem.loadb(0x00));
+      Expect.equals(version, Z._machine.mem.loadb(0x00));
     });
 
     test('read word', (){
-      Expect.equals(pcAddr, Z.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
+      Expect.equals(pcAddr, Z._machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
     });
 
     test('write byte', (){
-      Z.mem.storeb(0x00, 42);
+      Z._machine.mem.storeb(0x00, 42);
 
-      Expect.equals(42, Z.mem.loadb(0x00));
+      Expect.equals(42, Z._machine.mem.loadb(0x00));
 
-      Z.mem.storeb(0x00, version);
+      Z._machine.mem.storeb(0x00, version);
 
-      Expect.equals(version, Z.mem.loadb(0x00));
+      Expect.equals(version, Z._machine.mem.loadb(0x00));
     });
 
     test('write word', (){
-      Z.mem.storew(Header.PC_INITIAL_VALUE_ADDR, 42420);
+      Z._machine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, 42420);
 
-      Expect.equals(42420, Z.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
+      Expect.equals(42420, Z._machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
 
-      Z.mem.storew(Header.PC_INITIAL_VALUE_ADDR, pcAddr);
+      Z._machine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, pcAddr);
 
-      Expect.equals(pcAddr, Z.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
+      Expect.equals(pcAddr, Z._machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
     });
 
     test('read global var', (){
-      Expect.equals(8101, Z.mem.loadw(Z.mem.globalVarsAddress + 8), 'offset');
+      Expect.equals(8101, Z._machine.mem.loadw(Z._machine.mem.globalVarsAddress + 8), 'offset');
 
-      Expect.equals(8101, Z.mem.readGlobal(0x14), 'from global');
+      Expect.equals(8101, Z._machine.mem.readGlobal(0x14), 'from global');
     });
 
     test('write global var', (){
-      Z.mem.writeGlobal(0x14, 41410);
+      Z._machine.mem.writeGlobal(0x14, 41410);
 
-      Expect.equals(41410, Z.mem.readGlobal(0x14));
+      Expect.equals(41410, Z._machine.mem.readGlobal(0x14));
 
-      Z.mem.writeGlobal(0x14, 8101);
+      Z._machine.mem.writeGlobal(0x14, 8101);
 
-      Expect.equals(8101, Z.mem.readGlobal(0x14));
-    });
-
-    test('write/read global var 0x00 (stack push/pop)', (){
-      //push
-      Z.mem.writeGlobal(0x00, 41410);
-      Expect.equals(1, Z.stack.length);
-
-      Expect.equals(41410, Z.stack.peek());
-
-      //pop
-      Expect.equals(41410, Z.mem.readGlobal(0x00));
-
-      //should be empty
-      Expect.equals(0, Z.stack.length);
+      Expect.equals(8101, Z._machine.mem.readGlobal(0x14));
     });
   });
 }

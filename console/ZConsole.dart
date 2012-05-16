@@ -1,15 +1,15 @@
 #import('../lib/zmachine.dart');
 #import('dart:io');
 
-#source('ConsoleProvider.dart');
 
-
-//Console player for Z-Machine
+// Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
 // otherwise attempts to load default minizork.z3 file from environment.
+//
+// Works in the Dart console.
 
-//VM:
-//dart ZConsole.dart ../games/minizork.z3
+// VM:
+// dart ZConsole.dart ../games/minizork.z3
 
 void main() {
   var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
@@ -23,17 +23,19 @@ void main() {
   } catch (FileIOException fe){
     //TODO log then print friendly
     print('$fe');
+    return;
   } catch (Exception e){
     //TODO log then print friendly
     print('$e');
+    return;
   }
+
+  //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
+  Debugger.enableDebug = false; 
+  Debugger.enableVerbose = true;
+  Debugger.enableTrace = false;
+  //Debugger.setBreaks([0x6e0f]);
   
-  Z.IOConfig = new ConsoleProvider();
-  
-  Z.debug = false; //debug enables the other flags (verbose, trace, breakpoints, etc)
-  Z.verbose = true;
-  Z.trace = false;
-  //Z.setBreaks([0x6e0f]);
   Z.run();
 }
 
