@@ -62,6 +62,29 @@ class GameObjectV3
     return 0;
   }
   
+  void setPropertyValue(int pnum, int value){
+    var addr = getPropertyAddress(pnum);
+    var len = propertyLength(addr - 1);
+    
+    if (addr == 0){
+      throw const Exception('Property not found.');
+    }
+
+    if (len > 2){
+      throw const Exception('Cannot set property on properties > 2 bytes.');
+    }
+    
+    if (len == 1){
+      value &= 0xff;
+      Z.machine.mem.storeb(addr, value);
+    }else if (len == 2){
+      Z.machine.mem.storew(addr, value);
+    }else{
+      throw new Exception('Invalid property length found while setting property: $len');
+    }
+    
+  }
+  
   //gets a byte or word value from a given [propertyNumber].
   int getPropertyValue(int pnum)
   {

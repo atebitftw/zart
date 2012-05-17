@@ -173,6 +173,7 @@ class Machine
        '154' : print_obj,
        '170' : print_obj,
        '184' : ret_popped,
+       '227' : put_prop,
        '228' : read
       };
   }
@@ -717,7 +718,7 @@ class Machine
   void print_ret(){
     Debugger.verbose('  [print_ret]');
     
-    Z.sbuff.add(ZSCII.readZStringAndPop(pc));
+    Z.sbuff.add('${ZSCII.readZStringAndPop(pc)}\n');
     
     callStack.push(Machine.TRUE);
     
@@ -964,6 +965,16 @@ class Machine
     var prop = obj.getPropertyValue(operands[1].value);
     
     writeVariable(resultTo, prop);
+  }
+  
+  void put_prop(){
+    Debugger.verbose('  [put_prop]');
+    
+    var operands = this.visitOperandsVar(3, false);
+    
+    var obj = new GameObjectV3(operands[0].value);
+    
+    obj.setPropertyValue(operands[1].value, operands[2].value);
   }
   
   void loadb(){
