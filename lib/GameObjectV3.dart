@@ -51,7 +51,7 @@ class GameObjectV3
       }
       
       if (propNum == pnum){               
-        return addr;
+        return addr + 1;
       }
       
       //skip to the next property
@@ -104,11 +104,13 @@ class GameObjectV3
     
     return ((Z._machine.mem.loadb(address) - propertyNumber(address)) / 32).toInt() + 1;
   }
+  
   static int propertyNumber(int address){
     if (address == 0) return 0;
     
     return Z._machine.mem.loadb(address) % 32;
   }
+  
   static int getPropertyDefault(int propertyNum){
     propertyNum -= 1;
     propertyNum %= 31;

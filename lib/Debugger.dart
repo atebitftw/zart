@@ -11,6 +11,21 @@ class Debugger {
   
   static List<int> _breakPoints;
   
+  static void setMachine(Machine newMachine){
+    Z.inInput = true;
+    if (Z.isLoaded){
+      if (newMachine.version != Z._ver){
+        throw const Exception('Machine/Story version mismatch.');
+      }
+    }
+
+    Z._machine = newMachine;
+    Z._machine.mem = new _MemoryMap(Z._rawBytes);
+    Z._machine.visitHeader();
+    debug('<<< New machine installed: v${newMachine.version} >>>');
+    Z.inInput = false;
+  }
+  
   static void startBreak(timer){
     var locals = Z._machine.callStack[2];
     StringBuffer s = new StringBuffer();
@@ -35,6 +50,12 @@ class Debugger {
       var args = cl.split(' ');
       
       switch(args[0]){
+        case 'move':
+          var obj1 = new GameObjectV3(Math.parseInt(args[1]));
+          var obj2 = new GameObjectV3(Math.parseInt(args[2]));
+          obj1.insertTo(obj2.id);
+          Z._io.callAsync(_repl);
+          break;
         case 'enable':
           switch(args[1]){
             case 'trace':
@@ -63,9 +84,8 @@ class Debugger {
           break;
         case '':
         case 'n':
-          debugStartAddr = Z._machine.pc;    
-          Z._machine.visitInstruction();
-          Z._io.callAsync(startBreak);
+          debugStartAddr = Z._machine.pc;          
+          Z._machine.visitInstruction(null);
           break;
         case 'q':
           Z.inBreak = false;
@@ -102,6 +122,7 @@ class Debugger {
           for(int i = 0; i < locals; i++){
             s.add('(L${i}: ${Z._machine._readLocal(i + 1)})  ');
           }
+          debug('$s');
           Z._io.callAsync(_repl);
           break;
         case 'object':

@@ -2,6 +2,10 @@
 #import('../../../src/lib/unittest/unittest.dart');
 #import('../lib/zmachine.dart');
 
+#source('MockUIProvider.dart');
+#source('MockV3Machine.dart');
+#source('InstructionTests.dart');
+
 //#import('../../../../src/lib/unittest/html_enhanced_config.dart');
 
 
@@ -25,17 +29,30 @@ void main() {
 
   final int version = 3;
   final int pcAddr = 14297;
-  final Machine machine = new Version3();
+  final Machine machine = new MockV3Machine();
+  
+  Debugger.setMachine(machine);
+  Z.IOConfig = new MockUIProvider();
 
-//  StringBuffer s = new StringBuffer();
-//
-//  for(int i = 155; i <= 223; i++){
-//    s.add('($i, ${ZSCII.ZCharToChar(i)})');
-//  }
-//
-//  print(s.toString());
 
   group('ZSCII Tests>', (){
+    test('unicode translations', (){
+      for(int i = 155; i <= 223; i++){
+        var s = new StringBuffer();
+        s.addCharCode(ZSCII.UNICODE_TRANSLATIONS['$i']);
+        Expect.equals(s.toString(), ZSCII.ZCharToChar(i));
+      }
+    });
+    
+    test('readZString', (){
+      var addrStart = 0xb0a0;
+      var addrEnd = 0xb0be;
+      var testString = 'An old leather bag, bulging with coins, is here.';
+      Expect.equals(testString, ZSCII.readZString(addrStart));
+      
+      // address after string end should be at 0xb0be
+      Expect.equals(addrEnd, Z.machine.callStack.pop());
+    });
 
   });
 
@@ -105,12 +122,31 @@ void main() {
       Expect.isFalse(o1.isFlagBitSet(29));
       Expect.isFalse(o1.isFlagBitSet(31));
     });
-    
-    test('unset attribute', (){
+
+    test ('unset attribute', (){
       GameObjectV3 o1 = new GameObjectV3(30);// "you";
-      Expect.isFalse(o1.isFlagBitSet(2));
-      o1.setFlagBit(2);
-      Expect.isTrue(o1.isFlagBitSet(2));
+      Expect.isTrue(o1.isFlagBitSet(5));
+      o1.unsetFlagBit(5);
+      Expect.isFalse(o1.isFlagBitSet(5));
+      
+      Expect.isTrue(o1.isFlagBitSet(6));
+      o1.unsetFlagBit(6);
+      Expect.isFalse(o1.isFlagBitSet(6));
+      
+      Expect.isTrue(o1.isFlagBitSet(14));
+      o1.unsetFlagBit(14);
+      Expect.isFalse(o1.isFlagBitSet(14));
+      
+      o1.setFlagBit(5);
+      o1.setFlagBit(6);
+      o1.setFlagBit(14);
+    });
+    
+    test('set attribute', (){
+      GameObjectV3 o1 = new GameObjectV3(30);// "you";
+      Expect.isFalse(o1.isFlagBitSet(1));
+      o1.setFlagBit(1);
+      Expect.isTrue(o1.isFlagBitSet(1));
       
       Expect.isFalse(o1.isFlagBitSet(0));
       o1.setFlagBit(0);
@@ -120,31 +156,31 @@ void main() {
       o1.setFlagBit(31);
       Expect.isTrue(o1.isFlagBitSet(31));
       
-    });
-    
-    test ('set attribute', (){
-      GameObjectV3 o1 = new GameObjectV3(30);// "you";
-      Expect.isTrue(o1.isFlagBitSet(2));
-      o1.unsetFlagBit(2);
-      Expect.isFalse(o1.isFlagBitSet(2));
-      
-      Expect.isTrue(o1.isFlagBitSet(0));
+      o1.unsetFlagBit(1);
       o1.unsetFlagBit(0);
-      Expect.isFalse(o1.isFlagBitSet(0));
-      
-      Expect.isTrue(o1.isFlagBitSet(31));
       o1.unsetFlagBit(31);
-      Expect.isFalse(o1.isFlagBitSet(31));
     });
     
+   
     test('get property address', (){
-      GameObjectV3 o1 = new GameObjectV3(30); //"you";
+      GameObjectV3 o1 = new GameObjectV3(46); //"west of house"
       
-      //3314
-      Expect.equals(15, GameObjectV3.propertyNumber(o1.getPropertyAddress(15)));
-      Expect.equals(17, GameObjectV3.propertyNumber(o1.getPropertyAddress(17)));
-      Expect.equals(18, GameObjectV3.propertyNumber(o1.getPropertyAddress(18)));
-      Expect.equals(0, o1.getPropertyAddress(19));
+      var addr = o1.getPropertyAddress(28);
+      
+      Expect.equals(0xe17, addr);
+      
+      var pnum = GameObjectV3.propertyNumber(addr);
+      
+      Expect.equals(28, pnum);
+      
+      var val = o1.getPropertyValue(pnum);
+      
+      Expect.equals(0x90, val);
+      
+      addr = o1.getPropertyAddress(pnum);
+      
+      Expect.equals(0xe17, addr);
+
     });
     
     test('get property length', (){
@@ -250,4 +286,6 @@ void main() {
       Expect.equals(8101, Z.machine.mem.readGlobal(0x14));
     });
   });
+  
+  instructionTests();
 }

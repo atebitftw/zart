@@ -54,7 +54,7 @@ class ZMachine{
   Machine _machine;
 
   Machine get machine() => _machine;
-  
+
   factory ZMachine(){
    if (_ref != null) return _ref;
 
@@ -134,13 +134,13 @@ class ZMachine{
   }
     
   void _runIt(timer){
-    while(!inBreak && !inInput){
-      _machine.visitInstruction();
-    }
-    
-    if(inBreak){
-      Z._io.DebugOutput('<<< DEBUG MODE >>>');
-      Z._io.callAsync(Debugger.startBreak);
+    if (!inBreak && !inInput){
+      Z._io.callAsync(_machine.visitInstruction);
+    }else{
+      if(inBreak){
+        Z._io.DebugOutput('<<< DEBUG MODE >>>');
+        Z._io.callAsync(Debugger.startBreak);
+      }
     }
   }
     
@@ -165,7 +165,6 @@ class ZMachine{
     _machine.callStack.clear();
     _machine.mem = null;
     _machine = null;
-    isLoaded = false;
   }
 
   void _assertLoaded(){

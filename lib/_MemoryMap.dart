@@ -80,8 +80,9 @@ class _MemoryMap {
 
   void checkBounds(int address){
    if ((address == null) || (address < 0) || (address > _mem.length - 1)){
+     Debugger.debug('${_mem.length}');
      throw new Exception('Attempted access to memory address'
-       ' that is out of bounds: 0x${address.toRadixString(16)}');
+       ' that is out of bounds: $address 0x${address.toRadixString(16)}');
    }
   }
 

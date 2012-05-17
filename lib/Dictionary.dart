@@ -55,30 +55,30 @@ class Dictionary {
     int lastIndex = 0;
     
     for(final t in tokenizedList){
-      var searchIt = new List.from(entries.filter((String o) => t.startsWith(o)));
-      var idx;
-      
-      if (searchIt.isEmpty()){
-        idx = -1;  
-      }else{
-//        print(searchIt.last());
-        idx = entries.indexOf(searchIt.last());
+      var word = t;
+      if (word.length > 6){
+        word = word.substring(0, 6);
       }
 
-      
+      var idx = entries.indexOf(word);
+           
       if (idx != -1){
         var addr = wordAddress(idx);
+        Debugger.verbose('    (found word: "${t}" in dictionary as "${entries[idx]}" at address 0x${addr.toRadixString(16)})');
         parseTable.add(addr >> 8);
         parseTable.add(addr & 0xff);
         
+        //word length
         parseTable.add(t.length);
         
       }else{
+        Debugger.verbose('    (word: ${t} not found in dictionary)');
         parseTable.add(0);
         parseTable.add(0);
         parseTable.add(0);
       }
 
+      //location in text buffer
       lastIndex = line.indexOf(t, lastIndex);
       parseTable.add(lastIndex + 1);
       lastIndex += t.length;
