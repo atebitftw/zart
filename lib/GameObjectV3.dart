@@ -129,6 +129,7 @@ class GameObjectV3
     
     if (pgo.child == id){
       //we are the parent's child so...
+      pgo.child = 0;
       if (sibling != 0){
         //move sibling to parent's child
         pgo.child = sibling;
