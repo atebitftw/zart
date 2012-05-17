@@ -30,18 +30,18 @@ Enjoy!
 * Load/Save game options.
 
 ## Debugging ##
-There is a VERY basic runtime debugger included.  To enter it, type /! at any prompt.
+There is a VERY basic runtime debugger included.  To enter it, type **/!** at any prompt.
 Doing so will drop you into a simple REPL.
 
 ### Debug Commands ###
-* locals - dumps out locals for the current routine.
-* globals - dumps out globals.
-* dictionary - dumps out the game dictionary.
-* move x to y - moves object #x to object #y
-* object x - dumps info regarding object #x.
-* enable (tracing|verbose) - enables tracing or verbose debug mode.
-* disable (tracing|verbose) - disables tracing or verbose debug mode.
-* q - leave debug mode and return to game.
+* **locals** - dumps out locals for the current routine.
+* **globals** - dumps out globals.
+* **dictionary** - dumps out the game dictionary.
+* **move x to y** - moves object #x to object #y
+* **object x** - dumps info regarding object #x.
+* **enable** (tracing|verbose) - enables tracing or verbose debug mode.
+* **disable** (tracing|verbose) - disables tracing or verbose debug mode.
+* **q** - leave debug mode and return to game.
 
 You can also enable tracing and/or verbose with:
 
