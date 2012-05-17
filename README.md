@@ -39,8 +39,8 @@ Doing so will drop you into a simple REPL.
 * **dictionary** - dumps out the game dictionary.
 * **move x to y** - moves object #x to object #y
 * **object x** - dumps info regarding object #x.
-* **enable** (tracing|verbose) - enables tracing or verbose debug mode.
-* **disable** (tracing|verbose) - disables tracing or verbose debug mode.
+* **enable (tracing|verbose)** - enables tracing or verbose debug mode.
+* **disable (tracing|verbose)** - disables tracing or verbose debug mode.
 * **q** - leave debug mode and return to game.
 
 You can also enable tracing and/or verbose with:
