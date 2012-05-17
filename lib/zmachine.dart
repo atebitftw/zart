@@ -9,6 +9,8 @@
 #source('ZSCII.dart');
 #source('Debugger.dart');
 #source('Operand.dart');
+#source('Dictionary.dart');
+#source('DRandom.dart');
 
 #source('IO/IOProvider.dart');
 
@@ -51,6 +53,8 @@ class ZMachine{
 
   Machine _machine;
 
+  Machine get machine() => _machine;
+  
   factory ZMachine(){
    if (_ref != null) return _ref;
 

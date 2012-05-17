@@ -12,13 +12,11 @@ class _MemoryMap {
   int staticMemAddress;
   int dictionaryAddress;
   int highMemAddress;
-
+  Dictionary dictionary;
+  
   _MemoryMap(this._mem);
 
-  void checkMem(){
-
-  }
-
+  
   // Reads a global variable (word)
   int readGlobal(int which){
 
@@ -81,7 +79,7 @@ class _MemoryMap {
   int _getWord(int address) => (_mem[address] << 8) | _mem[address + 1];
 
   void checkBounds(int address){
-   if (address == null || address < 0 || address > _mem.length - 1){
+   if ((address == null) || (address < 0) || (address > _mem.length - 1)){
      throw new Exception('Attempted access to memory address'
        ' that is out of bounds: 0x${address.toRadixString(16)}');
    }

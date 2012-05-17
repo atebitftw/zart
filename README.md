@@ -18,3 +18,6 @@ Making steady progress.  So far the machine is supporting enough opcodes to emit
 	>
 	
 And is ready to take input.
+
+## Acknowledgements ##
+Adam Smith (RNG class found here: https://github.com/financeCoding/DRandom/blob/master/DRandom.dart)

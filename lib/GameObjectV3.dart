@@ -35,17 +35,44 @@ class GameObjectV3
     _readFlags();
   }
 
-  //gets a byte or word value from a given [propertyNumber].
-  int getPropertyValue(int pnum)
-  {
-    var propNum = 999999;// propertyNumber(propertyTableStart);
+  int getPropertyAddress(int pnum){
+    if (pnum == 0) return 0;
+    
+    var propNum = 999999;
     int addr = propertyTableStart;
 
     while(propNum > pnum){
       var len = propertyLength(addr);
       propNum = propertyNumber(addr);
       
-      //(ref 12.4.1)
+      //not found (ref 12.4.1)
+      if (len == 0){
+        return 0;
+      }
+      
+      if (propNum == pnum){               
+        return addr;
+      }
+      
+      //skip to the next property
+      addr += (len + 1);
+    }
+
+    //return 0 if not found
+    return 0;
+  }
+  
+  //gets a byte or word value from a given [propertyNumber].
+  int getPropertyValue(int pnum)
+  {
+    var propNum = 999999;
+    int addr = propertyTableStart;
+
+    while(propNum > pnum){
+      var len = propertyLength(addr);
+      propNum = propertyNumber(addr);
+      
+      //not found (ref 12.4.1)
       if (len == 0){
         return GameObjectV3.getPropertyDefault(pnum);
       }
@@ -72,11 +99,16 @@ class GameObjectV3
     return GameObjectV3.getPropertyDefault(pnum);
   }
   
-  static int propertyLength(int address) =>
-  ((Z._machine.mem.loadb(address) - propertyNumber(address)) / 32).toInt() + 1;
-  
-  static int propertyNumber(int address) => Z._machine.mem.loadb(address) % 32;
-  
+  static int propertyLength(int address){
+    if (address == 0) return 0;
+    
+    return ((Z._machine.mem.loadb(address) - propertyNumber(address)) / 32).toInt() + 1;
+  }
+  static int propertyNumber(int address){
+    if (address == 0) return 0;
+    
+    return Z._machine.mem.loadb(address) % 32;
+  }
   static int getPropertyDefault(int propertyNum){
     propertyNum -= 1;
     propertyNum %= 31;

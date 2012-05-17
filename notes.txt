@@ -1,4 +1,4 @@
-
+-------------------
 Routine Stack frame
 -------------------
 0x0: returnTo Addr
@@ -9,7 +9,7 @@ Routine Stack frame
 0xn: local n
 0xn+1: routine base address  (Z._readLocal(-1))
 
-
+--------------------------------------------------------------
 Opcode -> Operand Mappings
 Opcode #    Kind      Operands	Operand Type(s)
 --------------------------------------------------------------
@@ -24,6 +24,19 @@ Opcode #    Kind      Operands	Operand Type(s)
 except $be (190)  extended opcode given in next byte
 192 -- 223  variable  2OP     	(operand types in next byte)
 224 -- 255  variable  VAR     	(operand types in next byte(s))
+
+-----------
+Status Line
+-----------
+G00: Object # of current location
+
+Score Games
+G01: score
+G02: # turns
+
+Time Games
+G01: hour  (24 hour clock)
+G02: minutes
 
 References:
 Z-Machine Spec: http://www.gnelson.demon.co.uk/zspec/

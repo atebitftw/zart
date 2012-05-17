@@ -27,8 +27,6 @@ void main() {
   final int pcAddr = 14297;
   final Machine machine = new Version3();
 
-  machine.visitHeader();
-
 //  StringBuffer s = new StringBuffer();
 //
 //  for(int i = 155; i <= 223; i++){
@@ -79,7 +77,7 @@ void main() {
     });
     
     test('get property', (){
-      GameObjectV3 o1 = new GameObjectV3(30); "you";
+      GameObjectV3 o1 = new GameObjectV3(30); //"you";
       
       Expect.equals('you', o1.shortName);
       
@@ -89,7 +87,7 @@ void main() {
     });
     
     test('attributes are set', (){
-      GameObjectV3 o1 = new GameObjectV3(30); "you";
+      GameObjectV3 o1 = new GameObjectV3(30);// "you";
       
       Expect.equals('you', o1.shortName);
       
@@ -106,6 +104,59 @@ void main() {
       Expect.isFalse(o1.isFlagBitSet(15));
       Expect.isFalse(o1.isFlagBitSet(29));
       Expect.isFalse(o1.isFlagBitSet(31));
+    });
+    
+    test('unset attribute', (){
+      GameObjectV3 o1 = new GameObjectV3(30);// "you";
+      Expect.isFalse(o1.isFlagBitSet(2));
+      o1.setFlagBit(2);
+      Expect.isTrue(o1.isFlagBitSet(2));
+      
+      Expect.isFalse(o1.isFlagBitSet(0));
+      o1.setFlagBit(0);
+      Expect.isTrue(o1.isFlagBitSet(0));
+      
+      Expect.isFalse(o1.isFlagBitSet(31));
+      o1.setFlagBit(31);
+      Expect.isTrue(o1.isFlagBitSet(31));
+      
+    });
+    
+    test ('set attribute', (){
+      GameObjectV3 o1 = new GameObjectV3(30);// "you";
+      Expect.isTrue(o1.isFlagBitSet(2));
+      o1.unsetFlagBit(2);
+      Expect.isFalse(o1.isFlagBitSet(2));
+      
+      Expect.isTrue(o1.isFlagBitSet(0));
+      o1.unsetFlagBit(0);
+      Expect.isFalse(o1.isFlagBitSet(0));
+      
+      Expect.isTrue(o1.isFlagBitSet(31));
+      o1.unsetFlagBit(31);
+      Expect.isFalse(o1.isFlagBitSet(31));
+    });
+    
+    test('get property address', (){
+      GameObjectV3 o1 = new GameObjectV3(30); //"you";
+      
+      //3314
+      Expect.equals(15, GameObjectV3.propertyNumber(o1.getPropertyAddress(15)));
+      Expect.equals(17, GameObjectV3.propertyNumber(o1.getPropertyAddress(17)));
+      Expect.equals(18, GameObjectV3.propertyNumber(o1.getPropertyAddress(18)));
+      Expect.equals(0, o1.getPropertyAddress(19));
+    });
+    
+    test('get property length', (){
+      GameObjectV3 o1 = new GameObjectV3(29); //"Entrance to Hades"
+      
+      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(28)));
+      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(23)));
+      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(21)));
+      Expect.equals(2, GameObjectV3.propertyLength(o1.getPropertyAddress(18)));
+      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(12)));
+      Expect.equals(8, GameObjectV3.propertyLength(o1.getPropertyAddress(8)));
+      Expect.equals(0, GameObjectV3.propertyLength(o1.getPropertyAddress(0)));
     });
     
   });
@@ -145,7 +196,8 @@ void main() {
     });
     
     test('unsetBit()', (){
-      Expect.equals(0, BinaryHelper.unset(1, 0));
+      Expect.equals(0xFE, BinaryHelper.unset(0xFF, 0));
+      Expect.equals(0xFD, BinaryHelper.unset(0xFF, 1));
       Expect.equals(0, BinaryHelper.unset(Math.pow(2, 8), 8));
       Expect.equals(0, BinaryHelper.unset(Math.pow(2, 16), 16));
       Expect.equals(0, BinaryHelper.unset(Math.pow(2, 32), 32));
@@ -155,47 +207,47 @@ void main() {
 
   group('memory tests> ', (){
     test('read byte', (){
-      Expect.equals(version, Z._machine.mem.loadb(0x00));
+      Expect.equals(version, Z.machine.mem.loadb(0x00));
     });
 
     test('read word', (){
-      Expect.equals(pcAddr, Z._machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
+      Expect.equals(pcAddr, Z.machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
     });
 
     test('write byte', (){
-      Z._machine.mem.storeb(0x00, 42);
+      Z.machine.mem.storeb(0x00, 42);
 
-      Expect.equals(42, Z._machine.mem.loadb(0x00));
+      Expect.equals(42, Z.machine.mem.loadb(0x00));
 
-      Z._machine.mem.storeb(0x00, version);
+      Z.machine.mem.storeb(0x00, version);
 
-      Expect.equals(version, Z._machine.mem.loadb(0x00));
+      Expect.equals(version, Z.machine.mem.loadb(0x00));
     });
 
     test('write word', (){
-      Z._machine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, 42420);
+      Z.machine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, 42420);
 
-      Expect.equals(42420, Z._machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
+      Expect.equals(42420, Z.machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
 
-      Z._machine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, pcAddr);
+      Z.machine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, pcAddr);
 
-      Expect.equals(pcAddr, Z._machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
+      Expect.equals(pcAddr, Z.machine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR));
     });
 
     test('read global var', (){
-      Expect.equals(8101, Z._machine.mem.loadw(Z._machine.mem.globalVarsAddress + 8), 'offset');
+      Expect.equals(8101, Z.machine.mem.loadw(Z.machine.mem.globalVarsAddress + 8), 'offset');
 
-      Expect.equals(8101, Z._machine.mem.readGlobal(0x14), 'from global');
+      Expect.equals(8101, Z.machine.mem.readGlobal(0x14), 'from global');
     });
 
     test('write global var', (){
-      Z._machine.mem.writeGlobal(0x14, 41410);
+      Z.machine.mem.writeGlobal(0x14, 41410);
 
-      Expect.equals(41410, Z._machine.mem.readGlobal(0x14));
+      Expect.equals(41410, Z.machine.mem.readGlobal(0x14));
 
-      Z._machine.mem.writeGlobal(0x14, 8101);
+      Z.machine.mem.writeGlobal(0x14, 8101);
 
-      Expect.equals(8101, Z._machine.mem.readGlobal(0x14));
+      Expect.equals(8101, Z.machine.mem.readGlobal(0x14));
     });
   });
 }

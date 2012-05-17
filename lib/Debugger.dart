@@ -71,6 +71,10 @@ class Debugger {
           Z.inBreak = false;
           Z._io.callAsync(Z._runIt);
           break;
+        case 'dictionary':
+          debug('${Z._machine.mem.dictionary.dump()}');
+          Z._io.callAsync(Z._runIt);
+          break;
         case 'globals':
           StringBuffer s = new StringBuffer();
           
@@ -192,7 +196,7 @@ class Debugger {
   static void throwAndDump(String message, int dumpOffset, [int howMany=20]){
     Z._printBuffer();
     
-    for(final v in Z.dynamic.mem.getRange(Z.dynamic.pc + dumpOffset, howMany)){
+    for(final v in Z.dynamic._machine.mem.getRange(Z.dynamic._machine.pc + dumpOffset, howMany)){
       Debugger.verbose("(${v}, 0x${v.toRadixString(16)}, 0b${v.toRadixString(2)})");
     }
     

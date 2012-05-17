@@ -33,8 +33,8 @@ void main() {
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false; 
   Debugger.enableVerbose = true;
-  Debugger.enableTrace = false;
-  //Debugger.setBreaks([0x6e0f]);
+  Debugger.enableTrace = true;
+  Debugger.setBreaks([0x3ca4]);
   
   Z.run();
 }

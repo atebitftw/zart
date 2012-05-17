@@ -82,7 +82,7 @@ class ZSCII {
   ///     Z.callStack.pop();
   static String readZString(int fromAddress){
     bool finished = false;
-    StringBuffer s = new StringBuffer();
+    var s = new StringBuffer();
     int currentAlphabet = ZSCII.A0;
 
     List<int> charList = [];
@@ -127,15 +127,16 @@ class ZSCII {
         continue;
       }
 
-      // (ref 3.4)
       if (currentAlphabet == ZSCII.A2 && char == 6){
-        Debugger.todo('handle 10 bit ZSCII');
+        // (ref 3.4)
+        s.add(ZCharToChar((charList[i + 1] << 5) | charList[i + 2]));
+        i += 2;
         currentAlphabet = ZSCII.A0;
         continue;
       }
 
-      // (ref 3.5.3)
       if (currentAlphabet == ZSCII.A2 && char == 7){
+        // (ref 3.5.3)
         //newline
         s.add('\n');
         currentAlphabet = ZSCII.A0;
@@ -160,6 +161,15 @@ class ZSCII {
     return s.toString();
   }
 
+  static List<int> toZCharList(String line){
+    var list = new List<int>();
+    
+    for(int i = 0; i < line.length; i++){
+      list.add(CharToZChar(line.substring(i, i + 1)));
+    }
+    return list;
+  }
+  
   static int CharToZChar(String c){
     if (c.isEmpty() || c.length != 1){
       throw const Exception('String must be length of 1');
@@ -183,7 +193,7 @@ class ZSCII {
 
     throw const Exception('Could not convert from char to ZChar.');
   }
-
+  
   static String ZCharToChar(int c){
     if(c == 0){
       return '';
