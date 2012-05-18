@@ -23,7 +23,7 @@ class _MemoryMap {
    //if (which == 0) return Z.stack.pop();
 
    if (which < 0x10 || which > 0xff)
-     throw const Exception('Global lookup register out of range.');
+     throw new GameException('Global lookup register out of range.');
 
    //global 0x00 means pop from stack
    return loadw(globalVarsAddress + ((which - 0x10) * 2));
@@ -34,7 +34,7 @@ class _MemoryMap {
    // if (which == 0) return Z.stack.push(value);
 
     if (which < 0x10 || which > 0xff)
-      throw const Exception('Global lookup register out of range.');
+      throw new GameException('Global lookup register out of range.');
 
       storew(globalVarsAddress + ((which - 0x10) * 2), value);
   }
@@ -59,7 +59,7 @@ class _MemoryMap {
     checkBounds(address);
     //TODO validate
 
-    if (value > 0xff) throw const Exception('byte out of range.');
+    if (value > 0xff) throw new GameException('byte out of range.');
 
     _mem[address] = value;
   }
@@ -70,7 +70,7 @@ class _MemoryMap {
     checkBounds(address + 1);
 
     if (value > 0xffff)
-      throw const Exception('word out of range');
+      throw new GameException('word out of range');
 
     _mem[address] = value >> 8;
     _mem[address + 1] = value & 0xff;
@@ -81,7 +81,7 @@ class _MemoryMap {
   void checkBounds(int address){
    if ((address == null) || (address < 0) || (address > _mem.length - 1)){
      Debugger.debug('${_mem.length}');
-     throw new Exception('Attempted access to memory address'
+     throw new GameException('Attempted access to memory address'
        ' that is out of bounds: $address 0x${address.toRadixString(16)}');
    }
   }

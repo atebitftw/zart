@@ -11,6 +11,7 @@
 #source('Operand.dart');
 #source('Dictionary.dart');
 #source('DRandom.dart');
+#source('GameException.dart');
 
 #source('IO/IOProvider.dart');
 

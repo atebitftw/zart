@@ -6,6 +6,7 @@ class Debugger {
   static bool enableVerbose = false;
   static bool enableTrace = false; 
   static bool enableDebug = false;
+  static bool enableStackTrace = false;
   
   static int debugStartAddr;
   
@@ -15,7 +16,7 @@ class Debugger {
     Z.inInput = true;
     if (Z.isLoaded){
       if (newMachine.version != Z._ver){
-        throw const Exception('Machine/Story version mismatch.');
+        throw new GameException('Machine/Story version mismatch.');
       }
     }
 
@@ -27,18 +28,11 @@ class Debugger {
   }
   
   static void startBreak(timer){
-    var locals = Z._machine.callStack[2];
-    StringBuffer s = new StringBuffer();
-    
-    for(int i = 0; i < locals; i++){
-      s.add('(L${i}: ${Z._machine._readLocal(i + 1)})  ');
-    }
-
     Z._io.DebugOutput('(break)>>> [0x${debugStartAddr.toRadixString(16)}]'
     ' opCode: ${Z._machine.mem.loadb(debugStartAddr)}'
     ' (${opCodes[Z._machine.mem.loadb(debugStartAddr).toString()]})');
     
-    Z._io.DebugOutput('   Locals: $s');
+    Z._io.DebugOutput('   Locals: ${dumpLocals()}');
     
     _repl(timer);
   }
@@ -66,6 +60,10 @@ class Debugger {
               Debugger.enableVerbose = true;
               debug('Verbose Enabled.');
               break;
+            case 'stacktrace':
+              Debugger.enableStackTrace = true;
+              debug('Stack Trace Enabled.');
+              break;
           }
           Z._io.callAsync(_repl);
           break;
@@ -78,6 +76,10 @@ class Debugger {
             case 'verbose':
               Debugger.enableVerbose = false;
               debug('Verbose Disabled.');
+              break;
+            case 'stacktrace':
+              Debugger.enableStackTrace = false;
+              debug('Stack Trace Disabled.');
               break;
           }
           Z._io.callAsync(_repl);
@@ -116,13 +118,7 @@ class Debugger {
           Z._io.callAsync(_repl);
           break;
         case 'locals':
-          var locals = Z._machine.callStack[2];
-          StringBuffer s = new StringBuffer();
-          
-          for(int i = 0; i < locals; i++){
-            s.add('(L${i}: ${Z._machine._readLocal(i + 1)})  ');
-          }
-          debug('$s');
+          debug('${dumpLocals()}');
           Z._io.callAsync(_repl);
           break;
         case 'object':
@@ -160,6 +156,25 @@ class Debugger {
       _breakPoints.clear();
     }
     _breakPoints.addAll(breakPoints);
+  }
+  
+  static String crashReport(){
+    var s = new StringBuffer();
+    s.add('Call Stack: ${Z.machine.callStack}\n');
+    s.add('Game Stack: ${Z.machine.stack}\n');
+    s.add(dumpLocals());
+    return s.toString();
+  }
+
+  static String dumpLocals(){
+    var locals = Z._machine.callStack[2];
+    StringBuffer s = new StringBuffer();
+    
+    for(int i = 0; i < locals; i++){
+      s.add('(L${i}: 0x${Z._machine._readLocal(i + 1).toRadixString(16)}) ');
+    }
+    s.add('\n');
+    return s.toString();  
   }
   
   static String dumpHeader(){
@@ -212,17 +227,5 @@ class Debugger {
     if (message != null)
       Z._io.DebugOutput(message);
     throw const NotImplementedException();
-  }
-  
-  static void throwAndDump(String message, int dumpOffset, [int howMany=20]){
-    Z._printBuffer();
-    
-    for(final v in Z.dynamic._machine.mem.getRange(Z.dynamic._machine.pc + dumpOffset, howMany)){
-      Debugger.verbose("(${v}, 0x${v.toRadixString(16)}, 0b${v.toRadixString(2)})");
-    }
-    
-    //Z.callStack.dump();
-    
-    throw new Exception('(0x${(Z._machine.pc - 1).toRadixString(16)}) $message');
   }
 }

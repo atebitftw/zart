@@ -25,7 +25,7 @@ class Operand
         }
         return _cachedValue;
       default:
-        throw new Exception('Invalid Operand Type: $type');
+        throw new GameException('Invalid Operand Type: $type');
     }
   }
 
@@ -37,7 +37,7 @@ class Operand
       case OperandType.VARIABLE:
         return Z._machine.peekVariable(rawValue);
       default:
-        throw new Exception('Invalid Operand Type: $type');
+        throw new GameException('Invalid Operand Type: $type');
     }
   }
   

@@ -34,7 +34,7 @@ class _Stack {
   void push(int value) {
     //ref 6.3.3
     if (max > 0 && length == (max - 1))
-      throw const Exception('Stack Overflow.');
+      throw new GameException('Stack Overflow.');
 
     _stack.insertRange(0, 1, value);
   }
@@ -50,6 +50,11 @@ class _Stack {
     });
   }
 
+  String toString(){
+    var mapped = _stack.map((s) => '0x${s.toRadixString(16)}');
+    return '$mapped';
+  }
+  
 //  void inc(int amount){
 //    sp += amount;
 //  }

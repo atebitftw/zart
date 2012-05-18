@@ -4,6 +4,7 @@
 */
 class Machine
 {
+  static final int STACK_MARKER = -0x10000;
   /// Z-Machine False = 0
   static final int FALSE = 0;
   /// Z-Machine True = 1
@@ -202,12 +203,14 @@ class Machine
     // assign any params passed to locals and push locals onto the call stack
     var locals = readb();
     
-    stack.push(-0x10000);
+    stack.push(STACK_MARKER);
     
     Debugger.verbose('    # Locals: ${locals}');
-    if (locals > 16)
-      throw const Exception('Maximum local variable allocations (16) exceeded.');
-
+    
+    if (locals > 16){
+      throw new GameException('Maximum local variable allocations (16) exceeded.');
+    }
+    
     if (locals > 0){
       for(int i = 1; i <= locals; i++){
         if (i <= params.length){
@@ -236,7 +239,7 @@ class Machine
     var returnAddr = pc;
     
     if (operands.isEmpty())
-      throw const Exception('Call function address not given.');
+      throw new GameException('Call function address not given.');
 
     //unpack function address
     operands[0].rawValue = this.unpack(operands[0].value);
@@ -272,7 +275,7 @@ class Machine
     var resultAddrByte = callStack.pop();
     
     if (returnAddr == 0)
-      throw const Exception('Illegal return from entry routine.');
+      throw new GameException('Illegal return from entry routine.');
     
     // unwind the locals from the stack
     var frameSize = callStack.peek();
@@ -288,7 +291,7 @@ class Machine
     //unwind game stack
     var gs = stack.pop();
     
-    while(gs != -0x10000){
+    while(gs != STACK_MARKER){
       gs = stack.pop();
     }
     
@@ -309,8 +312,12 @@ class Machine
           }
         }
         
+        if (Debugger.enableStackTrace){
+             Debugger.debug('Call Stack: $callStack');
+             Debugger.debug('Game Stack: $stack');
+        }
+        
         if (Debugger.isBreakPoint(pc - 1)){
-          //TODO add REPL inspection and continue
           Z.inBreak = true;
           Debugger.debugStartAddr = pc - 1;
         }
@@ -318,7 +325,7 @@ class Machine
       
       ops['$i']();
     }else{
-      Debugger.throwAndDump('Unsupported Op Code: $i', 0, howMany:30);
+      throw new GameException('Unsupported Op Code: $i');
     }
     
     Z._runIt(null);
@@ -331,7 +338,7 @@ class Machine
     bool branchOn = BinaryHelper.isSet(jumpByte, 7);
     
     if (testResult == null || testResult is! bool){
-      throw const Exception('Test function must return a boolean value.');
+      throw new GameException('Test function must return a boolean value.');
     }   
    
     var offset = _jumpToLabelOffset(jumpByte);
@@ -482,16 +489,29 @@ class Machine
     
     Debugger.verbose('    Pushing 0x${operand[0].value.toRadixString(16)} to the stack.');
     
-    stack.push(this.readVariable(operand[0].value));
+    if (operand[0].rawValue == 0){
+      //pushing SP into SP would be counterintuitive...
+      stack.push(0);
+    }else{
+      stack.push(this.readVariable(operand[0].value)); 
+    }    
   }
   
   void ret_popped(){
     Debugger.verbose('  [ret_popped]');
     var v = stack.pop();
     
+    assertNotMarker(v);
+    
     Debugger.verbose('    Popping 0x${v.toRadixString(16)} from the stack and returning.');
     callStack.push(v);
     doReturn();
+  }
+  
+  assertNotMarker(m) {
+    if (m == Machine.STACK_MARKER){
+      throw new GameException('Stack Underflow.');
+    }
   }
   
   void rtrue(){
@@ -622,7 +642,7 @@ class Machine
     var operands = this.visitOperandsVar(4, true);
         
     if (operands.length < 2){
-      throw const Exception('At least 2 operands required for jeV instruction.');
+      throw new GameException('At least 2 operands required for jeV instruction.');
     }
         
     var foundMatch = false;
@@ -711,7 +731,7 @@ class Machine
     var z = operands[0].value;
     
     if (z < 0 || z > 1023){
-      throw const Exception('ZSCII char is out of bounds.');
+      throw new GameException('ZSCII char is out of bounds.');
     }
 
     Z.sbuff.add(ZSCII.ZCharToChar(z));
@@ -799,6 +819,7 @@ class Machine
     var operand = this.visitOperandsShortForm();
 
     Debugger.verbose('    returning 0x${operand.peekValue.toRadixString(16)}');
+    
     callStack.push(operand.value);
     
     doReturn();
@@ -906,7 +927,7 @@ class Machine
     var resultTo = readb();
     
     if (operands[1].peekValue == 0){
-      throw const Exception('Divide by 0.');
+      throw new GameException('Divide by 0.');
     }
     
     var result = (_toSigned(operands[0].value) / _toSigned(operands[1].value)).toInt();
@@ -927,7 +948,7 @@ class Machine
     var resultTo = readb();
     
     if (operands[1].peekValue == 0){
-      throw const Exception('Divide by 0.');
+      throw new GameException('Divide by 0.');
     }
     
     var f = _toSigned(operands[0].value);
@@ -1020,13 +1041,13 @@ class Machine
     var operands = this.visitOperandsVar(4, true);
 
     if (operands.length != 3){
-      throw const Exception('Expected operand count of 3 for storeb instruction.');
+      throw new GameException('Expected operand count of 3 for storeb instruction.');
     }
 
     var addr = operands[0].value + _toSigned(operands[1].value);
 
     if (operands[2].value > 0xff){
-      throw const Exception('Attempted to store value in byte that is > 0xff');
+      throw new GameException('Attempted to store value in byte that is > 0xff');
     }
     
     //Debugger.todo();
@@ -1039,16 +1060,12 @@ class Machine
   void storewv(){
     Debugger.verbose('  [storewv]');
 
-    var operands = this.visitOperandsVar(4, true);
-
-    if (operands.length != 3){
-      throw const Exception('Expected operand count of 3 for storew instruction.');
-    }
+    var operands = this.visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
     var addr = operands[0].value + (2 * _toSigned(operands[1].value));
     mem.storew(addr, operands[2].value);
-    Debugger.verbose('    stored 0x${operands[2].peekValue.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
+    Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
   int _toSigned(int val) => 
@@ -1146,7 +1163,7 @@ class Machine
 
           break;
         default:
-          throw new Exception('Illegal Operand Type found: ${o.type.toRadixString(16)}');
+          throw new GameException('Illegal Operand Type found: ${o.type.toRadixString(16)}');
       }
     });
 
@@ -1226,6 +1243,7 @@ class Machine
     if (varNum == 0x00){
       //top of stack
       var result = stack.pop();
+      assertNotMarker(result);
       Debugger.verbose('    (popped 0x${result.toRadixString(16)} from stack)');
       return result;
     }else if (varNum <= 0x0f){
@@ -1254,7 +1272,7 @@ class Machine
       ' to global 0x${varNum.toRadixString(16)})');
       mem.writeGlobal(varNum, value);
     }else{
-      throw const Exception('Variable referencer byte out of range (0-255)');
+      throw new GameException('Variable referencer byte out of range (0-255)');
     }
  }
 
@@ -1262,14 +1280,14 @@ class Machine
     var locals = callStack[2];
 
     if (locals < local){
-      throw const Exception('Attempted to access unallocated local variable.');
+      throw new GameException('Attempted to access unallocated local variable.');
     }
 
     var index = locals - local;
 
     if (index == -1){
       Debugger.verbose('locals: $locals, local: $local');
-      throw const Exception('bad index');
+      throw new GameException('bad index');
     }
 
     callStack[index + 3] = value;
@@ -1279,7 +1297,7 @@ class Machine
     var locals = callStack[2]; //locals header
 
     if (locals < local){
-      throw const Exception('Attempted to access unallocated local variable.');
+      throw new GameException('Attempted to access unallocated local variable.');
     }
 
     var index = locals - local;

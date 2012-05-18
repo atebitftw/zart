@@ -34,8 +34,10 @@ void main() {
   Debugger.enableDebug = false; 
   Debugger.enableVerbose = true;
   Debugger.enableTrace = true;
-  Debugger.setBreaks([0x6a8d]);
+  Debugger.enableStackTrace = false;
+  //Debugger.setBreaks([0x6a8d]);
   
   Z.run();
+
 }
 

@@ -172,7 +172,7 @@ class ZSCII {
   
   static int CharToZChar(String c){
     if (c.isEmpty() || c.length != 1){
-      throw const Exception('String must be length of 1');
+      throw new GameException('String must be length of 1');
     }
 
     if (c == '\t'){
@@ -191,7 +191,7 @@ class ZSCII {
       }
     }
 
-    throw const Exception('Could not convert from char to ZChar.');
+    throw new GameException('Could not convert from char to ZChar.');
   }
   
   static String ZCharToChar(int c){
@@ -209,6 +209,6 @@ class ZSCII {
       return new StringBuffer().addCharCode(UNICODE_TRANSLATIONS['$c']).toString();
     }
 
-    throw const Exception('Could not convert from ZChar to char.');
+    throw new GameException('Could not convert from ZChar to char.');
   }
 }

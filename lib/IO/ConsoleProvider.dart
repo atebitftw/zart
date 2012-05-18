@@ -15,31 +15,34 @@ class ConsoleProvider implements IOProvider
     lineBuffer = new Queue<String>();
   
   void PrimaryOutput(String text) {
-    var words = new Queue<String>.from(text.split(' '));
+    var lines = text.split('\n');
+    for(final l in lines){
+      var words = new Queue<String>.from(l.split(' '));
 
-    var s = new StringBuffer();
-    
-    while(!words.isEmpty()){
-      var nextWord = words.removeFirst();
+      var s = new StringBuffer();
+      while(!words.isEmpty()){
+        var nextWord = words.removeFirst();
 
-      if (s.length > cols){
+        if (s.length > cols){
+          print('$s');
+          s = new StringBuffer();
+          s.add(nextWord + ' ');
+        }else{
+          if (words.isEmpty()){
+            s.add(nextWord + ' ');
+            print('$s');
+            s = new StringBuffer();
+          }else{
+            s.add(nextWord + ' '); 
+          }        
+        }
+      }
+      
+      if (s.length > 0){
         print('$s');
         s = new StringBuffer();
       }
-
-      if (words.isEmpty()){
-        s.add(nextWord + ' ');
-        print('$s');
-        s = new StringBuffer();
-      }else{
-        s.add(nextWord + ' '); 
-      }
     }
-    
-    if (s.length > 0){
-      print('$s');
-    }
-    
   }
   
   void DebugOutput(String text) => print(text);

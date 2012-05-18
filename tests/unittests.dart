@@ -167,9 +167,9 @@ void main() {
       
       var addr = o1.getPropertyAddress(28);
       
-      Expect.equals(0xe17, addr);
+      Expect.equals(0xe18, addr);
       
-      var pnum = GameObjectV3.propertyNumber(addr);
+      var pnum = GameObjectV3.propertyNumber(addr - 1);
       
       Expect.equals(28, pnum);
       
@@ -179,20 +179,19 @@ void main() {
       
       addr = o1.getPropertyAddress(pnum);
       
-      Expect.equals(0xe17, addr);
+      Expect.equals(0xe18, addr);
 
     });
     
     test('get property length', (){
       GameObjectV3 o1 = new GameObjectV3(29); //"Entrance to Hades"
       
-      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(28)));
-      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(23)));
-      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(21)));
-      Expect.equals(2, GameObjectV3.propertyLength(o1.getPropertyAddress(18)));
-      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(12)));
-      Expect.equals(8, GameObjectV3.propertyLength(o1.getPropertyAddress(8)));
-      Expect.equals(0, GameObjectV3.propertyLength(o1.getPropertyAddress(0)));
+      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(28) - 1));
+      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(23) - 1));
+      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(21) - 1));
+      Expect.equals(2, GameObjectV3.propertyLength(o1.getPropertyAddress(18) - 1));
+      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(12) - 1));
+      Expect.equals(8, GameObjectV3.propertyLength(o1.getPropertyAddress(8) - 1));
     });
     
   });

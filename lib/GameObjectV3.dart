@@ -67,11 +67,11 @@ class GameObjectV3
     var len = propertyLength(addr - 1);
     
     if (addr == 0){
-      throw const Exception('Property not found.');
+      throw new GameException('Property not found.');
     }
 
     if (len > 2){
-      throw const Exception('Cannot set property on properties > 2 bytes.');
+      throw new GameException('Cannot set property on properties > 2 bytes.');
     }
     
     if (len == 1){
@@ -80,7 +80,7 @@ class GameObjectV3
     }else if (len == 2){
       Z.machine.mem.storew(addr, value);
     }else{
-      throw new Exception('Invalid property length found while setting property: $len');
+      throw new GameException('Invalid property length found while setting property: $len');
     }
     
   }
@@ -104,7 +104,7 @@ class GameObjectV3
         //ding ding ding
         
         if (len > 2){
-          throw new Exception('Only property length of 1 or 2 is supported by this function: $len');
+          throw new GameException('Only property length of 1 or 2 is supported by this function: $len');
         }
         
         if (len == 1){
@@ -139,7 +139,7 @@ class GameObjectV3
     propertyNum %= 31;
     
     if (propertyNum < 0 || propertyNum > 31){
-      throw const Exception('property number out of bounds (1-31)');
+      throw new GameException('property number out of bounds (1-31)');
     }
     return Z._machine.mem.loadw(Z._machine.mem.objectsAddress + (propertyNum * 2));
   }
@@ -177,7 +177,7 @@ class GameObjectV3
     while(theChild.sibling != id){
       theChild = new GameObjectV3(theChild.sibling);
       if (theChild.id == 0){
-        throw const Exception('Sibling list not well formed.');
+        throw new GameException('Sibling list not well formed.');
       }
     }
     
