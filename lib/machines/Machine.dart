@@ -202,6 +202,8 @@ class Machine
     // assign any params passed to locals and push locals onto the call stack
     var locals = readb();
     
+    stack.push(-0x10000);
+    
     Debugger.verbose('    # Locals: ${locals}');
     if (locals > 16)
       throw const Exception('Maximum local variable allocations (16) exceeded.');
@@ -277,9 +279,17 @@ class Machine
 
     Debugger.verbose('(unwinding stack 1 frame)');
 
+    //unwind locals
     while(frameSize >= 0){
       callStack.pop();
       frameSize--;
+    }
+    
+    //unwind game stack
+    var gs = stack.pop();
+    
+    while(gs != -0x10000){
+      gs = stack.pop();
     }
     
     writeVariable(resultAddrByte, result);
