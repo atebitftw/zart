@@ -1,17 +1,17 @@
 
 /**
 * A runtime debugger for Z-Machine.
-*/ 
+*/
 class Debugger {
   static bool enableVerbose = false;
-  static bool enableTrace = false; 
+  static bool enableTrace = false;
   static bool enableDebug = false;
   static bool enableStackTrace = false;
-  
+
   static int debugStartAddr;
-  
+
   static List<int> _breakPoints;
-  
+
   static void setMachine(Machine newMachine){
     Z.inInput = true;
     if (Z.isLoaded){
@@ -26,24 +26,30 @@ class Debugger {
     debug('<<< New machine installed: v${newMachine.version} >>>');
     Z.inInput = false;
   }
-  
+
   static void startBreak(timer){
     Z._io.DebugOutput('(break)>>> [0x${debugStartAddr.toRadixString(16)}]'
     ' opCode: ${Z._machine.mem.loadb(debugStartAddr)}'
     ' (${opCodes[Z._machine.mem.loadb(debugStartAddr).toString()]})');
-    
+
     Z._io.DebugOutput('   Locals: ${dumpLocals()}');
-    
+
     _repl(timer);
   }
-  
+
   static void _repl(timer){
 
     void parse(String command){
       var cl = command.toLowerCase().trim();
       var args = cl.split(' ');
-      
+
       switch(args[0]){
+        case 'dump':
+          var addr = Math.parseInt(args[1]);
+          var howMany = Math.parseInt(args[2]);
+          debug('${Z.machine.mem.dump(addr, howMany)}');
+          Z._io.callAsync(_repl);
+          break;
         case 'move':
           var obj1 = new GameObjectV3(Math.parseInt(args[1]));
           var obj2 = new GameObjectV3(Math.parseInt(args[2]));
@@ -86,7 +92,7 @@ class Debugger {
           break;
         case '':
         case 'n':
-          debugStartAddr = Z._machine.pc;          
+          debugStartAddr = Z._machine.pc;
           Z._machine.visitInstruction(null);
           break;
         case 'q':
@@ -99,15 +105,15 @@ class Debugger {
           break;
         case 'globals':
           StringBuffer s = new StringBuffer();
-          
+
           var col = args.length == 2 ? Math.parseInt(args[1]) : 10;
           if (col < 1) col = 1;
-          
+
           for(int i = 0x10; i < 0xff; i++){
-            
+
             s.add('g${i - 16 < 10 ? "0" : ""}${i - 16}:'
             ' 0x${Z._machine.mem.readGlobal(i).toRadixString(16)}');
-            
+
             if ((i - 15) % col != 0){
               s.add('\t');
             }else{
@@ -134,7 +140,7 @@ class Debugger {
     }
 
     var line = Z._io.getLine();
-    
+
     if (line.isComplete){
       parse(line.value);
     }else{
@@ -143,12 +149,12 @@ class Debugger {
       });
     }
   }
-  
+
   static bool isBreakPoint(int addr){
     if (_breakPoints == null) return false;
     return _breakPoints.indexOf(addr) != -1;
   }
-  
+
   static void setBreaks(List breakPoints) {
     if (_breakPoints == null){
       _breakPoints = new List<int>();
@@ -157,7 +163,7 @@ class Debugger {
     }
     _breakPoints.addAll(breakPoints);
   }
-  
+
   static String crashReport(){
     var s = new StringBuffer();
     s.add('Call Stack: ${Z.machine.callStack}\n');
@@ -169,19 +175,19 @@ class Debugger {
   static String dumpLocals(){
     var locals = Z._machine.callStack[2];
     StringBuffer s = new StringBuffer();
-    
+
     for(int i = 0; i < locals; i++){
       s.add('(L${i}: 0x${Z._machine._readLocal(i + 1).toRadixString(16)}) ');
     }
     s.add('\n');
-    return s.toString();  
+    return s.toString();
   }
-  
+
   static String dumpHeader(){
     if (!Z.dynamic.isLoaded) return '<<< Machine Not Loaded >>>\n';
-    
+
     var s = new StringBuffer();
-    
+
     s.add('(Story contains ${Z._machine.mem.size} bytes.)\n');
     s.add('\n');
     s.add('------- START HEADER -------\n');
@@ -207,23 +213,23 @@ class Debugger {
     s.add('\n');
     return s.toString();
   }
-  
+
   /// Verbose Channel (via Debug)
   static void verbose(String outString){
     //TODO support redirect to file.
     if (Debugger.enableDebug && Debugger.enableVerbose)
       debug(outString);
   }
-  
+
   /// Debug Channel
   static void debug(String debugString) => Z._io.DebugOutput(debugString);
-  
-  
+
+
   static void todo([String message]){
     Z._io.DebugOutput('Stopped At: 0x${Z._machine.pc.toRadixString(16)}');
     Z._io.PrimaryOutput('Text Buffer:');
     Z._printBuffer();
-  
+
     if (message != null)
       Z._io.DebugOutput(message);
     throw const NotImplementedException();

@@ -76,4 +76,9 @@ class Header{
   //64 bytes, by convention (1.1.1.1)
   static final int  UPPER_LIMIT = 0x40;
 
+  /// Feturns false if the game is a timed game.
+  static bool isScoreGame(){
+    return !BinaryHelper.isSet(Z.dynamic.machine.mem.loadb(FLAGS1), 1);
+  }
+
 }

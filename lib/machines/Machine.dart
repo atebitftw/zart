@@ -9,23 +9,23 @@ class Machine
   static final int FALSE = 0;
   /// Z-Machine True = 1
   static final int TRUE = 1;
-  
+
   final _Stack stack;
   final _Stack callStack;
-  
+
   DRandom r;
-  
+
   /// Z-Machine Program Counter
   int pc = 0;
 
   _MemoryMap mem;
-  
+
   Map<String, Function> ops;
 
   int get propertyDefaultsTableSize() => 31;
 
 
-  
+
   Machine()
   :
     stack = new _Stack(),
@@ -34,8 +34,10 @@ class Machine
     r = new DRandom.withSeed(new Date.now().milliseconds);
     ops =
       {
+       '183' : restart,
        '231' : random,
        '232' : push,
+       '233' : pull,
        '224' : callVS,
        '225' : storewv,
        '79' : loadw,
@@ -72,6 +74,10 @@ class Machine
        '50' : get_prop_addr,
        '82' : get_prop_addr,
        '114' : get_prop_addr,
+       '19' : get_next_prop,
+       '51' : get_next_prop,
+       '83' : get_next_prop,
+       '115' : get_next_prop,
        '14' : insertObj,
        '46' : insertObj,
        '78' : insertObj,
@@ -100,6 +106,7 @@ class Machine
        '37' : inc_chk,
        '69' : inc_chk,
        '101' : inc_chk,
+       '197' : inc_chkV,
        '4' : dec_chk,
        '36' : dec_chk,
        '68' : dec_chk,
@@ -175,7 +182,9 @@ class Machine
        '170' : print_obj,
        '184' : ret_popped,
        '227' : put_prop,
-       '228' : read
+       '228' : read,
+       '174' : load,
+       '142' : load
       };
   }
 
@@ -191,26 +200,26 @@ class Machine
   int fileLengthMultiplier() => 2;
 
   void visitRoutine(List<int> params){
-    
+
     //V3
     if (callStack.length == 0){
       //main routine
       pc--;
     }
-    
+
     Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
 
     // assign any params passed to locals and push locals onto the call stack
     var locals = readb();
-    
+
     stack.push(STACK_MARKER);
-    
+
     Debugger.verbose('    # Locals: ${locals}');
-    
+
     if (locals > 16){
       throw new GameException('Maximum local variable allocations (16) exceeded.');
     }
-    
+
     if (locals > 0){
       for(int i = 1; i <= locals; i++){
         if (i <= params.length){
@@ -230,14 +239,14 @@ class Machine
     //push total locals onto the call stack
     callStack.push(locals);
   }
-  
+
   void callVS(){
     Debugger.verbose('  [call_vs]');
     var operands = this.visitOperandsVar(4, true);
 
     var resultStore = readb();
     var returnAddr = pc;
-    
+
     if (operands.isEmpty())
       throw new GameException('Call function address not given.');
 
@@ -246,37 +255,37 @@ class Machine
 
     if (operands[0].value == 0){
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
-      
+
       writeVariable(resultStore, Machine.FALSE);
     }else{
       //move to the routine address
       pc = operands[0].rawValue;
-      
+
       //setup the routine stack frame and locals
       visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
-      
+
       //push the result store address onto the call stack
       callStack.push(resultStore);
-      
+
       //push the return address onto the call stack
       callStack.push(returnAddr);
     }
 
   }
-  
+
   void doReturn(){
     // pop the return value from whoever is returning
     var result = callStack.pop();
-   
+
     // return address
     var returnAddr = callStack.pop();
-    
+
     // result store address byte
     var resultAddrByte = callStack.pop();
-    
+
     if (returnAddr == 0)
       throw new GameException('Illegal return from entry routine.');
-    
+
     // unwind the locals from the stack
     var frameSize = callStack.peek();
 
@@ -287,62 +296,62 @@ class Machine
       callStack.pop();
       frameSize--;
     }
-    
+
     //unwind game stack
     var gs = stack.pop();
-    
+
     while(gs != STACK_MARKER){
       gs = stack.pop();
     }
-    
+
     writeVariable(resultAddrByte, result);
 
     pc = returnAddr;
   }
-  
+
   void visitInstruction(foo){
     var i = readb();
-    if (ops.containsKey('$i')){     
+    if (ops.containsKey('$i')){
       if (Debugger.enableDebug){
         if (Debugger.enableTrace && !Z.dynamic.inBreak){
           if (opCodes.containsKey('$i')){
-            print('>>> (0x${(pc - 1).toRadixString(16)}) ${opCodes[i.toString()]} ($i)');          
+            Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) ${opCodes[i.toString()]} ($i)');
           }else{
-            print('>>> (0x${(pc - 1).toRadixString(16)}) UNKNOWN ($i)');
+            Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) UNKNOWN ($i)');
           }
         }
-        
+
         if (Debugger.enableStackTrace){
              Debugger.debug('Call Stack: $callStack');
              Debugger.debug('Game Stack: $stack');
         }
-        
+
         if (Debugger.isBreakPoint(pc - 1)){
           Z.inBreak = true;
           Debugger.debugStartAddr = pc - 1;
         }
       }
-      
+
       ops['$i']();
     }else{
       throw new GameException('Unsupported Op Code: $i');
     }
-    
-    Z._runIt(null);
+
+   // Z._runIt(null);
   }
-    
+
   void branch(bool testResult)
   {
     var jumpByte = readb();
-    
+
     bool branchOn = BinaryHelper.isSet(jumpByte, 7);
-    
+
     if (testResult == null || testResult is! bool){
       throw new GameException('Test function must return a boolean value.');
-    }   
-   
+    }
+
     var offset = _jumpToLabelOffset(jumpByte);
-    
+
     if ((branchOn && testResult) || (!branchOn && !testResult)){
       // If the offset is 0 or 1 (FALSE or TRUE), perform a return
       // operation.
@@ -352,69 +361,85 @@ class Machine
         doReturn();
         return;
       }
-      
+
       if (offset == Machine.TRUE){
         Debugger.verbose('    (branch returning TRUE)');
         callStack.push(Machine.TRUE);
         doReturn();
         return;
       }
-      
+
       //jump to the offset and continue...
       pc += offset - 2;
       Debugger.verbose('    (branching to 0x${pc.toRadixString(16)})');
       return;
     }
-    
+
     //otherwise just continue to the next instruction...
     Debugger.verbose('    (continuing to next instruction)');
   }
-  
-  void updateStatus(){
-    Debugger.todo('implement status update');
+
+  String getStatusJSON(){
+
+    var statusList = new List<String>();
+
+    statusList.add('STATUS');
+    statusList.add(Header.isScoreGame() ? 'SCORE' : 'TIME');
+
+    var locObject = new GameObjectV3(readVariable(0x10));
+    statusList.add(locObject.shortName);
+
+    statusList.add(readVariable(0x11).toString());
+    statusList.add(readVariable(0x12).toString());
+
+    return JSON.stringify(statusList);
   }
-  
+
   void read(){
     Debugger.verbose('  [read]');
-    
+
     Z.inInput = true;
-    
+
     Z._printBuffer();
-    
+
+    Z.sbuff.add(getStatusJSON());
+
+    Z._printBuffer();
+
     var operands = this.visitOperandsVar(4, true);
-        
+
     var maxBytes = mem.loadb(operands[0].value);
-    
+
     var textBuffer = operands[0].value + 1;
-    
+
     var maxWords = mem.loadb(operands[1].value);
-    
+
     var parseBuffer = operands[1].value + 1;
 
-    void processLine(String line){      
+    void processLine(String line){
       line = line.trim().toLowerCase();
-      
+
       Debugger.verbose('    (processing: "$line")');
-      
+
       if (line.length > maxBytes){
         line = line.substring(0, maxBytes - 1);
         Debugger.verbose('    (text buffer truncated to "$line")');
       }
-      
+
       var zChars = ZSCII.toZCharList(line);
-      
+
       //store the zscii chars in text buffer
       for(final c in zChars){
         mem.storeb(textBuffer++, c);
       }
-      
+
       //terminator
       mem.storeb(textBuffer, 0);
-      
+
       var tokens = Z._machine.mem.dictionary.tokenize(line);
-      
+
       Debugger.verbose('    (tokenized: $tokens)');
-      
+
       if (tokens.length >  maxWords){
         tokens = tokens.getRange(0, maxWords - 1);
         Debugger.verbose('    (truncating parse buffer to: $tokens)');
@@ -422,22 +447,22 @@ class Machine
 
       var parsed = Z._machine.mem.dictionary.parse(tokens, line);
       //Debugger.debug('$parsed');
-            
+
       for(final p in parsed){
         mem.storeb(parseBuffer++, p);
       }
-            
-      Z._io.callAsync(Z._runIt);
+
+//      Z._io.callAsync(Z._runIt);
     }
-        
+
     Future<String> line = Z._io.getLine();
-    
+
     doIt(foo){
       if (line.isComplete){
         Z.inInput = false;
         if (line == '/!'){
           Z.inBreak = true;
-          Z._io.callAsync(Debugger.startBreak);
+//          Z._io.callAsync(Debugger.startBreak);
         }else{
           processLine(line.value);
         }
@@ -447,208 +472,253 @@ class Machine
           if (l == '/!'){
             Z.inBreak = true;
             Debugger.debugStartAddr = pc - 1;
-            Z._io.callAsync(Debugger.startBreak);
+            Debugger.startBreak(null);
+//            Z._io.callAsync(Debugger.startBreak);
           }else{
             processLine(l);
+            Z._runIt(null);
           }
         });
       }
     }
 
-    
-    Z._io.callAsync(doIt);
+    doIt(null);
+
+//    Z._io.callAsync(doIt);
   }
-      
+
   void random(){
     Debugger.verbose('  [random]');
-  
+
     Math.random();
-    
+
     var operands = this.visitOperandsVar(1, false);
-    
+
     var resultTo = readb();
-    
+
     var range = operands[0].value;
-    
+
+    //default return value in first two cases
     var result = 0;
-    
+
     if (range < 0){
       r = new DRandom.withSeed(range);
+      Debugger.verbose('    (set RNG to seed: $range)');
     }else if(range == 0){
       r = new DRandom.withSeed(new Date.now().milliseconds);
+      Debugger.verbose('    (set RNG to random seed)');
     }else{
-      result = r.NextFromMax(range);
+      result = r.NextFromMax(range + 1);
+      Debugger.verbose('Rolled random number $result');
     }
-    
+
     writeVariable(resultTo, result);
   }
-  
+
+  void pull(){
+    Debugger.verbose('  [pull]');
+    var operand = this.visitOperandsVar(1, false);
+
+    var value = stack.pop();
+
+    Debugger.verbose('    Pulling 0x${value.toRadixString(16)} from to the stack.');
+
+    writeVariable(operand[0].value, value);
+  }
+
   void push(){
     Debugger.verbose('  [push]');
     var operand = this.visitOperandsVar(1, false);
-    
+
     Debugger.verbose('    Pushing 0x${operand[0].value.toRadixString(16)} to the stack.');
-    
-    if (operand[0].rawValue == 0){
-      //pushing SP into SP would be counterintuitive...
-      stack.push(0);
-    }else{
-      stack.push(this.readVariable(operand[0].value)); 
-    }    
+
+    stack.push(operand[0].value);
+
+//    if (operand[0].rawValue == 0){
+//      //pushing SP into SP would be counterintuitive...
+//      stack.push(0);
+//    }else{
+//      stack.push(this.readVariable(operand[0].value));
+//    }
   }
-  
+
   void ret_popped(){
     Debugger.verbose('  [ret_popped]');
     var v = stack.pop();
-    
+
     assertNotMarker(v);
-    
+
     Debugger.verbose('    Popping 0x${v.toRadixString(16)} from the stack and returning.');
     callStack.push(v);
     doReturn();
   }
-  
+
   assertNotMarker(m) {
     if (m == Machine.STACK_MARKER){
       throw new GameException('Stack Underflow.');
     }
   }
-  
+
   void rtrue(){
     Debugger.verbose('  [rtrue]');
     callStack.push(Machine.TRUE);
     doReturn();
   }
-  
+
   void rfalse(){
     Debugger.verbose('  [rfalse]');
     callStack.push(Machine.FALSE);
     doReturn();
   }
-    
+
   void jz(){
     Debugger.verbose('  [jz]');
     var operand = this.visitOperandsShortForm();
 
     branch(operand.value == 0);
   }
-  
+
   void get_sibling(){
     Debugger.verbose('  [get_sibling]');
-    
+
     var operand = this.visitOperandsShortForm();
-    
+
     var resultTo = readb();
-       
+
     GameObjectV3 obj = new GameObjectV3(operand.value);
 
     writeVariable(resultTo, obj.sibling);
-    
+
     branch(obj.sibling != 0);
   }
-  
+
   void get_child(){
     Debugger.verbose('  [get_child]');
-    
+
     var operand = this.visitOperandsShortForm();
-        
+
     var resultTo = readb();
-    
+
     GameObjectV3 obj = new GameObjectV3(operand.value);
-    
+
     writeVariable(resultTo, obj.child);
-    
+
     branch(obj.child != 0);
   }
-  
+
   void inc(){
     Debugger.verbose('  [inc]');
-    
+
     var operand = this.visitOperandsShortForm();
-    
+
     var value = _toSigned(readVariable(operand.rawValue)) + 1;
-    
+
     writeVariable(operand.rawValue, value);
-    
+
   }
-  
+
   void dec(){
     Debugger.verbose('  [dec]');
-    
+
     var operand = this.visitOperandsShortForm();
-    
+
     var value = _toSigned(readVariable(operand.rawValue)) - 1;
-    
+
     writeVariable(operand.rawValue, value);
   }
-      
+
+  void load(){
+    Debugger.verbose('  [load]');
+
+    var operand = this.visitOperandsShortForm();
+
+    var resultTo = readb();
+
+    var v = readVariable(operand.value);
+
+    writeVariable(resultTo, v);
+  }
+
   void test(){
     Debugger.verbose('  [test]');
-    
+
     var operands = this.visitOperandsLongForm();
-    
+
     branch(((operands[0].value) & (operands[1].value)) == operands[1].value);
   }
-  
+
   void dec_chk(){
     Debugger.verbose('  [dec_chk]');
-    
+
     var operands = this.visitOperandsLongForm();
-    
+
     var value = _toSigned(readVariable(operands[0].rawValue)) - 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     writeVariable(operands[0].rawValue, value);
-    
+
     branch(value < _toSigned(operands[1].value));
   }
-  
-  void inc_chk(){
+
+  void inc_chkV(){
     Debugger.verbose('  [inc_chk]');
-    
-    var operands = this.visitOperandsLongForm();
-    
+
+    var operands = this.visitOperandsVar(2, false);
+
     var value = _toSigned(readVariable(operands[0].rawValue)) + 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     writeVariable(operands[0].rawValue, value);
-    
+
     branch(value > _toSigned(operands[1].value));
   }
-  
+
+  void inc_chk(){
+    Debugger.verbose('  [inc_chk]');
+
+    var operands = this.visitOperandsLongForm();
+
+    var value = _toSigned(readVariable(operands[0].rawValue)) + 1;
+
+    //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
+    writeVariable(operands[0].rawValue, value);
+
+    branch(value > _toSigned(operands[1].value));
+  }
+
   void test_attr(){
     Debugger.verbose('  [test_attr]');
-    
+
     var operands = this.visitOperandsLongForm();
-    
+
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
-    
+
     branch(obj.isFlagBitSet(operands[1].value));
   }
-  
+
   void jin()  {
     Debugger.verbose('  [jin]');
-    
+
     var operands = this.visitOperandsLongForm();
-    
+
     var child = new GameObjectV3(operands[0].value);
     var parent = new GameObjectV3(operands[1].value);
-    
+
     branch(child.parent == parent.id);
   }
-  
+
   void jeV(){
     Debugger.verbose('  [jeV]');
     var operands = this.visitOperandsVar(4, true);
-        
+
     if (operands.length < 2){
       throw new GameException('At least 2 operands required for jeV instruction.');
     }
-        
+
     var foundMatch = false;
-    
+
     var testVal = _toSigned(operands[0].value);
-    
+
     for(int i = 1; i < operands.length; i++){
       if (foundMatch == true) break;
       var against = _toSigned(operands[i].value);
@@ -660,146 +730,163 @@ class Machine
 
     branch(foundMatch);
   }
-  
+
+  void restart(){
+    Debugger.verbose('  [restart]');
+
+    Z.softReset();
+
+    // visit the main 'routine'
+    visitRoutine([]);
+
+    //push dummy result store onto the call stack
+    callStack.push(0);
+
+    //push dummy return address onto the call stack
+    callStack.push(0);
+
+    Z._io.callAsync(Z._runIt);
+  }
+
   void jl(){
     Debugger.verbose('  [jl]');
     var operands = visitOperandsLongForm();
 
     branch(_toSigned(operands[0].value) < _toSigned(operands[1].value));
   }
-  
+
   void jgv(){
     Debugger.verbose('  [jgv]');
     var operands = this.visitOperandsVar(2, false);
-    
+
     branch(_toSigned(operands[0].value) > _toSigned(operands[1].value));
   }
-  
+
   void jg(){
     Debugger.verbose('  [jg]');
     var operands = this.visitOperandsLongForm();
 
     branch(_toSigned(operands[0].value) > _toSigned(operands[1].value));
   }
-  
+
   void je(){
     Debugger.verbose('  [je]');
     var operands = this.visitOperandsLongForm();
-    
+
     branch(_toSigned(operands[0].value) == _toSigned(operands[1].value));
   }
-    
+
   void newline(){
     Debugger.verbose('  [newline]');
-    
+
     Z._printBuffer();
   }
-  
+
   void print_obj(){
     Debugger.verbose('  [print_obj]');
     var operand = this.visitOperandsShortForm();
-    
+
     var obj = new GameObjectV3(operand.value);
-    
+
     Z.sbuff.add(obj.shortName);
   }
-  
+
   void print_addr(){
     Debugger.verbose('  [print_addr]');
     var operand = this.visitOperandsShortForm();
-    
+
     var addr = operand.value;
-    
+
     Z.sbuff.add(ZSCII.readZStringAndPop(addr));
   }
-  
+
   void print_paddr(){
     Debugger.verbose('  [print_paddr]');
-    
+
     var operand = this.visitOperandsShortForm();
-    
+
     var addr = this.unpack(operand.value);
-    
+
     Z.sbuff.add(ZSCII.readZStringAndPop(addr));
   }
- 
+
   void print_char(){
     Debugger.verbose('  [print_char]');
-      
+
     var operands = this.visitOperandsVar(1, false);
-    
+
     var z = operands[0].value;
-    
+
     if (z < 0 || z > 1023){
       throw new GameException('ZSCII char is out of bounds.');
     }
 
     Z.sbuff.add(ZSCII.ZCharToChar(z));
   }
-  
+
   void print_num(){
     Debugger.verbose('  [print_num]');
-    
+
     var operands = this.visitOperandsVar(1, false);
-    
+
     Z.sbuff.add('${_toSigned(operands[0].value)}');
   }
-  
+
   void print_ret(){
     Debugger.verbose('  [print_ret]');
-    
+
     Z.sbuff.add('${ZSCII.readZStringAndPop(pc)}\n');
-    
+
     callStack.push(Machine.TRUE);
-    
+
     doReturn();
   }
-  
+
   void printf(){
     Debugger.verbose('  [print]');
-    
+
     Z.sbuff.add(ZSCII.readZString(pc));
-    
+
     pc = callStack.pop();
   }
-  
+
   void insertObj(){
     Debugger.verbose('  [insert_obj]');
-    
+
     var operands = this.visitOperandsLongForm();
 
     GameObjectV3 from = new GameObjectV3(operands[0].value);
-    
+
     GameObjectV3 to = new GameObjectV3(operands[1].value);
-    
+
     Debugger.verbose('Insert Object ${from.id}(${from.shortName}) into ${to.id}(${to.shortName})');
-    
-    from.insertTo(to.id);  
+
+    from.insertTo(to.id);
   }
 
   void removeObj(){
     Debugger.verbose('  [remove_obj]');
     var operand = this.visitOperandsShortForm();
-    
+
     GameObjectV3 o = new GameObjectV3(operand.value);
-    
+
     Debugger.verbose('Removing Object ${o.id}(${o.shortName}) from object tree.');
     o.removeFromTree();
   }
-  
+
   void storev(){
     Debugger.verbose('  [storev]');
 
     var operands = this.visitOperandsVar(2, false);
-    
+
     writeVariable(operands[0].rawValue, operands[1].value);
   }
-  
+
   void store(){
     Debugger.verbose('  [store]');
 
     var operands = this.visitOperandsLongForm();
-    
+
     writeVariable(operands[0].rawValue, operands[1].value);
  }
 
@@ -819,84 +906,84 @@ class Machine
     var operand = this.visitOperandsShortForm();
 
     Debugger.verbose('    returning 0x${operand.peekValue.toRadixString(16)}');
-    
+
     callStack.push(operand.value);
-    
+
     doReturn();
   }
-  
+
   void get_parent(){
     Debugger.verbose('  [get_parent]');
-    
+
     var operand = this.visitOperandsShortForm();
-    
+
     var resultTo = readb();
-    
+
     GameObjectV3 obj = new GameObjectV3(operand.value);
-    
+
     writeVariable(resultTo, obj.parent);
-    
+
   }
-  
+
   void clear_attr(){
     Debugger.verbose('  [clear_attr]');
     var operands = this.visitOperandsLongForm();
-    
+
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
-    
+
     obj.unsetFlagBit(operands[1].value);
 
   }
-  
+
   void set_attr(){
     Debugger.verbose('  [set_attr]');
     var operands = this.visitOperandsLongForm();
-    
+
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
-    
+
     obj.setFlagBit(operands[1].value);
 
   }
-     
+
   void andV(){
     Debugger.verbose('  [andV]');
     var operands = this.visitOperandsVar(2, false);
-    
+
     var resultTo = readb();
-    
+
     writeVariable(resultTo, operands[0].value & operands[1].value);
   }
-  
+
   void orV(){
     Debugger.verbose('  [orV]');
-    
+
     var operands = this.visitOperandsVar(2, false);
-    
+
     var resultTo = readb();
-    
+
     writeVariable(resultTo, operands[0].value | operands[1].value);
   }
-  
+
   void or(){
     Debugger.verbose('  [or]');
-    
+
     var operands = this.visitOperandsLongForm();
-    
+
     var resultTo = readb();
-    
+
     writeVariable(resultTo, operands[0].value | operands[1].value);
   }
-  
+
   void and(){
     Debugger.verbose('  [and]');
-    
+
     var operands = this.visitOperandsLongForm();
-    
+
     var resultTo = readb();
-    
+
     writeVariable(resultTo, operands[0].value & operands[1].value);
   }
-  
+
   void sub(){
     Debugger.verbose('  [subtract]');
     var operands = this.visitOperandsLongForm();
@@ -912,33 +999,33 @@ class Machine
 
     writeVariable(resultTo, _toSigned(operands[0].value) + _toSigned(operands[1].value));
   }
-  
+
   void mul(){
     Debugger.verbose('  [mul]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
-    
+
     writeVariable(resultTo, _toSigned(operands[0].value) * _toSigned(operands[1].value));
   }
-  
+
   void div(){
     Debugger.verbose('  [div]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
-    
+
     if (operands[1].peekValue == 0){
       throw new GameException('Divide by 0.');
     }
-    
+
     var result = (_toSigned(operands[0].value) / _toSigned(operands[1].value)).toInt();
-    
+
     if (result < 0){
       result = -(result.abs().floor());
     }else{
       result = result.floor();
     }
-    
-    
+
+
     writeVariable(resultTo, result);
   }
 
@@ -946,24 +1033,24 @@ class Machine
     Debugger.verbose('  [mod]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
-    
+
     if (operands[1].peekValue == 0){
       throw new GameException('Divide by 0.');
     }
-    
+
     var f = _toSigned(operands[0].value);
     var s = _toSigned(operands[1].value);
-    
+
     var result = (f.abs()) % (s.abs());
-    
+
     if (f < 0) result = -result;
-    
+
     writeVariable(resultTo, _toSigned(operands[0].value) % _toSigned(operands[1].value));
   }
-  
+
   void get_prop_len(){
     Debugger.verbose('  [get_prop_len]');
-    
+
     var operand = this.visitOperandsShortForm();
     var resultTo = readb();
 
@@ -971,17 +1058,30 @@ class Machine
 //    Debugger.todo('$propLen ${operand.value.toRadixString(16)}');
     writeVariable(resultTo, propLen);
   }
-  
+
+  void get_next_prop(){
+    Debugger.verbose('  [get_next_prop]');
+
+    var operands = this.visitOperandsLongForm();
+    var resultTo = readb();
+
+    var obj = new GameObjectV3(operands[0].value);
+
+    var nextProp = obj.getNextProperty(operands[1].value);
+
+    writeVariable(resultTo, nextProp);
+  }
+
   void get_prop_addr(){
     Debugger.verbose('  [get_prop_addr]');
 
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
-    
+
     var obj = new GameObjectV3(operands[0].value);
 
     var addr = obj.getPropertyAddress(operands[1].value);
-    
+
     writeVariable(resultTo, addr);
   }
 
@@ -990,27 +1090,27 @@ class Machine
 
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
-    
+
     var obj = new GameObjectV3(operands[0].value);
 
     var prop = obj.getPropertyValue(operands[1].value);
-    
+
     writeVariable(resultTo, prop);
   }
-  
+
   void put_prop(){
     Debugger.verbose('  [put_prop]');
-    
+
     var operands = this.visitOperandsVar(3, false);
-    
+
     var obj = new GameObjectV3(operands[0].value);
-    
+
     obj.setPropertyValue(operands[1].value, operands[2].value);
   }
-  
+
   void loadb(){
     Debugger.verbose('  [loadb]');
-    
+
     var operands = this.visitOperandsLongForm();
 
     var resultTo = readb();
@@ -1021,7 +1121,7 @@ class Machine
     writeVariable(resultTo, mem.loadb(addr));
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
-  
+
   void loadw(){
     Debugger.verbose('  [loadw]');
 
@@ -1037,7 +1137,7 @@ class Machine
 
   void storebv(){
     Debugger.verbose('  [storebv]');
-    
+
     var operands = this.visitOperandsVar(4, true);
 
     if (operands.length != 3){
@@ -1049,13 +1149,13 @@ class Machine
     if (operands[2].value > 0xff){
       throw new GameException('Attempted to store value in byte that is > 0xff');
     }
-    
-    //Debugger.todo();
+
     mem.storeb(addr, operands[2].value);
+
     Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
-  
-  
+
+
   //variable arguement version of storew
   void storewv(){
     Debugger.verbose('  [storewv]');
@@ -1068,9 +1168,9 @@ class Machine
     Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
-  int _toSigned(int val) => 
+  int _toSigned(int val) =>
       ((val & 0x8000) != 0) ? -(65536 - val) : val;
-  
+
   //calculates the local jump offset (ref 4.7)
   int _jumpToLabelOffset(int jumpByte){
 
@@ -1087,11 +1187,11 @@ class Machine
           return val;
         }
       }
-     
+
       var secondByte = readb();
-      
+
       var jumpWord = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | secondByte;
-      
+
       return _convertTo14BitSigned(jumpWord);
     }
   }
@@ -1196,15 +1296,15 @@ class Machine
     mem.staticMemAddress = mem.loadw(Header.STATIC_MEM_BASE_ADDR);
     mem.dictionaryAddress = mem.loadw(Header.DICTIONARY_ADDR);
     mem.highMemAddress = mem.loadw(Header.HIGHMEM_START_ADDR);
-    
+
     //initialize the game dictionary
     mem.dictionary = new Dictionary();
-    
+
     pc = mem.loadw(Header.PC_INITIAL_VALUE_ADDR);
-    
+
     Debugger.verbose(Debugger.dumpHeader());
   }
-  
+
   /** Reads 1 byte from the current program counter
   * address and advances the program counter to the next
   * unread address.

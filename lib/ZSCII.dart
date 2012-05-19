@@ -7,12 +7,12 @@ class ZChar{
 
   ZChar(int word)
   :
-    terminatorSet = BinaryHelper.isSet(word, 15),
+    terminatorSet = ((word >> 15) & 1) == 1,
     z3 = BinaryHelper.bottomBits(word, 5),
     z2 = BinaryHelper.bottomBits(word >> 5, 5),
     z1 = BinaryHelper.bottomBits(word >> 10, 5)
     {
-    //  print('${word.toRadixString(2)}');
+     // print('${word.toRadixString(2)}');
     }
 
   Collection<int> toCollection() => [z1, z2, z3];
@@ -63,7 +63,7 @@ class ZSCII {
        '219':  0xa3, '220': 0x153, '221':  0x152,'222':  0xa1,
        '223':  0xbf
       };
-   
+
 
   /// Reads a string of Z characters and returns
   /// the decoded version.
@@ -72,7 +72,7 @@ class ZSCII {
    Z._machine.callStack.pop();
    return result;
   }
-      
+
   /// Reads a string of Z characters and returns
   /// the decoded version.  Also pushes the address after the
   /// string to the call stack.
@@ -96,11 +96,16 @@ class ZSCII {
       // (ref 3.2)
       if (nextz.terminatorSet) finished = true;
 
-      charList.addAll(nextz.toCollection());
+      if (nextz.z1 == 0 && nextz.z1 == 0 && nextz.z3 == 1){
+        continue;
+      }else{
+        charList.addAll(nextz.toCollection());
+      }
     }
-    
+
     Z._machine.callStack.push(fromAddress);
 
+    //print(charList);
     //now decode into output string
 
    // out('charList: $charList');
@@ -115,12 +120,12 @@ class ZSCII {
         //abbreviation lookup
         var abbrNum = (32 * (char - 1)) + charList[++i];
 
-        var abbrAddress = 
+        var abbrAddress =
           2 * Z._machine.mem.loadw(Z._machine.mem.abbrAddress + (abbrNum * 2));
 
         String abbrString = readZString(abbrAddress);
         Z._machine.callStack.pop();
-        
+
         s.add(abbrString);
 
         currentAlphabet = ZSCII.A0;
@@ -163,13 +168,13 @@ class ZSCII {
 
   static List<int> toZCharList(String line){
     var list = new List<int>();
-    
+
     for(int i = 0; i < line.length; i++){
       list.add(CharToZChar(line.substring(i, i + 1)));
     }
     return list;
   }
-  
+
   static int CharToZChar(String c){
     if (c.isEmpty() || c.length != 1){
       throw new GameException('String must be length of 1');
@@ -193,7 +198,7 @@ class ZSCII {
 
     throw new GameException('Could not convert from char to ZChar.');
   }
-  
+
   static String ZCharToChar(int c){
     if(c == 0){
       return '';

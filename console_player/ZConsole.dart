@@ -1,6 +1,8 @@
 #import('../lib/zmachine.dart');
 #import('dart:io');
+#import('dart:json');
 
+#source('ConsoleProvider.dart');
 
 // Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
@@ -12,14 +14,22 @@
 // dart ZConsole.dart ../games/minizork.z3
 
 void main() {
-  var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
+  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
 
   var args = new Options().arguments;
 
   File f = (args.isEmpty()) ? new File(defaultGameFile) : new File(args[0]);
 
   try{
-    Z.load(f.readAsBytesSync());
+    var bytes = f.readAsBytesSync();
+
+//    File f2 = new File('games${Platform.pathSeparator}bytes.txt');
+//    OutputStream s = f2.openOutputStream();
+//    s.writeString('$bytes');
+//    s.close();
+
+    Z.load(bytes);
+
   } catch (FileIOException fe){
     //TODO log then print friendly
     print('$fe');
@@ -30,14 +40,20 @@ void main() {
     return;
   }
 
+  Z.IOConfig = new ConsoleProvider();
+
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
-  Debugger.enableDebug = false; 
+  Debugger.enableDebug = false;
   Debugger.enableVerbose = true;
   Debugger.enableTrace = true;
   Debugger.enableStackTrace = false;
-  //Debugger.setBreaks([0x6a8d]);
-  
-  Z.run();
+  Debugger.setBreaks([0x6aff]);
+
+  try{
+    Z.run();
+  }catch(GameException ge){
+    print('got it!\n $ge');
+  }
 
 }
 

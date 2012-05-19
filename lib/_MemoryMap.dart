@@ -13,10 +13,10 @@ class _MemoryMap {
   int dictionaryAddress;
   int highMemAddress;
   Dictionary dictionary;
-  
+
   _MemoryMap(this._mem);
 
-  
+
   // Reads a global variable (word)
   int readGlobal(int which){
 
@@ -86,8 +86,9 @@ class _MemoryMap {
    }
   }
 
-  void dump(int address, int howMany){
-    print('${getRange(address, howMany)}');
+  String dump(int address, int howMany){
+    var map = getRange(address, howMany).map((o)=> '0x${o.toRadixString(16)}');
+    return '$map';
   }
 
   List getRange(int address, int howMany){

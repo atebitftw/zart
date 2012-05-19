@@ -1,18 +1,19 @@
-#library('Console_Provider');
-#import('dart:io');
-#import('../zmachine.dart');
-
-/** A basic console provider with word-wrap support. */
-class ConsoleProvider implements IOProvider
+/**  
+* Default provider with word-wrap support.
+*
+* Cannot take input because it has no IO
+* context.  Also cannot provide async facility
+* so just runs sync.
+*
+*/
+class DefaultProvider implements IOProvider
 {
-  final StringInputStream textStream;
-  final Queue<String> lineBuffer;
+  final Queue<String> script;
   final int cols = 80;
   
-  ConsoleProvider()
+  DefaultProvider(Collection<String> script)
   :
-    textStream = new StringInputStream(stdin),
-    lineBuffer = new Queue<String>();
+    script = new Queue<String>.from(script);
   
   void PrimaryOutput(String text) {
     var lines = text.split('\n');
@@ -49,17 +50,15 @@ class ConsoleProvider implements IOProvider
   
   Future<String> getLine(){
     Completer c = new Completer();
-    
-    if (!lineBuffer.isEmpty()){
-      c.complete(lineBuffer.removeLast());      
-    }else{
-      textStream.onLine = () => c.complete(textStream.readLine());      
+
+    if (!script.isEmpty()){
+      c.complete(script.removeFirst());
     }
     
     return c.future;
   }
   
   void callAsync(func(timer)){
-    new Timer(0, func);
+    func(null);
   }
 }

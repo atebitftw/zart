@@ -1,6 +1,8 @@
 #library('ZMachine');
 
-#import('IO/ConsoleProvider.dart');
+#import('dart:json');
+
+//#import('IO/ConsoleProvider.dart');
 
 #source('Header.dart');
 #source('_Stack.dart');
@@ -13,6 +15,7 @@
 #source('DRandom.dart');
 #source('GameException.dart');
 
+#source('IO/DefaultProvider.dart');
 #source('IO/IOProvider.dart');
 
 #source('machines/Machine.dart');
@@ -36,19 +39,19 @@ KBtoB(int kb) => kb * 1024;
 * Version agnostic Z-Machine.
 */
 class ZMachine{
- 
+
   bool isLoaded = false;
   bool inBreak = false;
   bool inInput = false;
 
   IOProvider _io;
-  
+
   StringBuffer sbuff;
-  
+
   static ZMachine _ref;
   ZVersion _ver;
   List<int> _rawBytes;
-      
+
   //contains machine version which are supported by z-machine.
   final List<Machine> _supportedMachines;
 
@@ -68,41 +71,41 @@ class ZMachine{
     _supportedMachines = [new Version3()]
   {
     sbuff = new StringBuffer();
-    IOConfig = new ConsoleProvider();
+    IOConfig = new DefaultProvider([]);
   }
 
   int get version() => _ver != null ? _ver.toInt() : null;
-  
+
   set IOConfig(IOProvider config){
     _io = config;
   }
-  
+
   IOProvider get IOConfig() => _io;
-    
+
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
   void load(List<int> storyBytes){
-    _rawBytes = storyBytes;
+    _rawBytes = new List.from(storyBytes);
 
     _ver = ZVersion.intToVer(_rawBytes[Header.VERSION]);
-    
+
     var result = _supportedMachines
                     .filter(((Machine m) => m.version == _ver));
-    
+
     if (result.length != 1){
       throw new Exception('Z-Machine version ${_ver} not supported.');
     }else{
       _machine = result[0];
     }
-       
+
     _machine.mem = new _MemoryMap(_rawBytes);
-    
+
     _machine.visitHeader();
-    
+
     isLoaded = true;
   }
-  
+
   /**
   * Runs the Z-Machine using the detected machine version from the story
   * file.  This can be overridden by passing [machineOverride] to the function.
@@ -117,39 +120,49 @@ class ZMachine{
       _machine.mem = new _MemoryMap(_rawBytes);
       _machine.visitHeader();
     }
-   
+
     // visit the main 'routine'
     _machine.visitRoutine([]);
-    
+
     //push dummy result store onto the call stack
-    _machine.callStack.push(0);    
-    
+    _machine.callStack.push(0);
+
     //push dummy return address onto the call stack
     _machine.callStack.push(0);
-    
+
     if (inBreak){
       Z._io.callAsync(Debugger.startBreak);
     }else{
       Z._io.callAsync(_runIt);
     }
   }
-    
+
   void _runIt(timer){
-    if (!inBreak && !inInput){
-      Z._io.callAsync(_machine.visitInstruction);
-    }else{
-      if(inBreak){
-        Z._io.DebugOutput('<<< DEBUG MODE >>>');
-        Z._io.callAsync(Debugger.startBreak);
-      }
+
+    while(!inBreak && !inInput){
+      _machine.visitInstruction(null);
     }
+
+    if(inBreak){
+      Z._io.DebugOutput('<<< DEBUG MODE >>>');
+      Z._io.callAsync(Debugger.startBreak);
+    }
+
+//    if (!inBreak && !inInput){
+//      Z._io.callAsync(_machine.visitInstruction);
+//    }else{
+//      if(inBreak){
+//        Z._io.DebugOutput('<<< DEBUG MODE >>>');
+//        Z._io.callAsync(Debugger.startBreak);
+//      }
+//    }
   }
-    
+
   void _printBuffer(){
     _io.PrimaryOutput(sbuff.toString());
     sbuff.clear();
   }
-  
+
   /** Reset Z-Machine to state at first load */
   softReset(){
     _assertLoaded();
@@ -157,6 +170,7 @@ class ZMachine{
     _machine.stack.clear();
     _machine.callStack.clear();
     _machine.mem = new _MemoryMap(_rawBytes);
+    _machine.visitHeader();
   }
 
   /** Reset Z-Machine to state at first load */
