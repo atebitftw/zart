@@ -1,17 +1,23 @@
 
-/** A basic console provider with word-wrap support. */
-class ConsoleProvider implements IOProvider
+/** Debug provider for scripting... */
+class DebugProvider implements IOProvider
 {
   final StringInputStream textStream;
   final Queue<String> lineBuffer;
   final Queue<String> outputBuffer;
   final int cols = 80;
 
-  ConsoleProvider()
-  :
+  DebugProvider.with(String script)
+    :
     textStream = new StringInputStream(stdin),
     lineBuffer = new Queue<String>(),
-    outputBuffer = new Queue<String>();
+    outputBuffer = new Queue<String>()
+  {
+    var commands = script.split('.');
+    for(final command in commands){
+      lineBuffer.addFirst(command.trim());
+    }
+  }
 
   void PrimaryOutput(String text) {
     if (text.startsWith('["STATUS",') && text.endsWith(']')){
@@ -28,14 +34,14 @@ class ConsoleProvider implements IOProvider
 
         if (s.length > cols){
           outputBuffer.addFirst('$s');
-          print('$s');
+          if (Debugger.enableDebug) print('$s');
           s = new StringBuffer();
           s.add(nextWord + ' ');
         }else{
           if (words.isEmpty()){
             s.add(nextWord + ' ');
             outputBuffer.addFirst('$s');
-            print('$s');
+            if (Debugger.enableDebug) print('$s');
             s = new StringBuffer();
           }else{
             s.add(nextWord + ' ');
@@ -45,7 +51,7 @@ class ConsoleProvider implements IOProvider
 
       if (s.length > 0){
         outputBuffer.addFirst('$s');
-        print('$s');
+        if (Debugger.enableDebug) print('$s');
         s = new StringBuffer();
       }
     }

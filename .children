@@ -1,3 +1,3 @@
 lib/zmachine.dart
-console_player/ZConsole.dart
 tests/unittests.dart
+console_player/ZConsole.dart

@@ -149,7 +149,7 @@ class GameObjectV3
 
     var propNum = propertyNumber(address);
 
-    return ((Z._machine.mem.loadb(address) - propNum) / 32).toInt() + 1;
+    return ((Z._machine.mem.loadb(address) >> 5) & 0x07) + 1;
   }
 
   static int propertyNumber(int address){
@@ -209,7 +209,8 @@ class GameObjectV3
   }
 
   void insertTo(int obj){
-    removeFromTree();
+    if (parent != 0)
+          removeFromTree();
 
     var p = new GameObjectV3(obj);
 

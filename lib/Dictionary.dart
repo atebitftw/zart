@@ -50,7 +50,7 @@ class Dictionary {
 
     int wordAddress(int index) {
       var addr = _address + separators.length + 4 + (index * wordSize);
-//      print('>>> ${ZSCII.readZStringAndPop(addr)}');
+     print('>>> ${ZSCII.readZStringAndPop(addr)}');
       return addr;
     }
     int lastIndex = 0;
@@ -65,15 +65,15 @@ class Dictionary {
 
       if (idx != -1){
         var addr = wordAddress(idx);
-        Debugger.verbose('    (found word: "${t}" in dictionary as "${entries[idx]}" at address 0x${addr.toRadixString(16)})');
-        parseTable.add(addr >> 8);
+        Debugger.debug('    (found word: "${t}" in dictionary as "${entries[idx]}" at address 0x${addr.toRadixString(16)})');
+        parseTable.add((addr >> 8) & 0xff);
         parseTable.add(addr & 0xff);
 
         //word length
         parseTable.add(t.length);
 
       }else{
-        Debugger.verbose('    (word: ${t} not found in dictionary)');
+        Debugger.debug('    (word: ${t} not found in dictionary)');
         parseTable.add(0);
         parseTable.add(0);
         parseTable.add(t.length);
@@ -97,17 +97,17 @@ class Dictionary {
       var c = line.substring(i, i+1);
       if (i == line.length - 1){
         s.add(c);
-        tokens.add(s.toString());
+        tokens.add(s.toString().trim());
         s = new StringBuffer();
       }else if (c == ' ' && s.length > 0){
-        tokens.add(s.toString());
+        tokens.add(s.toString().trim());
         s = new StringBuffer();
       }else if (Z._machine.mem.dictionary.separators.indexOf(c) != -1){
         if (s.length > 0){
-          tokens.add(s.toString());
+          tokens.add(s.toString().trim());
           s = new StringBuffer();
         }
-        tokens.add(c);
+        tokens.add(c.trim());
       }
       else{
         s.add(c);

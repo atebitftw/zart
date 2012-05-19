@@ -36,6 +36,25 @@ void main() {
   Z.IOConfig = new MockUIProvider();
 
 
+  group('16-bit signed conversion and math>', (){
+    test('sign conversion', (){
+      Expect.equals(-1, Z.machine.toSigned(0xFFFF));
+      Expect.equals(32767, Z.machine.toSigned(32767));
+      Expect.equals(-32768, Z.machine.toSigned(0x10000-32768));
+    });
+
+    test('division', (){
+      //ref (2.4.3)
+      Expect.equals(-5, (-11 / 2).toInt());
+      Expect.equals(5, (-11 / -2).toInt());
+      Expect.equals(-5, (11 / -2).toInt());
+      Expect.equals(3, (13 % -5).toInt());
+//      Expect.equals(-3, (-13 % -5).toInt(), '-13 % -5');
+//      Expect.equals(-3, (-13 % 5).toInt(), '-13 % 5');
+    });
+
+  });
+
   group('ZSCII Tests>', (){
     test('unicode translations', (){
       for(int i = 155; i <= 223; i++){
@@ -62,8 +81,8 @@ void main() {
       var r = new DRandom.withSeed(new Date.now().milliseconds);
 
       for(int i = 0; i < 1000; i++){
-        var result = r.NextFromMax(10);
-        Expect.isTrue(result >= 0 && result <= 9, 'between 0 - 9 inclusive');
+        var result = r.NextFromMax(10) + 1;
+        Expect.isTrue(result >= 1 && result <= 10, 'between 1 - 10 inclusive');
       }
 
     });

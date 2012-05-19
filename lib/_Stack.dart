@@ -36,6 +36,10 @@ class _Stack {
     if (max > 0 && length == (max - 1))
       throw new GameException('Stack Overflow.');
 
+    if (value < 0 && value < -0x10000){
+      value = 65536 + value;
+    }
+
     _stack.insertRange(0, 1, value);
   }
 
@@ -54,7 +58,7 @@ class _Stack {
     var mapped = _stack.map((s) => '0x${s.toRadixString(16)}');
     return '$mapped';
   }
-  
+
 //  void inc(int amount){
 //    sp += amount;
 //  }

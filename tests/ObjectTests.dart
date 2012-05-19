@@ -179,6 +179,9 @@ void objectTests(){
 
       Expect.equals(0x1c2a, addr);
 
+      addr = o1.getPropertyAddress(0);
+      Expect.equals(0, addr);
+
     });
 
     test('get property length', (){

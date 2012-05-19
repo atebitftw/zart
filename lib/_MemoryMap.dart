@@ -61,7 +61,12 @@ class _MemoryMap {
 
     if (value > 0xff) throw new GameException('byte out of range.');
 
-    _mem[address] = value;
+    if (value < 0){
+      //convert to 16-bit signed neg
+      value = 65536 + value;
+    }
+
+    _mem[address] = value & 0xff;
   }
 
   //put word
@@ -72,7 +77,12 @@ class _MemoryMap {
     if (value > 0xffff)
       throw new GameException('word out of range');
 
-    _mem[address] = value >> 8;
+    if (value < 0){
+      //convert to 16-bit signed neg
+      value = 65536 + value;
+    }
+
+    _mem[address] = (value >> 8) & 0xff;
     _mem[address + 1] = value & 0xff;
   }
 

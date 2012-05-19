@@ -8,5 +8,5 @@ class GameException implements Exception
   :
     addr = Z.machine.pc - 1;
 
-  String toString() => msg; // 'Z-Machine exception: [0x${addr.toRadixString(16)}] $msg\n${Debugger.crashReport()}';
+  String toString() => 'Z-Machine exception: [0x${addr.toRadixString(16)}] $msg\n${Debugger.crashReport()}';
 }

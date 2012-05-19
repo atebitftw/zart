@@ -3,6 +3,7 @@
 #import('dart:json');
 
 #source('ConsoleProvider.dart');
+#source('DebugProvider.dart');
 
 // Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
@@ -40,19 +41,24 @@ void main() {
     return;
   }
 
-  Z.IOConfig = new ConsoleProvider();
+  //Z.IOConfig = new ConsoleProvider();
+  Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trapdoor.down.turn lantern on');
+
+  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug');
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
   Debugger.enableVerbose = true;
   Debugger.enableTrace = true;
-  Debugger.enableStackTrace = false;
-  Debugger.setBreaks([0x6aff]);
+  Debugger.enableStackTrace = true;
+//  Debugger.setBreaks([0x54cd]);
 
   try{
     Z.run();
   }catch(GameException ge){
     print('got it!\n $ge');
+  }catch(Exception e){
+    print('${Debugger.dumpLocals()}');
   }
 
 }

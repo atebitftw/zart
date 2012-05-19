@@ -177,6 +177,9 @@ class Machine
        '229' : print_char,
        '176' : rtrue,
        '177' : rfalse,
+       '137' : removeObj,
+       '153' : removeObj,
+       '169' : removeObj,
        '138' : print_obj,
        '154' : print_obj,
        '170' : print_obj,
@@ -194,7 +197,7 @@ class Machine
   int get maxFileLength() => 128;
 
   int unpack(int packedAddr){
-    return packedAddr * 2;
+    return packedAddr << 1;
   }
 
   int fileLengthMultiplier() => 2;
@@ -319,6 +322,7 @@ class Machine
           }else{
             Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) UNKNOWN ($i)');
           }
+          Debugger.debug('${Debugger.dumpLocals()}');
         }
 
         if (Debugger.enableStackTrace){
@@ -421,8 +425,8 @@ class Machine
 
       Debugger.verbose('    (processing: "$line")');
 
-      if (line.length > maxBytes){
-        line = line.substring(0, maxBytes - 1);
+      if (line.length > maxBytes - 1){
+        line = line.substring(0, maxBytes - 2);
         Debugger.verbose('    (text buffer truncated to "$line")');
       }
 
@@ -440,15 +444,15 @@ class Machine
 
       Debugger.verbose('    (tokenized: $tokens)');
 
-      if (tokens.length >  maxWords){
-        tokens = tokens.getRange(0, maxWords - 1);
-        Debugger.verbose('    (truncating parse buffer to: $tokens)');
-      }
-
       var parsed = Z._machine.mem.dictionary.parse(tokens, line);
       //Debugger.debug('$parsed');
 
+      var maxParseBufferBytes = (4 * maxWords) + 2;
+
+      var i = 0;
       for(final p in parsed){
+        i++;
+        if (i > maxParseBufferBytes) break;
         mem.storeb(parseBuffer++, p);
       }
 
@@ -503,13 +507,13 @@ class Machine
 
     if (range < 0){
       r = new DRandom.withSeed(range);
-      Debugger.verbose('    (set RNG to seed: $range)');
+      Debugger.debug('    (set RNG to seed: $range)');
     }else if(range == 0){
       r = new DRandom.withSeed(new Date.now().milliseconds);
-      Debugger.verbose('    (set RNG to random seed)');
+      Debugger.debug('    (set RNG to random seed)');
     }else{
-      result = r.NextFromMax(range + 1);
-      Debugger.verbose('Rolled random number $result');
+      result = r.NextFromMax(range) + 1;
+      Debugger.debug('    (Rolled [1 - $range] number: $result)');
     }
 
     writeVariable(resultTo, result);
@@ -611,7 +615,7 @@ class Machine
 
     var operand = this.visitOperandsShortForm();
 
-    var value = _toSigned(readVariable(operand.rawValue)) + 1;
+    var value = toSigned(readVariable(operand.rawValue)) + 1;
 
     writeVariable(operand.rawValue, value);
 
@@ -622,7 +626,7 @@ class Machine
 
     var operand = this.visitOperandsShortForm();
 
-    var value = _toSigned(readVariable(operand.rawValue)) - 1;
+    var value = toSigned(readVariable(operand.rawValue)) - 1;
 
     writeVariable(operand.rawValue, value);
   }
@@ -652,12 +656,12 @@ class Machine
 
     var operands = this.visitOperandsLongForm();
 
-    var value = _toSigned(readVariable(operands[0].rawValue)) - 1;
+    var value = toSigned(readVariable(operands[0].rawValue)) - 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     writeVariable(operands[0].rawValue, value);
 
-    branch(value < _toSigned(operands[1].value));
+    branch(value < toSigned(operands[1].value));
   }
 
   void inc_chkV(){
@@ -665,12 +669,12 @@ class Machine
 
     var operands = this.visitOperandsVar(2, false);
 
-    var value = _toSigned(readVariable(operands[0].rawValue)) + 1;
+    var value = toSigned(readVariable(operands[0].rawValue)) + 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     writeVariable(operands[0].rawValue, value);
 
-    branch(value > _toSigned(operands[1].value));
+    branch(value > toSigned(operands[1].value));
   }
 
   void inc_chk(){
@@ -678,12 +682,12 @@ class Machine
 
     var operands = this.visitOperandsLongForm();
 
-    var value = _toSigned(readVariable(operands[0].rawValue)) + 1;
+    var value = toSigned(readVariable(operands[0].rawValue)) + 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     writeVariable(operands[0].rawValue, value);
 
-    branch(value > _toSigned(operands[1].value));
+    branch(value > toSigned(operands[1].value));
   }
 
   void test_attr(){
@@ -717,11 +721,11 @@ class Machine
 
     var foundMatch = false;
 
-    var testVal = _toSigned(operands[0].value);
+    var testVal = toSigned(operands[0].value);
 
     for(int i = 1; i < operands.length; i++){
       if (foundMatch == true) break;
-      var against = _toSigned(operands[i].value);
+      var against = toSigned(operands[i].value);
 
       if (testVal == against){
         foundMatch = true;
@@ -752,28 +756,28 @@ class Machine
     Debugger.verbose('  [jl]');
     var operands = visitOperandsLongForm();
 
-    branch(_toSigned(operands[0].value) < _toSigned(operands[1].value));
+    branch(toSigned(operands[0].value) < toSigned(operands[1].value));
   }
 
   void jgv(){
     Debugger.verbose('  [jgv]');
     var operands = this.visitOperandsVar(2, false);
 
-    branch(_toSigned(operands[0].value) > _toSigned(operands[1].value));
+    branch(toSigned(operands[0].value) > toSigned(operands[1].value));
   }
 
   void jg(){
     Debugger.verbose('  [jg]');
     var operands = this.visitOperandsLongForm();
 
-    branch(_toSigned(operands[0].value) > _toSigned(operands[1].value));
+    branch(toSigned(operands[0].value) > toSigned(operands[1].value));
   }
 
   void je(){
     Debugger.verbose('  [je]');
     var operands = this.visitOperandsLongForm();
 
-    branch(_toSigned(operands[0].value) == _toSigned(operands[1].value));
+    branch(toSigned(operands[0].value) == toSigned(operands[1].value));
   }
 
   void newline(){
@@ -829,7 +833,7 @@ class Machine
 
     var operands = this.visitOperandsVar(1, false);
 
-    Z.sbuff.add('${_toSigned(operands[0].value)}');
+    Z.sbuff.add('${toSigned(operands[0].value)}');
   }
 
   void print_ret(){
@@ -879,7 +883,7 @@ class Machine
 
     var operands = this.visitOperandsVar(2, false);
 
-    writeVariable(operands[0].rawValue, operands[1].value);
+    writeVariable(operands[0].value, operands[1].value);
   }
 
   void store(){
@@ -887,7 +891,8 @@ class Machine
 
     var operands = this.visitOperandsLongForm();
 
-    writeVariable(operands[0].rawValue, operands[1].value);
+
+    writeVariable(operands[0].value, operands[1].value);
  }
 
   void jump(){
@@ -895,7 +900,7 @@ class Machine
 
     var operand = this.visitOperandsShortForm();
 
-    var offset = _toSigned(operand.value) - 2;
+    var offset = toSigned(operand.value) - 2;
 
     pc += offset;
   }
@@ -985,11 +990,13 @@ class Machine
   }
 
   void sub(){
-    Debugger.verbose('  [subtract]');
+    Debugger.verbose('  [sub]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
-    writeVariable(resultTo, _toSigned(operands[0].value) - _toSigned(operands[1].value));
+    var result = toSigned(operands[0].value) - toSigned(operands[1].value);
+ //   Debugger.debug('>>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    writeVariable(resultTo, result);
   }
 
   void add(){
@@ -997,7 +1004,11 @@ class Machine
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
-    writeVariable(resultTo, _toSigned(operands[0].value) + _toSigned(operands[1].value));
+    var result = toSigned(operands[0].value) + toSigned(operands[1].value);
+
+ //   Debugger.debug('>>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+
+    writeVariable(resultTo, result);
   }
 
   void mul(){
@@ -1005,7 +1016,11 @@ class Machine
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
-    writeVariable(resultTo, _toSigned(operands[0].value) * _toSigned(operands[1].value));
+    var result = toSigned(operands[0].value) * toSigned(operands[1].value);
+
+  //  Debugger.debug('>>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+
+    writeVariable(resultTo, result);
   }
 
   void div(){
@@ -1013,17 +1028,20 @@ class Machine
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
-    if (operands[1].peekValue == 0){
+    if (operands[1].value == 0){
       throw new GameException('Divide by 0.');
     }
 
-    var result = (_toSigned(operands[0].value) / _toSigned(operands[1].value)).toInt();
+    var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
 
-    if (result < 0){
-      result = -(result.abs().floor());
-    }else{
-      result = result.floor();
-    }
+   // Debugger.debug('>>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+
+
+//    if (result < 0){
+//      result = -(result.abs().floor());
+//    }else{
+//      result = result.floor();
+//    }
 
 
     writeVariable(resultTo, result);
@@ -1038,14 +1056,16 @@ class Machine
       throw new GameException('Divide by 0.');
     }
 
-    var f = _toSigned(operands[0].value);
-    var s = _toSigned(operands[1].value);
+    var f = toSigned(operands[0].value);
+    var s = toSigned(operands[1].value);
 
     var result = (f.abs()) % (s.abs());
 
     if (f < 0) result = -result;
 
-    writeVariable(resultTo, _toSigned(operands[0].value) % _toSigned(operands[1].value));
+    Debugger.debug('>>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+
+    writeVariable(resultTo, result);
   }
 
   void get_prop_len(){
@@ -1055,7 +1075,7 @@ class Machine
     var resultTo = readb();
 
     var propLen = GameObjectV3.propertyLength(operand.value - 1);
-//    Debugger.todo('$propLen ${operand.value.toRadixString(16)}');
+    Debugger.debug('(${pc.toRadixString(16)}) property length: $propLen , addr: 0x${operand.value.toRadixString(16)}');
     writeVariable(resultTo, propLen);
   }
 
@@ -1068,7 +1088,7 @@ class Machine
     var obj = new GameObjectV3(operands[0].value);
 
     var nextProp = obj.getNextProperty(operands[1].value);
-
+    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] prop: ${operands[1].value} next prop:  ${nextProp}');
     writeVariable(resultTo, nextProp);
   }
 
@@ -1082,6 +1102,8 @@ class Machine
 
     var addr = obj.getPropertyAddress(operands[1].value);
 
+    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] propAddr(${operands[1].value}): ${addr.toRadixString(16)}');
+
     writeVariable(resultTo, addr);
   }
 
@@ -1093,9 +1115,11 @@ class Machine
 
     var obj = new GameObjectV3(operands[0].value);
 
-    var prop = obj.getPropertyValue(operands[1].value);
+    var value = obj.getPropertyValue(operands[1].value);
 
-    writeVariable(resultTo, prop);
+    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] getPropValue(${operands[1].value}): ${value.toRadixString(16)}');
+
+    writeVariable(resultTo, value);
   }
 
   void put_prop(){
@@ -1104,6 +1128,8 @@ class Machine
     var operands = this.visitOperandsVar(3, false);
 
     var obj = new GameObjectV3(operands[0].value);
+
+    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] putProp(${operands[1].value}): ${operands[2].value.toRadixString(16)}');
 
     obj.setPropertyValue(operands[1].value, operands[2].value);
   }
@@ -1115,7 +1141,7 @@ class Machine
 
     var resultTo = readb();
 
-    var addr = operands[0].value + _toSigned(operands[1].value);
+    var addr = operands[0].value + toSigned(operands[1].value);
 
     //Debugger.todo();
     writeVariable(resultTo, mem.loadb(addr));
@@ -1129,7 +1155,7 @@ class Machine
 
     var resultTo = readb();
 
-    var addr = operands[0].value + (2 * _toSigned(operands[1].value));
+    var addr = operands[0].value + (2 * toSigned(operands[1].value));
 
     writeVariable(resultTo, mem.loadw(addr));
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
@@ -1144,7 +1170,7 @@ class Machine
       throw new GameException('Expected operand count of 3 for storeb instruction.');
     }
 
-    var addr = operands[0].value + _toSigned(operands[1].value);
+    var addr = operands[0].value + toSigned(operands[1].value);
 
     if (operands[2].value > 0xff){
       throw new GameException('Attempted to store value in byte that is > 0xff');
@@ -1163,13 +1189,21 @@ class Machine
     var operands = this.visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    var addr = operands[0].value + (2 * _toSigned(operands[1].value));
+    var addr = operands[0].value + (2 * toSigned(operands[1].value));
     mem.storew(addr, operands[2].value);
     Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
-  int _toSigned(int val) =>
-      ((val & 0x8000) != 0) ? -(65536 - val) : val;
+  int toSigned(int val){
+
+    var signed = (val & 0x8000) != 0;
+
+    if (signed){
+      return -(65536 - val);
+    }else{
+      return val;
+    }
+  }
 
   //calculates the local jump offset (ref 4.7)
   int _jumpToLabelOffset(int jumpByte){
