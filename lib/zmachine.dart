@@ -1,6 +1,7 @@
 #library('ZMachine');
 
 #import('dart:json');
+#import('dart:crypto');
 
 //#import('IO/ConsoleProvider.dart');
 
@@ -30,10 +31,8 @@
 KBtoB(int kb) => kb * 1024;
 
 
-/**
-* Version agnostic Z-Machine.
-*/
-class Z{
+class Z
+{
 
   static bool isLoaded = false;
   static bool inBreak = false;
@@ -53,6 +52,21 @@ class Z{
 
   static int get version() => _ver != null ? _ver.toInt() : null;
 
+  static String checksum;
+
+  static String _computeHash(List bytes){
+    var mh = new MD5();
+
+    mh.update(bytes);
+
+    var d = mh.digest();
+
+    return Strings.concatAll(d.map((o){
+      var s = new StringBuffer();
+      s.addCharCode(o);
+      return '$s';
+      }));
+  }
 
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
@@ -65,6 +79,8 @@ class Z{
     }
 
     _rawBytes = new List.from(storyBytes);
+
+    checksum = _computeHash(_rawBytes);
 
     _ver = ZVersion.intToVer(_rawBytes[Header.VERSION]);
 
@@ -152,6 +168,9 @@ class Z{
     Z.machine.stack.clear();
     Z.machine.callStack.clear();
     Z.machine.mem = null;
+
+    assert(checksum == _computeHash(_rawBytes));
+
     Z.machine.mem = new _MemoryMap(_rawBytes);
     Z.machine.visitHeader();
   }

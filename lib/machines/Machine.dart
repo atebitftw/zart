@@ -648,6 +648,10 @@ class Machine
 
     Z.softReset();
 
+    var obj = new GameObjectV3(4);
+
+    assert(obj.child == 0);
+
     // visit the main 'routine'
     visitRoutine([]);
 

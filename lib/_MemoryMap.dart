@@ -15,7 +15,8 @@ class _MemoryMap {
   int programStart;
   Dictionary dictionary;
 
-  _MemoryMap(this._mem);
+  _MemoryMap(List bytes)
+  : _mem = new List.from(bytes);
 
 
   // Reads a global variable (word)
