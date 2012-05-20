@@ -13,7 +13,9 @@ class DebugProvider implements IOProvider
     lineBuffer = new Queue<String>(),
     outputBuffer = new Queue<String>()
   {
+    if (script.isEmpty()) return;
     var commands = script.split('.');
+
     for(final command in commands){
       lineBuffer.addFirst(command.trim());
     }

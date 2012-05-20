@@ -9,11 +9,14 @@ class Machine
   static final int FALSE = 0;
   /// Z-Machine True = 1
   static final int TRUE = 1;
+  static final int SP = 0;
 
   final _Stack stack;
   final _Stack callStack;
 
   DRandom r;
+
+  String pcHex([int offset = 0]) => '[0x${(pc + offset).toRadixString(16)}]';
 
   /// Z-Machine Program Counter
   int pc = 0;
@@ -94,18 +97,21 @@ class Machine
       throw new GameException('Maximum local variable allocations (16) exceeded.');
     }
 
+    //set the routine to default locals (V3...)
+
+
     if (locals > 0){
       for(int i = 1; i <= locals; i++){
         if (i <= params.length){
           //if param avail, store it
-
-          mem.storew(pc, params[i - 1]);
+          callStack.push(params[i - 1]);
+          Debugger.verbose('    Local ${i}: 0x${(params[i-1]).toRadixString(16)}');
+          //mem.storew(pc, params[i - 1]);
+        }else{
+          //push otherwise push the local
+          callStack.push(mem.loadw(pc));
+          Debugger.verbose('    Local ${i}: 0x${mem.loadw(pc).toRadixString(16)}');
         }
-
-        //push local to call stack
-        callStack.push(mem.loadw(pc));
-
-        Debugger.verbose('    Local ${i}: 0x${mem.loadw(pc).toRadixString(16)}');
 
         pc += 2;
       }
@@ -116,7 +122,7 @@ class Machine
   }
 
   void callVS(){
-    Debugger.verbose('  [call_vs]');
+    Debugger.verbose('${pcHex(-1)} [call_vs]');
     var operands = this.visitOperandsVar(4, true);
 
     var resultStore = readb();
@@ -243,6 +249,8 @@ class Machine
 
     bool branchOn = BinaryHelper.isSet(jumpByte, 7);
 
+    Debugger.verbose('    (branch condition: $branchOn)');
+
     if (testResult == null || testResult is! bool){
       throw new GameException('Test function must return a boolean value.');
     }
@@ -293,7 +301,7 @@ class Machine
   }
 
   void read(){
-    Debugger.verbose('  [read]');
+    Debugger.verbose('${pcHex(-1)} [read]');
 
     Z.inInput = true;
 
@@ -385,7 +393,7 @@ class Machine
   }
 
   void random(){
-    Debugger.verbose('  [random]');
+    Debugger.verbose('${pcHex(-1)} [random]');
 
     Math.random();
 
@@ -413,7 +421,7 @@ class Machine
   }
 
   void pull(){
-    Debugger.verbose('  [pull]');
+    Debugger.verbose('${pcHex(-1)} [pull]');
     var operand = this.visitOperandsVar(1, false);
 
     var value = stack.pop();
@@ -424,7 +432,7 @@ class Machine
   }
 
   void push(){
-    Debugger.verbose('  [push]');
+    Debugger.verbose('${pcHex(-1)} [push]');
     var operand = this.visitOperandsVar(1, false);
 
     Debugger.verbose('    Pushing 0x${operand[0].value.toRadixString(16)} to the stack.');
@@ -440,7 +448,7 @@ class Machine
   }
 
   void ret_popped(){
-    Debugger.verbose('  [ret_popped]');
+    Debugger.verbose('${pcHex(-1)} [ret_popped]');
     var v = stack.pop();
 
     assertNotMarker(v);
@@ -457,26 +465,26 @@ class Machine
   }
 
   void rtrue(){
-    Debugger.verbose('  [rtrue]');
+    Debugger.verbose('${pcHex(-1)} [rtrue]');
     callStack.push(Machine.TRUE);
     doReturn();
   }
 
   void rfalse(){
-    Debugger.verbose('  [rfalse]');
+    Debugger.verbose('${pcHex(-1)} [rfalse]');
     callStack.push(Machine.FALSE);
     doReturn();
   }
 
   void jz(){
-    Debugger.verbose('  [jz]');
+    Debugger.verbose('${pcHex(-1)} [jz]');
     var operand = this.visitOperandsShortForm();
 
     branch(operand.value == 0);
   }
 
   void get_sibling(){
-    Debugger.verbose('  [get_sibling]');
+    Debugger.verbose('${pcHex(-1)} [get_sibling]');
 
     var operand = this.visitOperandsShortForm();
 
@@ -490,7 +498,7 @@ class Machine
   }
 
   void get_child(){
-    Debugger.verbose('  [get_child]');
+    Debugger.verbose('${pcHex(-1)} [get_child]');
 
     var operand = this.visitOperandsShortForm();
 
@@ -504,7 +512,7 @@ class Machine
   }
 
   void inc(){
-    Debugger.verbose('  [inc]');
+    Debugger.verbose('${pcHex(-1)} [inc]');
 
     var operand = this.visitOperandsShortForm();
 
@@ -515,7 +523,7 @@ class Machine
   }
 
   void dec(){
-    Debugger.verbose('  [dec]');
+    Debugger.verbose('${pcHex(-1)} [dec]');
 
     var operand = this.visitOperandsShortForm();
 
@@ -525,7 +533,7 @@ class Machine
   }
 
   void load(){
-    Debugger.verbose('  [load]');
+    Debugger.verbose('${pcHex(-1)} [load]');
 
     var operand = this.visitOperandsShortForm();
 
@@ -537,7 +545,7 @@ class Machine
   }
 
   void test(){
-    Debugger.verbose('  [test]');
+    Debugger.verbose('${pcHex(-1)} [test]');
     var pp = pc - 1;
 
     var operands = this.visitOperandsLongForm();
@@ -553,7 +561,7 @@ class Machine
   }
 
   void dec_chk(){
-    Debugger.verbose('  [dec_chk]');
+    Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
     var operands = this.visitOperandsLongForm();
 
@@ -566,7 +574,7 @@ class Machine
   }
 
   void inc_chkV(){
-    Debugger.verbose('  [inc_chk]');
+    Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
     var operands = this.visitOperandsVar(2, false);
 
@@ -579,10 +587,14 @@ class Machine
   }
 
   void inc_chk(){
-    Debugger.verbose('  [inc_chk]');
+    Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
     var operands = this.visitOperandsLongForm();
 
+ //   var value = toSigned(readVariable(operands[0].rawValue)) + 1;
+    var varValue = readVariable(operands[0].rawValue);
+
+    Debugger.debug('    var value: $varValue');
     var value = toSigned(readVariable(operands[0].rawValue)) + 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
@@ -592,7 +604,7 @@ class Machine
   }
 
   void test_attr(){
-    Debugger.verbose('  [test_attr]');
+    Debugger.verbose('${pcHex(-1)} [test_attr]');
 
     var operands = this.visitOperandsLongForm();
 
@@ -603,7 +615,7 @@ class Machine
   }
 
   void jin()  {
-    Debugger.verbose('  [jin]');
+    Debugger.verbose('${pcHex(-1)} [jin]');
 
     var operands = this.visitOperandsLongForm();
 
@@ -614,7 +626,7 @@ class Machine
   }
 
   void jeV(){
-    Debugger.verbose('  [jeV]');
+    Debugger.verbose('${pcHex(-1)} [jeV]');
     var operands = this.visitOperandsVar(4, true);
 
     if (operands.length < 2){
@@ -638,13 +650,13 @@ class Machine
   }
 
   void quit(){
-    Debugger.verbose('  [quit]');
+    Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.quit = true;
   }
 
   void restart(){
-    Debugger.verbose('  [restart]');
+    Debugger.verbose('${pcHex(-1)} [restart]');
 
     Z.softReset();
 
@@ -665,41 +677,41 @@ class Machine
   }
 
   void jl(){
-    Debugger.verbose('  [jl]');
+    Debugger.verbose('${pcHex(-1)} [jl]');
     var operands = visitOperandsLongForm();
 
     branch(toSigned(operands[0].value) < toSigned(operands[1].value));
   }
 
   void jgv(){
-    Debugger.verbose('  [jgv]');
+    Debugger.verbose('${pcHex(-1)} [jgv]');
     var operands = this.visitOperandsVar(2, false);
 
     branch(toSigned(operands[0].value) > toSigned(operands[1].value));
   }
 
   void jg(){
-    Debugger.verbose('  [jg]');
+    Debugger.verbose('${pcHex(-1)} [jg]');
     var operands = this.visitOperandsLongForm();
 
     branch(toSigned(operands[0].value) > toSigned(operands[1].value));
   }
 
   void je(){
-    Debugger.verbose('  [je]');
+    Debugger.verbose('${pcHex(-1)} [je]');
     var operands = this.visitOperandsLongForm();
 
     branch(toSigned(operands[0].value) == toSigned(operands[1].value));
   }
 
   void newline(){
-    Debugger.verbose('  [newline]');
+    Debugger.verbose('${pcHex(-1)} [newline]');
 
     Z.sbuff.add('\n');
   }
 
   void print_obj(){
-    Debugger.verbose('  [print_obj]');
+    Debugger.verbose('${pcHex(-1)} [print_obj]');
     var operand = this.visitOperandsShortForm();
 
     var obj = new GameObjectV3(operand.value);
@@ -708,26 +720,34 @@ class Machine
   }
 
   void print_addr(){
-    Debugger.verbose('  [print_addr]');
+    Debugger.verbose('${pcHex(-1)} [print_addr]');
     var operand = this.visitOperandsShortForm();
 
     var addr = operand.value;
 
-    Z.sbuff.add(ZSCII.readZStringAndPop(addr));
+    var str = ZSCII.readZStringAndPop(addr);
+
+    print('${pcHex()} "$str"');
+
+    Z.sbuff.add(str);
   }
 
   void print_paddr(){
-    Debugger.verbose('  [print_paddr]');
+    Debugger.verbose('${pcHex(-1)} [print_paddr]');
 
     var operand = this.visitOperandsShortForm();
 
     var addr = this.unpack(operand.value);
 
-    Z.sbuff.add(ZSCII.readZStringAndPop(addr));
+    var str = ZSCII.readZStringAndPop(addr);
+
+    print('${pcHex()} "$str"');
+
+    Z.sbuff.add(str);
   }
 
   void print_char(){
-    Debugger.verbose('  [print_char]');
+    Debugger.verbose('${pcHex(-1)} [print_char]');
 
     var operands = this.visitOperandsVar(1, false);
 
@@ -741,7 +761,7 @@ class Machine
   }
 
   void print_num(){
-    Debugger.verbose('  [print_num]');
+    Debugger.verbose('${pcHex(-1)} [print_num]');
 
     var operands = this.visitOperandsVar(1, false);
 
@@ -749,9 +769,13 @@ class Machine
   }
 
   void print_ret(){
-    Debugger.verbose('  [print_ret]');
+    Debugger.verbose('${pcHex(-1)} [print_ret]');
 
-    Z.sbuff.add('${ZSCII.readZStringAndPop(pc)}\n');
+    var str = ZSCII.readZStringAndPop(pc);
+
+    Z.sbuff.add('${str}\n');
+
+    print('${pcHex()} "$str"');
 
     callStack.push(Machine.TRUE);
 
@@ -759,15 +783,17 @@ class Machine
   }
 
   void printf(){
-    Debugger.verbose('  [print]');
+    Debugger.verbose('${pcHex(-1)} [print]');
 
-    Z.sbuff.add(ZSCII.readZString(pc));
+    var str = ZSCII.readZString(pc);
+    Z.sbuff.add(str);
 
     pc = callStack.pop();
+    print('${pcHex()} "$str"');
   }
 
   void insertObj(){
-    Debugger.verbose('  [insert_obj]');
+    Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
     var operands = this.visitOperandsLongForm();
 
@@ -781,7 +807,7 @@ class Machine
   }
 
   void remove_obj(){
-    Debugger.verbose('  [remove_obj]');
+    Debugger.verbose('${pcHex(-1)} [remove_obj]');
     var operand = this.visitOperandsShortForm();
 
     GameObjectV3 o = new GameObjectV3(operand.value);
@@ -791,34 +817,44 @@ class Machine
   }
 
   void storev(){
-    Debugger.verbose('  [storev]');
+    Debugger.verbose('${pcHex(-1)} [storev]');
 
     var operands = this.visitOperandsVar(2, false);
+
+    assert(operands[0].rawValue <= 0xff);
 
     writeVariable(operands[0].rawValue, operands[1].value);
   }
 
   void store(){
-    Debugger.verbose('  [store]');
+    Debugger.verbose('${pcHex(-1)} [store]');
 
     var operands = this.visitOperandsLongForm();
+
+    assert(operands[0].rawValue <= 0xff);
+
+    if (operands[0].rawValue == Machine.SP){
+      operands[0].rawValue = readVariable(Machine.SP);
+    }
 
     writeVariable(operands[0].rawValue, operands[1].value);
  }
 
   void jump(){
-    Debugger.verbose('  [jump]');
+    Debugger.verbose('${pcHex(-1)} [jump]');
 
     var operand = this.visitOperandsShortForm();
 
     var offset = toSigned(operand.value) - 2;
 
     pc += offset;
+
+    Debugger.verbose('    (jumping to ${pcHex()})');
   }
 
 
   void ret(){
-    Debugger.verbose('  [ret]');
+    Debugger.verbose('${pcHex(-1)} [ret]');
     var operand = this.visitOperandsShortForm();
 
     Debugger.verbose('    returning 0x${operand.peekValue.toRadixString(16)}');
@@ -829,7 +865,7 @@ class Machine
   }
 
   void get_parent(){
-    Debugger.verbose('  [get_parent]');
+    Debugger.verbose('${pcHex(-1)} [get_parent]');
 
     var operand = this.visitOperandsShortForm();
 
@@ -842,7 +878,7 @@ class Machine
   }
 
   void clear_attr(){
-    Debugger.verbose('  [clear_attr]');
+    Debugger.verbose('${pcHex(-1)} [clear_attr]');
     var operands = this.visitOperandsLongForm();
 
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
@@ -852,7 +888,7 @@ class Machine
   }
 
   void set_attr(){
-    Debugger.verbose('  [set_attr]');
+    Debugger.verbose('${pcHex(-1)} [set_attr]');
     var operands = this.visitOperandsLongForm();
 
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
@@ -862,46 +898,46 @@ class Machine
   }
 
   void andV(){
-    Debugger.verbose('  [andV]');
+    Debugger.verbose('${pcHex(-1)} [andV]');
     var operands = this.visitOperandsVar(2, false);
 
     var resultTo = readb();
 
-    writeVariable(resultTo, operands[0].value & operands[1].value);
+    writeVariable(resultTo, (operands[0].value & operands[1].value));
   }
 
   void orV(){
-    Debugger.verbose('  [orV]');
+    Debugger.verbose('${pcHex(-1)} [orV]');
 
     var operands = this.visitOperandsVar(2, false);
 
     var resultTo = readb();
 
-    writeVariable(resultTo, operands[0].value | operands[1].value);
+    writeVariable(resultTo, (operands[0].value | operands[1].value));
   }
 
   void or(){
-    Debugger.verbose('  [or]');
+    Debugger.verbose('${pcHex(-1)} [or]');
 
     var operands = this.visitOperandsLongForm();
 
     var resultTo = readb();
 
-    writeVariable(resultTo, operands[0].value | operands[1].value);
+    writeVariable(resultTo, (operands[0].value | operands[1].value));
   }
 
   void and(){
-    Debugger.verbose('  [and]');
+    Debugger.verbose('${pcHex(-1)} [and]');
 
     var operands = this.visitOperandsLongForm();
 
     var resultTo = readb();
 
-    writeVariable(resultTo, operands[0].value & operands[1].value);
+    writeVariable(resultTo, (operands[0].value & operands[1].value));
   }
 
   void sub(){
-    Debugger.verbose('  [sub]');
+    Debugger.verbose('${pcHex(-1)} [sub]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
@@ -911,7 +947,7 @@ class Machine
   }
 
   void add(){
-    Debugger.verbose('  [add]');
+    Debugger.verbose('${pcHex(-1)} [add]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
@@ -923,7 +959,7 @@ class Machine
   }
 
   void mul(){
-    Debugger.verbose('  [mul]');
+    Debugger.verbose('${pcHex(-1)} [mul]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
@@ -935,7 +971,7 @@ class Machine
   }
 
   void div(){
-    Debugger.verbose('  [div]');
+    Debugger.verbose('${pcHex(-1)} [div]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
@@ -958,7 +994,7 @@ class Machine
   }
 
   void mod(){
-    Debugger.verbose('  [mod]');
+    Debugger.verbose('${pcHex(-1)} [mod]');
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
 
@@ -966,10 +1002,11 @@ class Machine
       throw new GameException('Divide by 0.');
     }
 
-    var f = toSigned(operands[0].value);
-    var s = toSigned(operands[1].value);
+    var x = toSigned(operands[0].value);
+    var y = toSigned(operands[1].value);
 
-    var result = ((f - s) * ((f/s).floor())) % 0x10000;
+    var result = x.abs() % y.abs();
+    if (x < 0) result = -result;
 
     Debugger.debug('>>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -977,7 +1014,7 @@ class Machine
   }
 
   void get_prop_len(){
-    Debugger.verbose('  [get_prop_len]');
+    Debugger.verbose('${pcHex(-1)} [get_prop_len]');
 
     var operand = this.visitOperandsShortForm();
     var resultTo = readb();
@@ -988,7 +1025,7 @@ class Machine
   }
 
   void get_next_prop(){
-    Debugger.verbose('  [get_next_prop]');
+    Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
@@ -1001,7 +1038,7 @@ class Machine
   }
 
   void get_prop_addr(){
-    Debugger.verbose('  [get_prop_addr]');
+    Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
@@ -1016,7 +1053,7 @@ class Machine
   }
 
   void get_prop(){
-    Debugger.verbose('  [get_prop]');
+    Debugger.verbose('${pcHex(-1)} [get_prop]');
 
     var operands = this.visitOperandsLongForm();
     var resultTo = readb();
@@ -1031,7 +1068,7 @@ class Machine
   }
 
   void put_prop(){
-    Debugger.verbose('  [put_prop]');
+    Debugger.verbose('${pcHex(-1)} [put_prop]');
 
     var operands = this.visitOperandsVar(3, false);
 
@@ -1043,34 +1080,37 @@ class Machine
   }
 
   void loadb(){
-    Debugger.verbose('  [loadb]');
+    Debugger.verbose('${pcHex(-1)} [loadb]');
 
     var operands = this.visitOperandsLongForm();
 
     var resultTo = readb();
 
-    var addr = operands[0].value + operands[1].value;
+    var addr = operands[0].value + Machine.toSigned(operands[1].value);
 
     //Debugger.todo();
     writeVariable(resultTo, mem.loadb(addr));
+
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
   void loadw(){
-    Debugger.verbose('  [loadw]');
+    Debugger.verbose('${pcHex(-1)} [loadw]');
 
     var operands = this.visitOperandsLongForm();
 
     var resultTo = readb();
 
-    var addr = operands[0].value + 2 * operands[1].value;
+    var addr = operands[0].value + 2 * Machine.toSigned(operands[1].value);
+
+    assert(addr <= mem.highMemAddress);
 
     writeVariable(resultTo, mem.loadw(addr));
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
   void storebv(){
-    Debugger.verbose('  [storebv]');
+    Debugger.verbose('${pcHex(-1)} [storebv]');
 
     var operands = this.visitOperandsVar(4, true);
 
@@ -1078,11 +1118,9 @@ class Machine
       throw new GameException('Expected operand count of 3 for storeb instruction.');
     }
 
-    var addr = operands[0].value + operands[1].value;
+    var addr = operands[0].value + Machine.toSigned(operands[1].value);
 
-    if (operands[2].value > 0xff){
-      throw new GameException('Attempted to store value in byte that is > 0xff');
-    }
+    assert(operands[2].value <= 0xff);
 
     mem.storeb(addr, operands[2].value);
 
@@ -1092,13 +1130,17 @@ class Machine
 
   //variable arguement version of storew
   void storewv(){
-    Debugger.verbose('  [storewv]');
+    Debugger.verbose('${pcHex(-1)} [storewv]');
 
     var operands = this.visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    var addr = operands[0].value + 2 * operands[1].value;
+    var addr = operands[0].value + 2 * Machine.toSigned(operands[1].value);
+
+    assert(addr <= mem.highMemAddress);
+
     mem.storew(addr, operands[2].value);
+
     Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 

@@ -60,8 +60,17 @@ void main() {
       Expect.equals(5, (-11 / -2).toInt());
       Expect.equals(-5, (11 / -2).toInt());
       Expect.equals(3, (13 % -5).toInt());
-//      Expect.equals(-3, (-13 % -5).toInt(), '-13 % -5');
-//      Expect.equals(-3, (-13 % 5).toInt(), '-13 % 5');
+
+      int doMod(a, b){
+
+        var result = a.abs() % b.abs();
+        if (a < 0) result = -result;
+        return result;
+      }
+
+
+      Expect.equals(-3, doMod(-13, -5), '-13 % -5');
+      Expect.equals(-3, doMod(-13, 5), '-13 % 5');
     });
 
   });
@@ -103,7 +112,7 @@ void main() {
 
   group('BinaryHelper Tests>', (){
     test('isSet() true', (){
-      Expect.equals('1111', 15.toRadixString(2));
+      Expect.equals('1111', 0xf.toRadixString(2));
       Expect.isTrue(BinaryHelper.isSet(15, 0), '0');
       Expect.isTrue(BinaryHelper.isSet(15, 1), '1');
       Expect.isTrue(BinaryHelper.isSet(15, 2), '2');
@@ -113,7 +122,7 @@ void main() {
       Expect.isFalse(BinaryHelper.isSet(15, 6), '6');
       Expect.isFalse(BinaryHelper.isSet(15, 7), '7');
 
-      Expect.equals('11110000', 240.toRadixString(2));
+      Expect.equals('11110000', 0xf0.toRadixString(2));
       Expect.isFalse(BinaryHelper.isSet(240, 0), '0');
       Expect.isFalse(BinaryHelper.isSet(240, 1), '1');
       Expect.isFalse(BinaryHelper.isSet(240, 2), '2');

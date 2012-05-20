@@ -104,7 +104,7 @@ class _MemoryMap {
 
    if ((address == null) || (address < 0) || (address > _mem.length - 1)){
 
-     Debugger.debug('memory upper: ${_mem.length}, address: $address');
+     Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
 
      throw new GameException('Attempted access to memory address'
        ' that is out of bounds: $address 0x${address.toRadixString(16)}');

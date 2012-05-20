@@ -16,6 +16,7 @@ instructionTests(){
   final testRoutineRestoreBytes = Z.machine.mem.getRange(testRoutineAddr, maxTestRoutineLength);
 
   void injectRoutine(List<int> locals, List<int> instructionBytes){
+
     Z.machine.mem.storeb(testRoutineAddr, locals.length);
 
     //write the locals
@@ -111,13 +112,13 @@ instructionTests(){
         callInstruction.add(operand.rawValue);
       }
     }
-    print(callInstruction);
+
+    //Debugger.debug(callInstruction);
+
     // return value to the stack
     callInstruction.add(SP);
     //QUIT opcode
     callInstruction.add(186);
-
-    Z.softReset();
 
     //write out the routine
     var addr = callAddr + 1;
@@ -126,6 +127,11 @@ instructionTests(){
       Z.machine.mem.storeb(addr, inst);
       addr++;
     }
+
+    //clear stacks and reset program counter
+    Z.machine.stack.clear();
+    Z.machine.callStack.clear();
+    Z.machine.pc = callAddr + 1;
 
     // visit the main 'routine'
     Z.machine.visitRoutine([]);
@@ -241,8 +247,9 @@ instructionTests(){
 
 
       asyncTest('simple return true', 2, (){
-
         injectRoutine([], [0xb0]); //RTRUE
+        //Debugger.enableAll();
+
         runRoutine();
 
         pollUntilQuit().then((v){
@@ -252,7 +259,6 @@ instructionTests(){
       });
 
       asyncTest('simple return false', 2, (){
-
         injectRoutine([], [0xb1]); //RFALSE
         runRoutine();
 
@@ -263,7 +269,6 @@ instructionTests(){
       });
 
       asyncTest('push non-negative small', 2, (){
-
         /*
         * PUSH L00 (25)
         * RET SP
