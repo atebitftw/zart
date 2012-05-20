@@ -43,6 +43,7 @@ class ZMachine{
   bool isLoaded = false;
   bool inBreak = false;
   bool inInput = false;
+  bool quit = false;
 
   IOProvider _io;
 
@@ -133,19 +134,23 @@ class ZMachine{
     if (inBreak){
       Z._io.callAsync(Debugger.startBreak);
     }else{
-      Z._io.callAsync(_runIt);
+      Z._io.callAsync(runIt);
     }
   }
 
-  void _runIt(timer){
+  void runIt(timer){
 
-    while(!inBreak && !inInput){
+    while(!inBreak && !inInput && !quit){
       _machine.visitInstruction(null);
     }
 
     if(inBreak){
       Z._io.DebugOutput('<<< DEBUG MODE >>>');
       Z._io.callAsync(Debugger.startBreak);
+    }
+
+    if (quit && !Debugger.isUnitTestRun){
+      quit = false;
     }
 
 //    if (!inBreak && !inInput){
@@ -343,4 +348,6 @@ const {
  '134' : 'dec',
  '150' : 'dec',
  '166' : 'dec',
+ '186' : 'quit',
+ '232' : 'push'
 };

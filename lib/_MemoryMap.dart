@@ -43,7 +43,7 @@ class _MemoryMap {
   //get byte
   int loadb(int address){
     checkBounds(address);
-    return _mem[address];
+    return _mem[address] & 0xff;
   }
 
   //get word
@@ -59,14 +59,9 @@ class _MemoryMap {
     checkBounds(address);
     //TODO validate
 
-    if (value > 0xff) throw new GameException('byte out of range.');
+    if (value > 0xff || value < 0) throw new GameException('byte out of range.');
 
-    if (value < 0){
-      //convert to 16-bit signed neg
-      value = 65536 + value;
-    }
-
-    _mem[address] = value & 0xff;
+    _mem[address] = value;
   }
 
   //put word
@@ -79,14 +74,14 @@ class _MemoryMap {
 
     if (value < 0){
       //convert to 16-bit signed neg
-      value = 65536 + value;
+      value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
     _mem[address] = (value >> 8) & 0xff;
     _mem[address + 1] = value & 0xff;
   }
 
-  int _getWord(int address) => (_mem[address] << 8) | _mem[address + 1];
+  int _getWord(int address) => ((_mem[address] << 8) | _mem[address + 1]) & 0xffff;
 
   void checkBounds(int address){
    if ((address == null) || (address < 0) || (address > _mem.length - 1)){

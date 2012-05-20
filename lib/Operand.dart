@@ -3,9 +3,9 @@ class Operand
 {
   final int type;
   int rawValue;
-  
+
   int _cachedValue;
-  
+
   Operand(this.type);
 
   /// Gets a read of the [rawValue].
@@ -37,12 +37,20 @@ class Operand
       case OperandType.VARIABLE:
         return Z._machine.peekVariable(rawValue);
       default:
-        throw new GameException('Invalid Operand Type: $type');
+        return 0;
     }
   }
-  
 
   String toString() => '[${OperandType.asString(type)}, 0x${peekValue.toRadixString(16)}]';
+
+  /// Used primarily for unit testing
+  static int createVarOperandByte(List<int> types){
+    if (types.length != 4) return null;
+
+    return (types[0] << 6) | (types[1] << 4) | (types[2] << 2) | types[3];
+  }
+
+
 }
 
 /// Declares the 4 different operand types

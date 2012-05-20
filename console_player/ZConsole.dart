@@ -45,12 +45,13 @@ void main() {
   Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trapdoor.down.turn lantern on');
 
   //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug');
+ // Z.IOConfig = new DebugProvider.with('');
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
   Debugger.enableVerbose = true;
-  Debugger.enableTrace = true;
-  Debugger.enableStackTrace = true;
+  Debugger.enableTrace = false;
+  Debugger.enableStackTrace = false;
 //  Debugger.setBreaks([0x54cd]);
 
   try{

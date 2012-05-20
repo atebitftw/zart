@@ -100,6 +100,8 @@ class GameObjectV3
     }
 
     if (len == 1){
+      if (value < 0)
+        Debugger.todo('length is 1 & value < 0');
       value &= 0xff;
       Z.machine.mem.storeb(addr, value);
     }else if (len == 2){

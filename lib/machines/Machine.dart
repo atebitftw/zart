@@ -24,6 +24,28 @@ class Machine
 
   int get propertyDefaultsTableSize() => 31;
 
+  // takes any Dart int between -32767 & 32767 and makes a machine-readable
+  // 16-bit signed int from it.
+  static int dartSignedIntTo16BitSigned(int val){
+    if (val >= 0 && val < 32768) return val;
+
+    val = val.abs();
+    if (val > 32767) throw new GameException('16-bit signed out of range.');
+
+    return 65536 - val;
+  }
+
+  static int toSigned(int val){
+    if (val == 0) return val;
+
+    var signed = (val & 0x8000) != 0;
+
+    if (signed){
+      return -(65536 - val);
+    }else{
+      return val;
+    }
+  }
 
 
   Machine()
@@ -34,160 +56,263 @@ class Machine
     r = new DRandom.withSeed(new Date.now().milliseconds);
     ops =
       {
-       '183' : restart,
-       '231' : random,
-       '232' : push,
-       '233' : pull,
-       '224' : callVS,
-       '225' : storewv,
-       '79' : loadw,
-       '15' : loadw,
-       '47' : loadw,
-       '111' : loadw,
-       '10' : test_attr,
-       '42' : test_attr,
-       '74' : test_attr,
-       '106' : test_attr,
-       '11' : set_attr,
-       '43' : set_attr,
-       '75' : set_attr,
-       '107' : set_attr,
-       '12' : clear_attr,
-       '44' : clear_attr,
-       '76' : clear_attr,
-       '108' : clear_attr,
-       '13' : store,
-       '45' : store,
-       '77' : store,
-       '109' : store,
-       '205' : storev,
-       '16' : loadb,
-       '48' : loadb,
-       '80' : loadb,
-       '112' : loadb,
-       '226' : storebv,
-       '17' : get_prop,
-       '49' : get_prop,
-       '81' : get_prop,
-       '113' : get_prop,
-       '18' : get_prop_addr,
-       '50' : get_prop_addr,
-       '82' : get_prop_addr,
-       '114' : get_prop_addr,
-       '19' : get_next_prop,
-       '51' : get_next_prop,
-       '83' : get_next_prop,
-       '115' : get_next_prop,
-       '14' : insertObj,
-       '46' : insertObj,
-       '78' : insertObj,
-       '110' : insertObj,
-       '20' : add,
-       '52' : add,
-       '84' : add,
-       '116' : add,
-       '21' : sub,
-       '53' : sub,
-       '85' : sub,
-       '117' : sub,
-       '22' : mul,
-       '54' : mul,
-       '86' : mul,
-       '118' : mul,
-       '23' : div,
-       '55' : div,
-       '87' : div,
-       '119' : div,
-       '24' : mod,
-       '56' : mod,
-       '88' : mod,
-       '120' : mod,
-       '5' : inc_chk,
-       '37' : inc_chk,
-       '69' : inc_chk,
-       '101' : inc_chk,
-       '197' : inc_chkV,
-       '4' : dec_chk,
-       '36' : dec_chk,
-       '68' : dec_chk,
-       '100' : dec_chk,
-       '6' : jin,
-       '38' : jin,
-       '70' : jin,
-       '102' : jin,
-       '7' : test,
-       '39' : test,
-       '71' : test,
-       '103' : test,
-       '1' : je,
-       '33' : je,
-       '65' : je,
-       '97' : je,
-       '2' : jl,
-       '35' : jl,
-       '66' : jl,
-       '98' : jl,
-       '3' : jg,
-       '34' : jg,
-       '67' : jg,
-       '99' : jg,
-       '195' : jgv,
-       '193' : jeV,
-       '140' : jump,
-       '156' : jump,
-       '130' : get_child,
-       '146' : get_child,
-       '162' : get_child,
-       '131' : get_parent,
-       '147' : get_parent,
-       '163' : get_parent,
-       '132' : get_prop_len,
-       '148' : get_prop_len,
-       '164' : get_prop_len,
-       '161' : get_sibling,
-       '145' : get_sibling,
-       '129' : get_sibling,
-       '160' : jz,
-       '144' : jz,
-       '128' : jz,
-       '139' : ret,
-       '155' : ret,
-       '171' : ret,
-       '133' : inc,
-       '149' : inc,
-       '165' : inc,
-       '134' : dec,
-       '150' : dec,
-       '166' : dec,
-       '135' : print_addr,
-       '151' : print_addr,
-       '167' : print_addr,
-       '141' : print_paddr,
-       '157' : print_paddr,
-       '173' : print_paddr,
-       '178' : printf,
-       '179' : print_ret,
-       '187' : newline,
-       '201' : andV,
-       '9' : and,
-       '41' : and,
-       '73' : and,
-       '105' : and,
-       '230' : print_num,
-       '229' : print_char,
-       '176' : rtrue,
-       '177' : rfalse,
-       '137' : removeObj,
-       '153' : removeObj,
-       '169' : removeObj,
-       '138' : print_obj,
-       '154' : print_obj,
-       '170' : print_obj,
-       '184' : ret_popped,
-       '227' : put_prop,
-       '228' : read,
-       '174' : load,
-       '142' : load
+
+        /* 2OP, small, small */
+        '1' : je,
+        '2' : jl,
+        '3' : jg,
+        '4' : dec_chk,
+        '5' : inc_chk,
+        '6' : jin,
+        '7' : test,
+        /* 8 : or */
+        '9' : and,
+        '10' : test_attr,
+        '11' : set_attr,
+        '12' : clear_attr,
+        '13' : store,
+        '14' : insertObj,
+        '15' : loadw,
+        '16' : loadb,
+        '17' : get_prop,
+        '18' : get_prop_addr,
+        '19' : get_next_prop,
+        '20' : add,
+        '21' : sub,
+        '22' : mul,
+        '23' : div,
+        '24' : mod,
+        /* 25 : call_2s */
+        /* 26 : call_2n */
+        /* 27 : set_colour */
+        /* 28 : throw */
+
+        /* 2OP, small, variable */
+        '33' : je,
+        '34' : jg,
+        '35' : jl,
+        '36' : dec_chk,
+        '37' : inc_chk,
+        '38' : jin,
+        '39' : test,
+        /* 40 : or */
+        '41' : and,
+        '42' : test_attr,
+        '43' : set_attr,
+        '44' : clear_attr,
+        '45' : store,
+        '46' : insertObj,
+        '47' : loadw,
+        '48' : loadb,
+        '49' : get_prop,
+        '50' : get_prop_addr,
+        '51' : get_next_prop,
+        '52' : add,
+        '53' : sub,
+        '54' : mul,
+        '55' : div,
+        '56' : mod,
+        /* 57 : call_2s */
+        /* 58 : call_2n */
+        /* 59 : set_colour */
+        /* 60 : throw */
+
+        /* 2OP, variable, small */
+        '65' : je,
+        '66' : jl,
+        '67' : jg,
+        '68' : dec_chk,
+        '69' : inc_chk,
+        '70' : jin,
+        '71' : test,
+        /* 70 : or */
+        '73' : and,
+        '74' : test_attr,
+        '75' : set_attr,
+        '76' : clear_attr,
+        '77' : store,
+        '78' : insertObj,
+        '79' : loadw,
+        '80' : loadb,
+        '81' : get_prop,
+        '82' : get_prop_addr,
+        '83' : get_next_prop,
+        '84' : add,
+        '85' : sub,
+        '86' : mul,
+        '87' : div,
+        '88' : mod,
+        /* 89 : call_2s */
+        /* 90 : call_2n */
+        /* 91 : set_colour */
+        /* 92 : throw */
+
+        /* 2OP, variable, variable */
+        '97' : je,
+        '98' : jl,
+        '99' : jg,
+        '100' : dec_chk,
+        '101' : inc_chk,
+        '102' : jin,
+        '103' : test,
+        /* 104 : or */
+        '105' : and,
+        '106' : test_attr,
+        '107' : set_attr,
+        '108' : clear_attr,
+        '109' : store,
+        '110' : insertObj,
+        '111' : loadw,
+        '112' : loadb,
+        '113' : get_prop,
+        '114' : get_prop_addr,
+        '115' : get_next_prop,
+        '116' : add,
+        '117' : sub,
+        '118' : mul,
+        '119' : div,
+        '120' : mod,
+        /* 121 : call_2s */
+        /* 122 : call_2n */
+        /* 123 : set_colour */
+        /* 124 : throw */
+
+        /* 1OP, large */
+        '128' : jz,
+        '129' : get_sibling,
+        '130' : get_child,
+        '131' : get_parent,
+        '132' : get_prop_len,
+        '133' : inc,
+        '134' : dec,
+        '135' : print_addr,
+        /* 136 : call_1s */
+        '137' : removeObj,
+        '138' : print_obj,
+        '139' : ret,
+        '140' : jump,
+        '141' : print_paddr,
+        '142' : load,
+        /* 143 : not */
+
+        /*** 1OP, small ***/
+        '144' : jz,
+        '145' : get_sibling,
+        '146' : get_child,
+        '147' : get_parent,
+        '148' : get_prop_len,
+        '149' : inc,
+        '150' : dec,
+        '151' : print_addr,
+        /* 152 : call_1s */
+        '153' : removeObj,
+        '154' : print_obj,
+        '155' : ret,
+        '156' : jump,
+        '157' : print_paddr,
+        /* 158: load */
+        /* 159: not */
+
+        /*** 1OP, variable ***/
+        '160' : jz,
+        '161' : get_sibling,
+        '162' : get_child,
+        '163' : get_parent,
+        '164' : get_prop_len,
+        '165' : inc,
+        '166' : dec,
+        '167' : print_addr,
+        /* 168 : call_1s */
+        '169' : removeObj,
+        '170' : print_obj,
+        '171' : ret,
+        /* 172 : jump */
+        '173' : print_paddr,
+        '174' : load,
+        /* 175 : not */
+
+        /* 0 OP */
+        '176' : rtrue,
+        '177' : rfalse,
+        '178' : printf,
+        '179' : print_ret,
+        /* 180 : NOP */
+        /* 181 : save */
+        /* 182 : restore */
+        '183' : restart,
+        '184' : ret_popped,
+        /* 185 : pop */
+        '186' : quit,
+        '187' : newline,
+        /*'188' : show_status*/
+        /* 189 : verify */
+        /* 190 : extended */
+        /* 191 : piracy */
+
+        /* 2OP, Variable of op codes 1-31 */
+        '193' : jeV,
+        /* 194 : jlV */
+        '195' : jgv,
+        '197' : inc_chkV,
+        /* 198 : dec_chkV */
+        /* 199 : jinV */
+        /* 200 : testV */
+        '201' : andV,
+        /* 202 : test_attrV */
+        /* 203 : set_attrV */
+        /* 204 : clear_attrV */
+        '205' : storev,
+        /* 206 : insert_objV */
+        /* 207 : loadwV */
+        /* 208 : loadbV */
+        /* 209 : get_propV */
+        /* 210 : get_prop_addrV */
+        /* 211 : get_next_propV */
+        /* 212 : addV */
+        /* 213 : subV */
+        /* 214 : mulV */
+        /* 215 : divV */
+        /* 216 : modV */
+        /* 217 : call_2sV */
+        /* 218 : call_2nV */
+        /* 219 : set_colourV */
+        /* 220 : throwV */
+
+        /* xOP, Operands Vary */
+        '224' : callVS,
+        '225' : storewv,
+        '226' : storebv,
+        '227' : put_prop,
+        '228' : read,
+        '229' : print_char,
+        '230' : print_num,
+        '231' : random,
+        '232' : push,
+        '233' : pull,
+        /* 234 : split_window */
+        /* 235 : set_window */
+        /* 236 : call_vs2 */
+        /* 237 : erase_window */
+        /* 238 : erase_line */
+        /* 239 : set_cursor */
+        /* 240 : get_cursor */
+        /* 241 : set_text_style */
+        /* 242 : buffer_mode_flag */
+        /* 243 : output_stream */
+        /* 244 : input_stream */
+        /* 245 : sound_effect */
+        /* 246 : read_char */
+        /* 247 : scan_table */
+        /* 248 : not */
+        /* 249 : call_vn */
+        /* 250 : call_vn2 */
+        /* 251 : tokenise */
+        /* 252 : encode_text */
+        /* 253 : copy_table */
+        /* 254 : print_table */
+        /* 255 : check_arg_count */
+
+
       };
   }
 
@@ -198,6 +323,10 @@ class Machine
 
   int unpack(int packedAddr){
     return packedAddr << 1;
+  }
+
+  int pack(int unpackedAddr){
+    return unpackedAddr >> 1;
   }
 
   int fileLengthMultiplier() => 2;
@@ -227,6 +356,7 @@ class Machine
       for(int i = 1; i <= locals; i++){
         if (i <= params.length){
           //if param avail, store it
+
           mem.storew(pc, params[i - 1]);
         }
 
@@ -276,6 +406,7 @@ class Machine
 
   }
 
+
   void doReturn(){
     // pop the return value from whoever is returning
     var result = callStack.pop();
@@ -316,7 +447,7 @@ class Machine
     var i = readb();
     if (ops.containsKey('$i')){
       if (Debugger.enableDebug){
-        if (Debugger.enableTrace && !Z.dynamic.inBreak){
+        if (Debugger.enableTrace && !Z.inBreak){
           if (opCodes.containsKey('$i')){
             Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) ${opCodes[i.toString()]} ($i)');
           }else{
@@ -341,7 +472,6 @@ class Machine
       throw new GameException('Unsupported Op Code: $i');
     }
 
-   // Z._runIt(null);
   }
 
   void branch(bool testResult)
@@ -480,7 +610,7 @@ class Machine
 //            Z._io.callAsync(Debugger.startBreak);
           }else{
             processLine(l);
-            Z._runIt(null);
+            Z.runIt(null);
           }
         });
       }
@@ -527,7 +657,7 @@ class Machine
 
     Debugger.verbose('    Pulling 0x${value.toRadixString(16)} from to the stack.');
 
-    writeVariable(operand[0].value, value);
+    writeVariable(operand[0].rawValue, value);
   }
 
   void push(){
@@ -638,17 +768,25 @@ class Machine
 
     var resultTo = readb();
 
-    var v = readVariable(operand.value);
+    var v = readVariable(operand.rawValue);
 
     writeVariable(resultTo, v);
   }
 
   void test(){
     Debugger.verbose('  [test]');
+    var pp = pc - 1;
 
     var operands = this.visitOperandsLongForm();
+    var jumpByte = mem.loadb(pc);
 
-    branch(((operands[0].value) & (operands[1].value)) == operands[1].value);
+    bool branchOn = BinaryHelper.isSet(jumpByte, 7);
+    var bitmap = operands[0].value;
+    var flags = operands[1].value;
+
+    Debugger.debug('+++ [0x${pp.toRadixString(16)}] testing bitmap($branchOn) "${bitmap.toRadixString(2)}" against "${flags.toRadixString(2)}" ${(bitmap & flags) == flags}');
+
+    branch((bitmap & flags) == flags);
   }
 
   void dec_chk(){
@@ -697,6 +835,7 @@ class Machine
 
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
+    Debugger.debug('(test Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
     branch(obj.isFlagBitSet(operands[1].value));
   }
 
@@ -735,6 +874,12 @@ class Machine
     branch(foundMatch);
   }
 
+  void quit(){
+    Debugger.verbose('  [quit]');
+
+    Z.quit = true;
+  }
+
   void restart(){
     Debugger.verbose('  [restart]');
 
@@ -749,7 +894,7 @@ class Machine
     //push dummy return address onto the call stack
     callStack.push(0);
 
-    Z._io.callAsync(Z._runIt);
+    Z._io.callAsync(Z.runIt);
   }
 
   void jl(){
@@ -883,7 +1028,7 @@ class Machine
 
     var operands = this.visitOperandsVar(2, false);
 
-    writeVariable(operands[0].value, operands[1].value);
+    writeVariable(operands[0].rawValue, operands[1].value);
   }
 
   void store(){
@@ -891,8 +1036,7 @@ class Machine
 
     var operands = this.visitOperandsLongForm();
 
-
-    writeVariable(operands[0].value, operands[1].value);
+    writeVariable(operands[0].rawValue, operands[1].value);
  }
 
   void jump(){
@@ -937,7 +1081,7 @@ class Machine
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
     obj.unsetFlagBit(operands[1].value);
-
+    Debugger.debug('(clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
   void set_attr(){
@@ -947,7 +1091,7 @@ class Machine
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
     obj.setFlagBit(operands[1].value);
-
+    Debugger.debug('(set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
   void andV(){
@@ -995,7 +1139,7 @@ class Machine
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) - toSigned(operands[1].value);
- //   Debugger.debug('>>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.debug('>>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
     writeVariable(resultTo, result);
   }
 
@@ -1006,7 +1150,7 @@ class Machine
 
     var result = toSigned(operands[0].value) + toSigned(operands[1].value);
 
- //   Debugger.debug('>>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.debug('>>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
@@ -1018,7 +1162,7 @@ class Machine
 
     var result = toSigned(operands[0].value) * toSigned(operands[1].value);
 
-  //  Debugger.debug('>>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.debug('>>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
@@ -1032,10 +1176,9 @@ class Machine
       throw new GameException('Divide by 0.');
     }
 
-    var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
+    var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).floor().toInt();
 
-   // Debugger.debug('>>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
-
+    Debugger.debug('>>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
 //    if (result < 0){
 //      result = -(result.abs().floor());
@@ -1059,9 +1202,7 @@ class Machine
     var f = toSigned(operands[0].value);
     var s = toSigned(operands[1].value);
 
-    var result = (f.abs()) % (s.abs());
-
-    if (f < 0) result = -result;
+    var result = ((f - s) * ((f/s).floor())) % 0x10000;
 
     Debugger.debug('>>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1141,7 +1282,7 @@ class Machine
 
     var resultTo = readb();
 
-    var addr = operands[0].value + toSigned(operands[1].value);
+    var addr = operands[0].value + operands[1].value;
 
     //Debugger.todo();
     writeVariable(resultTo, mem.loadb(addr));
@@ -1155,7 +1296,7 @@ class Machine
 
     var resultTo = readb();
 
-    var addr = operands[0].value + (2 * toSigned(operands[1].value));
+    var addr = operands[0].value + 2 * operands[1].value;
 
     writeVariable(resultTo, mem.loadw(addr));
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
@@ -1170,7 +1311,7 @@ class Machine
       throw new GameException('Expected operand count of 3 for storeb instruction.');
     }
 
-    var addr = operands[0].value + toSigned(operands[1].value);
+    var addr = operands[0].value + operands[1].value;
 
     if (operands[2].value > 0xff){
       throw new GameException('Attempted to store value in byte that is > 0xff');
@@ -1189,20 +1330,9 @@ class Machine
     var operands = this.visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    var addr = operands[0].value + (2 * toSigned(operands[1].value));
+    var addr = operands[0].value + 2 * operands[1].value;
     mem.storew(addr, operands[2].value);
     Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
-  }
-
-  int toSigned(int val){
-
-    var signed = (val & 0x8000) != 0;
-
-    if (signed){
-      return -(65536 - val);
-    }else{
-      return val;
-    }
   }
 
   //calculates the local jump offset (ref 4.7)
@@ -1344,8 +1474,7 @@ class Machine
   * unread address.
   */
   int readb(){
-    pc++;
-    return mem.loadb(pc - 1);
+    return mem.loadb(pc++);
   }
 
   /** Reads 1 word from the current program counter

@@ -28,6 +28,11 @@ class _Stack {
   }
 
   int operator []=(int index, int value){
+
+    if (value < 0 && value > -0x10000){
+      value = Machine.dartSignedIntTo16BitSigned(value);
+    }
+
     _stack[index] = value;
   }
 
@@ -36,14 +41,15 @@ class _Stack {
     if (max > 0 && length == (max - 1))
       throw new GameException('Stack Overflow.');
 
-    if (value < 0 && value < -0x10000){
-      value = 65536 + value;
+    //excluding the stack boundary flag
+    if (value < 0 && value > -0x10000){
+      value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
     _stack.insertRange(0, 1, value);
   }
 
-  int peek() => _stack[0];
+  int peek() => _stack.isEmpty() ? null : _stack[0];
 
   void clear() => _stack.clear();
 

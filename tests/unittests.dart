@@ -38,9 +38,20 @@ void main() {
 
   group('16-bit signed conversion and math>', (){
     test('sign conversion', (){
-      Expect.equals(-1, Z.machine.toSigned(0xFFFF));
-      Expect.equals(32767, Z.machine.toSigned(32767));
-      Expect.equals(-32768, Z.machine.toSigned(0x10000-32768));
+      Expect.equals(-1, Machine.toSigned(0xFFFF));
+      Expect.equals(32767, Machine.toSigned(32767));
+      Expect.equals(-32768, Machine.toSigned(0x10000-32768));
+    });
+
+    test('dart ints to 16-bit signed', (){
+      Expect.equals(65535, Machine.dartSignedIntTo16BitSigned(-1));
+      Expect.equals(32769, Machine.dartSignedIntTo16BitSigned(-32767));
+      Expect.equals(0, Machine.dartSignedIntTo16BitSigned(0));
+      Expect.equals(42, Machine.dartSignedIntTo16BitSigned(42));
+
+      Expect.throws(() => Machine.dartSignedIntTo16BitSigned(-32768),
+          (e) => e is GameException);
+
     });
 
     test('division', (){

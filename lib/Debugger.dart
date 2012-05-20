@@ -7,6 +7,7 @@ class Debugger {
   static bool enableTrace = false;
   static bool enableDebug = false;
   static bool enableStackTrace = false;
+  static bool isUnitTestRun = false;
 
   static int debugStartAddr;
 
@@ -28,11 +29,11 @@ class Debugger {
   }
 
   static void startBreak(timer){
-    Z._io.DebugOutput('(break)>>> [0x${debugStartAddr.toRadixString(16)}]'
+    Z.IOConfig.DebugOutput('(break)>>> [0x${debugStartAddr.toRadixString(16)}]'
     ' opCode: ${Z._machine.mem.loadb(debugStartAddr)}'
     ' (${opCodes[Z._machine.mem.loadb(debugStartAddr).toString()]})');
 
-    Z._io.DebugOutput('   Locals: ${dumpLocals()}');
+    Z.IOConfig.DebugOutput('   Locals: ${dumpLocals()}');
 
     _repl(timer);
   }
@@ -48,13 +49,13 @@ class Debugger {
           var addr = Math.parseInt(args[1]);
           var howMany = Math.parseInt(args[2]);
           debug('${Z.machine.mem.dump(addr, howMany)}');
-          Z._io.callAsync(_repl);
+          Z.IOConfig.callAsync(_repl);
           break;
         case 'move':
           var obj1 = new GameObjectV3(Math.parseInt(args[1]));
           var obj2 = new GameObjectV3(Math.parseInt(args[2]));
           obj1.insertTo(obj2.id);
-          Z._io.callAsync(_repl);
+          Z.IOConfig.callAsync(_repl);
           break;
         case 'enable':
           switch(args[1]){
@@ -71,7 +72,7 @@ class Debugger {
               debug('Stack Trace Enabled.');
               break;
           }
-          Z._io.callAsync(_repl);
+          Z.IOConfig.callAsync(_repl);
           break;
         case 'disable':
           switch(args[1]){
@@ -88,7 +89,7 @@ class Debugger {
               debug('Stack Trace Disabled.');
               break;
           }
-          Z._io.callAsync(_repl);
+          Z.IOConfig.callAsync(_repl);
           break;
         case '':
         case 'n':
@@ -97,11 +98,11 @@ class Debugger {
           break;
         case 'q':
           Z.inBreak = false;
-          Z._io.callAsync(Z._runIt);
+          Z.IOConfig.callAsync(Z.runIt);
           break;
         case 'dictionary':
           debug('${Z._machine.mem.dictionary.dump()}');
-          Z._io.callAsync(Z._runIt);
+          Z.IOConfig.callAsync(Z.runIt);
           break;
         case 'globals':
           StringBuffer s = new StringBuffer();
@@ -121,25 +122,25 @@ class Debugger {
             }
           }
           debug('$s');
-          Z._io.callAsync(_repl);
+          Z.IOConfig.callAsync(_repl);
           break;
         case 'locals':
           debug('${dumpLocals()}');
-          Z._io.callAsync(_repl);
+          Z.IOConfig.callAsync(_repl);
           break;
         case 'object':
           var obj = new GameObjectV3(Math.parseInt(args[1]));
           obj.dump();
-          Z._io.callAsync(_repl);
+          Z.IOConfig.callAsync(_repl);
           break;
         default:
-          Z.dynamic._io.DebugOutput('Unknown Command.');
-          Z.dynamic._io.callAsync(_repl);
+          debug('Unknown Command.');
+          Z.IOConfig.callAsync(_repl);
           break;
       }
     }
 
-    var line = Z._io.getLine();
+    var line = Z.IOConfig.getLine();
 
     if (line.isComplete){
       parse(line.value);
@@ -148,6 +149,20 @@ class Debugger {
         parse(l);
       });
     }
+  }
+
+  static void enableAll(){
+    Debugger.enableDebug = true;
+    Debugger.enableStackTrace = true;
+    Debugger.enableVerbose = true;
+    Debugger.enableTrace = true;
+  }
+
+  static void disableAll(){
+    Debugger.enableDebug = false;
+    Debugger.enableStackTrace = false;
+    Debugger.enableVerbose = false;
+    Debugger.enableTrace = false;
   }
 
   static bool isBreakPoint(int addr){
@@ -184,18 +199,18 @@ class Debugger {
   }
 
   static String dumpHeader(){
-    if (!Z.dynamic.isLoaded) return '<<< Machine Not Loaded >>>\n';
+    if (!Z.isLoaded) return '<<< Machine Not Loaded >>>\n';
 
     var s = new StringBuffer();
 
     s.add('(Story contains ${Z._machine.mem.size} bytes.)\n');
     s.add('\n');
     s.add('------- START HEADER -------\n');
-    s.add('Z-Machine Version: ${Z.version}');
+    s.add('Z-Machine Version: ${Z.version}\n');
     s.add('Flags1(binary): ${Z._machine.mem.loadw(Header.FLAGS1).toRadixString(2)}\n');
     // word after flags1 is used by Inform
     s.add('Abbreviations Location: ${Z._machine.mem.abbrAddress.toRadixString(16)}\n');
-    s.add('Object Table Location: ${Z._machine.mem.objectsAddress.toRadixString(16)}');
+    s.add('Object Table Location: ${Z._machine.mem.objectsAddress.toRadixString(16)}\n');
     s.add('Global Variables Location: ${Z._machine.mem.globalVarsAddress.toRadixString(16)}\n');
     s.add('Static Memory Start: ${Z._machine.mem.staticMemAddress.toRadixString(16)}\n');
     s.add('Dictionary Location: ${Z._machine.mem.dictionaryAddress.toRadixString(16)}\n');
@@ -214,6 +229,7 @@ class Debugger {
     return s.toString();
   }
 
+
   /// Verbose Channel (via Debug)
   static void verbose(String outString){
     //TODO support redirect to file.
@@ -222,16 +238,16 @@ class Debugger {
   }
 
   /// Debug Channel
-  static void debug(String debugString) => Z._io.DebugOutput(debugString);
+  static void debug(String debugString) => Z.IOConfig.DebugOutput(debugString);
 
 
   static void todo([String message]){
-    Z._io.DebugOutput('Stopped At: 0x${Z._machine.pc.toRadixString(16)}');
-    Z._io.PrimaryOutput('Text Buffer:');
+    Z.IOConfig.DebugOutput('Stopped At: 0x${Z._machine.pc.toRadixString(16)}');
+    Z.IOConfig.PrimaryOutput('Text Buffer:');
     Z._printBuffer();
 
     if (message != null)
-      Z._io.DebugOutput(message);
+      Z.IOConfig.DebugOutput(message);
     throw const NotImplementedException();
   }
 }

@@ -50,7 +50,7 @@ class Dictionary {
 
     int wordAddress(int index) {
       var addr = _address + separators.length + 4 + (index * wordSize);
-     print('>>> ${ZSCII.readZStringAndPop(addr)}');
+      Debugger.debug('>>> ${ZSCII.readZStringAndPop(addr)}');
       return addr;
     }
     int lastIndex = 0;
@@ -95,11 +95,12 @@ class Dictionary {
 
     for(int i = 0; i < line.length; i++){
       var c = line.substring(i, i+1);
-      if (i == line.length - 1){
-        s.add(c);
-        tokens.add(s.toString().trim());
-        s = new StringBuffer();
-      }else if (c == ' ' && s.length > 0){
+//      if (i == line.length - 1){
+//        s.add(c);
+//        tokens.add(s.toString().trim());
+//        s = new StringBuffer();
+//      }else
+        if (c == ' ' && s.length > 0){
         tokens.add(s.toString().trim());
         s = new StringBuffer();
       }else if (Z._machine.mem.dictionary.separators.indexOf(c) != -1){
@@ -113,6 +114,11 @@ class Dictionary {
         s.add(c);
       }
     }
+
+    if (s.length > 0){
+      tokens.add(s.toString().trim());
+    }
+
     return tokens;
   }
 

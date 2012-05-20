@@ -78,7 +78,7 @@ class Header{
 
   /// Feturns false if the game is a timed game.
   static bool isScoreGame(){
-    return !BinaryHelper.isSet(Z.dynamic.machine.mem.loadb(FLAGS1), 1);
+    return !BinaryHelper.isSet(Z.machine.mem.loadb(FLAGS1), 1);
   }
 
 }

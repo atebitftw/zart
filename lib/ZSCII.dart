@@ -37,7 +37,7 @@ class ZSCII {
       [
        'abcdefghijklmnopqrstuvwxyz',
        'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-       ' ^0123456789.,!?_#\'"/\\-:()'
+       '  0123456789.,!?_#\'"/\\-:()'
        ];
 
   static final int PAD = 5;
