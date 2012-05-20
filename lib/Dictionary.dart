@@ -51,7 +51,7 @@ class Dictionary {
 
     int wordAddress(int index) {
       var addr = _address + separators.length + 4 + (index * wordSize);
-      Debugger.debug('>>> ${ZSCII.readZStringAndPop(addr)}');
+      Debugger.verbose('>>> ${ZSCII.readZStringAndPop(addr)}');
       return addr;
     }
     int lastIndex = 0;
@@ -66,7 +66,7 @@ class Dictionary {
 
       if (idx != -1){
         var addr = wordAddress(idx);
-        Debugger.debug('    (found word: "${t}" in dictionary as "${entries[idx]}" at address 0x${addr.toRadixString(16)})');
+        Debugger.verbose('    (found word: "${t}" in dictionary as "${entries[idx]}" at address 0x${addr.toRadixString(16)})');
         parseTable.add((addr >> 8) & 0xff);
         parseTable.add(addr & 0xff);
 
@@ -74,7 +74,7 @@ class Dictionary {
         parseTable.add(t.length);
 
       }else{
-        Debugger.debug('    (word: ${t} not found in dictionary)');
+        Debugger.verbose('    (word: ${t} not found in dictionary)');
         parseTable.add(0);
         parseTable.add(0);
         parseTable.add(t.length);

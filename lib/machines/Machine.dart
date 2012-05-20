@@ -408,13 +408,13 @@ class Machine
 
     if (range < 0){
       r = new DRandom.withSeed(range);
-      Debugger.debug('    (set RNG to seed: $range)');
+      Debugger.verbose('    (set RNG to seed: $range)');
     }else if(range == 0){
       r = new DRandom.withSeed(new Date.now().milliseconds);
-      Debugger.debug('    (set RNG to random seed)');
+      Debugger.verbose('    (set RNG to random seed)');
     }else{
       result = r.NextFromMax(range) + 1;
-      Debugger.debug('    (Rolled [1 - $range] number: $result)');
+      Debugger.verbose('    (Rolled [1 - $range] number: $result)');
     }
 
     writeVariable(resultTo, result);
@@ -555,7 +555,7 @@ class Machine
     var bitmap = operands[0].value;
     var flags = operands[1].value;
 
-    Debugger.debug('+++ [0x${pp.toRadixString(16)}] testing bitmap($branchOn) "${bitmap.toRadixString(2)}" against "${flags.toRadixString(2)}" ${(bitmap & flags) == flags}');
+    Debugger.verbose('   [0x${pp.toRadixString(16)}] testing bitmap($branchOn) "${bitmap.toRadixString(2)}" against "${flags.toRadixString(2)}" ${(bitmap & flags) == flags}');
 
     branch((bitmap & flags) == flags);
   }
@@ -594,7 +594,6 @@ class Machine
  //   var value = toSigned(readVariable(operands[0].rawValue)) + 1;
     var varValue = readVariable(operands[0].rawValue);
 
-    Debugger.debug('    var value: $varValue');
     var value = toSigned(readVariable(operands[0].rawValue)) + 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
@@ -610,7 +609,7 @@ class Machine
 
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
-    Debugger.debug('(test Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
+    Debugger.verbose('    (test Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
     branch(obj.isFlagBitSet(operands[1].value));
   }
 
@@ -727,7 +726,7 @@ class Machine
 
     var str = ZSCII.readZStringAndPop(addr);
 
-    print('${pcHex()} "$str"');
+    //print('${pcHex()} "$str"');
 
     Z.sbuff.add(str);
   }
@@ -741,7 +740,7 @@ class Machine
 
     var str = ZSCII.readZStringAndPop(addr);
 
-    print('${pcHex()} "$str"');
+    //print('${pcHex()} "$str"');
 
     Z.sbuff.add(str);
   }
@@ -775,7 +774,7 @@ class Machine
 
     Z.sbuff.add('${str}\n');
 
-    print('${pcHex()} "$str"');
+   // print('${pcHex()} "$str"');
 
     callStack.push(Machine.TRUE);
 
@@ -789,7 +788,6 @@ class Machine
     Z.sbuff.add(str);
 
     pc = callStack.pop();
-    print('${pcHex()} "$str"');
   }
 
   void insertObj(){
@@ -884,7 +882,7 @@ class Machine
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
     obj.unsetFlagBit(operands[1].value);
-    Debugger.debug('(clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
+    Debugger.verbose('    (clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
   void set_attr(){
@@ -894,7 +892,7 @@ class Machine
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
     obj.setFlagBit(operands[1].value);
-    Debugger.debug('(set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
+    Debugger.verbose('    (set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
   void andV(){
@@ -942,7 +940,7 @@ class Machine
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) - toSigned(operands[1].value);
-    Debugger.debug('>>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.verbose('    >>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
     writeVariable(resultTo, result);
   }
 
@@ -953,7 +951,7 @@ class Machine
 
     var result = toSigned(operands[0].value) + toSigned(operands[1].value);
 
-    Debugger.debug('>>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.verbose('    >>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
@@ -965,7 +963,7 @@ class Machine
 
     var result = toSigned(operands[0].value) * toSigned(operands[1].value);
 
-    Debugger.debug('>>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.verbose('    >>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
@@ -981,7 +979,7 @@ class Machine
 
     var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).floor().toInt();
 
-    Debugger.debug('>>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
 //    if (result < 0){
 //      result = -(result.abs().floor());
@@ -1008,7 +1006,7 @@ class Machine
     var result = x.abs() % y.abs();
     if (x < 0) result = -result;
 
-    Debugger.debug('>>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    Debugger.verbose('    >>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
@@ -1020,7 +1018,7 @@ class Machine
     var resultTo = readb();
 
     var propLen = GameObjectV3.propertyLength(operand.value - 1);
-    Debugger.debug('(${pc.toRadixString(16)}) property length: $propLen , addr: 0x${operand.value.toRadixString(16)}');
+    Debugger.verbose('    (${pcHex()}) property length: $propLen , addr: 0x${operand.value.toRadixString(16)}');
     writeVariable(resultTo, propLen);
   }
 
@@ -1033,7 +1031,7 @@ class Machine
     var obj = new GameObjectV3(operands[0].value);
 
     var nextProp = obj.getNextProperty(operands[1].value);
-    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] prop: ${operands[1].value} next prop:  ${nextProp}');
+    Debugger.verbose('    (${pcHex()}) [${obj.id}] prop: ${operands[1].value} next prop:  ${nextProp}');
     writeVariable(resultTo, nextProp);
   }
 
@@ -1047,7 +1045,7 @@ class Machine
 
     var addr = obj.getPropertyAddress(operands[1].value);
 
-    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] propAddr(${operands[1].value}): ${addr.toRadixString(16)}');
+    Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] propAddr(${operands[1].value}): ${addr.toRadixString(16)}');
 
     writeVariable(resultTo, addr);
   }
@@ -1062,7 +1060,7 @@ class Machine
 
     var value = obj.getPropertyValue(operands[1].value);
 
-    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] getPropValue(${operands[1].value}): ${value.toRadixString(16)}');
+    Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] getPropValue(${operands[1].value}): ${value.toRadixString(16)}');
 
     writeVariable(resultTo, value);
   }
@@ -1074,7 +1072,7 @@ class Machine
 
     var obj = new GameObjectV3(operands[0].value);
 
-    Debugger.debug('(${pc.toRadixString(16)}) [${obj.id}] putProp(${operands[1].value}): ${operands[2].value.toRadixString(16)}');
+    Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] putProp(${operands[1].value}): ${operands[2].value.toRadixString(16)}');
 
     obj.setPropertyValue(operands[1].value, operands[2].value);
   }
