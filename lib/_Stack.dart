@@ -20,16 +20,27 @@ class _Stack {
   int pop() {
     var v = _stack[0];
     _stack.removeRange(0, 1);
+
+    //no Dart negative values should exist here
+    //except the spcecial stack-end flag 0x-10000
+    assert(v == Machine.STACK_MARKER || v >= 0);
+
     return v;
   }
 
   int operator [](int index){
-    return _stack[index];
+    var v = _stack[index];
+
+    //no Dart negative values should exist here
+    //except the spcecial stack-end flag 0x-10000
+    assert(v == Machine.STACK_MARKER || v >= 0);
+
+    return v;
   }
 
   int operator []=(int index, int value){
 
-    if (value < 0 && value > -0x10000){
+    if (value < 0 && value != Machine.STACK_MARKER){
       value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
@@ -42,14 +53,22 @@ class _Stack {
       throw new GameException('Stack Overflow.');
 
     //excluding the stack boundary flag
-    if (value < 0 && value > -0x10000){
+    if (value < 0 && value != Machine.STACK_MARKER){
       value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
     _stack.insertRange(0, 1, value);
   }
 
-  int peek() => _stack.isEmpty() ? null : _stack[0];
+  int peek(){
+    var v = _stack[0];
+
+    //no Dart negative values should exist here
+    //except the spcecial stack-end flag 0x-10000
+    assert(v == Machine.STACK_MARKER || v >= 0);
+
+    return v;
+  }
 
   void clear() => _stack.clear();
 

@@ -323,10 +323,7 @@ instructionTests(){
           callbackDone();
         });
       });
-
-
     });
-
   });
 
 }

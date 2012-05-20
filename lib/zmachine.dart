@@ -26,11 +26,6 @@
 // Dart Implementation of the Infocom Z-Machine.
 //
 
-/**
-* Global Z-Machine object, capable of running any [IMachine] variant.
-*/
-ZMachine get Z() => new ZMachine();
-
 /// Kilobytes -> Bytes
 KBtoB(int kb) => kb * 1024;
 
@@ -38,55 +33,37 @@ KBtoB(int kb) => kb * 1024;
 /**
 * Version agnostic Z-Machine.
 */
-class ZMachine{
+class Z{
 
-  bool isLoaded = false;
-  bool inBreak = false;
-  bool inInput = false;
-  bool quit = false;
+  static bool isLoaded = false;
+  static bool inBreak = false;
+  static bool inInput = false;
+  static bool quit = false;
+  static ZVersion _ver;
+  static StringBuffer sbuff;
 
-  IOProvider _io;
-
-  StringBuffer sbuff;
-
-  static ZMachine _ref;
-  ZVersion _ver;
-  List<int> _rawBytes;
+  static List<int> _rawBytes;
 
   //contains machine version which are supported by z-machine.
-  final List<Machine> _supportedMachines;
+  static List<Machine> _supportedMachines;
 
-  Machine _machine;
+  static Machine machine;
 
-  Machine get machine() => _machine;
+  static IOProvider IOConfig;
 
-  factory ZMachine(){
-   if (_ref != null) return _ref;
+  static int get version() => _ver != null ? _ver.toInt() : null;
 
-   _ref = new ZMachine._internal();
-   return _ref;
-  }
-
-  ZMachine._internal()
-  :
-    _supportedMachines = [new Version3()]
-  {
-    sbuff = new StringBuffer();
-    IOConfig = new DefaultProvider([]);
-  }
-
-  int get version() => _ver != null ? _ver.toInt() : null;
-
-  set IOConfig(IOProvider config){
-    _io = config;
-  }
-
-  IOProvider get IOConfig() => _io;
 
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
-  void load(List<int> storyBytes){
+  static void load(List<int> storyBytes){
+    if (!Z.isLoaded){
+      _supportedMachines = [new Version3()];
+      sbuff = new StringBuffer();
+      IOConfig = new DefaultProvider([]);
+    }
+
     _rawBytes = new List.from(storyBytes);
 
     _ver = ZVersion.intToVer(_rawBytes[Header.VERSION]);
@@ -97,12 +74,12 @@ class ZMachine{
     if (result.length != 1){
       throw new Exception('Z-Machine version ${_ver} not supported.');
     }else{
-      _machine = result[0];
+      machine = result[0];
     }
 
-    _machine.mem = new _MemoryMap(_rawBytes);
+    machine.mem = new _MemoryMap(_rawBytes);
 
-    _machine.visitHeader();
+    machine.visitHeader();
 
     isLoaded = true;
   }
@@ -113,44 +90,44 @@ class ZMachine{
   * Doing so will cause given IMachine to be used for execution.  This is handy
   * for using the [Disassembler] machine, or any other custome machine.
   */
-  void run([Machine machineOverride = null]){
+  static void run([Machine machineOverride = null]){
     _assertLoaded();
 
     if (machineOverride != null){
-      _machine = machineOverride;
-      _machine.mem = new _MemoryMap(_rawBytes);
-      _machine.visitHeader();
+      machine = machineOverride;
+      machine.mem = new _MemoryMap(_rawBytes);
+      machine.visitHeader();
     }
 
     // visit the main 'routine'
-    _machine.visitRoutine([]);
+    machine.visitRoutine([]);
 
     //push dummy result store onto the call stack
-    _machine.callStack.push(0);
+    machine.callStack.push(0);
 
     //push dummy return address onto the call stack
-    _machine.callStack.push(0);
+    machine.callStack.push(0);
 
     if (inBreak){
-      Z._io.callAsync(Debugger.startBreak);
+      IOConfig.callAsync(Debugger.startBreak);
     }else{
-      Z._io.callAsync(runIt);
+      IOConfig.callAsync(runIt);
     }
   }
 
-  void runIt(timer){
+  static void runIt(timer){
 
     while(!inBreak && !inInput && !quit){
-      _machine.visitInstruction(null);
+      Z.machine.visitInstruction();
     }
 
     if(inBreak){
-      Z._io.DebugOutput('<<< DEBUG MODE >>>');
-      Z._io.callAsync(Debugger.startBreak);
+      Z.IOConfig.DebugOutput('<<< DEBUG MODE >>>');
+      Z.IOConfig.callAsync(Debugger.startBreak);
     }
 
     if (quit && !Debugger.isUnitTestRun){
-      quit = false;
+      Z.quit = false;
     }
 
 //    if (!inBreak && !inInput){
@@ -163,32 +140,33 @@ class ZMachine{
 //    }
   }
 
-  void _printBuffer(){
-    _io.PrimaryOutput(sbuff.toString());
-    sbuff.clear();
+  static void _printBuffer(){
+    Z.IOConfig.PrimaryOutput(sbuff.toString());
+    Z.sbuff.clear();
   }
 
   /** Reset Z-Machine to state at first load */
-  softReset(){
-    _assertLoaded();
-    _machine.pc = 0;
-    _machine.stack.clear();
-    _machine.callStack.clear();
-    _machine.mem = new _MemoryMap(_rawBytes);
-    _machine.visitHeader();
+  static softReset(){
+    Z._assertLoaded();
+    Z.machine.pc = 0;
+    Z.machine.stack.clear();
+    Z.machine.callStack.clear();
+    Z.machine.mem = null;
+    Z.machine.mem = new _MemoryMap(_rawBytes);
+    Z.machine.visitHeader();
   }
 
   /** Reset Z-Machine to state at first load */
-  hardReset(){
-    _machine.pc = 0;
-    _machine.stack.clear();
-    _machine.callStack.clear();
-    _machine.mem = null;
-    _machine = null;
+  static hardReset(){
+    Z.machine.pc = 0;
+    Z.machine.stack.clear();
+    Z.machine.callStack.clear();
+    Z.machine.mem = null;
+    Z.machine = null;
   }
 
-  void _assertLoaded(){
-    if (!isLoaded){
+  static void _assertLoaded(){
+    if (!Z.isLoaded){
       throw const Exception('Z-Machine state not loaded. Use load() first.');
     }
   }

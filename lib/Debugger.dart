@@ -21,17 +21,17 @@ class Debugger {
       }
     }
 
-    Z._machine = newMachine;
-    Z._machine.mem = new _MemoryMap(Z._rawBytes);
-    Z._machine.visitHeader();
+    Z.machine = newMachine;
+    Z.machine.mem = new _MemoryMap(Z._rawBytes);
+    Z.machine.visitHeader();
     debug('<<< New machine installed: v${newMachine.version} >>>');
     Z.inInput = false;
   }
 
   static void startBreak(timer){
     Z.IOConfig.DebugOutput('(break)>>> [0x${debugStartAddr.toRadixString(16)}]'
-    ' opCode: ${Z._machine.mem.loadb(debugStartAddr)}'
-    ' (${opCodes[Z._machine.mem.loadb(debugStartAddr).toString()]})');
+    ' opCode: ${Z.machine.mem.loadb(debugStartAddr)}'
+    ' (${opCodes[Z.machine.mem.loadb(debugStartAddr).toString()]})');
 
     Z.IOConfig.DebugOutput('   Locals: ${dumpLocals()}');
 
@@ -93,15 +93,15 @@ class Debugger {
           break;
         case '':
         case 'n':
-          debugStartAddr = Z._machine.pc;
-          Z._machine.visitInstruction(null);
+          debugStartAddr = Z.machine.pc;
+          Z.machine.visitInstruction();
           break;
         case 'q':
           Z.inBreak = false;
           Z.IOConfig.callAsync(Z.runIt);
           break;
         case 'dictionary':
-          debug('${Z._machine.mem.dictionary.dump()}');
+          debug('${Z.machine.mem.dictionary.dump()}');
           Z.IOConfig.callAsync(Z.runIt);
           break;
         case 'globals':
@@ -113,7 +113,7 @@ class Debugger {
           for(int i = 0x10; i < 0xff; i++){
 
             s.add('g${i - 16 < 10 ? "0" : ""}${i - 16}:'
-            ' 0x${Z._machine.mem.readGlobal(i).toRadixString(16)}');
+            ' 0x${Z.machine.mem.readGlobal(i).toRadixString(16)}');
 
             if ((i - 15) % col != 0){
               s.add('\t');
@@ -131,6 +131,10 @@ class Debugger {
         case 'object':
           var obj = new GameObjectV3(Math.parseInt(args[1]));
           obj.dump();
+          Z.IOConfig.callAsync(_repl);
+          break;
+        case 'header':
+          debug('${dumpHeader()}');
           Z.IOConfig.callAsync(_repl);
           break;
         default:
@@ -188,11 +192,11 @@ class Debugger {
   }
 
   static String dumpLocals(){
-    var locals = Z._machine.callStack[2];
+    var locals = Z.machine.callStack[2];
     StringBuffer s = new StringBuffer();
 
     for(int i = 0; i < locals; i++){
-      s.add('(L${i}: 0x${Z._machine._readLocal(i + 1).toRadixString(16)}) ');
+      s.add('(L${i}: 0x${Z.machine._readLocal(i + 1).toRadixString(16)}) ');
     }
     s.add('\n');
     return s.toString();
@@ -203,27 +207,27 @@ class Debugger {
 
     var s = new StringBuffer();
 
-    s.add('(Story contains ${Z._machine.mem.size} bytes.)\n');
+    s.add('(Story contains ${Z.machine.mem.size} bytes.)\n');
     s.add('\n');
     s.add('------- START HEADER -------\n');
     s.add('Z-Machine Version: ${Z.version}\n');
-    s.add('Flags1(binary): ${Z._machine.mem.loadw(Header.FLAGS1).toRadixString(2)}\n');
+    s.add('Flags1(binary): 0b${Z.machine.mem.loadw(Header.FLAGS1).toRadixString(2)}\n');
     // word after flags1 is used by Inform
-    s.add('Abbreviations Location: ${Z._machine.mem.abbrAddress.toRadixString(16)}\n');
-    s.add('Object Table Location: ${Z._machine.mem.objectsAddress.toRadixString(16)}\n');
-    s.add('Global Variables Location: ${Z._machine.mem.globalVarsAddress.toRadixString(16)}\n');
-    s.add('Static Memory Start: ${Z._machine.mem.staticMemAddress.toRadixString(16)}\n');
-    s.add('Dictionary Location: ${Z._machine.mem.dictionaryAddress.toRadixString(16)}\n');
-    s.add('High Memory Start: ${Z._machine.mem.highMemAddress.toRadixString(16)}\n');
-    s.add('Program Counter Start: ${Z._machine.pc.toRadixString(16)}\n');
-    s.add('Flags2(binary): ${Z._machine.mem.loadb(Header.FLAGS2).toRadixString(2)}\n');
-    s.add('Length Of File: ${Z._machine.mem.loadw(Header.LENGTHOFFILE) * Z._machine.fileLengthMultiplier()}\n');
-    s.add('Checksum Of File: ${Z._machine.mem.loadw(Header.CHECKSUMOFFILE)}\n');
+    s.add('Abbreviations Location: 0x${Z.machine.mem.abbrAddress.toRadixString(16)}\n');
+    s.add('Object Table Location: 0x${Z.machine.mem.objectsAddress.toRadixString(16)}\n');
+    s.add('Global Variables Location: 0x${Z.machine.mem.globalVarsAddress.toRadixString(16)}\n');
+    s.add('Static Memory Start: 0x${Z.machine.mem.staticMemAddress.toRadixString(16)}\n');
+    s.add('Dictionary Location: 0x${Z.machine.mem.dictionaryAddress.toRadixString(16)}\n');
+    s.add('High Memory Start: 0x${Z.machine.mem.highMemAddress.toRadixString(16)}\n');
+    s.add('Program Counter Start: 0x${Z.machine.mem.programStart.toRadixString(16)}\n');
+    s.add('Flags2(binary): 0b${Z.machine.mem.loadb(Header.FLAGS2).toRadixString(2)}\n');
+    s.add('Length Of File: ${Z.machine.mem.loadw(Header.LENGTHOFFILE) * Z.machine.fileLengthMultiplier()}\n');
+    s.add('Checksum Of File: ${Z.machine.mem.loadw(Header.CHECKSUMOFFILE)}\n');
     //TODO v4+ header stuff here
-    s.add('Standard Revision: ${Z._machine.mem.loadw(Header.REVISION_NUMBER)}\n');
+    s.add('Standard Revision: ${Z.machine.mem.loadw(Header.REVISION_NUMBER)}\n');
     s.add('-------- END HEADER ---------\n');
 
-    //s.add('main Routine: ${Z._machine.mem.getRange(Z.pc - 4, 10)}');
+    //s.add('main Routine: ${Z.machine.mem.getRange(Z.pc - 4, 10)}');
 
     s.add('\n');
     return s.toString();
@@ -242,7 +246,7 @@ class Debugger {
 
 
   static void todo([String message]){
-    Z.IOConfig.DebugOutput('Stopped At: 0x${Z._machine.pc.toRadixString(16)}');
+    Z.IOConfig.DebugOutput('Stopped At: 0x${Z.machine.pc.toRadixString(16)}');
     Z.IOConfig.PrimaryOutput('Text Buffer:');
     Z._printBuffer();
 

@@ -11,31 +11,32 @@ class Dictionary {
     entries = new List<String>(),
     separators = new List<String>()
   {
-    _loadDictionary(address);
-  }
+    _address = Z.machine.mem.loadw(Header.DICTIONARY_ADDR);
 
-  void _loadDictionary([int address]){
-    // Allows game to point to custom dictionaries,
-    // otherwise use the default dictionary.
-    if (address == null){
-      address = Z._machine.mem.dictionaryAddress;
+    if (address != null){
+      //custom dictionary
+      _address = address;
     }
 
-    _address = address;
+    assert(_address != null);
 
-    var iCodes = Z._machine.mem.loadb(address);
+    _initDictionary();
+  }
+
+  void _initDictionary(){
+    var iCodes = Z.machine.mem.loadb(_address);
 
     for(int i = 1; i <= iCodes; i++){
-      separators.add(ZSCII.ZCharToChar(Z._machine.mem.loadb(address + i)));
+      separators.add(ZSCII.ZCharToChar(Z.machine.mem.loadb(_address + i)));
     }
 
     wordSize =
-        Z._machine.mem.loadb(address + separators.length + 1);
+        Z.machine.mem.loadb(_address + separators.length + 1);
 
     var numEntries =
-        Z._machine.mem.loadw(address + separators.length + 2);
+        Z.machine.mem.loadw(_address + separators.length + 2);
 
-    var start = address + separators.length + 4;
+    var start = _address + separators.length + 4;
 
 
     for(int i = 1; i <= numEntries; i++){
@@ -103,7 +104,7 @@ class Dictionary {
         if (c == ' ' && s.length > 0){
         tokens.add(s.toString().trim());
         s = new StringBuffer();
-      }else if (Z._machine.mem.dictionary.separators.indexOf(c) != -1){
+      }else if (Z.machine.mem.dictionary.separators.indexOf(c) != -1){
         if (s.length > 0){
           tokens.add(s.toString().trim());
           s = new StringBuffer();

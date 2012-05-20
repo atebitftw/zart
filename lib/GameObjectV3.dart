@@ -2,24 +2,26 @@
 class GameObjectV3
 {
   final int id;
-  int CHILD_ADDR;
-  int SIBLING_ADDR;
-  int PARENT_ADDR;
+  int get PARENT_ADDR() => _address + 4;
+  int get SIBLING_ADDR() => _address + 5;
+  int get CHILD_ADDR() => _address + 6;
 
   int _address;
 
-  int get parent () => Z._machine.mem.loadb(PARENT_ADDR);
-  int get child () => Z._machine.mem.loadb(CHILD_ADDR);
-  int get sibling () => Z._machine.mem.loadb(SIBLING_ADDR);
-  set parent(int oid) => Z._machine.mem.storeb(PARENT_ADDR, oid);
-  set sibling(int oid) => Z._machine.mem.storeb(SIBLING_ADDR, oid);
-  set child(int oid) => Z._machine.mem.storeb(CHILD_ADDR, oid);
+  int get parent() => Z.machine.mem.loadb(PARENT_ADDR);
+  set parent(int oid) => Z.machine.mem.storeb(PARENT_ADDR, oid);
+
+  int get child() => Z.machine.mem.loadb(CHILD_ADDR);
+  set child(int oid) => Z.machine.mem.storeb(CHILD_ADDR, oid);
+
+  int get sibling() => Z.machine.mem.loadb(SIBLING_ADDR);
+  set sibling(int oid) => Z.machine.mem.storeb(SIBLING_ADDR, oid);
 
   int flags;
 
-  int get properties() => Z._machine.mem.loadw(_address + 7);
+  int get properties() => Z.machine.mem.loadw(_address + 7);
 
-  int get propertyTableStart() => properties + (Z._machine.mem.loadb(properties) * 2) + 1;
+  int get propertyTableStart() => properties + (Z.machine.mem.loadb(properties) * 2) + 1;
 
   String shortName;
 
@@ -27,9 +29,6 @@ class GameObjectV3
   {
     _address = _getObjectAddress();
     shortName = _getObjectShortName();
-    PARENT_ADDR = _address + 4;
-    SIBLING_ADDR = _address + 5;
-    CHILD_ADDR = _address + 6;
 
     if (id == 0) return;
     _readFlags();
@@ -132,9 +131,9 @@ class GameObjectV3
         }
 
         if (len == 1){
-          return Z._machine.mem.loadb(addr + 1);
+          return Z.machine.mem.loadb(addr + 1);
         }else{
-          return Z._machine.mem.loadw(addr + 1);
+          return Z.machine.mem.loadw(addr + 1);
         }
       }
 
@@ -151,13 +150,13 @@ class GameObjectV3
 
     var propNum = propertyNumber(address);
 
-    return ((Z._machine.mem.loadb(address) >> 5) & 0x07) + 1;
+    return ((Z.machine.mem.loadb(address) >> 5) & 0x07) + 1;
   }
 
   static int propertyNumber(int address){
     if (address == 0) return 0;
 
-    return Z._machine.mem.loadb(address) % 32;
+    return Z.machine.mem.loadb(address) % 32;
   }
 
   static int getPropertyDefault(int propertyNum){
@@ -167,7 +166,7 @@ class GameObjectV3
     if (propertyNum < 0 || propertyNum > 31){
       throw new GameException('property number out of bounds (1-31)');
     }
-    return Z._machine.mem.loadw(Z._machine.mem.objectsAddress + (propertyNum * 2));
+    return Z.machine.mem.loadw(Z.machine.mem.objectsAddress + (propertyNum * 2));
   }
 
   void removeFromTree(){
@@ -261,28 +260,28 @@ class GameObjectV3
 
   int _getObjectAddress(){
     // skip header bytes (ref 12.2)
-    var objStart = Z._machine.mem.objectsAddress + 62;
+    var objStart = Z.machine.mem.objectsAddress + 62;
 
     // 9 bytes per object (ref 12.3.1)
     return objStart += (id - 1) * 9;
   }
 
   void _readFlags(){
-    flags = (Z._machine.mem.loadb(_address) << 24)
-        | (Z._machine.mem.loadb(_address + 1) << 16)
-        | (Z._machine.mem.loadb(_address + 2) << 8)
-        | Z._machine.mem.loadb(_address + 3);
+    flags = (Z.machine.mem.loadb(_address) << 24)
+        | (Z.machine.mem.loadb(_address + 1) << 16)
+        | (Z.machine.mem.loadb(_address + 2) << 8)
+        | Z.machine.mem.loadb(_address + 3);
   }
 
   void _writeFlags(){
-    Z._machine.mem.storeb(_address + 3, BinaryHelper.bottomBits(flags, 8));
-    Z._machine.mem.storeb(_address + 2, BinaryHelper.bottomBits(flags >> 8, 8));
-    Z._machine.mem.storeb(_address + 1, BinaryHelper.bottomBits(flags >> 16, 8));
-    Z._machine.mem.storeb(_address, BinaryHelper.bottomBits(flags >> 24, 8));
+    Z.machine.mem.storeb(_address + 3, BinaryHelper.bottomBits(flags, 8));
+    Z.machine.mem.storeb(_address + 2, BinaryHelper.bottomBits(flags >> 8, 8));
+    Z.machine.mem.storeb(_address + 1, BinaryHelper.bottomBits(flags >> 16, 8));
+    Z.machine.mem.storeb(_address, BinaryHelper.bottomBits(flags >> 24, 8));
   }
 
   String _getObjectShortName(){
-    if (id == 0 || Z._machine.mem.loadb(properties) == 0) return '';
+    if (id == 0 || Z.machine.mem.loadb(properties) == 0) return '';
 
     var s = ZSCII.readZStringAndPop(properties + 1);
 

@@ -12,6 +12,7 @@ class _MemoryMap {
   int staticMemAddress;
   int dictionaryAddress;
   int highMemAddress;
+  int programStart;
   Dictionary dictionary;
 
   _MemoryMap(this._mem);
@@ -42,12 +43,14 @@ class _MemoryMap {
   //static and dynamic memory (1.1.1, 1.1.2)
   //get byte
   int loadb(int address){
+    assert(address != null);
     checkBounds(address);
     return _mem[address] & 0xff;
   }
 
   //get word
   int loadw(int address){
+    assert(address != null);
     checkBounds(address);
     checkBounds(address + 1);
     return _getWord(address);
@@ -56,16 +59,18 @@ class _MemoryMap {
   //dynamic memory only (1.1.1)
   //put byte
   void storeb(int address, int value){
+    assert(address != null);
     checkBounds(address);
     //TODO validate
 
-    if (value > 0xff || value < 0) throw new GameException('byte out of range.');
+    assert(value != null && (value <= 0xff && value >= 0));
 
     _mem[address] = value;
   }
 
   //put word
   void storew(int address, int value){
+    assert(address != null);
     checkBounds(address);
     checkBounds(address + 1);
 
@@ -77,15 +82,29 @@ class _MemoryMap {
       value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
-    _mem[address] = (value >> 8) & 0xff;
+    assert(value >= 0);
+
+    assert(((value >> 8) & 0xff) == (value >> 8));
+
+    _mem[address] = value >> 8;
     _mem[address + 1] = value & 0xff;
   }
 
-  int _getWord(int address) => ((_mem[address] << 8) | _mem[address + 1]) & 0xffff;
+  int _getWord(int address) {
+    var word = ((_mem[address] << 8) | _mem[address + 1]) & 0xffff;
+
+    //no Dart-signed values should be present.
+    assert(word >= 0);
+    return word;
+  }
 
   void checkBounds(int address){
+   assert(address != null);
+
    if ((address == null) || (address < 0) || (address > _mem.length - 1)){
-     Debugger.debug('${_mem.length}');
+
+     Debugger.debug('memory upper: ${_mem.length}, address: $address');
+
      throw new GameException('Attempted access to memory address'
        ' that is out of bounds: $address 0x${address.toRadixString(16)}');
    }

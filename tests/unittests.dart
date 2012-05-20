@@ -49,8 +49,8 @@ void main() {
       Expect.equals(0, Machine.dartSignedIntTo16BitSigned(0));
       Expect.equals(42, Machine.dartSignedIntTo16BitSigned(42));
 
-      Expect.throws(() => Machine.dartSignedIntTo16BitSigned(-32768),
-          (e) => e is GameException);
+      Expect.throws(() => Machine.dartSignedIntTo16BitSigned(-32769),
+          (e) => e is AssertionError);
 
     });
 

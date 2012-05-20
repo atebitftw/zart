@@ -69,7 +69,7 @@ class ZSCII {
   /// the decoded version.
   static String readZStringAndPop(int fromAddress){
    var result = readZString(fromAddress);
-   Z._machine.callStack.pop();
+   Z.machine.callStack.pop();
    return result;
   }
 
@@ -89,7 +89,7 @@ class ZSCII {
 
     //first load all the z chars into an array.
     while(!finished){
-      ZChar nextz = new ZChar(Z._machine.mem.loadw(fromAddress));
+      ZChar nextz = new ZChar(Z.machine.mem.loadw(fromAddress));
 
       fromAddress += 2;
 
@@ -103,7 +103,7 @@ class ZSCII {
       }
     }
 
-    Z._machine.callStack.push(fromAddress);
+    Z.machine.callStack.push(fromAddress);
 
     //print(charList);
     //now decode into output string
@@ -121,10 +121,10 @@ class ZSCII {
         var abbrNum = (32 * (char - 1)) + charList[++i];
 
         var abbrAddress =
-          2 * Z._machine.mem.loadw(Z._machine.mem.abbrAddress + (abbrNum * 2));
+          2 * Z.machine.mem.loadw(Z.machine.mem.abbrAddress + (abbrNum * 2));
 
         String abbrString = readZString(abbrAddress);
-        Z._machine.callStack.pop();
+        Z.machine.callStack.pop();
 
         s.add(abbrString);
 
