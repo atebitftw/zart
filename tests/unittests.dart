@@ -9,6 +9,9 @@
 
 //#import('../../../../src/lib/unittest/html_enhanced_config.dart');
 
+/*
+* IMPORTANT: Run in Checked Mode so Assertions fire.
+*/
 
 void main() {
 

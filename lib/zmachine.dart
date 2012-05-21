@@ -94,7 +94,7 @@ class Z
       machine.visitHeader();
     }
 
-    // visit the main 'routine'
+    // visit the main 'routine' (call stack required empty)
     machine.visitRoutine([]);
 
     //push dummy result store onto the call stack

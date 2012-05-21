@@ -99,7 +99,6 @@ class Machine
 
     //set the routine to default locals (V3...)
 
-
     if (locals > 0){
       for(int i = 1; i <= locals; i++){
         if (i <= params.length){
@@ -561,18 +560,6 @@ class Machine
     writeVariable(operand.rawValue, value);
   }
 
-  void load(){
-    Debugger.verbose('${pcHex(-1)} [load]');
-
-    var operand = this.visitOperandsShortForm();
-
-    var resultTo = readb();
-
-    var v = readVariable(operand.rawValue);
-
-    writeVariable(resultTo, v);
-  }
-
   void test(){
     Debugger.verbose('${pcHex(-1)} [test]');
     var pp = pc - 1;
@@ -769,8 +756,8 @@ class Machine
 
     var str = ZSCII.readZStringAndPop(addr);
 
-    //print('${pcHex()} "$str"');
-
+    Debugger.verbose('${pcHex()} "$str"');
+    
     Z.sbuff.add(str);
   }
 
@@ -803,7 +790,7 @@ class Machine
 
     Z.sbuff.add('${str}\n');
 
-   // print('${pcHex()} "$str"');
+    Debugger.verbose('${pcHex()} "$str"');
 
     callStack.push(Machine.TRUE);
 
@@ -816,6 +803,8 @@ class Machine
     var str = ZSCII.readZString(pc);
     Z.sbuff.add(str);
 
+    Debugger.verbose('${pcHex()} "$str"');
+    
     pc = callStack.pop();
   }
 
@@ -862,6 +851,23 @@ class Machine
     writeVariable(operands[0].rawValue, operands[1].value);
  }
 
+  void load(){
+    Debugger.verbose('${pcHex(-1)} [load]');
+
+    var operand = this.visitOperandsShortForm();
+
+    var resultTo = readb();
+
+    if (operand.rawValue == Machine.SP){
+      operand.rawValue = readVariable(Machine.SP);
+    }
+
+    
+    var v = readVariable(operand.rawValue);
+
+    writeVariable(resultTo, v);
+  }
+  
   void jump(){
     Debugger.verbose('${pcHex(-1)} [jump]');
 
@@ -1008,8 +1014,8 @@ class Machine
     if (operands[1].value == 0){
       throw new GameException('Divide by 0.');
     }
-
-    var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).floor().toInt();
+    
+    var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
 
     Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 

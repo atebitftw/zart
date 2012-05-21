@@ -242,12 +242,14 @@ class GameObjectV3
 
   //TODO convert to string return
   void dump(){
-    print('Object #: $id, "$shortName"');
+    Debugger.debug('Object #: $id, "$shortName"');
 
-    print('parent: ${parent} "${new GameObjectV3(parent).shortName}"');
-    print('sibling: ${sibling} "${new GameObjectV3(sibling).shortName}"');
-    print('child: ${child} "${new GameObjectV3(child).shortName}"');
+    Debugger.debug('parent: ${parent} "${new GameObjectV3(parent).shortName}"');
+    Debugger.debug('sibling: ${sibling} "${new GameObjectV3(sibling).shortName}"');
+    Debugger.debug('child: ${child} "${new GameObjectV3(child).shortName}"');
 
+    Debugger.debug('Property Address 0x${propertyTableStart.toRadixString(16)}');
+    
     var s = new StringBuffer();
     for (int i = 0; i <= 31; i++){
       if (BinaryHelper.isSet(flags, 31 - i)){
@@ -255,7 +257,7 @@ class GameObjectV3
       }
     }
 
-    print('set flags: $s');
+    Debugger.debug('set flags: $s');
   }
 
   int _getObjectAddress(){

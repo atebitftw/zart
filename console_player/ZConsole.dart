@@ -42,16 +42,16 @@ void main() {
   }
 
   //Z.IOConfig = new ConsoleProvider();
-  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trapdoor.down.turn lantern on');
+  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trap door.down.turn lantern on');
 
-  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug');
-  Z.IOConfig = new DebugProvider.with('');
+  Z.IOConfig = new DebugProvider.with('s.e.open window.enter.w');
+  //Z.IOConfig = new DebugProvider.with('');
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
   Debugger.enableVerbose = true;
   Debugger.enableTrace = false;
-  Debugger.enableStackTrace = false;
+  Debugger.enableStackTrace = true;
 //  Debugger.setBreaks([0x54cd]);
 
   try{
