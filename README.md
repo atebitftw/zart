@@ -64,3 +64,10 @@ You can also enable tracing and/or verbose with:
 
 ## Acknowledgements ##
 Adam Smith's RNG lib "DRandom" (found here: https://github.com/financeCoding/DRandom/blob/master/DRandom.dart)
+
+## License ##
+Source Code: Apache 2.0 (see LICENSE file)
+
+Game files include are covered under their own applicable copyrights 
+and licensing.
+
