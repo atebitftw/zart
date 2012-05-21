@@ -13,6 +13,7 @@
 #source('DRandom.dart');
 #source('GameException.dart');
 
+#source('IO/Quetzal.dart');
 #source('IO/DefaultProvider.dart');
 #source('IO/IOProvider.dart');
 
@@ -33,7 +34,7 @@ class Z
 
   static bool isLoaded = false;
   static bool inBreak = false;
-  static bool inInput = false;
+  static bool inInterrupt = false;
   static bool quit = false;
   static ZVersion _ver;
   static StringBuffer sbuff;
@@ -112,7 +113,7 @@ class Z
 
   static void runIt(timer){
 
-    while(!inBreak && !inInput && !quit){
+    while(!inBreak && !inInterrupt && !quit){
       Z.machine.visitInstruction();
     }
 

@@ -4,10 +4,12 @@
 class Header{
 
   //z-machine version
-  static final int  VERSION= 0x00;
+  static final int  VERSION= 0x0;
 
   //byte address of flags
-  static final int  FLAGS1 = 0x01;
+  static final int  FLAGS1 = 0x1;
+
+  static final int RELEASE = 0x2;
 
   //byte address of high memory start point (1.1) (word)
   static final int  HIGHMEM_START_ADDR = 0x04;
@@ -28,6 +30,8 @@ class Header{
   static final int  STATIC_MEM_BASE_ADDR = 0x0e;
 
   static final int  FLAGS2 = 0x10;
+
+  static final int  SERIAL_NUMBER = 0x12;
 
   static final int  ABBREVIATIONS_TABLE_ADDR = 0x18;
 

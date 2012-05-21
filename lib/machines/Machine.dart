@@ -191,6 +191,55 @@ class Machine
     throw new GameException('Unsupported Op Code: ${mem.loadb(pc - 1)}');
   }
 
+  void save(){
+    if (Z.inInterrupt) {
+      branch(false);
+    }
+
+    Z.inInterrupt = true;
+
+    //calculates the local jump offset (ref 4.7)
+    int jumpToLabelOffset(int jumpByte){
+
+      if (BinaryHelper.isSet(jumpByte, 6)){
+        //single byte offset
+        return BinaryHelper.bottomBits(jumpByte, 6);
+      }else{
+        //create the 14-bit offset value with next byte
+        var val = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | readb();
+
+        //convert to Dart signed int (14-bit MSB is the sign bit)
+        return ((val & 0x2000) == 0x2000)
+            ? -(16384 - val)
+            : val;
+      }
+    }
+
+    var jumpByte = readb();
+
+    bool branchOn = BinaryHelper.isSet(jumpByte, 7);
+
+    var offset = jumpToLabelOffset(jumpByte);
+
+    if (branchOn){
+      Z.IOConfig
+      .saveGame(Quetzal.save(pc + (offset - 2)))
+      .then((result){
+        Z.inInterrupt = false;
+        if (result) pc += offset - 2;
+        Z.runIt(null);
+      });
+    }else{
+      Z.IOConfig
+      .saveGame(Quetzal.save(pc))
+      .then((result){
+        Z.inInterrupt = false;
+        if (!result) pc += offset - 2;
+        Z.runIt(null);
+      });
+    }
+  }
+
   void branch(bool testResult)
   {
     //calculates the local jump offset (ref 4.7)
@@ -300,7 +349,7 @@ class Machine
   void read(){
     Debugger.verbose('${pcHex(-1)} [read]');
 
-    Z.inInput = true;
+    Z.inInterrupt = true;
 
     Z._printBuffer();
 
@@ -361,7 +410,7 @@ class Machine
 
     doIt(foo){
       if (line.isComplete){
-        Z.inInput = false;
+        Z.inInterrupt = false;
         if (line == '/!'){
           Z.inBreak = true;
 //          Z._io.callAsync(Debugger.startBreak);
@@ -370,7 +419,7 @@ class Machine
         }
       }else{
         line.then((String l){
-          Z.inInput = false;
+          Z.inInterrupt = false;
           if (l == '/!'){
             Z.inBreak = true;
             Debugger.debugStartAddr = pc - 1;
@@ -757,7 +806,7 @@ class Machine
     var str = ZSCII.readZStringAndPop(addr);
 
     Debugger.verbose('${pcHex()} "$str"');
-    
+
     Z.sbuff.add(str);
   }
 
@@ -804,7 +853,7 @@ class Machine
     Z.sbuff.add(str);
 
     Debugger.verbose('${pcHex()} "$str"');
-    
+
     pc = callStack.pop();
   }
 
@@ -862,12 +911,12 @@ class Machine
       operand.rawValue = readVariable(Machine.SP);
     }
 
-    
+
     var v = readVariable(operand.rawValue);
 
     writeVariable(resultTo, v);
   }
-  
+
   void jump(){
     Debugger.verbose('${pcHex(-1)} [jump]');
 
@@ -1014,7 +1063,7 @@ class Machine
     if (operands[1].value == 0){
       throw new GameException('Divide by 0.');
     }
-    
+
     var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
 
     Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
@@ -1200,6 +1249,8 @@ class Machine
 
     Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
+
+
 
   Operand visitOperandsShortForm(){
     var oc = mem.loadb(pc - 1);
@@ -1618,8 +1669,7 @@ class Machine
         '178' : printf,
         '179' : print_ret,
         '180' : nop,
-        /* 181 : save */
-        '181' : notFound,
+        '181' : save,
         /* 182 : restore */
         '182' : notFound,
         '183' : restart,

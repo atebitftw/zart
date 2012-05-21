@@ -14,7 +14,7 @@ class Debugger {
   static List<int> _breakPoints;
 
   static void setMachine(Machine newMachine){
-    Z.inInput = true;
+    Z.inInterrupt = true;
     if (Z.isLoaded){
       if (newMachine.version != Z._ver){
         throw new GameException('Machine/Story version mismatch.');
@@ -25,7 +25,7 @@ class Debugger {
     Z.machine.mem = new _MemoryMap(Z._rawBytes);
     Z.machine.visitHeader();
     debug('<<< New machine installed: v${newMachine.version} >>>');
-    Z.inInput = false;
+    Z.inInterrupt = false;
   }
 
   static void startBreak(timer){
@@ -126,6 +126,11 @@ class Debugger {
           break;
         case 'locals':
           debug('${dumpLocals()}');
+          Z.IOConfig.callAsync(_repl);
+          break;
+        case 'stacks':
+          debug('call stack: ${Z.machine.callStack}');
+          debug('eval stack: ${Z.machine.stack}');
           Z.IOConfig.callAsync(_repl);
           break;
         case 'object':

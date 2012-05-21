@@ -42,8 +42,9 @@ void main() {
   }
 
   Z.IOConfig = new ConsoleProvider();
-  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trap door.down.turn lantern on');
-
+   
+  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trap door.down.turn lantern on'); 
+  
   //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.w');
   //Z.IOConfig = new DebugProvider.with('');
 

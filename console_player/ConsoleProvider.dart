@@ -13,6 +13,38 @@ class ConsoleProvider implements IOProvider
     lineBuffer = new Queue<String>(),
     outputBuffer = new Queue<String>();
 
+  Future<bool> saveGame(List<int> saveBytes){
+    var c = new Completer();
+    print('(Caution: will overwrite existing file!)');
+    print('Enter file name to save to (no extension):');
+
+    textStream.onLine = (){
+      var fn = textStream.readLine();
+      if (fn == null || fn.isEmpty())
+      {
+        print('Invalid file name given.');
+        c.complete(false);
+      }else{
+        try{
+          print('Saving game.  Use "restore" to restore it.');
+          File f2 = new File('games${Platform.pathSeparator}${fn}.sav');
+          OutputStream s = f2.openOutputStream();
+          s.writeFrom(saveBytes);
+          s.close();
+          c.complete(true);
+        }catch(FileIOException e){
+          c.complete(false);
+        }
+      }
+    };
+
+    return c.future;
+  }
+
+  Future<List<int>> restore(){
+    throw const NotImplementedException();
+  }
+
   void PrimaryOutput(String text) {
     if (text.startsWith('["STATUS",') && text.endsWith(']')){
       //ignore status line for simple console games
@@ -53,16 +85,8 @@ class ConsoleProvider implements IOProvider
 
   void DebugOutput(String text) => print(text);
 
-  void doPrint(){
-    while(!outputBuffer.isEmpty()){
-      print(outputBuffer.removeLast());
-    }
-  }
-
   Future<String> getLine(){
     Completer c = new Completer();
-
-    doPrint();
 
     if (!lineBuffer.isEmpty()){
       c.complete(lineBuffer.removeLast());

@@ -21,6 +21,14 @@ class DebugProvider implements IOProvider
     }
   }
 
+  Future<bool> saveGame(List<int> saveBytes){
+    throw const NotImplementedException();
+  }
+
+  Future<List<int>> restore(){
+    throw const NotImplementedException();
+  }
+
   void PrimaryOutput(String text) {
     if (text.startsWith('["STATUS",') && text.endsWith(']')){
       //ignore status line for simple console games

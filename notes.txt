@@ -10,7 +10,6 @@ Routine Stack frame
 0x3: local 1
 0x...
 0xn: local n
-0xn+1: routine base address  (Z._readLocal(-1))
 
 --------------------------------------------------------------
 Opcode -> Operand Mappings
