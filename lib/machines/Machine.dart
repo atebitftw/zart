@@ -121,40 +121,6 @@ class Machine
     callStack.push(locals);
   }
 
-  void callVS(){
-    Debugger.verbose('${pcHex(-1)} [call_vs]');
-    var operands = this.visitOperandsVar(4, true);
-
-    var resultStore = readb();
-    var returnAddr = pc;
-
-    if (operands.isEmpty())
-      throw new GameException('Call function address not given.');
-
-    //unpack function address
-    operands[0].rawValue = this.unpack(operands[0].value);
-
-    if (operands[0].value == 0){
-      //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
-
-      writeVariable(resultStore, Machine.FALSE);
-    }else{
-      //move to the routine address
-      pc = operands[0].rawValue;
-
-      //setup the routine stack frame and locals
-      visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
-
-      //push the result store address onto the call stack
-      callStack.push(resultStore);
-
-      //push the return address onto the call stack
-      callStack.push(returnAddr);
-    }
-
-  }
-
-
   void doReturn(){
     // pop the return value from whoever is returning
     var result = callStack.pop();
@@ -298,6 +264,38 @@ class Machine
     statusList.add(readVariable(0x12).toString());
 
     return JSON.stringify(statusList);
+  }
+
+  void callVS(){
+    Debugger.verbose('${pcHex(-1)} [call_vs]');
+    var operands = this.visitOperandsVar(4, true);
+
+    var resultStore = readb();
+    var returnAddr = pc;
+
+    if (operands.isEmpty())
+      throw new GameException('Call function address not given.');
+
+    //unpack function address
+    operands[0].rawValue = this.unpack(operands[0].value);
+
+    if (operands[0].value == 0){
+      //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
+
+      writeVariable(resultStore, Machine.FALSE);
+    }else{
+      //move to the routine address
+      pc = operands[0].rawValue;
+
+      //setup the routine stack frame and locals
+      visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+
+      //push the result store address onto the call stack
+      callStack.push(resultStore);
+
+      //push the return address onto the call stack
+      callStack.push(returnAddr);
+    }
   }
 
   void read(){
@@ -476,8 +474,20 @@ class Machine
     doReturn();
   }
 
+  void nop(){
+    Debugger.verbose('${pcHex(-1)} [nop]');
+  }
+
+  void pop(){
+    Debugger.verbose('${pcHex(-1)} [pop]');
+
+    stack.pop();
+  }
+
+
   void jz(){
     Debugger.verbose('${pcHex(-1)} [jz]');
+
     var operand = this.visitOperandsShortForm();
 
     branch(operand.value == 0);
@@ -548,7 +558,10 @@ class Machine
     Debugger.verbose('${pcHex(-1)} [test]');
     var pp = pc - 1;
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var jumpByte = mem.loadb(pc);
 
     bool branchOn = BinaryHelper.isSet(jumpByte, 7);
@@ -563,7 +576,9 @@ class Machine
   void dec_chk(){
     Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     var value = toSigned(readVariable(operands[0].rawValue)) - 1;
 
@@ -573,23 +588,12 @@ class Machine
     branch(value < toSigned(operands[1].value));
   }
 
-  void inc_chkV(){
-    Debugger.verbose('${pcHex(-1)} [inc_chk]');
-
-    var operands = this.visitOperandsVar(2, false);
-
-    var value = toSigned(readVariable(operands[0].rawValue)) + 1;
-
-    //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
-    writeVariable(operands[0].rawValue, value);
-
-    branch(value > toSigned(operands[1].value));
-  }
-
   void inc_chk(){
     Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
  //   var value = toSigned(readVariable(operands[0].rawValue)) + 1;
     var varValue = readVariable(operands[0].rawValue);
@@ -605,7 +609,9 @@ class Machine
   void test_attr(){
     Debugger.verbose('${pcHex(-1)} [test_attr]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
@@ -616,7 +622,9 @@ class Machine
   void jin()  {
     Debugger.verbose('${pcHex(-1)} [jin]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     var child = new GameObjectV3(operands[0].value);
     var parent = new GameObjectV3(operands[1].value);
@@ -677,28 +685,30 @@ class Machine
 
   void jl(){
     Debugger.verbose('${pcHex(-1)} [jl]');
-    var operands = visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     branch(toSigned(operands[0].value) < toSigned(operands[1].value));
   }
 
-  void jgv(){
-    Debugger.verbose('${pcHex(-1)} [jgv]');
-    var operands = this.visitOperandsVar(2, false);
-
-    branch(toSigned(operands[0].value) > toSigned(operands[1].value));
-  }
-
   void jg(){
     Debugger.verbose('${pcHex(-1)} [jg]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     branch(toSigned(operands[0].value) > toSigned(operands[1].value));
   }
 
   void je(){
     Debugger.verbose('${pcHex(-1)} [je]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     branch(toSigned(operands[0].value) == toSigned(operands[1].value));
   }
@@ -790,10 +800,12 @@ class Machine
     pc = callStack.pop();
   }
 
-  void insertObj(){
+  void insert_obj(){
     Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     GameObjectV3 from = new GameObjectV3(operands[0].value);
 
@@ -806,6 +818,7 @@ class Machine
 
   void remove_obj(){
     Debugger.verbose('${pcHex(-1)} [remove_obj]');
+
     var operand = this.visitOperandsShortForm();
 
     GameObjectV3 o = new GameObjectV3(operand.value);
@@ -814,20 +827,12 @@ class Machine
     o.removeFromTree();
   }
 
-  void storev(){
-    Debugger.verbose('${pcHex(-1)} [storev]');
-
-    var operands = this.visitOperandsVar(2, false);
-
-    assert(operands[0].rawValue <= 0xff);
-
-    writeVariable(operands[0].rawValue, operands[1].value);
-  }
-
   void store(){
     Debugger.verbose('${pcHex(-1)} [store]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     assert(operands[0].rawValue <= 0xff);
 
@@ -853,6 +858,7 @@ class Machine
 
   void ret(){
     Debugger.verbose('${pcHex(-1)} [ret]');
+
     var operand = this.visitOperandsShortForm();
 
     Debugger.verbose('    returning 0x${operand.peekValue.toRadixString(16)}');
@@ -877,7 +883,10 @@ class Machine
 
   void clear_attr(){
     Debugger.verbose('${pcHex(-1)} [clear_attr]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
@@ -887,7 +896,10 @@ class Machine
 
   void set_attr(){
     Debugger.verbose('${pcHex(-1)} [set_attr]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     GameObjectV3 obj = new GameObjectV3(operands[0].value);
 
@@ -895,29 +907,12 @@ class Machine
     Debugger.verbose('    (set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
-  void andV(){
-    Debugger.verbose('${pcHex(-1)} [andV]');
-    var operands = this.visitOperandsVar(2, false);
-
-    var resultTo = readb();
-
-    writeVariable(resultTo, (operands[0].value & operands[1].value));
-  }
-
-  void orV(){
-    Debugger.verbose('${pcHex(-1)} [orV]');
-
-    var operands = this.visitOperandsVar(2, false);
-
-    var resultTo = readb();
-
-    writeVariable(resultTo, (operands[0].value | operands[1].value));
-  }
-
   void or(){
     Debugger.verbose('${pcHex(-1)} [or]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -927,7 +922,9 @@ class Machine
   void and(){
     Debugger.verbose('${pcHex(-1)} [and]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -936,7 +933,11 @@ class Machine
 
   void sub(){
     Debugger.verbose('${pcHex(-1)} [sub]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) - toSigned(operands[1].value);
@@ -946,7 +947,11 @@ class Machine
 
   void add(){
     Debugger.verbose('${pcHex(-1)} [add]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) + toSigned(operands[1].value);
@@ -958,7 +963,11 @@ class Machine
 
   void mul(){
     Debugger.verbose('${pcHex(-1)} [mul]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) * toSigned(operands[1].value);
@@ -970,7 +979,11 @@ class Machine
 
   void div(){
     Debugger.verbose('${pcHex(-1)} [div]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     if (operands[1].value == 0){
@@ -981,19 +994,16 @@ class Machine
 
     Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
-//    if (result < 0){
-//      result = -(result.abs().floor());
-//    }else{
-//      result = result.floor();
-//    }
-
-
     writeVariable(resultTo, result);
   }
 
   void mod(){
     Debugger.verbose('${pcHex(-1)} [mod]');
-    var operands = this.visitOperandsLongForm();
+
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     if (operands[1].peekValue == 0){
@@ -1015,6 +1025,7 @@ class Machine
     Debugger.verbose('${pcHex(-1)} [get_prop_len]');
 
     var operand = this.visitOperandsShortForm();
+
     var resultTo = readb();
 
     var propLen = GameObjectV3.propertyLength(operand.value - 1);
@@ -1022,10 +1033,23 @@ class Machine
     writeVariable(resultTo, propLen);
   }
 
+  void not(){
+    Debugger.verbose('${pcHex(-1)} [not]');
+
+    var operand = this.visitOperandsShortForm();
+
+    var resultTo = readb();
+
+    writeVariable(resultTo, ~(operand.value));
+  }
+
   void get_next_prop(){
     Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     var obj = new GameObjectV3(operands[0].value);
@@ -1038,7 +1062,10 @@ class Machine
   void get_prop_addr(){
     Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     var obj = new GameObjectV3(operands[0].value);
@@ -1053,7 +1080,10 @@ class Machine
   void get_prop(){
     Debugger.verbose('${pcHex(-1)} [get_prop]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
+
     var resultTo = readb();
 
     var obj = new GameObjectV3(operands[0].value);
@@ -1080,7 +1110,9 @@ class Machine
   void loadb(){
     Debugger.verbose('${pcHex(-1)} [loadb]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1095,7 +1127,9 @@ class Machine
   void loadw(){
     Debugger.verbose('${pcHex(-1)} [loadw]');
 
-    var operands = this.visitOperandsLongForm();
+    var operands = mem.loadb(pc - 1) < 193
+        ? this.visitOperandsLongForm()
+        : this.visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1110,7 +1144,7 @@ class Machine
   void storebv(){
     Debugger.verbose('${pcHex(-1)} [storebv]');
 
-    var operands = this.visitOperandsVar(4, true);
+    var operands = this.visitOperandsVar(3, false);
 
     if (operands.length != 3){
       throw new GameException('Expected operand count of 3 for storeb instruction.');
@@ -1367,14 +1401,13 @@ class Machine
         '5' : inc_chk,
         '6' : jin,
         '7' : test,
-        /* 8 : or */
-        '8' : notFound,
+        '8' : or,
         '9' : and,
         '10' : test_attr,
         '11' : set_attr,
         '12' : clear_attr,
         '13' : store,
-        '14' : insertObj,
+        '14' : insert_obj,
         '15' : loadw,
         '16' : loadb,
         '17' : get_prop,
@@ -1403,14 +1436,13 @@ class Machine
         '37' : inc_chk,
         '38' : jin,
         '39' : test,
-        /* 40 : or */
-        '40' : notFound,
+        '40' : or,
         '41' : and,
         '42' : test_attr,
         '43' : set_attr,
         '44' : clear_attr,
         '45' : store,
-        '46' : insertObj,
+        '46' : insert_obj,
         '47' : loadw,
         '48' : loadb,
         '49' : get_prop,
@@ -1438,14 +1470,13 @@ class Machine
         '69' : inc_chk,
         '70' : jin,
         '71' : test,
-        /* 72 : or */
-        '72' : notFound,
+        '72' : or,
         '73' : and,
         '74' : test_attr,
         '75' : set_attr,
         '76' : clear_attr,
         '77' : store,
-        '78' : insertObj,
+        '78' : insert_obj,
         '79' : loadw,
         '80' : loadb,
         '81' : get_prop,
@@ -1473,14 +1504,13 @@ class Machine
         '101' : inc_chk,
         '102' : jin,
         '103' : test,
-        /* 104 : or */
-        '104' : notFound,
+        '104' : or,
         '105' : and,
         '106' : test_attr,
         '107' : set_attr,
         '108' : clear_attr,
         '109' : store,
-        '110' : insertObj,
+        '110' : insert_obj,
         '111' : loadw,
         '112' : loadb,
         '113' : get_prop,
@@ -1517,8 +1547,7 @@ class Machine
         '140' : jump,
         '141' : print_paddr,
         '142' : load,
-        /* 143 : not */
-        '143' : notFound,
+        '143' : not,
 
         /*** 1OP, small ***/
         '144' : jz,
@@ -1536,10 +1565,8 @@ class Machine
         '155' : ret,
         '156' : jump,
         '157' : print_paddr,
-        /* 158: load */
-        '158' : notFound,
-        /* 159: not */
-        '159' : notFound,
+        '158' : load,
+        '159' : not,
 
         /*** 1OP, variable ***/
         '160' : jz,
@@ -1555,28 +1582,24 @@ class Machine
         '169' : remove_obj,
         '170' : print_obj,
         '171' : ret,
-        /* 172 : jump */
-        '172' : notFound,
+        '172' : jump,
         '173' : print_paddr,
         '174' : load,
-        /* 175 : not */
-        '175' : notFound,
+        '175' : not,
 
         /* 0 OP */
         '176' : rtrue,
         '177' : rfalse,
         '178' : printf,
         '179' : print_ret,
-        /* 180 : NOP */
-        '180' : notFound,
+        '180' : nop,
         /* 181 : save */
         '181' : notFound,
         /* 182 : restore */
         '182' : notFound,
         '183' : restart,
         '184' : ret_popped,
-        /* 185 : pop */
-        '185' : notFound,
+        '185' : pop,
         '186' : quit,
         '187' : newline,
         /*'188' : show_status*/
@@ -1590,48 +1613,29 @@ class Machine
 
         /* 2OP, Variable of op codes 1-31 */
         '193' : jeV,
-        /* 194 : jlV */
-        '194' : notFound,
-        '195' : jgv,
-        /* 196 : dec_chkV */
-        '196' : notFound,
-        '197' : inc_chkV,
-        /* 198 : jinV */
-        '198' : notFound,
-        /* 199 : testV */
-        '199' : notFound,
-        /* 200 : orV */
-        '200' : notFound,
-        '201' : andV,
-        /* 202 : test_attrV */
-        '202' : notFound,
-        /* 203 : set_attrV */
-        '203' : notFound,
-        /* 204 : clear_attrV */
-        '204' : notFound,
-        '205' : storev,
-        /* 206 : insert_objV */
-        '206' : notFound,
-        /* 207 : loadwV */
-        '207' : notFound,
-        /* 208 : loadbV */
-        '208' : notFound,
-        /* 209 : get_propV */
-        '209' : notFound,
-        /* 210 : get_prop_addrV */
-        '210' : notFound,
-        /* 211 : get_next_propV */
-        '211' : notFound,
-        /* 212 : addV */
-        '212' : notFound,
-        /* 213 : subV */
-        '213' : notFound,
-        /* 214 : mulV */
-        '214' : notFound,
-        /* 215 : divV */
-        '215' : notFound,
-        /* 216 : modV */
-        '216' : notFound,
+        '194' : jl,
+        '195' : jg,
+        '196' : dec_chk,
+        '197' : inc_chk,
+        '198' : jin,
+        '199' : test,
+        '200' : or,
+        '201' : and,
+        '202' : test_attr,
+        '203' : set_attr,
+        '204' : clear_attr,
+        '205' : store,
+        '206' : insert_obj,
+        '207' : loadw,
+        '208' : loadb,
+        '209' : get_prop,
+        '210' : get_prop_addr,
+        '211' : get_next_prop,
+        '212' : add,
+        '213' : sub,
+        '214' : mul,
+        '215' : div,
+        '216' : mod,
         /* 217 : call_2sV */
         '217' : notFound,
         /* 218 : call_2nV */
