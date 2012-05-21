@@ -3,10 +3,20 @@ Some of my most memorable early gaming experiences where Infocom interactive fic
 
 This project is a labor of love.  I'll start with z-machine v3 and see where it goes...
 
+## Playing the Mini-Zork Game ##
+To run the game, run the ZConsole.dart app, either from the VM in shell,
+or from the Dart Editor (user-input works in the Dart Editor console too).
+
+There is a web-based version here as well (Chrome or Dartium only, for now):
+
+http://www.lucastudios.com/demos/zart/zartweb.html
+
+The web version uses the Buckshot UI library:
+
+https://github.com/prujohn/Buckshot
+
 ## Status - Playable for V3 Games ##
 Minizork is included with the source and is playable.
-
-To run the game, run the ZConsole.dart app (it works in the Dart Editor console too).
 
 All the V3 opcodes should be implemented (except load and restore... soon).
 
