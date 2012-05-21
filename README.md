@@ -3,12 +3,12 @@ Some of my most memorable early gaming experiences where Infocom interactive fic
 
 This project is a labor of love.  I'll start with z-machine v3 and see where it goes...
 
-## Status - Playable/Unstable ##
+## Status - Playable for V3 Games ##
 Minizork is included with the source and is playable.
 
 To run the game, run the ZConsole.dart app (it works in the Dart Editor console too).
 
-Not all opcodes are implemented yet.  There may be a Grue or two around the corners...
+All the V3 opcodes should be implemented (except load and restore... soon).
 
 	Copyright (c) 1988 Infocom, Inc. All rights reserved.
 	ZORK is a registered trademark of Infocom, Inc.
@@ -24,8 +24,6 @@ Not all opcodes are implemented yet.  There may be a Grue or two around the corn
 Enjoy!
 
 ### Next Steps ###
-* Finish up the remaining opcodes for V3 Z-Machine and stabilize.
-* Build a web-based player and a more refined console player (word wrap, etc).
 * Work on some later machine versions (V5, V8) etc.
 * Load/Save game options.
 
@@ -41,6 +39,7 @@ Doing so will drop you into a simple REPL.
 * **object x** - dumps info regarding object #x.
 * **enable (tracing|verbose)** - enables tracing or verbose debug mode.
 * **disable (tracing|verbose)** - disables tracing or verbose debug mode.
+* **header** - dumps header information
 * **q** - leave debug mode and return to game.
 * **n or Enter** - advance to the next instruction.
 
@@ -54,4 +53,4 @@ You can also enable tracing and/or verbose with:
 * Z-Machine Spec: http://www.gnelson.demon.co.uk/zspec/index.html
 
 ## Acknowledgements ##
-Adam Smith (RNG class found here: https://github.com/financeCoding/DRandom/blob/master/DRandom.dart)
+Adam Smith's RNG lib "DRandom" (found here: https://github.com/financeCoding/DRandom/blob/master/DRandom.dart)
