@@ -484,6 +484,25 @@ class Machine
     stack.pop();
   }
 
+  void show_status(){
+    Debugger.verbose('${pcHex(-1)} [show_status]');
+
+    //treat as NOP
+  }
+
+  void verify(){
+    Debugger.verbose('${pcHex(-1)} [verify]');
+
+    //always verify
+    branch(true);
+  }
+
+  void piracy(){
+    Debugger.verbose('${pcHex(-1)} [piracy]');
+
+    //always branch (game disk is genuine ;)
+    branch(true);
+  }
 
   void jz(){
     Debugger.verbose('${pcHex(-1)} [jz]');
@@ -1602,14 +1621,11 @@ class Machine
         '185' : pop,
         '186' : quit,
         '187' : newline,
-        /*'188' : show_status*/
-        '188' : notFound,
-        /* 189 : verify */
-        '189' : notFound,
+        '188' : show_status,
+        '189' : verify,
         /* 190 : extended */
         '190' : notFound,
-        /* 191 : piracy */
-        '191' : notFound,
+        '191' : piracy,
 
         /* 2OP, Variable of op codes 1-31 */
         '193' : jeV,
