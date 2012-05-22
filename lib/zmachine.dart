@@ -19,7 +19,7 @@
 
 #source('machines/Machine.dart');
 #source('machines/Version3.dart');
-#source('GameObjectV3.dart');
+#source('GameObject.dart');
 
 //
 // Dart Implementation of the Infocom Z-Machine.
@@ -48,7 +48,7 @@ class Z
 
   static IOProvider IOConfig;
 
-  static int get version() => _ver != null ? _ver.toInt() : null;
+  static int get version() => _ver != null ? _ver.toInt() : 0;
 
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
@@ -70,7 +70,7 @@ class Z
     if (result.length != 1){
       throw new Exception('Z-Machine version ${_ver} not supported.');
     }else{
-      machine = result[0];
+      machine = result.dynamic[0];
     }
 
     machine.mem = new _MemoryMap(_rawBytes);

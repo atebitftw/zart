@@ -52,8 +52,8 @@ class Debugger {
           Z.IOConfig.callAsync(_repl);
           break;
         case 'move':
-          var obj1 = new GameObjectV3(Math.parseInt(args[1]));
-          var obj2 = new GameObjectV3(Math.parseInt(args[2]));
+          var obj1 = new GameObject(Math.parseInt(args[1]));
+          var obj2 = new GameObject(Math.parseInt(args[2]));
           obj1.insertTo(obj2.id);
           Z.IOConfig.callAsync(_repl);
           break;
@@ -134,7 +134,7 @@ class Debugger {
           Z.IOConfig.callAsync(_repl);
           break;
         case 'object':
-          var obj = new GameObjectV3(Math.parseInt(args[1]));
+          var obj = new GameObject(Math.parseInt(args[1]));
           obj.dump();
           Z.IOConfig.callAsync(_repl);
           break;

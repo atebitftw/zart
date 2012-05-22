@@ -1,5 +1,7 @@
 #import('dart:io');
-#import('dart:unittest');
+#import('../../../src/lib/unittest/unittest.dart');
+//#import('dart:unittest');
+//^^ not working
 #import('../lib/zmachine.dart');
 
 #source('MockUIProvider.dart');
