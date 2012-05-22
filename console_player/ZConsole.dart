@@ -15,7 +15,7 @@
 // dart ZConsole.dart ../games/minizork.z3
 
 void main() {
-  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+  var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
 
   var args = new Options().arguments;
 
@@ -42,9 +42,9 @@ void main() {
   }
 
   Z.IOConfig = new ConsoleProvider();
-   
-  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trap door.down.turn lantern on'); 
-  
+
+  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trap door.down.turn lantern on');
+
   //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.w');
   //Z.IOConfig = new DebugProvider.with('');
 

@@ -191,9 +191,32 @@ class Machine
     throw new GameException('Unsupported Op Code: ${mem.loadb(pc - 1)}');
   }
 
+  void restore(){
+    if (Z.inInterrupt) {
+      return;
+    }
+
+    Z.inInterrupt = true;
+
+    Z.IOConfig.restore().then((stream){
+      Z.inInterrupt = false;
+      if (stream == null) {
+        branch(false);
+      }else{
+        var result = Quetzal.restore(stream);
+        if (!result){
+          branch(false);
+        }
+      }
+
+      //PC should be set by restore here
+      Z.runIt(null);
+    });
+  }
+
   void save(){
     if (Z.inInterrupt) {
-      branch(false);
+      return;
     }
 
     Z.inInterrupt = true;
@@ -1209,7 +1232,7 @@ class Machine
 
     var addr = operands[0].value + 2 * Machine.toSigned(operands[1].value);
 
-    assert(addr <= mem.highMemAddress);
+//    assert(addr <= mem.highMemAddress);
 
     writeVariable(resultTo, mem.loadw(addr));
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
@@ -1670,8 +1693,7 @@ class Machine
         '179' : print_ret,
         '180' : nop,
         '181' : save,
-        /* 182 : restore */
-        '182' : notFound,
+        '182' : restore,
         '183' : restart,
         '184' : ret_popped,
         '185' : pop,

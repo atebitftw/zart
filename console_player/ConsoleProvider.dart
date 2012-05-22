@@ -26,13 +26,14 @@ class ConsoleProvider implements IOProvider
         c.complete(false);
       }else{
         try{
-          print('Saving game.  Use "restore" to restore it.');
+          print('Saving game "${fn}.sav".  Use "restore" to restore it.');
           File f2 = new File('games${Platform.pathSeparator}${fn}.sav');
           OutputStream s = f2.openOutputStream();
           s.writeFrom(saveBytes);
           s.close();
           c.complete(true);
         }catch(FileIOException e){
+          print('File IO error.');
           c.complete(false);
         }
       }
@@ -42,7 +43,28 @@ class ConsoleProvider implements IOProvider
   }
 
   Future<List<int>> restore(){
-    throw const NotImplementedException();
+    var c = new Completer();
+    print('Enter game file name to load (no extension):');
+
+    textStream.onLine = (){
+      var fn = textStream.readLine();
+      if (fn == null || fn.isEmpty())
+      {
+        print('Invalid file name given.');
+        c.complete(null);
+      }else{
+        try{
+          print('Restoring game "${fn}.sav"...');
+          File f2 = new File('games${Platform.pathSeparator}${fn}.sav');
+          c.complete(f2.readAsBytesSync());
+        }catch(FileIOException e){
+          print('File IO error.');
+          c.complete(null);
+        }
+      }
+    };
+
+    return c.future;
   }
 
   void PrimaryOutput(String text) {
