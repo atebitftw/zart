@@ -15,7 +15,7 @@
 // dart ZConsole.dart ../games/minizork.z3
 
 void main() {
-  var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
+  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
 
   var args = new Options().arguments;
 

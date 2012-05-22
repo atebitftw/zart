@@ -18,7 +18,7 @@ https://github.com/prujohn/Buckshot
 ## Status - Playable for V3 Games ##
 Minizork is included with the source and is playable.
 
-All the V3 opcodes should be implemented (except load and restore... soon).
+All the V3 opcodes should be implemented.
 
 	Copyright (c) 1988 Infocom, Inc. All rights reserved.
 	ZORK is a registered trademark of Infocom, Inc.
@@ -35,7 +35,6 @@ Enjoy!
 
 ### Next Steps ###
 * Work on some later machine versions (V5, V8) etc.
-* Load/Save game options.
 
 ## Debugging ##
 There is a VERY basic runtime debugger included.  To enter it, type **/!** at any prompt.
@@ -50,6 +49,7 @@ Doing so will drop you into a simple REPL.
 * **enable (tracing|verbose)** - enables tracing or verbose debug mode.
 * **disable (tracing|verbose)** - disables tracing or verbose debug mode.
 * **header** - dumps header information
+* **dump addr len** dumps memory from address 'addr' to length
 * **q** - leave debug mode and return to game.
 * **n or Enter** - advance to the next instruction.
 
