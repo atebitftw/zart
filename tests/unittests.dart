@@ -1,13 +1,11 @@
 #import('dart:io');
-#import('../../../src/lib/unittest/unittest.dart');
+#import('dart:unittest');
 #import('../lib/zmachine.dart');
 
 #source('MockUIProvider.dart');
 #source('MockV3Machine.dart');
 #source('InstructionTests.dart');
 #source('ObjectTests.dart');
-
-//#import('../../../../src/lib/unittest/html_enhanced_config.dart');
 
 /*
 * IMPORTANT: Run in Checked Mode so Assertions fire.
