@@ -76,12 +76,53 @@ class Header{
   static final int  ALPHABET_TABLE = 0x34;
 
   static final int  HEADER_EXTENSION_TABLE = 0x36;
-
+  
   //64 bytes, by convention (1.1.1.1)
   static final int  UPPER_LIMIT = 0x40;
 
+  static final int FLAG1_V3_GAMETYPE = 1 << 1;
+  static final int FLAG1_V3_IS_STORY_SPLIT = 1 << 2;
+  static final int FLAG1_V3_STATUSLINE_AVAIL = 1 << 4;
+  static final int FLAG1_V3_SCREENSPLIT_AVAIL = 1 << 5;
+  static final int FLAG1_V3_VARIABLE_PITCH_FONT_AVAIL = 1 << 6;
+  
+  static final int FLAG1_V5_COLOR_AVAIL = 1;
+  static final int FLAG1_V6_PICTURE_DISP_AVAIL = 1 << 1;
+  static final int FLAG1_V4_BOLDFACE_AVAIL = 1 << 2;
+  static final int FLAG1_V4_ITALIC_AVAIL = 1 << 3;
+  static final int FLAG1_V4_FIXED_SPACE_FONT_AVAIL = 1 << 4;
+  static final int FLAG1_V4_SOUND_EFFECT_AVAIL = 1 << 5;
+  static final int FLAG1_V4_TIMED_KEY_INPUT_AVAIL = 1 << 7;
+  
+  static final int FLAG2_TRANSCRIPT_ON = 1;
+  static final int FLAG2_FORCE_PRINT_FIXED_PITCH = 1 << 1;
+  static final int FLAG2_SET_STATUS_REDRAW = 1 << 2;
+  //unset these if interpreter cannot support
+  static final int FLAG2_USE_PICTURES = 1 << 3;
+  static final int FLAG2_USE_UNDO = 1 << 4;
+  static final int FLAG2_USE_MOUSE = 1 << 5;
+  static final int FLAG2_USE_COLOR = 1 << 6;
+  static final int FLAG2_USE_SOUND = 1 << 7;
+  static final int FLAG2_USE_MENUS = 1 << 8;
+  
+  static void checkLoaded() {
+    if (!Z.isLoaded) throw new GameException('A game must first be loaded.');
+  }
+  
+  static bool setFlags1(int flags){
+    checkLoaded();
+    Z.machine.mem.storeb(Header.FLAGS1, flags);
+  }
+  
+  static bool setFlags2(int flags){
+    checkLoaded();
+    Z.machine.mem.storeb(Header.FLAGS2, flags);
+  }
+   
   /// Feturns false if the game is a timed game.
   static bool isScoreGame(){
+    checkLoaded();
+    
     return !BinaryHelper.isSet(Z.machine.mem.loadb(FLAGS1), 1);
   }
 

@@ -13,6 +13,59 @@ class ConsoleProvider implements IOProvider
     lineBuffer = new Queue<String>(),
     outputBuffer = new Queue<String>();
 
+  Future<Object> command(String JSONCommand){
+    var c = new Completer();
+    
+    var msgSet = JSON.parse(JSONCommand);
+    
+    var cmd = IOCommands.toIOCommand(msgSet[0]);
+    
+    switch(cmd){
+      case IOCommands.PRINT:
+        output(msgSet[1], msgSet[2]);
+        c.complete(null);
+        break;
+      case IOCommands.STATUS:
+        print('(${msgSet})');
+        c.complete(null);
+        break;
+      case IOCommands.READ:
+        getLine().then((line) => c.complete(line));
+        break;
+      case IOCommands.READ_CHAR:
+        getChar().then((char) => c.complete(char));
+        break;
+      case IOCommands.SAVE:
+        saveGame(msgSet.getRange(1, msgSet.length - 1))
+          .then((result) => c.complete(result));
+        break;
+      case IOCommands.CLEAR_SCREEN:
+        //no clear console api?
+        for(int i=0; i < 50; i++){
+          print('');        
+        }
+        c.complete(null);
+        break;
+      case IOCommands.RESTORE:
+        restore().then((result) => c.complete(result));
+        break;
+      case IOCommands.PRINT_DEBUG:
+        print('${msgSet[1]}');
+        c.complete(null);
+        break;
+      case IOCommands.QUIT:
+        print('Zart: Game Over!');
+        c.complete(null);
+        break;
+      default:
+        c.complete(null);
+    }
+    
+    return c.future;
+  }
+  
+  
+  
   Future<bool> saveGame(List<int> saveBytes){
     var c = new Completer();
     print('(Caution: will overwrite existing file!)');
@@ -67,7 +120,7 @@ class ConsoleProvider implements IOProvider
     return c.future;
   }
 
-  void PrimaryOutput(String text) {
+  void output(int windowID, String text) {
     if (text.startsWith('["STATUS",') && text.endsWith(']')){
       //ignore status line for simple console games
       return;
@@ -107,6 +160,22 @@ class ConsoleProvider implements IOProvider
 
   void DebugOutput(String text) => print(text);
 
+  Future<String> getChar(){
+    var c = new Completer();
+    
+    if (!lineBuffer.isEmpty()){
+      c.complete(lineBuffer.removeLast());
+    }else{
+      //flush?
+      textStream.read();
+      textStream.onData = (){
+        c.complete(textStream.read().substring(0, 1));
+      };
+    }
+    
+    return c.future;
+  }
+  
   Future<String> getLine(){
     Completer c = new Completer();
 

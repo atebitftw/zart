@@ -19,6 +19,8 @@
 
 #source('machines/Machine.dart');
 #source('machines/Version3.dart');
+#source('machines/Version5.dart');
+#source('machines/Version6.dart');
 #source('GameObject.dart');
 
 //
@@ -55,7 +57,7 @@ class Z
   */
   static void load(List<int> storyBytes){
     if (!Z.isLoaded){
-      _supportedMachines = [new Version3()];
+      _supportedMachines = [new Version3(), new Version5(), new Version6()];
       sbuff = new StringBuffer();
       IOConfig = new DefaultProvider([]);
     }
@@ -73,6 +75,8 @@ class Z
       machine = result.dynamic[0];
     }
 
+    print('Zart: Using Z-Machine v${machine.version}.');
+    
     machine.mem = new _MemoryMap(_rawBytes);
 
     machine.visitHeader();
@@ -103,7 +107,7 @@ class Z
 
     //push dummy return address onto the call stack
     machine.callStack.push(0);
-
+    
     if (inBreak){
       IOConfig.callAsync(Debugger.startBreak);
     }else{
@@ -118,12 +122,8 @@ class Z
     }
 
     if(inBreak){
-      Z.IOConfig.DebugOutput('<<< DEBUG MODE >>>');
+      Z.IOConfig.command(JSON.stringify([IOCommands.PRINT_DEBUG, "<<< DEBUG MODE >>>"]));     
       Z.IOConfig.callAsync(Debugger.startBreak);
-    }
-
-    if (quit && !Debugger.isUnitTestRun){
-      Z.quit = false;
     }
 
 //    if (!inBreak && !inInput){
@@ -135,10 +135,21 @@ class Z
 //      }
 //    }
   }
+  
+  static Future<Object> sendIO(IOCommands command, [List messageData]){
+    var msg = [command.toString()];
+    
+    if (messageData != null && messageData is Collection){
+      msg.addAll(messageData);
+    }
+    return IOConfig.command(JSON.stringify(msg));
+  }
 
   static void _printBuffer(){
-    Z.IOConfig.PrimaryOutput(sbuff.toString());
-    Z.sbuff.clear();
+       sendIO(IOCommands.PRINT, [Z.machine.currentWindow, Z.sbuff.toString()])
+        .then((_){
+          Z.sbuff.clear();      
+        });
   }
 
   /** Reset Z-Machine to state at first load */

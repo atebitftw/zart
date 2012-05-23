@@ -13,6 +13,8 @@ class Machine
 
   final _Stack stack;
   final _Stack callStack;
+  
+  int currentWindow = 0;
 
   DRandom r;
 
@@ -198,7 +200,7 @@ class Machine
 
     Z.inInterrupt = true;
 
-    Z.IOConfig.restore().then((stream){
+    Z.sendIO(IOCommands.RESTORE).then((stream){
       Z.inInterrupt = false;
       if (stream == null) {
         branch(false);
@@ -244,17 +246,23 @@ class Machine
 
     var offset = jumpToLabelOffset(jumpByte);
 
+    var saveData = [];
+    saveData.add(IOCommands.SAVE.toString());
     if (branchOn){
+      saveData.addAll(Quetzal.save(pc + (offset - 2)));
+      
       Z.IOConfig
-      .saveGame(Quetzal.save(pc + (offset - 2)))
+      .command(JSON.stringify(saveData))
       .then((result){
         Z.inInterrupt = false;
         if (result) pc += offset - 2;
         Z.runIt(null);
       });
     }else{
+      saveData.addAll(Quetzal.save(pc));
+      
       Z.IOConfig
-      .saveGame(Quetzal.save(pc))
+      .command(JSON.stringify(saveData))
       .then((result){
         Z.inInterrupt = false;
         if (!result) pc += offset - 2;
@@ -321,20 +329,19 @@ class Machine
     Debugger.verbose('    (continuing to next instruction)');
   }
 
-  String getStatusJSON(){
-
-    var statusList = new List<String>();
-
-    statusList.add('STATUS');
-    statusList.add(Header.isScoreGame() ? 'SCORE' : 'TIME');
+  void sendStatus(){
+    var status = [];
+    
+    status.add(IOCommands.STATUS.toString());
+    status.add(Header.isScoreGame() ? 'SCORE' : 'TIME');
 
     var locObject = new GameObject(readVariable(0x10));
-    statusList.add(locObject.shortName);
+    status.add(locObject.shortName);
 
-    statusList.add(readVariable(0x11).toString());
-    statusList.add(readVariable(0x12).toString());
+    status.add(readVariable(0x11));
+    status.add(readVariable(0x12));
 
-    return JSON.stringify(statusList);
+    Z.IOConfig.command(JSON.stringify(status));
   }
 
   void callVS(){
@@ -354,6 +361,7 @@ class Machine
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
       writeVariable(resultStore, Machine.FALSE);
+      doReturn();
     }else{
       //move to the routine address
       pc = operands[0].rawValue;
@@ -374,12 +382,10 @@ class Machine
 
     Z.inInterrupt = true;
 
+    sendStatus();
+    
     Z._printBuffer();
-
-    Z.sbuff.add(getStatusJSON());
-
-    Z._printBuffer();
-
+    
     var operands = this.visitOperandsVar(4, true);
 
     var maxBytes = mem.loadb(operands[0].value);
@@ -429,7 +435,7 @@ class Machine
 //      Z._io.callAsync(Z._runIt);
     }
 
-    Future<String> line = Z.IOConfig.getLine();
+    Future<String> line = Z.IOConfig.command(JSON.stringify([IOCommands.READ.toString()]));
 
     doIt(foo){
       if (line.isComplete){
@@ -736,8 +742,10 @@ class Machine
 
   void quit(){
     Debugger.verbose('${pcHex(-1)} [quit]');
-
+    
     Z.quit = true;
+    
+    Z.sendIO(IOCommands.QUIT);
   }
 
   void restart(){
@@ -1238,6 +1246,8 @@ class Machine
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
+  
+  
   void storebv(){
     Debugger.verbose('${pcHex(-1)} [storebv]');
 
@@ -1248,10 +1258,10 @@ class Machine
     }
 
     var addr = operands[0].value + Machine.toSigned(operands[1].value);
+//
+//    assert(operands[2].value <= 0xff);
 
-    assert(operands[2].value <= 0xff);
-
-    mem.storeb(addr, operands[2].value);
+    mem.storeb(addr, operands[2].value & 0xFF);
 
     Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }

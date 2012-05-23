@@ -29,13 +29,19 @@ class Debugger {
   }
 
   static void startBreak(timer){
-    Z.IOConfig.DebugOutput('(break)>>> [0x${debugStartAddr.toRadixString(16)}]'
+    Z.IOConfig
+    .command(JSON.stringify(
+      [
+       IOCommands.PRINT_DEBUG, 
+    '(break)>>> [0x${debugStartAddr.toRadixString(16)}]'
     ' opCode: ${Z.machine.mem.loadb(debugStartAddr)}'
-    ' (${opCodes[Z.machine.mem.loadb(debugStartAddr).toString()]})');
-
-    Z.IOConfig.DebugOutput('   Locals: ${dumpLocals()}');
-
-    _repl(timer);
+    ' (${opCodes[Z.machine.mem.loadb(debugStartAddr).toString()]})'
+    '\n'
+    '    Locals ${dumpLocals()}\n'
+    ]))
+    .then((_){
+      _repl(timer);  
+    });
   }
 
   static void _repl(timer){
@@ -149,15 +155,10 @@ class Debugger {
       }
     }
 
-    var line = Z.IOConfig.getLine();
-
-    if (line.isComplete){
-      parse(line.value);
-    }else{
-      line.then((String l){
-        parse(l);
-      });
-    }
+    Z.sendIO(IOCommands.READ, [])
+    .then((line){
+      parse(line);
+    });
   }
 
   static void enableAll(){
@@ -247,16 +248,21 @@ class Debugger {
   }
 
   /// Debug Channel
-  static void debug(String debugString) => Z.IOConfig.DebugOutput(debugString);
+  static void debug(String debugString) {
+    Z.sendIO(IOCommands.PRINT_DEBUG, [debugString]);
+  }
 
 
   static void todo([String message]){
-    Z.IOConfig.DebugOutput('Stopped At: 0x${Z.machine.pc.toRadixString(16)}');
-    Z.IOConfig.PrimaryOutput('Text Buffer:');
-    Z._printBuffer();
-
-    if (message != null)
-      Z.IOConfig.DebugOutput(message);
-    throw const NotImplementedException();
+    Z.sendIO(IOCommands.PRINT_DEBUG, 
+      [
+        'Stopped At: 0x${Z.machine.pc.toRadixString(16)}\n\n'
+        'Text Buffer:\n'
+        '${Z.sbuff}\n'
+        '${message != null ? message : ""}\n'
+      ])
+      .then((_) { 
+        throw const NotImplementedException(); 
+      });
   }
 }

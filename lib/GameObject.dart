@@ -5,19 +5,17 @@ class GameObject
   int get PARENT_ADDR() => _address + (Z.version <= 3 ? 4 : 6);
   int get SIBLING_ADDR() => _address + (Z.version <= 3 ? 5 : 8);
   int get CHILD_ADDR() => _address + (Z.version <= 3 ? 6 : 10);
-
-  int get attributeBytes() => Z.version <= 3 ? 32 : 48;
   
   int _address;
 
-  int get parent() => Z.machine.mem.loadb(PARENT_ADDR);
-  set parent(int oid) => Z.machine.mem.storeb(PARENT_ADDR, oid);
+  int get parent() => Z.version <= 3 ? Z.machine.mem.loadb(PARENT_ADDR) : Z.machine.mem.loadw(PARENT_ADDR);
+  set parent(int oid) => Z.version <= 3 ? Z.machine.mem.storeb(PARENT_ADDR, oid) : Z.machine.mem.storew(PARENT_ADDR, oid);
 
-  int get child() => Z.machine.mem.loadb(CHILD_ADDR);
-  set child(int oid) => Z.machine.mem.storeb(CHILD_ADDR, oid);
+  int get child() => Z.version <= 3 ? Z.machine.mem.loadb(CHILD_ADDR) : Z.machine.mem.loadw(CHILD_ADDR);
+  set child(int oid) => Z.version <= 3 ? Z.machine.mem.storeb(CHILD_ADDR, oid) : Z.machine.mem.storew(CHILD_ADDR, oid);
 
-  int get sibling() => Z.machine.mem.loadb(SIBLING_ADDR);
-  set sibling(int oid) => Z.machine.mem.storeb(SIBLING_ADDR, oid);
+  int get sibling() => Z.version <= 3 ? Z.machine.mem.loadb(SIBLING_ADDR) : Z.machine.mem.loadw(SIBLING_ADDR);
+  set sibling(int oid) => Z.version <= 3 ? Z.machine.mem.storeb(SIBLING_ADDR, oid) : Z.machine.mem.storew(SIBLING_ADDR, oid);
 
   int flags;
 

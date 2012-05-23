@@ -158,8 +158,14 @@ class ZSCII {
         currentAlphabet = ZSCII.A2;
       }
       else {
-        s.add(DEFAULT_TABLE[currentAlphabet][char - 6]);
-        currentAlphabet = ZSCII.A0;
+        var alternateTable = Z.machine.mem.loadw(Header.ALPHABET_TABLE);
+        
+        if (Z.version >= 5 && alternateTable > 0){
+          Debugger.todo('alternate ZSCII table lookup');
+        }else{
+          s.add(DEFAULT_TABLE[currentAlphabet][char - 6]);
+          currentAlphabet = ZSCII.A0;          
+        }
       }
     }
 
@@ -182,8 +188,6 @@ class ZSCII {
 
     if (c == '\t'){
       return 9;
-    }else if (c == ' '){
-      return 11;
     }else if (c == '\n'){
       return 13;
     }else{
