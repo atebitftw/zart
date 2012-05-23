@@ -23,11 +23,11 @@ class DebugProvider implements IOProvider
 
   Future<Object> command(String JSONCommand){
     var c = new Completer();
-    
+
     var msgSet = JSON.parse(JSONCommand);
-    
+
     var cmd = IOCommands.toIOCommand(msgSet[0]);
-    
+
     switch(cmd){
       case IOCommands.PRINT:
         output(msgSet[1], msgSet[2]);
@@ -45,10 +45,10 @@ class DebugProvider implements IOProvider
       case IOCommands.RESTORE:
         break;
     }
-    
+
     return c.future;
   }
-  
+
   Future<bool> saveGame(List<int> saveBytes){
     throw const NotImplementedException();
   }
@@ -57,7 +57,7 @@ class DebugProvider implements IOProvider
     throw const NotImplementedException();
   }
 
-  void output(int screen, String text) {   
+  void output(int screen, String text) {
     if (text.startsWith('["STATUS",') && text.endsWith(']')){
       //ignore status line for simple console games
       return;
@@ -105,9 +105,9 @@ class DebugProvider implements IOProvider
 
   Future<String> getChar(){
     var c = new Completer();
-    
+
     doPrint();
-    
+
     if (!lineBuffer.isEmpty()){
       c.complete(lineBuffer.removeLast());
     }else{
@@ -115,10 +115,10 @@ class DebugProvider implements IOProvider
       textStream.read();
       textStream.onData = () => c.complete(textStream.read().substring(0,1));
     }
-    
+
     return c.future;
   }
-  
+
   Future<String> getLine(){
     Completer c = new Completer();
 
@@ -131,9 +131,5 @@ class DebugProvider implements IOProvider
     }
 
     return c.future;
-  }
-
-  void callAsync(func(timer)){
-    new Timer(0, func);
   }
 }

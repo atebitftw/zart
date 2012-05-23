@@ -1,3 +1,4 @@
-lib/zmachine.dart
+tests/V5/v5Tests.dart
+lib/ZMachine.dart
 tests/unittests.dart
 console_player/ZConsole.dart

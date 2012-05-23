@@ -159,12 +159,12 @@ class ZSCII {
       }
       else {
         var alternateTable = Z.machine.mem.loadw(Header.ALPHABET_TABLE);
-        
-        if (Z.version >= 5 && alternateTable > 0){
+
+        if (Z.machine.version.toInt() >= 5 && alternateTable > 0){
           Debugger.todo('alternate ZSCII table lookup');
         }else{
           s.add(DEFAULT_TABLE[currentAlphabet][char - 6]);
-          currentAlphabet = ZSCII.A0;          
+          currentAlphabet = ZSCII.A0;
         }
       }
     }

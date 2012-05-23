@@ -144,7 +144,7 @@ instructionTests(){
 
 //    Debugger.debug('${Z.machine.mem.dump(callAddr, 20)}');
 
-    Z.IOConfig.callAsync(Z.runIt);
+    Z.callAsync(Z.runIt);
 
     callbackDone();
   }

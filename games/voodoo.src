@@ -1,0 +1,3001 @@
+Resident data ends at 2308, program starts at 2308, file ends at 5c9c
+
+Starting analysis pass at address 2306
+
+End of analysis pass, low address = 2308, high address = 5a00
+
+[Start of code at 2308]
+
+Main routine 2308, 0 locals
+
+ 2309:  8f 08 c5                CALL_1N         2314
+ 230c:  8f 08 d2                CALL_1N         2348
+ 230f:  ba                      QUIT            
+
+orphan code fragment:
+
+ 2310:  b0                      RTRUE           
+
+Routine 2314, 1 local
+
+ 2315:  10 00 21 1b             LOADB           #00,#21 -> G0b
+ 2319:  10 00 20 1c             LOADB           #00,#20 -> G0c
+ 231d:  55 1b 01 00             SUB             G0b,#01 -> -(SP)
+ 2321:  e2 9b 21 00 00          STOREB          G11,#00,(SP)+
+ 2326:  e2 97 21 01 3c          STOREB          G11,#01,#3c
+ 232b:  0d 01 02                STORE           L00,#02
+ 232e:  55 1b 02 00             SUB             G0b,#02 -> -(SP)
+ 2332:  62 01 00 00 0c          JL              L00,(SP)+ [FALSE] 2341
+ 2337:  e2 a7 21 01 2d          STOREB          G11,L00,#2d
+ 233c:  95 01                   INC             L00
+ 233e:  8c ff ef                JUMP            232e
+ 2341:  e2 a7 21 01 3e          STOREB          G11,L00,#3e
+ 2346:  b0                      RTRUE           
+
+Routine 2348, 1 local
+
+ 2349:  ed 3f ff ff             ERASE_WINDOW    #ffff
+ 234d:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 2352:  8f 16 80                CALL_1N         5a00
+ 2355:  f3 3f ff fd             OUTPUT_STREAM   #fffd
+ 2359:  f1 7f 01                SET_TEXT_STYLE  REVERSE
+ 235c:  cf 1f 13 d6 00 00       LOADW           #13d6,#00 -> -(SP)
+ 2362:  75 1b 00 00             SUB             G0b,(SP)+ -> -(SP)
+ 2366:  57 00 02 01             DIV             (SP)+,#02 -> L00
+ 236a:  2d ff 01                STORE           Gef,L00
+ 236d:  42 ff 01 80 0e          JL              Gef,#01 [TRUE] 237e
+ 2372:  e5 7f 20                PRINT_CHAR      ' '
+ 2375:  55 ff 01 ff             SUB             Gef,#01 -> Gef
+ 2379:  41 ff 00 3f f6          JE              Gef,#00 [FALSE] 2372
+ 237e:  8f 16 80                CALL_1N         5a00
+ 2381:  cf 1f 13 d6 00 00       LOADW           #13d6,#00 -> -(SP)
+ 2387:  75 1b 01 00             SUB             G0b,L00 -> -(SP)
+ 238b:  75 00 00 00             SUB             (SP)+,(SP)+ -> -(SP)
+ 238f:  2d ff 00                STORE           Gef,(SP)+
+ 2392:  42 ff 01 80 0e          JL              Gef,#01 [TRUE] 23a3
+ 2397:  e5 7f 20                PRINT_CHAR      ' '
+ 239a:  55 ff 01 ff             SUB             Gef,#01 -> Gef
+ 239e:  41 ff 00 3f f6          JE              Gef,#00 [FALSE] 2397
+ 23a3:  f1 7f 00                SET_TEXT_STYLE  ROMAN
+ 23a6:  0d 01 00                STORE           L00,#00
+ 23a9:  55 1c 0a 00             SUB             G0c,#0a -> -(SP)
+ 23ad:  57 00 02 00             DIV             (SP)+,#02 -> -(SP)
+ 23b1:  62 01 00 00 08          JL              L00,(SP)+ [FALSE] 23bc
+ 23b6:  bb                      NEW_LINE        
+ 23b7:  95 01                   INC             L00
+ 23b9:  8c ff ef                JUMP            23a9
+ 23bc:  f9 03 09 0c 16 9f 16 a0 CALL_VN         2430 (S011,S012)
+ 23c4:  f9 03 09 0c 16 a3 16 a4 CALL_VN         2430 (S013,S014)
+ 23cc:  f9 03 09 0c 16 a8 16 a9 CALL_VN         2430 (S015,S016)
+ 23d4:  f9 03 09 0c 16 ac 16 ad CALL_VN         2430 (S017,S018)
+ 23dc:  f9 03 09 0c 16 b1 16 b2 CALL_VN         2430 (S019,S020)
+ 23e4:  f6 7f 01 01             READ_CHAR       #01 -> L00
+ 23e8:  ed 3f ff ff             ERASE_WINDOW    #ffff
+ 23ec:  2d ff 01                STORE           Gef,L00
+ 23ef:  c1 97 ff 73 53 00 08    JE              Gef,#73,#53 [FALSE] 23fc
+ 23f6:  8f 0a 28                CALL_1N         28a0
+ 23f9:  8c 00 31                JUMP            242b
+ 23fc:  c1 97 ff 72 52 00 08    JE              Gef,#72,#52 [FALSE] 2409
+ 2403:  8f 09 18                CALL_1N         2460
+ 2406:  8c 00 24                JUMP            242b
+ 2409:  c1 97 ff 63 43 00 08    JE              Gef,#63,#43 [FALSE] 2416
+ 2410:  8f 09 25                CALL_1N         2494
+ 2413:  8c 00 17                JUMP            242b
+ 2416:  c1 97 ff 69 49 00 08    JE              Gef,#69,#49 [FALSE] 2423
+ 241d:  8f 09 c4                CALL_1N         2710
+ 2420:  8c 00 0a                JUMP            242b
+ 2423:  c1 97 ff 71 51 00 03    JE              Gef,#71,#51 [FALSE] 242b
+ 242a:  ba                      QUIT            
+ 242b:  8c ff 1d                JUMP            2349
+
+Routine 2430, 2 locals
+
+ 2431:  55 1b 16 00             SUB             G0b,#16 -> -(SP)
+ 2435:  57 00 02 00             DIV             (SP)+,#02 -> -(SP)
+ 2439:  2d ff 00                STORE           Gef,(SP)+
+ 243c:  42 ff 01 80 0e          JL              Gef,#01 [TRUE] 244d
+ 2441:  e5 7f 20                PRINT_CHAR      ' '
+ 2444:  55 ff 01 ff             SUB             Gef,#01 -> Gef
+ 2448:  41 ff 00 3f f6          JE              Gef,#00 [FALSE] 2441
+ 244d:  f1 7f 02                SET_TEXT_STYLE  BOLDFACE
+ 2450:  ad 01                   PRINT_PADDR     L00
+ 2452:  f1 7f 00                SET_TEXT_STYLE  ROMAN
+ 2455:  b2 ...                  PRINT           "  "
+ 2458:  ad 02                   PRINT_PADDR     L01
+ 245a:  bb                      NEW_LINE        
+ 245b:  bb                      NEW_LINE        
+ 245c:  b0                      RTRUE           
+
+Routine 2460, 1 local
+
+ 2461:  be 01 ff ff             RESTORE         -> Gef
+ 2465:  41 ff 02 c2             JE              Gef,#02 [TRUE] 2469
+ 2469:  b2 ...                  PRINT           "Restore failed
+Press RETURN to continue..."
+ 248e:  f6 7f 01 01             READ_CHAR       #01 -> L00
+ 2492:  b0                      RTRUE           
+
+Routine 2494, 1 local
+
+ 2495:  f1 7f 02                SET_TEXT_STYLE  BOLDFACE
+ 2498:  b2 ...                  PRINT           "Credits"
+ 249f:  f1 7f 00                SET_TEXT_STYLE  ROMAN
+ 24a2:  b2 ...                  PRINT           "
+
+'"
+ 24a7:  8f 16 80                CALL_1N         5a00
+ 24aa:  b2 ...                  PRINT           "' was translated to Inform by
+Scott2Zip, version "
+ 24d1:  8d 16 88                PRINT_PADDR     S002
+ 24d4:  b2 ...                  PRINT           ", and subsequently compiled
+with Inform v"
+ 24f3:  b2 ...                  PRINT           "1502"
+ 24fa:  b2 ...                  PRINT           ".
+
+"
+ 24ff:  b2 ...                  PRINT           "The original version was
+probably written by either Scott Adams or Brian Howarth, in the the "Scott
+Adams format". If written by Scott Adams, it is still under copyright and this
+translated version can only be used by the legal owner of the original
+adventure; it must not be given away or distributed on the Net.
+
+"
+ 25e2:  b2 ...                  PRINT           "For help to understand the
+TRS-80 format, thanks to Paul David Doherty, who wrote the decompiler ScottDec,
+and to Alan Cox, who wrote the game driver ScottFree.
+
+"
+ 265f:  b2 ...                  PRINT           "Thanks to Graham Nelson, for
+creating Inform, and for documenting the Z-machine.
+
+"
+ 269e:  b2 ...                  PRINT           "Thanks to Graham Nelson and
+Gareth Rees, for suggesting how word-wrapping in the upper window could be
+done.
+
+"
+ 26ef:  b2 ...                  PRINT           "[Please press SPACE.]
+"
+ 2708:  f6 7f 01 01             READ_CHAR       #01 -> L00
+ 270c:  b0                      RTRUE           
+
+Routine 2710, 1 local
+
+ 2711:  f1 7f 02                SET_TEXT_STYLE  BOLDFACE
+ 2714:  b2 ...                  PRINT           "Commands"
+ 271b:  f1 7f 00                SET_TEXT_STYLE  ROMAN
+ 271e:  b2 ...                  PRINT           "
+
+Commands consist of sentences with one or two words.  The following commands
+are always understood: HELP, QUIT, SAVE GAME, SCORE, and INVENTORY.
+
+"
+ 27a1:  b2 ...                  PRINT           "In this particular adventure,
+you may abbreviate any word by typing its first "
+ 27d8:  e6 bf 16                PRINT_NUM       G06
+ 27db:  b2 ...                  PRINT           " letters, and directions by
+typing one letter.
+
+"
+ 2800:  b2 ...                  PRINT           "There are some meta-commands
+available.
+
+"$script" turns on a game transcript, "$unscript" or "$noscript" turns off the
+transcript. "
+ 2869:  b2 ...                  PRINT           "
+
+"
+ 286e:  b2 ...                  PRINT           "[Please press SPACE.]
+"
+ 2887:  f6 7f 01 01             READ_CHAR       #01 -> L00
+ 288b:  b0                      RTRUE           
+
+Routine 288c, 1 local
+
+ 288d:  f6 7f 01 01             READ_CHAR       #01 -> L00
+ 2891:  41 01 79 80 07          JE              L00,#79 [TRUE] 289b
+ 2896:  41 01 59 00 03          JE              L00,#59 [FALSE] 289c
+ 289b:  b0                      RTRUE           
+ 289c:  b1                      RFALSE          
+
+Routine 28a0, 8 locals
+
+ 28a1:  0f 00 04 01             LOADW           #00,#04 -> L00
+ 28a5:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 28aa:  8f 0a e2                CALL_1N         2b88
+ 28ad:  f3 3f ff fd             OUTPUT_STREAM   #fffd
+ 28b1:  bb                      NEW_LINE        
+ 28b2:  01 01 01 01 91          JE              #01,#01 [FALSE] 2a46
+ 28b7:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 28bc:  8f 15 78                CALL_1N         55e0
+ 28bf:  8f 0a 92                CALL_1N         2a48
+ 28c2:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 28c7:  8f 0a e2                CALL_1N         2b88
+ 28ca:  f3 3f ff fd             OUTPUT_STREAM   #fffd
+ 28ce:  b2 ...                  PRINT           "WHAT SHALL I DO? "
+ 28e3:  88 0a 9c 06             CALL_1S         2a70 -> L05
+ 28e7:  41 06 00 00 05          JE              L05,#00 [FALSE] 28ef
+ 28ec:  8c ff e1                JUMP            28ce
+ 28ef:  e2 97 19 01 00          STOREB          G09,#01,#00
+ 28f4:  fb a9 18 19 01 00       TOKENISE        G08,G09,L00,#00
+ 28fa:  4f 19 01 00             LOADW           G09,#01 -> -(SP)
+ 28fe:  41 00 00 00 47          JE              (SP)+,#00 [FALSE] 2948
+ 2903:  50 19 04 00             LOADB           G09,#04 -> -(SP)
+ 2907:  41 00 01 00 38          JE              (SP)+,#01 [FALSE] 2942
+ 290c:  50 19 05 00             LOADB           G09,#05 -> -(SP)
+ 2910:  70 18 00 07             LOADB           G08,(SP)+ -> L06
+ 2914:  0d 03 00                STORE           L02,#00
+ 2917:  42 03 06 00 28          JL              L02,#06 [FALSE] 2942
+ 291c:  d0 2f 1c 4c 03 00       LOADB           #1c4c,L02 -> -(SP)
+ 2922:  61 07 00 00 18          JE              L06,(SP)+ [FALSE] 293d
+ 2927:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 292c:  d0 2f 1c 3a 03 00       LOADB           #1c3a,L02 -> -(SP)
+ 2932:  da 2f 0b ec 00          CALL_2N         2fb0 ((SP)+)
+ 2937:  8f 0a 92                CALL_1N         2a48
+ 293a:  8c ff 7c                JUMP            28b7
+ 293d:  95 03                   INC             L02
+ 293f:  8c ff d7                JUMP            2917
+ 2942:  8f 0a d7                CALL_1N         2b5c
+ 2945:  8c ff 88                JUMP            28ce
+ 2948:  4f 19 01 02             LOADW           G09,#01 -> L01
+ 294c:  50 02 06 00             LOADB           L01,#06 -> -(SP)
+ 2950:  49 00 01 00             AND             (SP)+,#01 -> -(SP)
+ 2954:  41 00 00 00 08          JE              (SP)+,#00 [FALSE] 295f
+ 2959:  8f 0a d7                CALL_1N         2b5c
+ 295c:  8c ff 71                JUMP            28ce
+ 295f:  50 02 06 00             LOADB           L01,#06 -> -(SP)
+ 2963:  49 00 02 08             AND             (SP)+,#02 -> L07
+ 2967:  42 06 02 00 08          JL              L05,#02 [FALSE] 2972
+ 296c:  0d 1a 00                STORE           G0a,#00
+ 296f:  8c 00 3b                JUMP            29ab
+ 2972:  4f 19 03 1a             LOADW           G09,#03 -> G0a
+ 2976:  41 1a 00 80 0f          JE              G0a,#00 [TRUE] 2988
+ 297b:  50 1a 06 00             LOADB           G0a,#06 -> -(SP)
+ 297f:  49 00 80 00             AND             (SP)+,#80 -> -(SP)
+ 2983:  41 00 00 00 25          JE              (SP)+,#00 [FALSE] 29ab
+ 2988:  41 08 00 00 20          JE              L07,#00 [FALSE] 29ab
+ 298d:  b2 ...                  PRINT           "I don't know what a ""
+ 299e:  8f 0c 28                CALL_1N         30a0
+ 29a1:  b2 ...                  PRINT           "" is.
+"
+ 29a8:  8c ff 25                JUMP            28ce
+ 29ab:  d9 2f 0c 72 1a 1a       CALL_2S         31c8 (G0a) -> G0a
+ 29b1:  d9 2f 16 70 1a 1e       CALL_2S         59c0 (G0a) -> G0e
+ 29b7:  83 00 42 00             GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 29bb:  41 00 00 80 50          JE              (SP)+,#00 [TRUE] 2a0e
+ 29c0:  96 17                   DEC             G07
+ 29c2:  43 17 00 80 27          JG              G07,#00 [TRUE] 29ec
+ 29c7:  b2 ...                  PRINT           "THE LIGHT HAS RUN OUT! "
+ 29e4:  cb 1f 00 5d 10          SET_ATTR        "flags",#10
+ 29e9:  8c 00 24                JUMP            2a0e
+ 29ec:  42 17 18 00 1f          JL              G07,#18 [FALSE] 2a0e
+ 29f1:  b2 ...                  PRINT           "The light will run out in "
+ 2a04:  e6 bf 17                PRINT_NUM       G07
+ 2a07:  b2 ...                  PRINT           " turns. "
+ 2a0e:  50 02 07 00             LOADB           L01,#07 -> -(SP)
+ 2a12:  35 ff 00 03             SUB             #ff,(SP)+ -> L02
+ 2a16:  0f 00 07 00             LOADW           #00,#07 -> -(SP)
+ 2a1a:  6f 00 03 04             LOADW           (SP)+,L02 -> L03
+ 2a1e:  50 04 08 05             LOADB           L03,#08 -> L04
+ 2a22:  cf 2f 1d e9 05 05       LOADW           #1de9,L04 -> L04
+ 2a28:  41 08 00 80 0c          JE              L07,#00 [TRUE] 2a37
+ 2a2d:  e0 bf 05 ff             CALL_VS         L04 -> Gef
+ 2a31:  8c fe 90                JUMP            28c2
+ 2a34:  8c 00 0e                JUMP            2a43
+ 2a37:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 2a3c:  e0 bf 05 ff             CALL_VS         L04 -> Gef
+ 2a40:  8f 0a 92                CALL_1N         2a48
+ 2a43:  8c fe 6e                JUMP            28b2
+ 2a46:  b0                      RTRUE           
+
+Routine 2a48, 3 locals
+
+ 2a49:  f3 3f ff fd             OUTPUT_STREAM   #fffd
+ 2a4d:  cf 1f 13 d6 00 00       LOADW           #13d6,#00 -> -(SP)
+ 2a53:  41 00 00 80 19          JE              (SP)+,#00 [TRUE] 2a6f
+ 2a58:  d4 1f 13 d6 02 02       ADD             #13d6,#02 -> L01
+ 2a5e:  cf 1f 13 d6 00 03       LOADW           #13d6,#00 -> L02
+ 2a64:  fe a7 02 03 01          PRINT_TABLE     L01,L02,#01
+ 2a69:  41 01 00 00 03          JE              L00,#00 [FALSE] 2a6f
+ 2a6e:  bb                      NEW_LINE        
+ 2a6f:  b0                      RTRUE           
+
+Routine 2a70, 7 locals
+
+ 2a71:  15 50 02 00             SUB             #50,#02 -> -(SP)
+ 2a75:  e2 1b 0f 4f 00 00       STOREB          #0f4f,#00,(SP)+
+ 2a7b:  e2 17 0f 4f 01 00       STOREB          #0f4f,#01,#00
+ 2a81:  e4 1f 0f 4f 00 01       READ            #0f4f,#00 -> L00
+ 2a87:  d0 1f 0f 4f 01 00       LOADB           #0f4f,#01 -> -(SP)
+ 2a8d:  34 02 00 00             ADD             #02,(SP)+ -> -(SP)
+ 2a91:  e2 27 0f 4f 00 00       STOREB          #0f4f,(SP)+,#00
+ 2a97:  0d 06 02                STORE           L05,#02
+ 2a9a:  cd 4f 03 10 12          STORE           L02,#1012
+ 2a9f:  0d 05 02                STORE           L04,#02
+ 2aa2:  e8 bf 05                PUSH            L04
+ 2aa5:  95 05                   INC             L04
+ 2aa7:  d0 2f 0f 4f 00 01       LOADB           #0f4f,(SP)+ -> L00
+ 2aad:  42 02 02 00 a1          JL              L01,#02 [FALSE] 2b51
+ 2ab2:  0d 04 01                STORE           L03,#01
+ 2ab5:  41 01 20 00 10          JE              L00,#20 [FALSE] 2ac8
+ 2aba:  e8 bf 05                PUSH            L04
+ 2abd:  95 05                   INC             L04
+ 2abf:  d0 2f 0f 4f 00 01       LOADB           #0f4f,(SP)+ -> L00
+ 2ac5:  8c ff ef                JUMP            2ab5
+ 2ac8:  41 01 00 00 05          JE              L00,#00 [FALSE] 2ad0
+ 2acd:  8c 00 83                JUMP            2b51
+ 2ad0:  23 30 01 80 11          JG              #30,L00 [TRUE] 2ae4
+ 2ad5:  43 01 39 80 0c          JG              L00,#39 [TRUE] 2ae4
+ 2ada:  e8 bf 06                PUSH            L05
+ 2add:  95 06                   INC             L05
+ 2adf:  e2 a7 18 00 64          STOREB          G08,(SP)+,#64
+ 2ae4:  2d 07 16                STORE           L06,G06
+ 2ae7:  41 01 24 00 10          JE              L00,#24 [FALSE] 2afa
+ 2aec:  e8 bf 05                PUSH            L04
+ 2aef:  95 05                   INC             L04
+ 2af1:  d0 2f 0f 4f 00 01       LOADB           #0f4f,(SP)+ -> L00
+ 2af7:  0d 07 09                STORE           L06,#09
+ 2afa:  41 01 20 80 30          JE              L00,#20 [TRUE] 2b2d
+ 2aff:  41 01 00 80 2b          JE              L00,#00 [TRUE] 2b2d
+ 2b04:  43 07 00 00 0e          JG              L06,#00 [FALSE] 2b15
+ 2b09:  e8 bf 06                PUSH            L05
+ 2b0c:  95 06                   INC             L05
+ 2b0e:  e2 ab 18 00 01          STOREB          G08,(SP)+,L00
+ 2b13:  96 07                   DEC             L06
+ 2b15:  e8 bf 04                PUSH            L03
+ 2b18:  95 04                   INC             L03
+ 2b1a:  e2 ab 03 00 01          STOREB          L02,(SP)+,L00
+ 2b1f:  e8 bf 05                PUSH            L04
+ 2b22:  95 05                   INC             L04
+ 2b24:  d0 2f 0f 4f 00 01       LOADB           #0f4f,(SP)+ -> L00
+ 2b2a:  8c ff cf                JUMP            2afa
+ 2b2d:  e8 bf 06                PUSH            L05
+ 2b30:  95 06                   INC             L05
+ 2b32:  e2 a7 18 00 20          STOREB          G08,(SP)+,#20
+ 2b37:  55 04 01 00             SUB             L03,#01 -> -(SP)
+ 2b3b:  e2 9b 03 00 00          STOREB          L02,#00,(SP)+
+ 2b40:  c1 8f 03 10 12 00 07    JE              L02,#1012 [FALSE] 2b4c
+ 2b47:  cd 4f 03 10 62          STORE           L02,#1062
+ 2b4c:  95 02                   INC             L01
+ 2b4e:  8c ff 5e                JUMP            2aad
+ 2b51:  55 06 02 00             SUB             L05,#02 -> -(SP)
+ 2b55:  e2 9b 18 01 00          STOREB          G08,#01,(SP)+
+ 2b5a:  ab 02                   RET             L01
+
+Routine 2b5c, 2 locals
+
+ 2b5d:  b2 ...                  PRINT           "I don't know how to ""
+ 2b6e:  d4 1f 10 12 01 01       ADD             #1012,#01 -> L00
+ 2b74:  d0 1f 10 12 00 02       LOADB           #1012,#00 -> L01
+ 2b7a:  fe a7 01 02 01          PRINT_TABLE     L00,L01,#01
+ 2b7f:  b2 ...                  PRINT           "".
+"
+ 2b84:  b0                      RTRUE           
+
+Routine 2b88, 4 locals
+
+ 2b89:  f9 23 0b 80 11 12 d2    CALL_VN         2e00 (G01,#12d2)
+ 2b90:  61 11 23 80 08          JE              G01,G13 [TRUE] 2b9b
+ 2b95:  0d 02 01                STORE           L01,#01
+ 2b98:  2d 23 11                STORE           G13,G01
+ 2b9b:  88 0c 0a 01             CALL_1S         3028 -> L00
+ 2b9f:  61 01 22 80 08          JE              L00,G12 [TRUE] 2baa
+ 2ba4:  0d 02 01                STORE           L01,#01
+ 2ba7:  2d 22 01                STORE           G12,L00
+ 2baa:  d0 1f 12 d2 00 00       LOADB           #12d2,#00 -> -(SP)
+ 2bb0:  d0 1f 11 ce 00 00       LOADB           #11ce,#00 -> -(SP)
+ 2bb6:  61 00 00 80 08          JE              (SP)+,(SP)+ [TRUE] 2bc1
+ 2bbb:  0d 02 01                STORE           L01,#01
+ 2bbe:  8c 00 34                JUMP            2bf3
+ 2bc1:  d0 1f 12 d2 00 00       LOADB           #12d2,#00 -> -(SP)
+ 2bc7:  54 00 02 00             ADD             (SP)+,#02 -> -(SP)
+ 2bcb:  57 00 02 03             DIV             (SP)+,#02 -> L02
+ 2bcf:  0d 04 00                STORE           L03,#00
+ 2bd2:  62 04 03 00 1e          JL              L03,L02 [FALSE] 2bf3
+ 2bd7:  cf 2f 12 d2 04 00       LOADW           #12d2,L03 -> -(SP)
+ 2bdd:  cf 2f 11 ce 04 00       LOADW           #11ce,L03 -> -(SP)
+ 2be3:  61 00 00 80 08          JE              (SP)+,(SP)+ [TRUE] 2bee
+ 2be8:  0d 02 01                STORE           L01,#01
+ 2beb:  8c 00 07                JUMP            2bf3
+ 2bee:  95 04                   INC             L03
+ 2bf0:  8c ff e1                JUMP            2bd2
+ 2bf3:  d0 1f 12 d2 00 00       LOADB           #12d2,#00 -> -(SP)
+ 2bf9:  54 00 02 04             ADD             (SP)+,#02 -> L03
+ 2bfd:  fd 0b 12 d2 11 ce 04    COPY_TABLE      #12d2,#11ce,L03
+ 2c04:  41 02 00 80 07          JE              L01,#00 [TRUE] 2c0e
+ 2c09:  da 2f 0b 04 01          CALL_2N         2c10 (L00)
+ 2c0e:  b0                      RTRUE           
+
+Routine 2c10, 6 locals
+
+ 2c11:  0d 25 00                STORE           G15,#00
+ 2c14:  8f 0a 92                CALL_1N         2a48
+ 2c17:  cd 4f 24 13 d6          STORE           G14,#13d6
+ 2c1c:  e1 97 24 00 00          STOREW          G14,#00,#00
+ 2c21:  f3 6f 03 24             OUTPUT_STREAM   REDIRECT_ENABLE,G14
+ 2c25:  41 01 00 00 21          JE              L00,#00 [FALSE] 2c49
+ 2c2a:  b2 ...                  PRINT           "It's too dark; I can't see."
+ 2c43:  8c 00 b5                JUMP            2cf9
+ 2c46:  8c 00 08                JUMP            2c4f
+ 2c49:  51 11 08 00             GET_PROP        G01,#08 -> -(SP)
+ 2c4d:  ad 00                   PRINT_PADDR     (SP)+
+ 2c4f:  8f 0b 4d                CALL_1N         2d34
+ 2c52:  b2 ...                  PRINT           "Obvious exit"
+ 2c5d:  0d 02 00                STORE           L01,#00
+ 2c60:  42 02 06 00 18          JL              L01,#06 [FALSE] 2c7b
+ 2c65:  d0 2f 1c 3a 02 03       LOADB           #1c3a,L01 -> L02
+ 2c6b:  71 11 03 00             GET_PROP        G01,L02 -> -(SP)
+ 2c6f:  41 00 00 80 04          JE              (SP)+,#00 [TRUE] 2c76
+ 2c74:  95 04                   INC             L03
+ 2c76:  95 02                   INC             L01
+ 2c78:  8c ff e7                JUMP            2c60
+ 2c7b:  41 04 01 80 05          JE              L03,#01 [TRUE] 2c83
+ 2c80:  b2 ...                  PRINT           "s"
+ 2c83:  b2 ...                  PRINT           ": "
+ 2c86:  0d 02 00                STORE           L01,#00
+ 2c89:  42 02 06 00 21          JL              L01,#06 [FALSE] 2cad
+ 2c8e:  d0 2f 1c 3a 02 03       LOADB           #1c3a,L01 -> L02
+ 2c94:  71 11 03 00             GET_PROP        G01,L02 -> -(SP)
+ 2c98:  41 00 00 80 0d          JE              (SP)+,#00 [TRUE] 2ca8
+ 2c9d:  cf 2f 1c 40 02 00       LOADW           #1c40,L01 -> -(SP)
+ 2ca3:  ad 00                   PRINT_PADDR     (SP)+
+ 2ca5:  b2 ...                  PRINT           " "
+ 2ca8:  95 02                   INC             L01
+ 2caa:  8c ff de                JUMP            2c89
+ 2cad:  41 04 00 00 09          JE              L03,#00 [FALSE] 2cb9
+ 2cb2:  b2 ...                  PRINT           "NONE"
+ 2cb9:  8f 0b 4d                CALL_1N         2d34
+ 2cbc:  b2 ...                  PRINT           "Visible items: "
+ 2cc9:  d0 1f 12 d2 00 04       LOADB           #12d2,#00 -> L03
+ 2ccf:  41 04 00 00 0a          JE              L03,#00 [FALSE] 2cdc
+ 2cd4:  b2 ...                  PRINT           "None"
+ 2cd9:  8c 00 1f                JUMP            2cf9
+ 2cdc:  0d 02 01                STORE           L01,#01
+ 2cdf:  63 02 04 80 17          JG              L01,L03 [TRUE] 2cf9
+ 2ce4:  43 02 01 00 05          JG              L01,#01 [FALSE] 2cec
+ 2ce9:  b2 ...                  PRINT           ", "
+ 2cec:  d0 2f 12 d2 02 00       LOADB           #12d2,L01 -> -(SP)
+ 2cf2:  aa 00                   PRINT_OBJ       (SP)+
+ 2cf4:  95 02                   INC             L01
+ 2cf6:  8c ff e8                JUMP            2cdf
+ 2cf9:  8f 0b 4d                CALL_1N         2d34
+ 2cfc:  f3 3f ff fd             OUTPUT_STREAM   #fffd
+ 2d00:  41 26 00 80 05          JE              G16,#00 [TRUE] 2d08
+ 2d05:  ed 7f 01                ERASE_WINDOW    #01
+ 2d08:  54 25 01 26             ADD             G15,#01 -> G16
+ 2d0c:  ea bf 26                SPLIT_WINDOW    G16
+ 2d0f:  eb 7f 01                SET_WINDOW      #01
+ 2d12:  8f 0b 6a                CALL_1N         2da8
+ 2d15:  ef 9f 26 01             SET_CURSOR      G16,#01
+ 2d19:  54 21 01 05             ADD             G11,#01 -> L04
+ 2d1d:  50 21 00 06             LOADB           G11,#00 -> L05
+ 2d21:  fe a7 05 06 01          PRINT_TABLE     L04,L05,#01
+ 2d26:  eb 7f 00                SET_WINDOW      #00
+ 2d29:  f2 7f 01                BUFFER_MODE     #01
+ 2d2c:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 2d31:  b0                      RTRUE           
+
+Routine 2d34, 5 locals
+
+ 2d35:  f3 3f ff fd             OUTPUT_STREAM   #fffd
+ 2d39:  55 1b 01 04             SUB             G0b,#01 -> L03
+ 2d3d:  4f 24 00 01             LOADW           G14,#00 -> L00
+ 2d41:  54 24 02 02             ADD             G14,#02 -> L01
+ 2d45:  62 04 01 00 35          JL              L03,L00 [FALSE] 2d7d
+ 2d4a:  95 25                   INC             G15
+ 2d4c:  e1 2b 1b d6 25 02       STOREW          #1bd6,G15,L01
+ 2d52:  74 02 04 03             ADD             L01,L03 -> L02
+ 2d56:  50 03 00 00             LOADB           L02,#00 -> -(SP)
+ 2d5a:  41 00 20 80 07          JE              (SP)+,#20 [TRUE] 2d64
+ 2d5f:  96 03                   DEC             L02
+ 2d61:  8c ff f4                JUMP            2d56
+ 2d64:  75 03 02 05             SUB             L02,L01 -> L04
+ 2d68:  e1 2b 1c 08 25 05       STOREW          #1c08,G15,L04
+ 2d6e:  75 01 05 00             SUB             L00,L04 -> -(SP)
+ 2d72:  55 00 01 01             SUB             (SP)+,#01 -> L00
+ 2d76:  54 03 01 02             ADD             L02,#01 -> L01
+ 2d7a:  8c ff ca                JUMP            2d45
+ 2d7d:  41 01 00 80 10          JE              L00,#00 [TRUE] 2d90
+ 2d82:  95 25                   INC             G15
+ 2d84:  e1 2b 1b d6 25 02       STOREW          #1bd6,G15,L01
+ 2d8a:  e1 2b 1c 08 25 01       STOREW          #1c08,G15,L00
+ 2d90:  4f 24 00 00             LOADW           G14,#00 -> -(SP)
+ 2d94:  74 24 00 00             ADD             G14,(SP)+ -> -(SP)
+ 2d98:  54 00 02 24             ADD             (SP)+,#02 -> G14
+ 2d9c:  e1 97 24 00 00          STOREW          G14,#00,#00
+ 2da1:  f3 6f 03 24             OUTPUT_STREAM   REDIRECT_ENABLE,G14
+ 2da5:  b0                      RTRUE           
+
+Routine 2da8, 3 locals
+
+ 2da9:  0d 01 01                STORE           L00,#01
+ 2dac:  63 01 25 80 1c          JG              L00,G15 [TRUE] 2dcb
+ 2db1:  ef 9f 01 01             SET_CURSOR      L00,#01
+ 2db5:  cf 2f 1b d6 01 02       LOADW           #1bd6,L00 -> L01
+ 2dbb:  cf 2f 1c 08 01 03       LOADW           #1c08,L00 -> L02
+ 2dc1:  fe a7 02 03 01          PRINT_TABLE     L01,L02,#01
+ 2dc6:  95 01                   INC             L00
+ 2dc8:  8c ff e3                JUMP            2dac
+ 2dcb:  41 20 00 00 03          JE              G10,#00 [FALSE] 2dd1
+ 2dd0:  b0                      RTRUE           
+ 2dd1:  eb 7f 00                SET_WINDOW      #00
+ 2dd4:  f3 3f ff ff             OUTPUT_STREAM   #ffff
+ 2dd8:  bb                      NEW_LINE        
+ 2dd9:  0d 01 01                STORE           L00,#01
+ 2ddc:  63 01 25 80 19          JG              L00,G15 [TRUE] 2df8
+ 2de1:  cf 2f 1b d6 01 02       LOADW           #1bd6,L00 -> L01
+ 2de7:  cf 2f 1c 08 01 03       LOADW           #1c08,L00 -> L02
+ 2ded:  fe a7 02 03 01          PRINT_TABLE     L01,L02,#01
+ 2df2:  bb                      NEW_LINE        
+ 2df3:  95 01                   INC             L00
+ 2df5:  8c ff e6                JUMP            2ddc
+ 2df8:  f3 7f 01                OUTPUT_STREAM   OUTPUT_ENABLE
+ 2dfb:  eb 7f 01                SET_WINDOW      #01
+ 2dfe:  b0                      RTRUE           
+
+Routine 2e00, 6 locals
+
+ 2e01:  a2 01 03 c2             GET_CHILD       L00 -> L02 [TRUE] 2e05
+ 2e05:  41 03 00 80 40          JE              L02,#00 [TRUE] 2e48
+ 2e0a:  54 05 01 04             ADD             L04,#01 -> L03
+ 2e0e:  51 03 0a 06             GET_PROP        L02,#0a -> L05
+ 2e12:  43 04 01 00 25          JG              L03,#01 [FALSE] 2e3a
+ 2e17:  55 04 01 00             SUB             L03,#01 -> -(SP)
+ 2e1b:  70 02 00 00             LOADB           L01,(SP)+ -> -(SP)
+ 2e1f:  51 00 0a 00             GET_PROP        (SP)+,#0a -> -(SP)
+ 2e23:  62 06 00 00 14          JL              L05,(SP)+ [FALSE] 2e3a
+ 2e28:  55 04 01 00             SUB             L03,#01 -> -(SP)
+ 2e2c:  70 02 00 00             LOADB           L01,(SP)+ -> -(SP)
+ 2e30:  e2 ab 02 04 00          STOREB          L01,L03,(SP)+
+ 2e35:  96 04                   DEC             L03
+ 2e37:  8c ff da                JUMP            2e12
+ 2e3a:  e2 ab 02 04 03          STOREB          L01,L03,L02
+ 2e3f:  95 05                   INC             L04
+ 2e41:  a1 03 03 c2             GET_SIBLING     L02 -> L02 [TRUE] 2e45
+ 2e45:  8c ff bf                JUMP            2e05
+ 2e48:  54 05 01 00             ADD             L04,#01 -> -(SP)
+ 2e4c:  e2 a7 02 00 00          STOREB          L01,(SP)+,#00
+ 2e51:  e2 9b 02 00 05          STOREB          L01,#00,L04
+ 2e56:  b0                      RTRUE           
+
+Routine 2e58, 2 locals
+
+ 2e59:  b2 ...                  PRINT           "I'm carrying: "
+ 2e66:  f9 13 0b 80 01 12 d2    CALL_VN         2e00 (#01,#12d2)
+ 2e6d:  d0 1f 12 d2 00 01       LOADB           #12d2,#00 -> L00
+ 2e73:  41 01 00 00 0c          JE              L00,#00 [FALSE] 2e82
+ 2e78:  b2 ...                  PRINT           "Nothing"
+ 2e7f:  8c 00 1f                JUMP            2e9f
+ 2e82:  0d 02 01                STORE           L01,#01
+ 2e85:  63 02 01 80 17          JG              L01,L00 [TRUE] 2e9f
+ 2e8a:  43 02 01 00 05          JG              L01,#01 [FALSE] 2e92
+ 2e8f:  b2 ...                  PRINT           ", "
+ 2e92:  d0 2f 12 d2 02 00       LOADB           #12d2,L01 -> -(SP)
+ 2e98:  aa 00                   PRINT_OBJ       (SP)+
+ 2e9a:  95 02                   INC             L01
+ 2e9c:  8c ff e8                JUMP            2e85
+ 2e9f:  b2 ...                  PRINT           " "
+ 2ea2:  b0                      RTRUE           
+
+Routine 2ea4, 4 locals
+
+ 2ea5:  a3 01 03                GET_PARENT      L00 -> L02
+ 2ea8:  a3 02 04                GET_PARENT      L01 -> L03
+ 2eab:  41 03 00 00 07          JE              L02,#00 [FALSE] 2eb5
+ 2eb0:  a9 02                   REMOVE_OBJ      L01
+ 2eb2:  8c 00 05                JUMP            2eb8
+ 2eb5:  6e 02 03                INSERT_OBJ      L01,L02
+ 2eb8:  41 04 00 00 07          JE              L03,#00 [FALSE] 2ec2
+ 2ebd:  a9 01                   REMOVE_OBJ      L00
+ 2ebf:  8c 00 05                JUMP            2ec5
+ 2ec2:  6e 01 04                INSERT_OBJ      L00,L03
+ 2ec5:  b0                      RTRUE           
+
+Routine 2ec8, 1 local
+
+ 2ec9:  0d ff 00                STORE           Gef,#00
+ 2ecc:  92 01 00 49             GET_CHILD       "player" -> -(SP) [FALSE] 2ed7
+ 2ed0:  95 ff                   INC             Gef
+ 2ed2:  a1 00 00 bf fb          GET_SIBLING     (SP)+ -> -(SP) [TRUE] 2ed0
+ 2ed7:  74 00 ff 00             ADD             (SP)+,Gef -> -(SP)
+ 2edb:  62 00 15 80 18          JL              (SP)+,G05 [TRUE] 2ef6
+ 2ee0:  b2 ...                  PRINT           "I'm carrying too much. "
+ 2ef3:  8c 00 05                JUMP            2ef9
+ 2ef6:  4e 01 01                INSERT_OBJ      L00,"player"
+ 2ef9:  b0                      RTRUE           
+
+Routine 2efc, 1 local
+
+ 2efd:  41 1a 00 00 0a          JE              G0a,#00 [FALSE] 2f0a
+ 2f02:  b2 ...                  PRINT           "What? "
+ 2f09:  b1                      RFALSE          
+ 2f0a:  e0 2b 0b e4 11 1a 01    CALL_VS         2f90 (G01,G0a) -> L00
+ 2f11:  41 01 00 80 0a          JE              L00,#00 [TRUE] 2f1e
+ 2f16:  da 2f 0b b2 01          CALL_2N         2ec8 (L00)
+ 2f1b:  8c 00 3f                JUMP            2f5b
+ 2f1e:  e0 1b 0b e4 01 1a 01    CALL_VS         2f90 (#01,G0a) -> L00
+ 2f25:  41 01 00 80 1a          JE              L00,#00 [TRUE] 2f42
+ 2f2a:  b2 ...                  PRINT           "I'm already carrying it! "
+ 2f3f:  8c 00 1b                JUMP            2f5b
+ 2f42:  b2 ...                  PRINT           "It's beyond my power to do
+that. "
+ 2f5b:  b0                      RTRUE           
+
+Routine 2f5c, 1 local
+
+ 2f5d:  41 1a 00 00 0a          JE              G0a,#00 [FALSE] 2f6a
+ 2f62:  b2 ...                  PRINT           "What? "
+ 2f69:  b1                      RFALSE          
+ 2f6a:  e0 1b 0b e4 01 1a 01    CALL_VS         2f90 (#01,G0a) -> L00
+ 2f71:  41 01 00 00 16          JE              L00,#00 [FALSE] 2f8a
+ 2f76:  b2 ...                  PRINT           "I'm not carrying it. "
+ 2f87:  8c 00 05                JUMP            2f8d
+ 2f8a:  6e 01 11                INSERT_OBJ      L00,G01
+ 2f8d:  b0                      RTRUE           
+
+Routine 2f90, 3 locals
+
+ 2f91:  a2 01 03 c2             GET_CHILD       L00 -> L02 [TRUE] 2f95
+ 2f95:  41 03 00 80 14          JE              L02,#00 [TRUE] 2fac
+ 2f9a:  51 03 01 00             GET_PROP        L02,#01 -> -(SP)
+ 2f9e:  61 00 02 00 04          JE              (SP)+,L01 [FALSE] 2fa5
+ 2fa3:  ab 03                   RET             L02
+ 2fa5:  a1 03 03 c2             GET_SIBLING     L02 -> L02 [TRUE] 2fa9
+ 2fa9:  8c ff eb                JUMP            2f95
+ 2fac:  b1                      RFALSE          
+
+Routine 2fb0, 3 locals
+
+ 2fb1:  88 0c 0a 03             CALL_1S         3028 -> L02
+ 2fb5:  71 11 01 02             GET_PROP        G01,L00 -> L01
+ 2fb9:  41 03 00 00 1d          JE              L02,#00 [FALSE] 2fd9
+ 2fbe:  b2 ...                  PRINT           "It's dangerous to move in the
+dark. "
+ 2fd9:  41 02 00 00 46          JE              L01,#00 [FALSE] 3022
+ 2fde:  41 03 00 80 1c          JE              L02,#00 [TRUE] 2ffd
+ 2fe3:  b2 ...                  PRINT           "I can't go in that direction.
+"
+ 2ffa:  8c 00 24                JUMP            301f
+ 2ffd:  b2 ...                  PRINT           "I fell down and brok my neck!
+"
+ 3014:  cc 1f 00 5d 0f          CLEAR_ATTR      "flags",#0f
+ 3019:  2d 11 12                STORE           G01,G02
+ 301c:  8f 0c 2d                CALL_1N         30b4
+ 301f:  8c 00 05                JUMP            3025
+ 3022:  2d 11 02                STORE           G01,L01
+ 3025:  b0                      RTRUE           
+
+Routine 3028, 1 local
+
+ 3029:  83 00 42 01             GET_PARENT      "Brightly glowing idol" -> L00
+ 302d:  ca 1f 00 5d 0f 00 09    TEST_ATTR       "flags",#0f [FALSE] 303b
+ 3034:  c1 9b 01 01 11 00 03    JE              L00,#01,G01 [FALSE] 303c
+ 303b:  b0                      RTRUE           
+ 303c:  b1                      RFALSE          
+
+Routine 3040, 1 local
+
+ 3041:  be 00 ff 01             SAVE            -> L00
+ 3045:  2d ff 01                STORE           Gef,L00
+ 3048:  41 ff 00 00 10          JE              Gef,#00 [FALSE] 305b
+ 304d:  b2 ...                  PRINT           "Save failed. "
+ 3058:  8c 00 1d                JUMP            3076
+ 305b:  41 ff 01 00 0c          JE              Gef,#01 [FALSE] 306a
+ 3060:  b2 ...                  PRINT           "OK. "
+ 3067:  8c 00 0e                JUMP            3076
+ 306a:  41 ff 02 00 09          JE              Gef,#02 [FALSE] 3076
+ 306f:  ed 3f ff ff             ERASE_WINDOW    #ffff
+ 3073:  0d 23 00                STORE           G13,#00
+ 3076:  b0                      RTRUE           
+
+Routine 3078, 2 locals
+
+ 3079:  cf 2f 10 b2 01 02       LOADW           #10b2,L00 -> L01
+ 307f:  e1 2b 10 b2 01 11       STOREW          #10b2,L00,G01
+ 3085:  2d 11 02                STORE           G01,L01
+ 3088:  b0                      RTRUE           
+
+Routine 308c, 2 locals
+
+ 308d:  cf 2f 10 be 01 02       LOADW           #10be,L00 -> L01
+ 3093:  e1 2b 10 be 01 1f       STOREW          #10be,L00,G0f
+ 3099:  2d 1f 02                STORE           G0f,L01
+ 309c:  b0                      RTRUE           
+
+Routine 30a0, 2 locals
+
+ 30a1:  d4 1f 10 62 01 01       ADD             #1062,#01 -> L00
+ 30a7:  d0 1f 10 62 00 02       LOADB           #1062,#00 -> L01
+ 30ad:  fe a7 01 02 01          PRINT_TABLE     L00,L01,#01
+ 30b2:  b0                      RTRUE           
+
+Routine 30b4, 0 locals
+
+ 30b5:  8f 0a 92                CALL_1N         2a48
+ 30b8:  b2 ...                  PRINT           "This adventure is over. Do you
+want to try this adventure again? "
+ 30e7:  88 0a 23 00             CALL_1S         288c -> -(SP)
+ 30eb:  41 00 00 80 03          JE              (SP)+,#00 [TRUE] 30f1
+ 30f0:  b7                      RESTART         
+ 30f1:  ba                      QUIT            
+
+Routine 30f4, 3 locals
+
+ 30f5:  a2 13 03 c2             GET_CHILD       G03 -> L02 [TRUE] 30f9
+ 30f9:  41 03 00 80 10          JE              L02,#00 [TRUE] 310c
+ 30fe:  4a 03 20 00 04          TEST_ATTR       L02,#20 [FALSE] 3105
+ 3103:  95 01                   INC             L00
+ 3105:  a1 03 03 c2             GET_SIBLING     L02 -> L02 [TRUE] 3109
+ 3109:  8c ff ef                JUMP            30f9
+ 310c:  36 c8 01 00             MUL             #c8,L00 -> -(SP)
+ 3110:  74 00 14 02             ADD             (SP)+,G04 -> L01
+ 3114:  77 02 14 02             DIV             L01,G04 -> L01
+ 3118:  57 02 02 02             DIV             L01,#02 -> L01
+ 311c:  b2 ...                  PRINT           "I've stored "
+ 3127:  e6 bf 01                PRINT_NUM       L00
+ 312a:  b2 ...                  PRINT           " treasures. "
+ 3135:  b2 ...                  PRINT           "On a scale from 0 to 100 that
+rates a "
+ 3154:  e6 bf 02                PRINT_NUM       L01
+ 3157:  b2 ...                  PRINT           ". "
+ 315a:  61 01 14 00 0e          JE              L00,G04 [FALSE] 316b
+ 315f:  b2 ...                  PRINT           "Well done."
+ 3168:  8f 0c 2d                CALL_1N         30b4
+ 316b:  b0                      RTRUE           
+
+Routine 316c, 1 local
+
+ 316d:  0d 01 00                STORE           L00,#00
+ 3170:  b0                      RTRUE           
+
+Routine 3174, 1 local
+
+ 3175:  da 1f 0a 92 01          CALL_2N         2a48 (#01)
+ 317a:  f6 53 01 02 0c 5b 01    READ_CHAR       #01,#02,316c -> L00
+ 3181:  f3 4f 03 13 d6          OUTPUT_STREAM   REDIRECT_ENABLE,#13d6
+ 3186:  b0                      RTRUE           
+
+Routine 3188, 0 locals
+    Action routine for:
+        "script"
+
+ 3189:  f3 7f 02                OUTPUT_STREAM   SCRIPTING_ENABLE
+ 318c:  0d 20 01                STORE           G10,#01
+ 318f:  b2 ...                  PRINT           "Start a transcript of "
+ 31a0:  8f 16 80                CALL_1N         5a00
+ 31a3:  b2 ...                  PRINT           ".
+"
+ 31a8:  0d 23 00                STORE           G13,#00
+ 31ab:  b0                      RTRUE           
+
+Routine 31ac, 0 locals
+    Action routine for:
+        "noscript"
+
+ 31ad:  b2 ...                  PRINT           "End of transcript.
+"
+ 31be:  f3 3f ff fe             OUTPUT_STREAM   #fffe
+ 31c2:  0d 20 00                STORE           G10,#00
+ 31c5:  b0                      RTRUE           
+
+Routine 31c8, 1 local
+
+ 31c9:  2d ff 01                STORE           Gef,L00
+ 31cc:  c1 8f ff 21 4d 00 05    JE              Gef,"pla" [FALSE] 31d6
+ 31d3:  8b 22 eb                RET             "wri"
+ 31d6:  c1 8f ff 1e e9 00 05    JE              Gef,"chi" [FALSE] 31e0
+ 31dd:  8b 20 09                RET             "flu"
+ 31e0:  c1 8f ff 1e 86 00 05    JE              Gef,"ani" [FALSE] 31ea
+ 31e7:  8b 20 51                RET             "hea"
+ 31ea:  c1 8f ff 21 8c 00 05    JE              Gef,"rab" [FALSE] 31f4
+ 31f1:  8b 20 12                RET             "foo"
+ 31f4:  c1 8f ff 1f 31 00 05    JE              Gef,"cri" [FALSE] 31fe
+ 31fb:  8b 20 d8                RET             "man"
+ 31fe:  c1 8f ff 21 95 00 05    JE              Gef,"rav" [FALSE] 3208
+ 3205:  8b 1f 3a                RET             "cry"
+ 3208:  ab 01                   RET             L00
+
+Routine 320c, 1 local
+    Action routine for:
+        "cli"
+
+ 320d:  41 1a 00 00 1c          JE              G0a,#00 [FALSE] 322c
+ 3212:  b2 ...                  PRINT           "Please give me a direction
+also."
+ 322b:  b0                      RTRUE           
+ 322c:  41 1e 00 80 08          JE              G0e,#00 [TRUE] 3237
+ 3231:  da 2f 0b ec 1e          CALL_2N         2fb0 (G0e)
+ 3236:  b1                      RFALSE          
+ 3237:  c1 8f 1a 1e ce 00 32    JE              G0a,"cel" [FALSE] 326e
+ 323e:  95 01                   INC             L00
+ 3240:  93 1d 00                GET_PARENT      "Open jail cell" -> -(SP)
+ 3243:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 324b
+ 3248:  8c 00 25                JUMP            326e
+ 324b:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 324e:  61 00 11 00 05          JE              (SP)+,G01 [FALSE] 3256
+ 3253:  8c 00 1a                JUMP            326e
+ 3256:  b2 ...                  PRINT           "Cell door slams shut "
+ 3267:  0d 11 37                STORE           G01,#37
+ 326a:  8f 0a e2                CALL_1N         2b88
+ 326d:  b0                      RTRUE           
+ 326e:  c1 8f 1a 22 64 00 16    JE              G0a,"sta" [FALSE] 3289
+ 3275:  95 01                   INC             L00
+ 3277:  93 06 00                GET_PARENT      "Stairs" -> -(SP)
+ 327a:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3282
+ 327f:  8c 00 09                JUMP            3289
+ 3282:  0d 11 35                STORE           G01,#35
+ 3285:  8f 0a e2                CALL_1N         2b88
+ 3288:  b0                      RTRUE           
+ 3289:  c1 8f 1a 20 63 00 19    JE              G0a,"hol" [FALSE] 32a7
+ 3290:  95 01                   INC             L00
+ 3292:  93 41 00                GET_PARENT      "Dark hole" -> -(SP)
+ 3295:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 329d
+ 329a:  8c 00 0c                JUMP            32a7
+ 329d:  0d 11 2a                STORE           G01,#2a
+ 32a0:  0b 5d 0f                SET_ATTR        "flags",#0f
+ 32a3:  8f 0a e2                CALL_1N         2b88
+ 32a6:  b0                      RTRUE           
+ 32a7:  c1 8f 1a 20 09 00 21    JE              G0a,"flu" [FALSE] 32cd
+ 32ae:  95 01                   INC             L00
+ 32b0:  41 11 27 80 05          JE              G01,#27 [TRUE] 32b8
+ 32b5:  8c 00 17                JUMP            32cd
+ 32b8:  93 44 00                GET_PARENT      "Open Flue" -> -(SP)
+ 32bb:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 32c3
+ 32c0:  8c 00 0c                JUMP            32cd
+ 32c3:  0b 5d 0f                SET_ATTR        "flags",#0f
+ 32c6:  0d 11 24                STORE           G01,#24
+ 32c9:  8f 0a e2                CALL_1N         2b88
+ 32cc:  b0                      RTRUE           
+ 32cd:  c1 8f 1a 1f f7 00 16    JE              G0a,"fir" [FALSE] 32e8
+ 32d4:  95 01                   INC             L00
+ 32d6:  93 1a 00                GET_PARENT      "Large fireplace" -> -(SP)
+ 32d9:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 32e1
+ 32de:  8c 00 09                JUMP            32e8
+ 32e1:  0d 11 27                STORE           G01,#27
+ 32e4:  8f 0a e2                CALL_1N         2b88
+ 32e7:  b0                      RTRUE           
+ 32e8:  c1 8f 1a 1e f2 00 1b    JE              G0a,"chu" [FALSE] 3308
+ 32ef:  95 01                   INC             L00
+ 32f1:  93 4a 00                GET_PARENT      "Slick chute leading downward"
+-> -(SP)
+ 32f4:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 32fc
+ 32f9:  8c 00 0e                JUMP            3308
+ 32fc:  b2 ...                  PRINT           "OK "
+ 3301:  0d 11 12                STORE           G01,#12
+ 3304:  8f 0a e2                CALL_1N         2b88
+ 3307:  b0                      RTRUE           
+ 3308:  c1 8f 1a 1e f2 00 16    JE              G0a,"chu" [FALSE] 3323
+ 330f:  95 01                   INC             L00
+ 3311:  93 4a 00                GET_PARENT      "Slick chute leading downward"
+-> -(SP)
+ 3314:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 331c
+ 3319:  8c 00 09                JUMP            3323
+ 331c:  0d 11 12                STORE           G01,#12
+ 331f:  8f 0a e2                CALL_1N         2b88
+ 3322:  b0                      RTRUE           
+ 3323:  c1 8f 1a 1e f2 00 1f    JE              G0a,"chu" [FALSE] 3347
+ 332a:  95 01                   INC             L00
+ 332c:  93 14 00                GET_PARENT      "Slippery chute leading up" ->
+-(SP)
+ 332f:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3337
+ 3334:  8c 00 12                JUMP            3347
+ 3337:  b2 ...                  PRINT           "I slide back down "
+ 3346:  b0                      RTRUE           
+ 3347:  c1 8f 1a 1e e9 00 19    JE              G0a,"chi" [FALSE] 3365
+ 334e:  95 01                   INC             L00
+ 3350:  93 44 00                GET_PARENT      "Open Flue" -> -(SP)
+ 3353:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 335b
+ 3358:  8c 00 0c                JUMP            3365
+ 335b:  0d 11 24                STORE           G01,#24
+ 335e:  0b 5d 0f                SET_ATTR        "flags",#0f
+ 3361:  8f 0a e2                CALL_1N         2b88
+ 3364:  b0                      RTRUE           
+ 3365:  c1 8f 1a 1f a6 00 4f    JE              G0a,"doo" [FALSE] 33b9
+ 336c:  95 01                   INC             L00
+ 336e:  93 23 00                GET_PARENT      "Tiny open door" -> -(SP)
+ 3371:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3379
+ 3376:  8c 00 42                JUMP            33b9
+ 3379:  b2 ...                  PRINT           "I can't do that "
+ 3386:  b2 ...                  PRINT           "I'm too big "
+ 3391:  b2 ...                  PRINT           "It will take some strong magic
+to get me through that! "
+ 33b8:  b0                      RTRUE           
+ 33b9:  c1 8f 1a 21 56 00 15    JE              G0a,"pot" [FALSE] 33d3
+ 33c0:  95 01                   INC             L00
+ 33c2:  93 1d 00                GET_PARENT      "Open jail cell" -> -(SP)
+ 33c5:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 33cd
+ 33ca:  8c 00 08                JUMP            33d3
+ 33cd:  b2 ...                  PRINT           "OK "
+ 33d2:  b0                      RTRUE           
+ 33d3:  c1 8f 1a 22 e2 00 1b    JE              G0a,"win" [FALSE] 33f3
+ 33da:  95 01                   INC             L00
+ 33dc:  93 18 00                GET_PARENT      "Open Window" -> -(SP)
+ 33df:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 33e7
+ 33e4:  8c 00 0e                JUMP            33f3
+ 33e7:  0d 11 3a                STORE           G01,#3a
+ 33ea:  b2 ...                  PRINT           "OK "
+ 33ef:  8f 0a e2                CALL_1N         2b88
+ 33f2:  b0                      RTRUE           
+ 33f3:  c1 8f 1a 1f 28 00 1b    JE              G0a,"cra" [FALSE] 3413
+ 33fa:  95 01                   INC             L00
+ 33fc:  93 4c 00                GET_PARENT      "Wide crack in the wall" ->
+-(SP)
+ 33ff:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3407
+ 3404:  8c 00 0e                JUMP            3413
+ 3407:  b2 ...                  PRINT           "OK "
+ 340c:  0d 11 3c                STORE           G01,#3c
+ 340f:  8f 0a e2                CALL_1N         2b88
+ 3412:  b0                      RTRUE           
+ 3413:  c1 8f 1a 20 b4 00 83    JE              G0a,"led" [FALSE] 349b
+ 341a:  95 01                   INC             L00
+ 341c:  41 11 17 80 05          JE              G01,#17 [TRUE] 3424
+ 3421:  8c 00 79                JUMP            349b
+ 3424:  93 40 00                GET_PARENT      "Ledge" -> -(SP)
+ 3427:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 342f
+ 342c:  8c 00 6e                JUMP            349b
+ 342f:  b2 ...                  PRINT           "Bird says: `ask for ADVENTURE
+5, -THE COUNT- at your favorite computer dealer. It will be LOVE AT FIRST
+BYTE!`  "
+ 349a:  b0                      RTRUE           
+ 349b:  c1 8f 1a 1f 1f 00 29    JE              G0a,"cof" [FALSE] 34c9
+ 34a2:  95 01                   INC             L00
+ 34a4:  93 49 00                GET_PARENT      "Open Coffin" -> -(SP)
+ 34a7:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 34af
+ 34ac:  8c 00 1c                JUMP            34c9
+ 34af:  b2 ...                  PRINT           "There's no room in there for
+me! "
+ 34c8:  b0                      RTRUE           
+ 34c9:  c1 8f 1a 20 63 00 33    JE              G0a,"hol" [FALSE] 3501
+ 34d0:  95 01                   INC             L00
+ 34d2:  93 16 00                GET_PARENT      "Hole in the wall" -> -(SP)
+ 34d5:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 34dd
+ 34da:  8c 00 26                JUMP            3501
+ 34dd:  0d 11 0e                STORE           G01,#0e
+ 34e0:  8f 0a e2                CALL_1N         2b88
+ 34e3:  b2 ...                  PRINT           "You startled medium & she
+vanished "
+ 34fe:  99 47                   REMOVE_OBJ      "Spirit Medium"
+ 3500:  b0                      RTRUE           
+ 3501:  c1 8f 1a 1f a6 00 16    JE              G0a,"doo" [FALSE] 351c
+ 3508:  95 01                   INC             L00
+ 350a:  93 50 00                GET_PARENT      "Wide open door" -> -(SP)
+ 350d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3515
+ 3512:  8c 00 09                JUMP            351c
+ 3515:  0d 11 32                STORE           G01,#32
+ 3518:  8f 0a e2                CALL_1N         2b88
+ 351b:  b0                      RTRUE           
+ 351c:  c1 8f 1a 1f 28 00 4f    JE              G0a,"cra" [FALSE] 3570
+ 3523:  95 01                   INC             L00
+ 3525:  93 15 00                GET_PARENT      "Crack in the wall" -> -(SP)
+ 3528:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3530
+ 352d:  8c 00 42                JUMP            3570
+ 3530:  b2 ...                  PRINT           "I can't do that "
+ 353d:  b2 ...                  PRINT           "I'm too big "
+ 3548:  b2 ...                  PRINT           "It will take some strong magic
+to get me through that! "
+ 356f:  b0                      RTRUE           
+ 3570:  41 01 00 80 07          JE              L00,#00 [TRUE] 357a
+ 3575:  ad 28                   PRINT_PADDR     G18
+ 3577:  8c 00 04                JUMP            357c
+ 357a:  ad 27                   PRINT_PADDR     G17
+ 357c:  b0                      RTRUE           
+
+Routine 3580, 1 local
+    Action routine for:
+        "get"
+
+ 3581:  c1 8f 1a 22 7f 00 1b    JE              G0a,"swe" [FALSE] 35a1
+ 3588:  95 01                   INC             L00
+ 358a:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 358d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3595
+ 3592:  8c 00 0e                JUMP            35a1
+ 3595:  b2 ...                  PRINT           "won't budge! "
+ 35a0:  b0                      RTRUE           
+ 35a1:  c1 8f 1a 20 3f 00 22    JE              G0a,"gra" [FALSE] 35c8
+ 35a8:  95 01                   INC             L00
+ 35aa:  93 5a 00                GET_PARENT      "Broken grating" -> -(SP)
+ 35ad:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 35bd
+ 35b2:  93 5a 00                GET_PARENT      "Broken grating" -> -(SP)
+ 35b5:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 35bd
+ 35ba:  8c 00 0d                JUMP            35c8
+ 35bd:  b2 ...                  PRINT           "OK "
+ 35c2:  da 1f 0b b2 5a          CALL_2N         2ec8 (#5a)
+ 35c7:  b0                      RTRUE           
+ 35c8:  c1 8f 1a 20 7e 00 08    JE              G0a,"inv" [FALSE] 35d5
+ 35cf:  95 01                   INC             L00
+ 35d1:  8f 0b 96                CALL_1N         2e58
+ 35d4:  b0                      RTRUE           
+ 35d5:  c1 8f 1a 1e a1 00 36    JE              G0a,"bal" [FALSE] 3610
+ 35dc:  95 01                   INC             L00
+ 35de:  93 0f 00                GET_PARENT      "Crystal Ball" -> -(SP)
+ 35e1:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 35e9
+ 35e6:  8c 00 29                JUMP            3610
+ 35e9:  b2 ...                  PRINT           "A sepulchral voice says: "
+ 35fc:  b2 ...                  PRINT           "It belongs to the medium "
+ 360f:  b0                      RTRUE           
+ 3610:  c1 8f 1a 1f 16 00 15    JE              G0a,"clo" [FALSE] 362a
+ 3617:  95 01                   INC             L00
+ 3619:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 361c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3624
+ 3621:  8c 00 08                JUMP            362a
+ 3624:  da 1f 0b b2 45          CALL_2N         2ec8 (#45)
+ 3629:  b0                      RTRUE           
+ 362a:  c1 8f 1a 1f 16 00 22    JE              G0a,"clo" [FALSE] 3651
+ 3631:  95 01                   INC             L00
+ 3633:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 3636:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 363e
+ 363b:  8c 00 15                JUMP            3651
+ 363e:  41 11 32 80 05          JE              G01,#32 [TRUE] 3646
+ 3643:  8c 00 0d                JUMP            3651
+ 3646:  da 1f 0b b2 45          CALL_2N         2ec8 (#45)
+ 364b:  b2 ...                  PRINT           "OK "
+ 3650:  b0                      RTRUE           
+ 3651:  c1 8f 1a 21 b9 00 25    JE              G0a,"rin" [FALSE] 367b
+ 3658:  95 01                   INC             L00
+ 365a:  93 49 00                GET_PARENT      "Open Coffin" -> -(SP)
+ 365d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3665
+ 3662:  8c 00 18                JUMP            367b
+ 3665:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 3668:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 3670
+ 366d:  8c 00 0d                JUMP            367b
+ 3670:  da 1f 0b b2 48          CALL_2N         2ec8 (#48)
+ 3675:  b2 ...                  PRINT           "OK "
+ 367a:  b0                      RTRUE           
+ 367b:  c1 8f 1a 1e 8f 00 36    JE              G0a,"arm" [FALSE] 36b6
+ 3682:  95 01                   INC             L00
+ 3684:  93 21 00                GET_PARENT      "Knight's Suit of Armor" ->
+-(SP)
+ 3687:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 368f
+ 368c:  8c 00 29                JUMP            36b6
+ 368f:  b2 ...                  PRINT           "I can't do that "
+ 369c:  b2 ...                  PRINT           "It's much to heavy to LIFT! "
+ 36b5:  b0                      RTRUE           
+ 36b6:  c1 8f 1a 1e 98 00 2d    JE              G0a,"bag" [FALSE] 36e8
+ 36bd:  95 01                   INC             L00
+ 36bf:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 36c2:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 36d2
+ 36c7:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 36ca:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 36d2
+ 36cf:  8c 00 18                JUMP            36e8
+ 36d2:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 36d5:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 36dd
+ 36da:  8c 00 0d                JUMP            36e8
+ 36dd:  da 1f 0b b2 2d          CALL_2N         2ec8 (#2d)
+ 36e2:  b2 ...                  PRINT           "OK "
+ 36e7:  b0                      RTRUE           
+ 36e8:  c1 8f 1a 20 51 00 3b    JE              G0a,"hea" [FALSE] 3728
+ 36ef:  95 01                   INC             L00
+ 36f1:  0a 5d 00 00 05          TEST_ATTR       "flags",#00 [FALSE] 36f9
+ 36f6:  8c 00 31                JUMP            3728
+ 36f9:  93 20 00                GET_PARENT      "Dull & broken sword" -> -(SP)
+ 36fc:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 370c
+ 3701:  93 20 00                GET_PARENT      "Dull & broken sword" -> -(SP)
+ 3704:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 370c
+ 3709:  8c 00 1e                JUMP            3728
+ 370c:  93 0d 00                GET_PARENT      "Animal heads" -> -(SP)
+ 370f:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3717
+ 3714:  8c 00 13                JUMP            3728
+ 3717:  da 1f 0b b2 0d          CALL_2N         2ec8 (#0d)
+ 371c:  2e 4e 11                INSERT_OBJ      "Closed SAfe",G01
+ 371f:  b2 ...                  PRINT           "OK "
+ 3724:  0b 5d 00                SET_ATTR        "flags",#00
+ 3727:  b0                      RTRUE           
+ 3728:  c1 8f 1a 20 51 00 2a    JE              G0a,"hea" [FALSE] 3757
+ 372f:  95 01                   INC             L00
+ 3731:  0a 5d 00 80 05          TEST_ATTR       "flags",#00 [TRUE] 3739
+ 3736:  8c 00 20                JUMP            3757
+ 3739:  93 0d 00                GET_PARENT      "Animal heads" -> -(SP)
+ 373c:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 374c
+ 3741:  93 0d 00                GET_PARENT      "Animal heads" -> -(SP)
+ 3744:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 374c
+ 3749:  8c 00 0d                JUMP            3757
+ 374c:  da 1f 0b b2 0d          CALL_2N         2ec8 (#0d)
+ 3751:  b2 ...                  PRINT           "OK "
+ 3756:  b0                      RTRUE           
+ 3757:  c1 8f 1a 20 87 00 36    JE              G0a,"ket" [FALSE] 3792
+ 375e:  95 01                   INC             L00
+ 3760:  93 08 00                GET_PARENT      "Big kettle" -> -(SP)
+ 3763:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 376b
+ 3768:  8c 00 29                JUMP            3792
+ 376b:  b2 ...                  PRINT           "I can't do that "
+ 3778:  b2 ...                  PRINT           "It's much to heavy to LIFT! "
+ 3791:  b0                      RTRUE           
+ 3792:  c1 8f 1a 20 51 00 4c    JE              G0a,"hea" [FALSE] 37e3
+ 3799:  95 01                   INC             L00
+ 379b:  0a 5d 00 00 05          TEST_ATTR       "flags",#00 [FALSE] 37a3
+ 37a0:  8c 00 42                JUMP            37e3
+ 37a3:  93 0d 00                GET_PARENT      "Animal heads" -> -(SP)
+ 37a6:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 37b6
+ 37ab:  93 0d 00                GET_PARENT      "Animal heads" -> -(SP)
+ 37ae:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 37b6
+ 37b3:  8c 00 2f                JUMP            37e3
+ 37b6:  b2 ...                  PRINT           "won't budge! "
+ 37c1:  b2 ...                  PRINT           "I'll need something to pry it
+off the wall! "
+ 37e2:  b0                      RTRUE           
+ 37e3:  c1 8f 1a 21 44 00 28    JE              G0a,"pin" [FALSE] 3810
+ 37ea:  95 01                   INC             L00
+ 37ec:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 37ef:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 37f7
+ 37f4:  8c 00 1b                JUMP            3810
+ 37f7:  b2 ...                  PRINT           "I can't do that "
+ 3804:  b2 ...                  PRINT           "won't budge! "
+ 380f:  b0                      RTRUE           
+ 3810:  c1 8f 1a 20 fc 00 22    JE              G0a,"nai" [FALSE] 3837
+ 3817:  95 01                   INC             L00
+ 3819:  93 51 00                GET_PARENT      "Nails" -> -(SP)
+ 381c:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 382c
+ 3821:  93 51 00                GET_PARENT      "Nails" -> -(SP)
+ 3824:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 382c
+ 3829:  8c 00 0d                JUMP            3837
+ 382c:  b2 ...                  PRINT           "OK "
+ 3831:  da 1f 0b b2 51          CALL_2N         2ec8 (#51)
+ 3836:  b0                      RTRUE           
+ 3837:  c1 8f 1a 20 12 00 25    JE              G0a,"foo" [FALSE] 3861
+ 383e:  95 01                   INC             L00
+ 3840:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 3843:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 384b
+ 3848:  8c 00 18                JUMP            3861
+ 384b:  93 49 00                GET_PARENT      "Open Coffin" -> -(SP)
+ 384e:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3856
+ 3853:  8c 00 0d                JUMP            3861
+ 3856:  da 1f 0b b2 2b          CALL_2N         2ec8 (#2b)
+ 385b:  b2 ...                  PRINT           "OK "
+ 3860:  b0                      RTRUE           
+ 3861:  c1 8f 1a 20 12 00 22    JE              G0a,"foo" [FALSE] 3888
+ 3868:  95 01                   INC             L00
+ 386a:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 386d:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 387d
+ 3872:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 3875:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 387d
+ 387a:  8c 00 0d                JUMP            3888
+ 387d:  da 1f 0b b2 2b          CALL_2N         2ec8 (#2b)
+ 3882:  b2 ...                  PRINT           "OK "
+ 3887:  b0                      RTRUE           
+ 3888:  c1 8f 1a 20 48 00 22    JE              G0a,"ham" [FALSE] 38af
+ 388f:  95 01                   INC             L00
+ 3891:  93 53 00                GET_PARENT      "Antique hammer" -> -(SP)
+ 3894:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 38a4
+ 3899:  93 53 00                GET_PARENT      "Antique hammer" -> -(SP)
+ 389c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 38a4
+ 38a1:  8c 00 0d                JUMP            38af
+ 38a4:  da 1f 0b b2 53          CALL_2N         2ec8 (#53)
+ 38a9:  b2 ...                  PRINT           "OK "
+ 38ae:  b0                      RTRUE           
+ 38af:  c1 8f 1a 20 48 00 25    JE              G0a,"ham" [FALSE] 38d9
+ 38b6:  95 01                   INC             L00
+ 38b8:  93 4d 00                GET_PARENT      "Open SAfe" -> -(SP)
+ 38bb:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 38c3
+ 38c0:  8c 00 18                JUMP            38d9
+ 38c3:  0a 5d 05 00 05          TEST_ATTR       "flags",#05 [FALSE] 38cb
+ 38c8:  8c 00 10                JUMP            38d9
+ 38cb:  da 1f 0b b2 53          CALL_2N         2ec8 (#53)
+ 38d0:  b2 ...                  PRINT           "OK "
+ 38d5:  0b 5d 05                SET_ATTR        "flags",#05
+ 38d8:  b0                      RTRUE           
+ 38d9:  c1 8f 1a 1e 98 00 27    JE              G0a,"bag" [FALSE] 3905
+ 38e0:  95 01                   INC             L00
+ 38e2:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 38e5:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 38ed
+ 38ea:  8c 00 1a                JUMP            3905
+ 38ed:  b2 ...                  PRINT           "It appears stuck to the floor!
+"
+ 3904:  b0                      RTRUE           
+ 3905:  c1 8f 1a 22 5b 00 21    JE              G0a,"sou" [FALSE] 392b
+ 390c:  95 01                   INC             L00
+ 390e:  93 08 00                GET_PARENT      "Big kettle" -> -(SP)
+ 3911:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3919
+ 3916:  8c 00 14                JUMP            392b
+ 3919:  b2 ...                  PRINT           "I've no container. "
+ 392a:  b0                      RTRUE           
+ 392b:  c1 8f 1a 1e b3 00 38    JE              G0a,"boo" [FALSE] 3968
+ 3932:  95 01                   INC             L00
+ 3934:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 3937:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3947
+ 393c:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 393f:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3947
+ 3944:  8c 00 23                JUMP            3968
+ 3947:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 394a:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 3952
+ 394f:  8c 00 18                JUMP            3968
+ 3952:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 3955:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 395d
+ 395a:  8c 00 0d                JUMP            3968
+ 395d:  da 1f 0b b2 57          CALL_2N         2ec8 (#57)
+ 3962:  b2 ...                  PRINT           "OK "
+ 3967:  b0                      RTRUE           
+ 3968:  c1 8f 1a 1e b3 00 22    JE              G0a,"boo" [FALSE] 398f
+ 396f:  95 01                   INC             L00
+ 3971:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 3974:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3984
+ 3979:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 397c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3984
+ 3981:  8c 00 0d                JUMP            398f
+ 3984:  da 1f 0b b2 57          CALL_2N         2ec8 (#57)
+ 3989:  b2 ...                  PRINT           "OK "
+ 398e:  b0                      RTRUE           
+ 398f:  c1 8f 1a 22 6d 00 38    JE              G0a,"sti" [FALSE] 39cc
+ 3996:  95 01                   INC             L00
+ 3998:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 399b:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 39ab
+ 39a0:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 39a3:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 39ab
+ 39a8:  8c 00 23                JUMP            39cc
+ 39ab:  93 58 00                GET_PARENT      "Stick" -> -(SP)
+ 39ae:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 39b6
+ 39b3:  8c 00 18                JUMP            39cc
+ 39b6:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 39b9:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 39c1
+ 39be:  8c 00 0d                JUMP            39cc
+ 39c1:  da 1f 0b b2 58          CALL_2N         2ec8 (#58)
+ 39c6:  b2 ...                  PRINT           "OK "
+ 39cb:  b0                      RTRUE           
+ 39cc:  c1 8f 1a 22 6d 00 22    JE              G0a,"sti" [FALSE] 39f3
+ 39d3:  95 01                   INC             L00
+ 39d5:  93 58 00                GET_PARENT      "Stick" -> -(SP)
+ 39d8:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 39e8
+ 39dd:  93 58 00                GET_PARENT      "Stick" -> -(SP)
+ 39e0:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 39e8
+ 39e5:  8c 00 0d                JUMP            39f3
+ 39e8:  da 1f 0b b2 58          CALL_2N         2ec8 (#58)
+ 39ed:  b2 ...                  PRINT           "OK "
+ 39f2:  b0                      RTRUE           
+ 39f3:  c1 8f 1a 20 fc 00 41    JE              G0a,"nai" [FALSE] 3a39
+ 39fa:  95 01                   INC             L00
+ 39fc:  93 26 00                GET_PARENT      "Wood boards nailed to chimney
+wall" -> -(SP)
+ 39ff:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3a07
+ 3a04:  8c 00 34                JUMP            3a39
+ 3a07:  93 53 00                GET_PARENT      "Antique hammer" -> -(SP)
+ 3a0a:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 3a12
+ 3a0f:  8c 00 29                JUMP            3a39
+ 3a12:  b2 ...                  PRINT           "Nails were rusted but I got
+them out. "
+ 3a2f:  f9 17 0b a9 52 26       CALL_VN         2ea4 (#52,#26)
+ 3a35:  0e 51 01                INSERT_OBJ      "Nails","player"
+ 3a38:  b0                      RTRUE           
+ 3a39:  c1 8f 1a 1e aa 00 2b    JE              G0a,"boa" [FALSE] 3a69
+ 3a40:  95 01                   INC             L00
+ 3a42:  93 52 00                GET_PARENT      "Wooden boards" -> -(SP)
+ 3a45:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3a55
+ 3a4a:  93 52 00                GET_PARENT      "Wooden boards" -> -(SP)
+ 3a4d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3a55
+ 3a52:  8c 00 16                JUMP            3a69
+ 3a55:  0a 5d 08 00 05          TEST_ATTR       "flags",#08 [FALSE] 3a5d
+ 3a5a:  8c 00 0e                JUMP            3a69
+ 3a5d:  da 1f 0b b2 52          CALL_2N         2ec8 (#52)
+ 3a62:  2e 54 11                INSERT_OBJ      "GrAting",G01
+ 3a65:  0b 5d 08                SET_ATTR        "flags",#08
+ 3a68:  b0                      RTRUE           
+ 3a69:  c1 8f 1a 1e aa 00 22    JE              G0a,"boa" [FALSE] 3a90
+ 3a70:  95 01                   INC             L00
+ 3a72:  93 52 00                GET_PARENT      "Wooden boards" -> -(SP)
+ 3a75:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3a85
+ 3a7a:  93 52 00                GET_PARENT      "Wooden boards" -> -(SP)
+ 3a7d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3a85
+ 3a82:  8c 00 0d                JUMP            3a90
+ 3a85:  da 1f 0b b2 52          CALL_2N         2ec8 (#52)
+ 3a8a:  b2 ...                  PRINT           "OK "
+ 3a8f:  b0                      RTRUE           
+ 3a90:  c1 8f 1a 1e bc 00 16    JE              G0a,"bre" [FALSE] 3aab
+ 3a97:  95 01                   INC             L00
+ 3a99:  b2 ...                  PRINT           "I've no container. "
+ 3aaa:  b0                      RTRUE           
+ 3aab:  c1 8f 1a 21 b9 00 1a    JE              G0a,"rin" [FALSE] 3aca
+ 3ab2:  95 01                   INC             L00
+ 3ab4:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 3ab7:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3abf
+ 3abc:  8c 00 0d                JUMP            3aca
+ 3abf:  da 1f 0b b2 48          CALL_2N         2ec8 (#48)
+ 3ac4:  b2 ...                  PRINT           "OK "
+ 3ac9:  b0                      RTRUE           
+ 3aca:  41 01 00 80 07          JE              L00,#00 [TRUE] 3ad4
+ 3acf:  ad 28                   PRINT_PADDR     G18
+ 3ad1:  8c 00 05                JUMP            3ad7
+ 3ad4:  8f 0b bf                CALL_1N         2efc
+ 3ad7:  b0                      RTRUE           
+
+Routine 3ad8, 1 local
+    Action routine for:
+        "hel"
+
+ 3ad9:  95 01                   INC             L00
+ 3adb:  41 11 19 80 05          JE              G01,#19 [TRUE] 3ae3
+ 3ae0:  8c 00 16                JUMP            3af7
+ 3ae3:  b2 ...                  PRINT           "Check out the fireplace. "
+ 3af6:  b0                      RTRUE           
+ 3af7:  95 01                   INC             L00
+ 3af9:  93 54 00                GET_PARENT      "GrAting" -> -(SP)
+ 3afc:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3b04
+ 3b01:  8c 00 0e                JUMP            3b10
+ 3b04:  b2 ...                  PRINT           "Saw grating! "
+ 3b0f:  b0                      RTRUE           
+ 3b10:  c1 8f 1a 22 7f 00 15    JE              G0a,"swe" [FALSE] 3b2a
+ 3b17:  95 01                   INC             L00
+ 3b19:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 3b1c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3b24
+ 3b21:  8c 00 08                JUMP            3b2a
+ 3b24:  b2 ...                  PRINT           "how? "
+ 3b29:  b0                      RTRUE           
+ 3b2a:  95 01                   INC             L00
+ 3b2c:  b2 ...                  PRINT           "Nothing happened "
+ 3b39:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 3b3a:  41 01 00 80 07          JE              L00,#00 [TRUE] 3b44
+ 3b3f:  ad 28                   PRINT_PADDR     G18
+ 3b41:  8c 00 04                JUMP            3b46
+ 3b44:  ad 27                   PRINT_PADDR     G17
+ 3b46:  b0                      RTRUE           
+
+Routine 3b48, 1 local
+    Action routine for:
+        "dro"
+
+ 3b49:  c1 8f 1a 20 12 00 19    JE              G0a,"foo" [FALSE] 3b67
+ 3b50:  95 01                   INC             L00
+ 3b52:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 3b55:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 3b5d
+ 3b5a:  8c 00 0c                JUMP            3b67
+ 3b5d:  b2 ...                  PRINT           "On what? "
+ 3b66:  b0                      RTRUE           
+ 3b67:  41 01 00 80 07          JE              L00,#00 [TRUE] 3b71
+ 3b6c:  ad 28                   PRINT_PADDR     G18
+ 3b6e:  8c 00 05                JUMP            3b74
+ 3b71:  8f 0b d7                CALL_1N         2f5c
+ 3b74:  b0                      RTRUE           
+
+Routine 3b78, 1 local
+    Action routine for:
+        "dig"
+
+ 3b79:  c1 8f 1a 20 3f 00 3c    JE              G0a,"gra" [FALSE] 3bba
+ 3b80:  95 01                   INC             L00
+ 3b82:  93 1c 00                GET_PARENT      "Pocket Shovel" -> -(SP)
+ 3b85:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3b95
+ 3b8a:  93 1c 00                GET_PARENT      "Pocket Shovel" -> -(SP)
+ 3b8d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3b95
+ 3b92:  8c 00 27                JUMP            3bba
+ 3b95:  b2 ...                  PRINT           "A sepulchral voice says: "
+ 3ba8:  b2 ...                  PRINT           "Strange hobby you have "
+ 3bb9:  b0                      RTRUE           
+ 3bba:  95 01                   INC             L00
+ 3bbc:  93 1c 00                GET_PARENT      "Pocket Shovel" -> -(SP)
+ 3bbf:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3bcf
+ 3bc4:  93 1c 00                GET_PARENT      "Pocket Shovel" -> -(SP)
+ 3bc7:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3bcf
+ 3bcc:  8c 00 15                JUMP            3be2
+ 3bcf:  b2 ...                  PRINT           "OK "
+ 3bd4:  b2 ...                  PRINT           "Nothing happened "
+ 3be1:  b0                      RTRUE           
+ 3be2:  41 01 00 80 07          JE              L00,#00 [TRUE] 3bec
+ 3be7:  ad 28                   PRINT_PADDR     G18
+ 3be9:  8c 00 04                JUMP            3bee
+ 3bec:  ad 27                   PRINT_PADDR     G17
+ 3bee:  b0                      RTRUE           
+
+Routine 3bf0, 1 local
+    Action routine for:
+        "on"
+
+ 3bf1:  c1 8f 1a 20 d8 00 49    JE              G0a,"man" [FALSE] 3c3f
+ 3bf8:  95 01                   INC             L00
+ 3bfa:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 3bfd:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3c0d
+ 3c02:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 3c05:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3c0d
+ 3c0a:  8c 00 34                JUMP            3c3f
+ 3c0d:  93 49 00                GET_PARENT      "Open Coffin" -> -(SP)
+ 3c10:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3c18
+ 3c15:  8c 00 29                JUMP            3c3f
+ 3c18:  b2 ...                  PRINT           "OK "
+ 3c1d:  b2 ...                  PRINT           "There's a CLAP OF THUNDER! "
+ 3c3c:  99 2b                   REMOVE_OBJ      "Rabbit's foot"
+ 3c3e:  b0                      RTRUE           
+ 3c3f:  c1 8f 1a 20 00 00 18    JE              G0a,"flo" [FALSE] 3c5c
+ 3c46:  95 01                   INC             L00
+ 3c48:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 3c4b:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 3c53
+ 3c50:  8c 00 0b                JUMP            3c5c
+ 3c53:  2e 2b 11                INSERT_OBJ      "Rabbit's foot",G01
+ 3c56:  b2 ...                  PRINT           "OK "
+ 3c5b:  b0                      RTRUE           
+ 3c5c:  41 01 00 80 07          JE              L00,#00 [TRUE] 3c66
+ 3c61:  ad 28                   PRINT_PADDR     G18
+ 3c63:  8c 00 04                JUMP            3c68
+ 3c66:  ad 27                   PRINT_PADDR     G17
+ 3c68:  b0                      RTRUE           
+
+Routine 3c6c, 1 local
+    Action routine for:
+        "wav"
+
+ 3c6d:  c1 8f 1a 1e 98 00 56    JE              G0a,"bag" [FALSE] 3cc8
+ 3c74:  95 01                   INC             L00
+ 3c76:  41 11 12 80 05          JE              G01,#12 [TRUE] 3c7e
+ 3c7b:  8c 00 4c                JUMP            3cc8
+ 3c7e:  93 4c 00                GET_PARENT      "Wide crack in the wall" ->
+-(SP)
+ 3c81:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 3c89
+ 3c86:  8c 00 41                JUMP            3cc8
+ 3c89:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 3c8c:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3c9c
+ 3c91:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 3c94:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3c9c
+ 3c99:  8c 00 2e                JUMP            3cc8
+ 3c9c:  b2 ...                  PRINT           "There's a CLAP OF THUNDER! "
+ 3cbb:  8f 0c 5d                CALL_1N         3174
+ 3cbe:  8f 0c 5d                CALL_1N         3174
+ 3cc1:  f9 17 0b a9 15 4c       CALL_VN         2ea4 (#15,#4c)
+ 3cc7:  b0                      RTRUE           
+ 3cc8:  c1 8f 1a 21 b9 00 3c    JE              G0a,"rin" [FALSE] 3d09
+ 3ccf:  95 01                   INC             L00
+ 3cd1:  93 0b 00                GET_PARENT      "Massive stone door with a
+SAPPHIRE set into it" -> -(SP)
+ 3cd4:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3cdc
+ 3cd9:  8c 00 2f                JUMP            3d09
+ 3cdc:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 3cdf:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 3ce7
+ 3ce4:  8c 00 24                JUMP            3d09
+ 3ce7:  f9 17 0b a9 0b 4a       CALL_VN         2ea4 (#0b,#4a)
+ 3ced:  b2 ...                  PRINT           "Ring glows briefly & door
+vanishes "
+ 3d08:  b0                      RTRUE           
+ 3d09:  c1 8f 1a 22 6d 00 a8    JE              G0a,"sti" [FALSE] 3db6
+ 3d10:  95 01                   INC             L00
+ 3d12:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 3d15:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3d25
+ 3d1a:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 3d1d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3d25
+ 3d22:  8c 00 93                JUMP            3db6
+ 3d25:  b2 ...                  PRINT           "OK "
+ 3d2a:  b2 ...                  PRINT           "Nothing happened "
+ 3d37:  8f 0c 5d                CALL_1N         3174
+ 3d3a:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 3d3d:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3d4d
+ 3d42:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 3d45:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3d4d
+ 3d4a:  8c 00 6a                JUMP            3db5
+ 3d4d:  41 11 02 80 05          JE              G01,#02 [TRUE] 3d55
+ 3d52:  8c 00 62                JUMP            3db5
+ 3d55:  0a 5d 03 80 05          TEST_ATTR       "flags",#03 [TRUE] 3d5d
+ 3d5a:  8c 00 5a                JUMP            3db5
+ 3d5d:  8f 0c 5d                CALL_1N         3174
+ 3d60:  b2 ...                  PRINT           "There's a CLAP OF THUNDER! "
+ 3d7f:  b2 ...                  PRINT           "Double bubble toil & trouble
+the encAntAtions Are About to peAk! "
+ 3db2:  0b 5d 06                SET_ATTR        "flags",#06
+ 3db5:  b0                      RTRUE           
+ 3db6:  95 01                   INC             L00
+ 3db8:  b2 ...                  PRINT           "OK "
+ 3dbd:  b2 ...                  PRINT           "Nothing happened "
+ 3dca:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 3dcb:  41 01 00 80 07          JE              L00,#00 [TRUE] 3dd5
+ 3dd0:  ad 28                   PRINT_PADDR     G18
+ 3dd2:  8c 00 04                JUMP            3dd7
+ 3dd5:  ad 27                   PRINT_PADDR     G17
+ 3dd7:  b0                      RTRUE           
+
+Routine 3dd8, 1 local
+    Action routine for:
+        "cle"
+
+ 3dd9:  c1 8f 1a 20 75 00 40    JE              G0a,"ido" [FALSE] 3e1e
+ 3de0:  95 01                   INC             L00
+ 3de2:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 3de5:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3df5
+ 3dea:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 3ded:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3df5
+ 3df2:  8c 00 2b                JUMP            3e1e
+ 3df5:  b2 ...                  PRINT           "As I dust of the Idol it
+begins to glow! "
+ 3e14:  f9 17 0b a9 29 42       CALL_VN         2ea4 (#29,#42)
+ 3e1a:  8f 0a e2                CALL_1N         2b88
+ 3e1d:  b0                      RTRUE           
+ 3e1e:  41 01 00 80 07          JE              L00,#00 [TRUE] 3e28
+ 3e23:  ad 28                   PRINT_PADDR     G18
+ 3e25:  8c 00 04                JUMP            3e2a
+ 3e28:  ad 27                   PRINT_PADDR     G17
+ 3e2a:  b0                      RTRUE           
+
+Routine 3e2c, 1 local
+    Action routine for:
+        "pre"
+
+ 3e2d:  c1 8f 1a 22 7f 00 4e    JE              G0a,"swe" [FALSE] 3e80
+ 3e34:  95 01                   INC             L00
+ 3e36:  41 11 30 80 05          JE              G01,#30 [TRUE] 3e3e
+ 3e3b:  8c 00 44                JUMP            3e80
+ 3e3e:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 3e41:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3e49
+ 3e46:  8c 00 39                JUMP            3e80
+ 3e49:  b2 ...                  PRINT           "Sweep pops out, thanks me,
+hands me a piece of paper then vanishes! "
+ 3e7a:  99 31                   REMOVE_OBJ      "Stuck Chimney Sweep"
+ 3e7c:  0e 56 01                INSERT_OBJ      "Paper","player"
+ 3e7f:  b0                      RTRUE           
+ 3e80:  c1 8f 1a 1e c5 00 3b    JE              G0a,"but" [FALSE] 3ec0
+ 3e87:  95 01                   INC             L00
+ 3e89:  93 55 00                GET_PARENT      "Button in the wall" -> -(SP)
+ 3e8c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3e94
+ 3e91:  8c 00 2e                JUMP            3ec0
+ 3e94:  b2 ...                  PRINT           "Heavy duty exhaust fan comes
+on & sucks me up! "
+ 3eb9:  0d 11 30                STORE           G01,#30
+ 3ebc:  8f 0a e2                CALL_1N         2b88
+ 3ebf:  b0                      RTRUE           
+ 3ec0:  41 01 00 80 07          JE              L00,#00 [TRUE] 3eca
+ 3ec5:  ad 28                   PRINT_PADDR     G18
+ 3ec7:  8c 00 04                JUMP            3ecc
+ 3eca:  ad 27                   PRINT_PADDR     G17
+ 3ecc:  b0                      RTRUE           
+
+Routine 3ed0, 1 local
+    Action routine for:
+        "kic"
+
+ 3ed1:  c1 8f 1a 20 87 00 23    JE              G0a,"ket" [FALSE] 3ef9
+ 3ed8:  95 01                   INC             L00
+ 3eda:  93 08 00                GET_PARENT      "Big kettle" -> -(SP)
+ 3edd:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3ee5
+ 3ee2:  8c 00 16                JUMP            3ef9
+ 3ee5:  93 41 00                GET_PARENT      "Dark hole" -> -(SP)
+ 3ee8:  61 00 11 00 05          JE              (SP)+,G01 [FALSE] 3ef0
+ 3eed:  8c 00 0b                JUMP            3ef9
+ 3ef0:  2e 41 11                INSERT_OBJ      "Dark hole",G01
+ 3ef3:  b2 ...                  PRINT           "OK "
+ 3ef8:  b0                      RTRUE           
+ 3ef9:  c1 8f 1a 20 87 00 1d    JE              G0a,"ket" [FALSE] 3f1b
+ 3f00:  95 01                   INC             L00
+ 3f02:  93 41 00                GET_PARENT      "Dark hole" -> -(SP)
+ 3f05:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3f0d
+ 3f0a:  8c 00 10                JUMP            3f1b
+ 3f0d:  93 41 00                GET_PARENT      "Dark hole" -> -(SP)
+ 3f10:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3f18
+ 3f15:  8c 00 05                JUMP            3f1b
+ 3f18:  99 41                   REMOVE_OBJ      "Dark hole"
+ 3f1a:  b0                      RTRUE           
+ 3f1b:  c1 8f 1a 1e 8f 00 1d    JE              G0a,"arm" [FALSE] 3f3d
+ 3f22:  95 01                   INC             L00
+ 3f24:  93 21 00                GET_PARENT      "Knight's Suit of Armor" ->
+-(SP)
+ 3f27:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3f37
+ 3f2c:  93 21 00                GET_PARENT      "Knight's Suit of Armor" ->
+-(SP)
+ 3f2f:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3f37
+ 3f34:  8c 00 08                JUMP            3f3d
+ 3f37:  b2 ...                  PRINT           "OK "
+ 3f3c:  b0                      RTRUE           
+ 3f3d:  41 01 00 80 07          JE              L00,#00 [TRUE] 3f47
+ 3f42:  ad 28                   PRINT_PADDR     G18
+ 3f44:  8c 00 04                JUMP            3f49
+ 3f47:  ad 27                   PRINT_PADDR     G17
+ 3f49:  b0                      RTRUE           
+
+Routine 3f4c, 1 local
+    Action routine for:
+        "bre"
+
+ 3f4d:  c1 8f 1a 22 e2 00 25    JE              G0a,"win" [FALSE] 3f77
+ 3f54:  95 01                   INC             L00
+ 3f56:  93 46 00                GET_PARENT      "Closed Window" -> -(SP)
+ 3f59:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3f61
+ 3f5e:  8c 00 18                JUMP            3f77
+ 3f61:  b2 ...                  PRINT           "This glass can't be broken "
+ 3f76:  b0                      RTRUE           
+ 3f77:  c1 8f 1a 1e a1 00 41    JE              G0a,"bal" [FALSE] 3fbd
+ 3f7e:  95 01                   INC             L00
+ 3f80:  41 11 0e 80 05          JE              G01,#0e [TRUE] 3f88
+ 3f85:  8c 00 37                JUMP            3fbd
+ 3f88:  2d 11 12                STORE           G01,G02
+ 3f8b:  b2 ...                  PRINT           "A beam of light shines on
+grave "
+ 3fa2:  b2 ...                  PRINT           "This grAve reserved for you! "
+ 3fb9:  8f 0c 2d                CALL_1N         30b4
+ 3fbc:  b0                      RTRUE           
+ 3fbd:  c1 8f 1a 22 a3 00 46    JE              G0a,"tub" [FALSE] 4008
+ 3fc4:  95 01                   INC             L00
+ 3fc6:  93 2e 00                GET_PARENT      "Chem tubes" -> -(SP)
+ 3fc9:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 3fd9
+ 3fce:  93 2e 00                GET_PARENT      "Chem tubes" -> -(SP)
+ 3fd1:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 3fd9
+ 3fd6:  8c 00 31                JUMP            4008
+ 3fd9:  93 1f 00                GET_PARENT      "Shield" -> -(SP)
+ 3fdc:  41 00 01 00 05          JE              (SP)+,#01 [FALSE] 3fe4
+ 3fe1:  8c 00 26                JUMP            4008
+ 3fe4:  0d 11 3f                STORE           G01,#3f
+ 3fe7:  8f 0a e2                CALL_1N         2b88
+ 3fea:  b2 ...                  PRINT           "One of the test tubes
+EXPLODED! "
+ 4007:  b0                      RTRUE           
+ 4008:  c1 8f 1a 22 64 00 23    JE              G0a,"sta" [FALSE] 4030
+ 400f:  95 01                   INC             L00
+ 4011:  93 36 00                GET_PARENT      "Ju-Ju man statue" -> -(SP)
+ 4014:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4024
+ 4019:  93 36 00                GET_PARENT      "Ju-Ju man statue" -> -(SP)
+ 401c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4024
+ 4021:  8c 00 0e                JUMP            4030
+ 4024:  b2 ...                  PRINT           "OK "
+ 4029:  f9 17 0b a9 5b 36       CALL_VN         2ea4 (#5b,#36)
+ 402f:  b0                      RTRUE           
+ 4030:  41 01 00 80 07          JE              L00,#00 [TRUE] 403a
+ 4035:  ad 28                   PRINT_PADDR     G18
+ 4037:  8c 00 04                JUMP            403c
+ 403a:  ad 27                   PRINT_PADDR     G17
+ 403c:  b0                      RTRUE           
+
+Routine 4040, 1 local
+    Action routine for:
+        "sav"
+
+ 4041:  c1 8f 1a 20 1b 00 08    JE              G0a,"gam" [FALSE] 404e
+ 4048:  95 01                   INC             L00
+ 404a:  8f 0c 10                CALL_1N         3040
+ 404d:  b0                      RTRUE           
+ 404e:  41 01 00 80 07          JE              L00,#00 [TRUE] 4058
+ 4053:  ad 28                   PRINT_PADDR     G18
+ 4055:  8c 00 04                JUMP            405a
+ 4058:  ad 27                   PRINT_PADDR     G17
+ 405a:  b0                      RTRUE           
+
+Routine 405c, 1 local
+    Action routine for:
+        "rea"
+
+ 405d:  c1 8f 1a 22 eb 00 54    JE              G0a,"wri" [FALSE] 40b6
+ 4064:  95 01                   INC             L00
+ 4066:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 4069:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4079
+ 406e:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 4071:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4079
+ 4076:  8c 00 3f                JUMP            40b6
+ 4079:  93 05 00                GET_PARENT      "Broken glass" -> -(SP)
+ 407c:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 408c
+ 4081:  93 05 00                GET_PARENT      "Broken glass" -> -(SP)
+ 4084:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 408c
+ 4089:  8c 00 2c                JUMP            40b6
+ 408c:  0a 5d 0f 80 05          TEST_ATTR       "flags",#0f [TRUE] 4094
+ 4091:  8c 00 24                JUMP            40b6
+ 4094:  b2 ...                  PRINT           "Plaque says: `safe --> 38 33`
+"
+ 40b5:  b0                      RTRUE           
+ 40b6:  c1 8f 1a 1e b3 00 81    JE              G0a,"boo" [FALSE] 413c
+ 40bd:  95 01                   INC             L00
+ 40bf:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 40c2:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 40d2
+ 40c7:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 40ca:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 40d2
+ 40cf:  8c 00 6c                JUMP            413c
+ 40d2:  b2 ...                  PRINT           "It's a book on removing
+curses. Says: `With knife in hand you take a stand. Circle coffin and...` The
+rest of the page is missing!!! "
+ 413b:  b0                      RTRUE           
+ 413c:  c1 8f 1a 20 a2 00 2d    JE              G0a,"lab" [FALSE] 416e
+ 4143:  95 01                   INC             L00
+ 4145:  93 2f 00                GET_PARENT      "Labeled chemicals" -> -(SP)
+ 4148:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4158
+ 414d:  93 2f 00                GET_PARENT      "Labeled chemicals" -> -(SP)
+ 4150:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4158
+ 4155:  8c 00 18                JUMP            416e
+ 4158:  b2 ...                  PRINT           "They appear to be mixable. "
+ 416d:  b0                      RTRUE           
+ 416e:  c1 8f 1a 21 32 00 47    JE              G0a,"pap" [FALSE] 41ba
+ 4175:  95 01                   INC             L00
+ 4177:  93 56 00                GET_PARENT      "Paper" -> -(SP)
+ 417a:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 418a
+ 417f:  93 56 00                GET_PARENT      "Paper" -> -(SP)
+ 4182:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 418a
+ 4187:  8c 00 32                JUMP            41ba
+ 418a:  b2 ...                  PRINT           "says: `SAY ZAP   to restore
+someone changed to stone!` "
+ 41b9:  b0                      RTRUE           
+ 41ba:  c1 8f 1a 21 29 00 79    JE              G0a,"pag" [FALSE] 4238
+ 41c1:  95 01                   INC             L00
+ 41c3:  93 3d 00                GET_PARENT      "Page torn from a book" ->
+-(SP)
+ 41c6:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 41d6
+ 41cb:  93 3d 00                GET_PARENT      "Page torn from a book" ->
+-(SP)
+ 41ce:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 41d6
+ 41d3:  8c 00 64                JUMP            4238
+ 41d6:  b2 ...                  PRINT           "...wave the stick and hold the
+lamp and don't forget to yell `CHANT`! Oh yes, to help it succeed, a doll
+you'll need... "
+ 4237:  b0                      RTRUE           
+ 4238:  c1 8f 1a 22 eb 00 55    JE              G0a,"wri" [FALSE] 4292
+ 423f:  95 01                   INC             L00
+ 4241:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 4244:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4254
+ 4249:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 424c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4254
+ 4251:  8c 00 40                JUMP            4292
+ 4254:  93 05 00                GET_PARENT      "Broken glass" -> -(SP)
+ 4257:  41 00 01 80 0a          JE              (SP)+,#01 [TRUE] 4264
+ 425c:  93 05 00                GET_PARENT      "Broken glass" -> -(SP)
+ 425f:  61 00 11 00 05          JE              (SP)+,G01 [FALSE] 4267
+ 4264:  8c 00 2d                JUMP            4292
+ 4267:  b2 ...                  PRINT           "I can't do that "
+ 4274:  b2 ...                  PRINT           "Prints too small for the
+unaided eye. "
+ 4291:  b0                      RTRUE           
+ 4292:  c1 8f 1a 22 eb 00 65    JE              G0a,"wri" [FALSE] 42fc
+ 4299:  95 01                   INC             L00
+ 429b:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 429e:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 42ae
+ 42a3:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 42a6:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 42ae
+ 42ab:  8c 00 50                JUMP            42fc
+ 42ae:  93 05 00                GET_PARENT      "Broken glass" -> -(SP)
+ 42b1:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 42c1
+ 42b6:  93 05 00                GET_PARENT      "Broken glass" -> -(SP)
+ 42b9:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 42c1
+ 42be:  8c 00 3d                JUMP            42fc
+ 42c1:  b2 ...                  PRINT           "I can't do that "
+ 42ce:  b2 ...                  PRINT           "Phosphorescent letters are
+very hard to read in bright light! "
+ 42fb:  b0                      RTRUE           
+ 42fc:  c1 8f 1a 20 ab 00 52    JE              G0a,"lea" [FALSE] 4353
+ 4303:  95 01                   INC             L00
+ 4305:  93 39 00                GET_PARENT      "Advertising leaflet" -> -(SP)
+ 4308:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4318
+ 430d:  93 39 00                GET_PARENT      "Advertising leaflet" -> -(SP)
+ 4310:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4318
+ 4315:  8c 00 3d                JUMP            4353
+ 4318:  b2 ...                  PRINT           "OK "
+ 431d:  b2 ...                  PRINT           "For a reading just `SUMMON
+MEDIUM MAEGEN` today!! "
+ 4352:  b0                      RTRUE           
+ 4353:  c1 8f 1a 21 b9 00 3d    JE              G0a,"rin" [FALSE] 4395
+ 435a:  95 01                   INC             L00
+ 435c:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 435f:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 436f
+ 4364:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 4367:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 436f
+ 436c:  8c 00 28                JUMP            4395
+ 436f:  b2 ...                  PRINT           "Inscription on ring says:
+`WAVE ME!` "
+ 4394:  b0                      RTRUE           
+ 4395:  41 01 00 80 07          JE              L00,#00 [TRUE] 439f
+ 439a:  ad 28                   PRINT_PADDR     G18
+ 439c:  8c 00 04                JUMP            43a1
+ 439f:  ad 27                   PRINT_PADDR     G17
+ 43a1:  b0                      RTRUE           
+
+Routine 43a4, 1 local
+    Action routine for:
+        "ope"
+
+ 43a5:  c1 8f 1a 1e ce 00 1d    JE              G0a,"cel" [FALSE] 43c7
+ 43ac:  95 01                   INC             L00
+ 43ae:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 43b1:  41 00 01 00 05          JE              (SP)+,#01 [FALSE] 43b9
+ 43b6:  8c 00 10                JUMP            43c7
+ 43b9:  b2 ...                  PRINT           "I can't do that "
+ 43c6:  b0                      RTRUE           
+ 43c7:  c1 8f 1a 20 09 00 1e    JE              G0a,"flu" [FALSE] 43ea
+ 43ce:  95 01                   INC             L00
+ 43d0:  93 28 00                GET_PARENT      "Closed Flue" -> -(SP)
+ 43d3:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 43db
+ 43d8:  8c 00 11                JUMP            43ea
+ 43db:  f9 17 0b a9 44 28       CALL_VN         2ea4 (#44,#28)
+ 43e1:  b2 ...                  PRINT           "OK "
+ 43e6:  2e 43 11                INSERT_OBJ      "Dark Chimney",G01
+ 43e9:  b0                      RTRUE           
+ 43ea:  c1 8f 1a 1f a6 00 12    JE              G0a,"doo" [FALSE] 4401
+ 43f1:  95 01                   INC             L00
+ 43f3:  41 11 22 80 05          JE              G01,#22 [TRUE] 43fb
+ 43f8:  8c 00 08                JUMP            4401
+ 43fb:  b2 ...                  PRINT           "OK "
+ 4400:  b0                      RTRUE           
+ 4401:  c1 8f 1a 1f 1f 00 1b    JE              G0a,"cof" [FALSE] 4421
+ 4408:  95 01                   INC             L00
+ 440a:  93 03 00                GET_PARENT      "Closed Coffin" -> -(SP)
+ 440d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4415
+ 4412:  8c 00 0e                JUMP            4421
+ 4415:  f9 17 0b a9 49 03       CALL_VN         2ea4 (#49,#03)
+ 441b:  b2 ...                  PRINT           "OK "
+ 4420:  b0                      RTRUE           
+ 4421:  c1 8f 1a 1f a6 00 28    JE              G0a,"doo" [FALSE] 444e
+ 4428:  95 01                   INC             L00
+ 442a:  93 0b 00                GET_PARENT      "Massive stone door with a
+SAPPHIRE set into it" -> -(SP)
+ 442d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4435
+ 4432:  8c 00 1b                JUMP            444e
+ 4435:  b2 ...                  PRINT           "I can't do that "
+ 4442:  b2 ...                  PRINT           "won't budge! "
+ 444d:  b0                      RTRUE           
+ 444e:  c1 8f 1a 21 dd 00 1d    JE              G0a,"saf" [FALSE] 4470
+ 4455:  95 01                   INC             L00
+ 4457:  41 11 0c 80 05          JE              G01,#0c [TRUE] 445f
+ 445c:  8c 00 13                JUMP            4470
+ 445f:  93 4d 00                GET_PARENT      "Open SAfe" -> -(SP)
+ 4462:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 446a
+ 4467:  8c 00 08                JUMP            4470
+ 446a:  b2 ...                  PRINT           "OK "
+ 446f:  b0                      RTRUE           
+ 4470:  c1 8f 1a 1e 98 00 28    JE              G0a,"bag" [FALSE] 449d
+ 4477:  95 01                   INC             L00
+ 4479:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 447c:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 4484
+ 4481:  8c 00 1b                JUMP            449d
+ 4484:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 4487:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4497
+ 448c:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 448f:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4497
+ 4494:  8c 00 08                JUMP            449d
+ 4497:  b2 ...                  PRINT           "OK "
+ 449c:  b0                      RTRUE           
+ 449d:  c1 8f 1a 22 e2 00 0d    JE              G0a,"win" [FALSE] 44af
+ 44a4:  95 01                   INC             L00
+ 44a6:  41 11 00 80 05          JE              G01,#00 [TRUE] 44ae
+ 44ab:  8c 00 03                JUMP            44af
+ 44ae:  b0                      RTRUE           
+ 44af:  c1 8f 1a 21 dd 00 39    JE              G0a,"saf" [FALSE] 44ed
+ 44b6:  95 01                   INC             L00
+ 44b8:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 44bb:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 44c3
+ 44c0:  8c 00 2c                JUMP            44ed
+ 44c3:  b2 ...                  PRINT           "Safe's combination lock is
+numbered from 33 to 38. "
+ 44ec:  b0                      RTRUE           
+ 44ed:  c1 8f 1a 22 e2 00 1b    JE              G0a,"win" [FALSE] 450d
+ 44f4:  95 01                   INC             L00
+ 44f6:  93 46 00                GET_PARENT      "Closed Window" -> -(SP)
+ 44f9:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4501
+ 44fe:  8c 00 0e                JUMP            450d
+ 4501:  b2 ...                  PRINT           "won't budge! "
+ 450c:  b0                      RTRUE           
+ 450d:  41 01 00 80 07          JE              L00,#00 [TRUE] 4517
+ 4512:  ad 28                   PRINT_PADDR     G18
+ 4514:  8c 00 04                JUMP            4519
+ 4517:  ad 27                   PRINT_PADDR     G17
+ 4519:  b0                      RTRUE           
+
+Routine 451c, 1 local
+    Action routine for:
+        "clo"
+
+ 451d:  c1 8f 1a 20 09 00 1d    JE              G0a,"flu" [FALSE] 453f
+ 4524:  95 01                   INC             L00
+ 4526:  93 44 00                GET_PARENT      "Open Flue" -> -(SP)
+ 4529:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4531
+ 452e:  8c 00 10                JUMP            453f
+ 4531:  f9 17 0b a9 44 28       CALL_VN         2ea4 (#44,#28)
+ 4537:  b2 ...                  PRINT           "OK "
+ 453c:  99 43                   REMOVE_OBJ      "Dark Chimney"
+ 453e:  b0                      RTRUE           
+ 453f:  c1 8f 1a 1f 1f 00 1b    JE              G0a,"cof" [FALSE] 455f
+ 4546:  95 01                   INC             L00
+ 4548:  93 49 00                GET_PARENT      "Open Coffin" -> -(SP)
+ 454b:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4553
+ 4550:  8c 00 0e                JUMP            455f
+ 4553:  f9 17 0b a9 49 03       CALL_VN         2ea4 (#49,#03)
+ 4559:  b2 ...                  PRINT           "OK "
+ 455e:  b0                      RTRUE           
+ 455f:  c1 8f 1a 1f a6 00 10    JE              G0a,"doo" [FALSE] 4574
+ 4566:  95 01                   INC             L00
+ 4568:  b2 ...                  PRINT           "won't budge! "
+ 4573:  b0                      RTRUE           
+ 4574:  41 01 00 80 07          JE              L00,#00 [TRUE] 457e
+ 4579:  ad 28                   PRINT_PADDR     G18
+ 457b:  8c 00 04                JUMP            4580
+ 457e:  ad 27                   PRINT_PADDR     G17
+ 4580:  b0                      RTRUE           
+
+Routine 4584, 1 local
+    Action routine for:
+        "dia"
+
+ 4585:  c1 8f 1a 1f 79 00 20    JE              G0a,"d38" [FALSE] 45aa
+ 458c:  95 01                   INC             L00
+ 458e:  0a 5d 01 00 05          TEST_ATTR       "flags",#01 [FALSE] 4596
+ 4593:  8c 00 16                JUMP            45aa
+ 4596:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 4599:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 45a1
+ 459e:  8c 00 0b                JUMP            45aa
+ 45a1:  0b 5d 01                SET_ATTR        "flags",#01
+ 45a4:  b2 ...                  PRINT           "OK "
+ 45a9:  b0                      RTRUE           
+ 45aa:  c1 8f 1a 1f 4c 00 23    JE              G0a,"d33" [FALSE] 45d2
+ 45b1:  95 01                   INC             L00
+ 45b3:  0a 5d 01 80 05          TEST_ATTR       "flags",#01 [TRUE] 45bb
+ 45b8:  8c 00 19                JUMP            45d2
+ 45bb:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 45be:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 45c6
+ 45c3:  8c 00 0e                JUMP            45d2
+ 45c6:  f9 17 0b a9 4e 4d       CALL_VN         2ea4 (#4e,#4d)
+ 45cc:  b2 ...                  PRINT           "OK "
+ 45d1:  b0                      RTRUE           
+ 45d2:  c1 8f 1a 1f 55 00 18    JE              G0a,"d34" [FALSE] 45ef
+ 45d9:  95 01                   INC             L00
+ 45db:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 45de:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 45e6
+ 45e3:  8c 00 0b                JUMP            45ef
+ 45e6:  0c 5d 01                CLEAR_ATTR      "flags",#01
+ 45e9:  b2 ...                  PRINT           "OK "
+ 45ee:  b0                      RTRUE           
+ 45ef:  c1 8f 1a 1f 5e 00 18    JE              G0a,"d35" [FALSE] 460c
+ 45f6:  95 01                   INC             L00
+ 45f8:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 45fb:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4603
+ 4600:  8c 00 0b                JUMP            460c
+ 4603:  0c 5d 01                CLEAR_ATTR      "flags",#01
+ 4606:  b2 ...                  PRINT           "OK "
+ 460b:  b0                      RTRUE           
+ 460c:  c1 8f 1a 1f 67 00 18    JE              G0a,"d36" [FALSE] 4629
+ 4613:  95 01                   INC             L00
+ 4615:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 4618:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4620
+ 461d:  8c 00 0b                JUMP            4629
+ 4620:  0c 5d 01                CLEAR_ATTR      "flags",#01
+ 4623:  b2 ...                  PRINT           "OK "
+ 4628:  b0                      RTRUE           
+ 4629:  c1 8f 1a 1f 70 00 18    JE              G0a,"d37" [FALSE] 4646
+ 4630:  95 01                   INC             L00
+ 4632:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 4635:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 463d
+ 463a:  8c 00 0b                JUMP            4646
+ 463d:  0c 5d 01                CLEAR_ATTR      "flags",#01
+ 4640:  b2 ...                  PRINT           "OK "
+ 4645:  b0                      RTRUE           
+ 4646:  c1 8f 1a 20 c6 00 1d    JE              G0a,"loc" [FALSE] 4668
+ 464d:  95 01                   INC             L00
+ 464f:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 4652:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 465a
+ 4657:  8c 00 10                JUMP            4668
+ 465a:  b2 ...                  PRINT           "Use a number! "
+ 4667:  b0                      RTRUE           
+ 4668:  c1 8f 1a 1f 4c 00 18    JE              G0a,"d33" [FALSE] 4685
+ 466f:  95 01                   INC             L00
+ 4671:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 4674:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 467c
+ 4679:  8c 00 0b                JUMP            4685
+ 467c:  0c 5d 01                CLEAR_ATTR      "flags",#01
+ 467f:  b2 ...                  PRINT           "OK "
+ 4684:  b0                      RTRUE           
+ 4685:  c1 8f 1a 1f 79 00 18    JE              G0a,"d38" [FALSE] 46a2
+ 468c:  95 01                   INC             L00
+ 468e:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 4691:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4699
+ 4696:  8c 00 0b                JUMP            46a2
+ 4699:  0c 5d 01                CLEAR_ATTR      "flags",#01
+ 469c:  b2 ...                  PRINT           "OK "
+ 46a1:  b0                      RTRUE           
+ 46a2:  41 01 00 80 07          JE              L00,#00 [TRUE] 46ac
+ 46a7:  ad 28                   PRINT_PADDR     G18
+ 46a9:  8c 00 04                JUMP            46ae
+ 46ac:  ad 27                   PRINT_PADDR     G17
+ 46ae:  b0                      RTRUE           
+
+Routine 46b0, 1 local
+    Action routine for:
+        "exa"
+
+ 46b1:  c1 8f 1a 22 eb 00 31    JE              G0a,"wri" [FALSE] 46e7
+ 46b8:  95 01                   INC             L00
+ 46ba:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 46bd:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 46cd
+ 46c2:  93 13 00                GET_PARENT      "Plaque" -> -(SP)
+ 46c5:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 46cd
+ 46ca:  8c 00 1c                JUMP            46e7
+ 46cd:  b2 ...                  PRINT           "There's something written
+there "
+ 46e6:  b0                      RTRUE           
+ 46e7:  c1 8f 1a 20 3f 00 64    JE              G0a,"gra" [FALSE] 4750
+ 46ee:  95 01                   INC             L00
+ 46f0:  93 33 00                GET_PARENT      "GrAves" -> -(SP)
+ 46f3:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 46fb
+ 46f8:  8c 00 57                JUMP            4750
+ 46fb:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 46fe:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4706
+ 4703:  8c 00 4c                JUMP            4750
+ 4706:  b2 ...                  PRINT           "Amongst the GRAVES is a four
+leaf clover. "
+ 4729:  b2 ...                  PRINT           "A sign here says: "
+ 4738:  b2 ...                  PRINT           "This grAve reserved for you! "
+ 474f:  b0                      RTRUE           
+ 4750:  c1 8f 1a 20 3f 00 41    JE              G0a,"gra" [FALSE] 4796
+ 4757:  95 01                   INC             L00
+ 4759:  93 33 00                GET_PARENT      "GrAves" -> -(SP)
+ 475c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4764
+ 4761:  8c 00 34                JUMP            4796
+ 4764:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 4767:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 476f
+ 476c:  8c 00 29                JUMP            4796
+ 476f:  b2 ...                  PRINT           "A sign here says: "
+ 477e:  b2 ...                  PRINT           "This grAve reserved for you! "
+ 4795:  b0                      RTRUE           
+ 4796:  c1 8f 1a 21 dd 00 39    JE              G0a,"saf" [FALSE] 47d4
+ 479d:  95 01                   INC             L00
+ 479f:  93 4e 00                GET_PARENT      "Closed SAfe" -> -(SP)
+ 47a2:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 47aa
+ 47a7:  8c 00 2c                JUMP            47d4
+ 47aa:  b2 ...                  PRINT           "Safe's combination lock is
+numbered from 33 to 38. "
+ 47d3:  b0                      RTRUE           
+ 47d4:  c1 8f 1a 21 dd 00 35    JE              G0a,"saf" [FALSE] 480e
+ 47db:  95 01                   INC             L00
+ 47dd:  93 4d 00                GET_PARENT      "Open SAfe" -> -(SP)
+ 47e0:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 47e8
+ 47e5:  8c 00 28                JUMP            480e
+ 47e8:  93 53 00                GET_PARENT      "Antique hammer" -> -(SP)
+ 47eb:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 47f3
+ 47f0:  8c 00 1d                JUMP            480e
+ 47f3:  2e 53 11                INSERT_OBJ      "Antique hammer",G01
+ 47f6:  b2 ...                  PRINT           "There's an antique hammer here
+"
+ 480d:  b0                      RTRUE           
+ 480e:  c1 8f 1a 20 ab 00 31    JE              G0a,"lea" [FALSE] 4844
+ 4815:  95 01                   INC             L00
+ 4817:  93 39 00                GET_PARENT      "Advertising leaflet" -> -(SP)
+ 481a:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 482a
+ 481f:  93 39 00                GET_PARENT      "Advertising leaflet" -> -(SP)
+ 4822:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 482a
+ 4827:  8c 00 1c                JUMP            4844
+ 482a:  b2 ...                  PRINT           "There's something written
+there "
+ 4843:  b0                      RTRUE           
+ 4844:  c1 8f 1a 1e a1 00 50    JE              G0a,"bal" [FALSE] 4899
+ 484b:  95 01                   INC             L00
+ 484d:  41 11 0e 80 05          JE              G01,#0e [TRUE] 4855
+ 4852:  8c 00 46                JUMP            4899
+ 4855:  93 0f 00                GET_PARENT      "Crystal Ball" -> -(SP)
+ 4858:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4860
+ 485d:  8c 00 3b                JUMP            4899
+ 4860:  b2 ...                  PRINT           "I see nothing very special. "
+ 4875:  0d 11 09                STORE           G01,#09
+ 4878:  8f 0a e2                CALL_1N         2b88
+ 487b:  b2 ...                  PRINT           "Spirit vibrations drive me
+from room. "
+ 4898:  b0                      RTRUE           
+ 4899:  c1 8f 1a 1e 98 00 41    JE              G0a,"bag" [FALSE] 48df
+ 48a0:  95 01                   INC             L00
+ 48a2:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 48a5:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 48b5
+ 48aa:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 48ad:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 48b5
+ 48b2:  8c 00 2c                JUMP            48df
+ 48b5:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 48b8:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 48c0
+ 48bd:  8c 00 21                JUMP            48df
+ 48c0:  93 58 00                GET_PARENT      "Stick" -> -(SP)
+ 48c3:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 48cb
+ 48c8:  8c 00 16                JUMP            48df
+ 48cb:  b2 ...                  PRINT           "There's a book there. "
+ 48de:  b0                      RTRUE           
+ 48df:  c1 8f 1a 1e e0 00 33    JE              G0a,"che" [FALSE] 4917
+ 48e6:  95 01                   INC             L00
+ 48e8:  93 4f 00                GET_PARENT      "Mixed Chemicals" -> -(SP)
+ 48eb:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 48fb
+ 48f0:  93 4f 00                GET_PARENT      "Mixed Chemicals" -> -(SP)
+ 48f3:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 48fb
+ 48f8:  8c 00 1e                JUMP            4917
+ 48fb:  b2 ...                  PRINT           "Looks almost like lemonade.
+Yummy! "
+ 4916:  b0                      RTRUE           
+ 4917:  c1 8f 1a 21 dd 00 33    JE              G0a,"saf" [FALSE] 494f
+ 491e:  95 01                   INC             L00
+ 4920:  41 11 0c 80 05          JE              G01,#0c [TRUE] 4928
+ 4925:  8c 00 29                JUMP            494f
+ 4928:  93 4d 00                GET_PARENT      "Open SAfe" -> -(SP)
+ 492b:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4933
+ 4930:  8c 00 1e                JUMP            494f
+ 4933:  93 53 00                GET_PARENT      "Antique hammer" -> -(SP)
+ 4936:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 493e
+ 493b:  8c 00 13                JUMP            494f
+ 493e:  b2 ...                  PRINT           "OK "
+ 4943:  b2 ...                  PRINT           "Its empty. "
+ 494e:  b0                      RTRUE           
+ 494f:  c1 8f 1a 1e 98 00 5f    JE              G0a,"bag" [FALSE] 49b3
+ 4956:  95 01                   INC             L00
+ 4958:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 495b:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 496b
+ 4960:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 4963:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 496b
+ 4968:  8c 00 4a                JUMP            49b3
+ 496b:  93 58 00                GET_PARENT      "Stick" -> -(SP)
+ 496e:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4976
+ 4973:  8c 00 3f                JUMP            49b3
+ 4976:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 4979:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4981
+ 497e:  8c 00 34                JUMP            49b3
+ 4981:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 4984:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 498c
+ 4989:  8c 00 29                JUMP            49b3
+ 498c:  b2 ...                  PRINT           "There's a book there. "
+ 499f:  b2 ...                  PRINT           "There's a stick there. "
+ 49b2:  b0                      RTRUE           
+ 49b3:  c1 8f 1a 1f 9d 00 41    JE              G0a,"dol" [FALSE] 49f9
+ 49ba:  95 01                   INC             L00
+ 49bc:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 49bf:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 49cf
+ 49c4:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 49c7:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 49cf
+ 49cc:  8c 00 2c                JUMP            49f9
+ 49cf:  b2 ...                  PRINT           "Doll looks like Count Cristo.
+There're pins in it! "
+ 49f8:  b0                      RTRUE           
+ 49f9:  c1 8f 1a 1f 1f 00 b9    JE              G0a,"cof" [FALSE] 4ab7
+ 4a00:  95 01                   INC             L00
+ 4a02:  93 49 00                GET_PARENT      "Open Coffin" -> -(SP)
+ 4a05:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4a0d
+ 4a0a:  8c 00 ac                JUMP            4ab7
+ 4a0d:  b2 ...                  PRINT           "A sign here says: "
+ 4a1c:  b2 ...                  PRINT           "Count Cristo's been CURSED!
+There's one way for him to flee! Find it, and he'll go FREE! "
+ 4a67:  b2 ...                  PRINT           "There's a man here "
+ 4a76:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 4a79:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4a81
+ 4a7e:  8c 00 19                JUMP            4a98
+ 4a81:  b2 ...                  PRINT           "He's wearing a rabbit's foot "
+ 4a98:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 4a9b:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4aa3
+ 4aa0:  8c 00 15                JUMP            4ab6
+ 4aa3:  b2 ...                  PRINT           "Wearing a sapphire ring "
+ 4ab6:  b0                      RTRUE           
+ 4ab7:  c1 8f 1a 1e e0 00 2d    JE              G0a,"che" [FALSE] 4ae9
+ 4abe:  95 01                   INC             L00
+ 4ac0:  93 2f 00                GET_PARENT      "Labeled chemicals" -> -(SP)
+ 4ac3:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4ad3
+ 4ac8:  93 2f 00                GET_PARENT      "Labeled chemicals" -> -(SP)
+ 4acb:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4ad3
+ 4ad0:  8c 00 18                JUMP            4ae9
+ 4ad3:  b2 ...                  PRINT           "They appear to be mixable. "
+ 4ae8:  b0                      RTRUE           
+ 4ae9:  c1 8f 1a 21 56 00 2d    JE              G0a,"pot" [FALSE] 4b1b
+ 4af0:  95 01                   INC             L00
+ 4af2:  93 11 00                GET_PARENT      "Cast iron pot" -> -(SP)
+ 4af5:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4b05
+ 4afa:  93 11 00                GET_PARENT      "Cast iron pot" -> -(SP)
+ 4afd:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4b05
+ 4b02:  8c 00 18                JUMP            4b1b
+ 4b05:  b2 ...                  PRINT           "There's witch's brew there "
+ 4b1a:  b0                      RTRUE           
+ 4b1b:  c1 8f 1a 20 87 00 4e    JE              G0a,"ket" [FALSE] 4b6e
+ 4b22:  95 01                   INC             L00
+ 4b24:  93 08 00                GET_PARENT      "Big kettle" -> -(SP)
+ 4b27:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4b2f
+ 4b2c:  8c 00 41                JUMP            4b6e
+ 4b2f:  41 11 07 80 05          JE              G01,#07 [TRUE] 4b37
+ 4b34:  8c 00 39                JUMP            4b6e
+ 4b37:  93 41 00                GET_PARENT      "Dark hole" -> -(SP)
+ 4b3a:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4b42
+ 4b3f:  8c 00 2e                JUMP            4b6e
+ 4b42:  b2 ...                  PRINT           "OK "
+ 4b47:  b2 ...                  PRINT           "I see a hole under it! "
+ 4b5a:  b2 ...                  PRINT           "There's some soup here. "
+ 4b6d:  b0                      RTRUE           
+ 4b6e:  c1 8f 1a 22 64 00 2b    JE              G0a,"sta" [FALSE] 4b9e
+ 4b75:  95 01                   INC             L00
+ 4b77:  93 36 00                GET_PARENT      "Ju-Ju man statue" -> -(SP)
+ 4b7a:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4b8a
+ 4b7f:  93 36 00                GET_PARENT      "Ju-Ju man statue" -> -(SP)
+ 4b82:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4b8a
+ 4b87:  8c 00 16                JUMP            4b9e
+ 4b8a:  b2 ...                  PRINT           "Statue is made of stone "
+ 4b9d:  b0                      RTRUE           
+ 4b9e:  c1 8f 1a 1e ce 00 22    JE              G0a,"cel" [FALSE] 4bc5
+ 4ba5:  95 01                   INC             L00
+ 4ba7:  41 11 1b 80 05          JE              G01,#1b [TRUE] 4baf
+ 4bac:  8c 00 18                JUMP            4bc5
+ 4baf:  b2 ...                  PRINT           "I see nothing very special. "
+ 4bc4:  b0                      RTRUE           
+ 4bc5:  c1 8f 1a 21 b9 00 31    JE              G0a,"rin" [FALSE] 4bfb
+ 4bcc:  95 01                   INC             L00
+ 4bce:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 4bd1:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4be1
+ 4bd6:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 4bd9:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4be1
+ 4bde:  8c 00 1c                JUMP            4bfb
+ 4be1:  b2 ...                  PRINT           "There's something written
+there "
+ 4bfa:  b0                      RTRUE           
+ 4bfb:  c1 8f 1a 1e 98 00 4c    JE              G0a,"bag" [FALSE] 4c4c
+ 4c02:  95 01                   INC             L00
+ 4c04:  93 57 00                GET_PARENT      "Voodoo book" -> -(SP)
+ 4c07:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 4c0f
+ 4c0c:  8c 00 3f                JUMP            4c4c
+ 4c0f:  93 58 00                GET_PARENT      "Stick" -> -(SP)
+ 4c12:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4c1a
+ 4c17:  8c 00 34                JUMP            4c4c
+ 4c1a:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 4c1d:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 4c25
+ 4c22:  8c 00 29                JUMP            4c4c
+ 4c25:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 4c28:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4c38
+ 4c2d:  93 2d 00                GET_PARENT      "Ju-Ju bag" -> -(SP)
+ 4c30:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4c38
+ 4c35:  8c 00 16                JUMP            4c4c
+ 4c38:  b2 ...                  PRINT           "There's a stick there. "
+ 4c4b:  b0                      RTRUE           
+ 4c4c:  c1 8f 1a 20 75 00 3e    JE              G0a,"ido" [FALSE] 4c8f
+ 4c53:  95 01                   INC             L00
+ 4c55:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 4c58:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4c68
+ 4c5d:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 4c60:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4c68
+ 4c65:  8c 00 29                JUMP            4c8f
+ 4c68:  b2 ...                  PRINT           "Boy it looks dusty. "
+ 4c79:  b2 ...                  PRINT           "I see nothing very special. "
+ 4c8e:  b0                      RTRUE           
+ 4c8f:  c1 8f 1a 20 75 00 23    JE              G0a,"ido" [FALSE] 4cb7
+ 4c96:  95 01                   INC             L00
+ 4c98:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 4c9b:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4cab
+ 4ca0:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 4ca3:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4cab
+ 4ca8:  8c 00 0e                JUMP            4cb7
+ 4cab:  b2 ...                  PRINT           "Its glowing. "
+ 4cb6:  b0                      RTRUE           
+ 4cb7:  95 01                   INC             L00
+ 4cb9:  8f 0a e2                CALL_1N         2b88
+ 4cbc:  b2 ...                  PRINT           "I see nothing very special. "
+ 4cd1:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 4cd2:  41 01 00 80 07          JE              L00,#00 [TRUE] 4cdc
+ 4cd7:  ad 28                   PRINT_PADDR     G18
+ 4cd9:  8c 00 04                JUMP            4cde
+ 4cdc:  ad 27                   PRINT_PADDR     G17
+ 4cde:  b0                      RTRUE           
+
+Routine 4ce0, 1 local
+    Action routine for:
+        "inv"
+
+ 4ce1:  95 01                   INC             L00
+ 4ce3:  8f 0b 96                CALL_1N         2e58
+ 4ce6:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 4ce7:  41 01 00 80 07          JE              L00,#00 [TRUE] 4cf1
+ 4cec:  ad 28                   PRINT_PADDR     G18
+ 4cee:  8c 00 04                JUMP            4cf3
+ 4cf1:  ad 27                   PRINT_PADDR     G17
+ 4cf3:  b0                      RTRUE           
+
+Routine 4cf4, 1 local
+    Action routine for:
+        "cir"
+
+ 4cf5:  c1 8f 1a 1f 1f 00 93    JE              G0a,"cof" [FALSE] 4d8d
+ 4cfc:  95 01                   INC             L00
+ 4cfe:  41 11 02 80 05          JE              G01,#02 [TRUE] 4d06
+ 4d03:  8c 00 89                JUMP            4d8d
+ 4d06:  b2 ...                  PRINT           "OK "
+ 4d0b:  b2 ...                  PRINT           "Nothing happened "
+ 4d18:  8f 0c 5d                CALL_1N         3174
+ 4d1b:  93 2b 00                GET_PARENT      "Rabbit's foot" -> -(SP)
+ 4d1e:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 4d26
+ 4d23:  8c 00 68                JUMP            4d8c
+ 4d26:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 4d29:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4d39
+ 4d2e:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 4d31:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4d39
+ 4d36:  8c 00 55                JUMP            4d8c
+ 4d39:  93 0a 00                GET_PARENT      "Bloody Knife" -> -(SP)
+ 4d3c:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 4d44
+ 4d41:  8c 00 4a                JUMP            4d8c
+ 4d44:  0b 5d 03                SET_ATTR        "flags",#03
+ 4d47:  b2 ...                  PRINT           "There's a CLAP OF THUNDER! "
+ 4d66:  0b 5d 0f                SET_ATTR        "flags",#0f
+ 4d69:  b2 ...                  PRINT           "Its very dark, the only light
+is from the idol. "
+ 4d8c:  b0                      RTRUE           
+ 4d8d:  41 01 00 80 07          JE              L00,#00 [TRUE] 4d97
+ 4d92:  ad 28                   PRINT_PADDR     G18
+ 4d94:  8c 00 04                JUMP            4d99
+ 4d97:  ad 27                   PRINT_PADDR     G17
+ 4d99:  b0                      RTRUE           
+
+Routine 4d9c, 1 local
+    Action routine for:
+        "qui"
+
+ 4d9d:  95 01                   INC             L00
+ 4d9f:  8f 0c 2d                CALL_1N         30b4
+ 4da2:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 4da3:  41 01 00 80 07          JE              L00,#00 [TRUE] 4dad
+ 4da8:  ad 28                   PRINT_PADDR     G18
+ 4daa:  8c 00 04                JUMP            4daf
+ 4dad:  ad 27                   PRINT_PADDR     G17
+ 4daf:  b0                      RTRUE           
+
+Routine 4db0, 1 local
+    Action routine for:
+        "dri"
+
+ 4db1:  c1 8f 1a 1e bc 00 6e    JE              G0a,"bre" [FALSE] 4e24
+ 4db8:  95 01                   INC             L00
+ 4dba:  93 11 00                GET_PARENT      "Cast iron pot" -> -(SP)
+ 4dbd:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4dcd
+ 4dc2:  93 11 00                GET_PARENT      "Cast iron pot" -> -(SP)
+ 4dc5:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4dcd
+ 4dca:  8c 00 59                JUMP            4e24
+ 4dcd:  b2 ...                  PRINT           "There's a CLAP OF THUNDER! "
+ 4dec:  8f 0c 5d                CALL_1N         3174
+ 4def:  b2 ...                  PRINT           "You've been turned into a
+broomstick & a witch rides off on you! "
+ 4e20:  8f 0c 2d                CALL_1N         30b4
+ 4e23:  b0                      RTRUE           
+ 4e24:  c1 8f 1a 1e e0 00 5a    JE              G0a,"che" [FALSE] 4e83
+ 4e2b:  95 01                   INC             L00
+ 4e2d:  93 4f 00                GET_PARENT      "Mixed Chemicals" -> -(SP)
+ 4e30:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4e40
+ 4e35:  93 4f 00                GET_PARENT      "Mixed Chemicals" -> -(SP)
+ 4e38:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4e40
+ 4e3d:  8c 00 45                JUMP            4e83
+ 4e40:  b2 ...                  PRINT           "There's a CLAP OF THUNDER! "
+ 4e5f:  f9 17 0b a9 23 50       CALL_VN         2ea4 (#23,#50)
+ 4e65:  99 2f                   REMOVE_OBJ      "Labeled chemicals"
+ 4e67:  99 4f                   REMOVE_OBJ      "Mixed Chemicals"
+ 4e69:  8f 0c 5d                CALL_1N         3174
+ 4e6c:  8f 0c 5d                CALL_1N         3174
+ 4e6f:  b2 ...                  PRINT           "I'm now 4 feet tall! "
+ 4e82:  b0                      RTRUE           
+ 4e83:  c1 8f 1a 22 5b 00 17    JE              G0a,"sou" [FALSE] 4e9f
+ 4e8a:  95 01                   INC             L00
+ 4e8c:  93 08 00                GET_PARENT      "Big kettle" -> -(SP)
+ 4e8f:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4e97
+ 4e94:  8c 00 0a                JUMP            4e9f
+ 4e97:  b2 ...                  PRINT           "OK "
+ 4e9c:  99 52                   REMOVE_OBJ      "Wooden boards"
+ 4e9e:  b0                      RTRUE           
+ 4e9f:  41 01 00 80 07          JE              L00,#00 [TRUE] 4ea9
+ 4ea4:  ad 28                   PRINT_PADDR     G18
+ 4ea6:  8c 00 04                JUMP            4eab
+ 4ea9:  ad 27                   PRINT_PADDR     G17
+ 4eab:  b0                      RTRUE           
+
+Routine 4eac, 1 local
+    Action routine for:
+        "saw"
+
+ 4ead:  c1 8f 1a 20 3f 00 58    JE              G0a,"gra" [FALSE] 4f0a
+ 4eb4:  95 01                   INC             L00
+ 4eb6:  93 54 00                GET_PARENT      "GrAting" -> -(SP)
+ 4eb9:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4ec1
+ 4ebe:  8c 00 4b                JUMP            4f0a
+ 4ec1:  93 34 00                GET_PARENT      "Rusting SAW" -> -(SP)
+ 4ec4:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 4ecc
+ 4ec9:  8c 00 40                JUMP            4f0a
+ 4ecc:  b2 ...                  PRINT           "It's hArd work but it seems to
+be coming loose "
+ 4eef:  b2 ...                  PRINT           "OK "
+ 4ef4:  99 54                   REMOVE_OBJ      "GrAting"
+ 4ef6:  2e 55 11                INSERT_OBJ      "Button in the wall",G01
+ 4ef9:  b2 ...                  PRINT           "I've got it! "
+ 4f06:  0e 5a 01                INSERT_OBJ      "Broken grating","player"
+ 4f09:  b0                      RTRUE           
+ 4f0a:  95 01                   INC             L00
+ 4f0c:  93 34 00                GET_PARENT      "Rusting SAW" -> -(SP)
+ 4f0f:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 4f17
+ 4f14:  8c 00 23                JUMP            4f38
+ 4f17:  93 38 00                GET_PARENT      "Closed cell door" -> -(SP)
+ 4f1a:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4f22
+ 4f1f:  8c 00 18                JUMP            4f38
+ 4f22:  b2 ...                  PRINT           "You've been sprung "
+ 4f31:  0d 11 1b                STORE           G01,#1b
+ 4f34:  8f 0a e2                CALL_1N         2b88
+ 4f37:  b0                      RTRUE           
+ 4f38:  95 01                   INC             L00
+ 4f3a:  93 34 00                GET_PARENT      "Rusting SAW" -> -(SP)
+ 4f3d:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 4f45
+ 4f42:  8c 00 15                JUMP            4f58
+ 4f45:  b2 ...                  PRINT           "OK "
+ 4f4a:  b2 ...                  PRINT           "Nothing happened "
+ 4f57:  b0                      RTRUE           
+ 4f58:  41 01 00 80 07          JE              L00,#00 [TRUE] 4f62
+ 4f5d:  ad 28                   PRINT_PADDR     G18
+ 4f5f:  8c 00 04                JUMP            4f64
+ 4f62:  ad 27                   PRINT_PADDR     G17
+ 4f64:  b0                      RTRUE           
+
+Routine 4f68, 1 local
+    Action routine for:
+        "mix"
+
+ 4f69:  c1 8f 1a 1e e0 00 23    JE              G0a,"che" [FALSE] 4f91
+ 4f70:  95 01                   INC             L00
+ 4f72:  93 2f 00                GET_PARENT      "Labeled chemicals" -> -(SP)
+ 4f75:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4f85
+ 4f7a:  93 2f 00                GET_PARENT      "Labeled chemicals" -> -(SP)
+ 4f7d:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4f85
+ 4f82:  8c 00 0e                JUMP            4f91
+ 4f85:  f9 17 0b a9 2f 4f       CALL_VN         2ea4 (#2f,#4f)
+ 4f8b:  b2 ...                  PRINT           "OK "
+ 4f90:  b0                      RTRUE           
+ 4f91:  41 01 00 80 07          JE              L00,#00 [TRUE] 4f9b
+ 4f96:  ad 28                   PRINT_PADDR     G18
+ 4f98:  8c 00 04                JUMP            4f9d
+ 4f9b:  ad 27                   PRINT_PADDR     G17
+ 4f9d:  b0                      RTRUE           
+
+Routine 4fa0, 1 local
+    Action routine for:
+        "ham"
+
+ 4fa1:  41 01 00 80 07          JE              L00,#00 [TRUE] 4fab
+ 4fa6:  ad 28                   PRINT_PADDR     G18
+ 4fa8:  8c 00 04                JUMP            4fad
+ 4fab:  ad 27                   PRINT_PADDR     G17
+ 4fad:  b0                      RTRUE           
+
+Routine 4fb0, 1 local
+    Action routine for:
+        "shr"
+
+ 4fb1:  95 01                   INC             L00
+ 4fb3:  b2 ...                  PRINT           "how? "
+ 4fb8:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 4fb9:  41 01 00 80 07          JE              L00,#00 [TRUE] 4fc3
+ 4fbe:  ad 28                   PRINT_PADDR     G18
+ 4fc0:  8c 00 04                JUMP            4fc5
+ 4fc3:  ad 27                   PRINT_PADDR     G17
+ 4fc5:  b0                      RTRUE           
+
+Routine 4fc8, 1 local
+    Action routine for:
+        "hea"
+
+ 4fc9:  95 01                   INC             L00
+ 4fcb:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 4fce:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 4fde
+ 4fd3:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 4fd6:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 4fde
+ 4fdb:  8c 00 4a                JUMP            5026
+ 4fde:  b2 ...                  PRINT           "Ju-Ju man says:`My bag is now
+yours! Its magic will help you -CRACK- the curse!`. "
+ 5025:  b0                      RTRUE           
+ 5026:  95 01                   INC             L00
+ 5028:  41 11 27 80 05          JE              G01,#27 [TRUE] 5030
+ 502d:  8c 00 40                JUMP            506e
+ 5030:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 5033:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 503b
+ 5038:  8c 00 35                JUMP            506e
+ 503b:  b2 ...                  PRINT           "I hear strange sounds, as if
+someone were moaning. "
+ 5060:  b2 ...                  PRINT           "Its very faint. "
+ 506d:  b0                      RTRUE           
+ 506e:  95 01                   INC             L00
+ 5070:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 5073:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 507b
+ 5078:  8c 00 43                JUMP            50bc
+ 507b:  41 11 24 80 05          JE              G01,#24 [TRUE] 5083
+ 5080:  8c 00 3b                JUMP            50bc
+ 5083:  b2 ...                  PRINT           "I hear strange sounds, as if
+someone were moaning. "
+ 50a8:  b2 ...                  PRINT           "Its much louder up here. "
+ 50bb:  b0                      RTRUE           
+ 50bc:  c1 8f 1a 1f 3a 00 78    JE              G0a,"cry" [FALSE] 5139
+ 50c3:  95 01                   INC             L00
+ 50c5:  41 11 17 80 05          JE              G01,#17 [TRUE] 50cd
+ 50ca:  8c 00 6e                JUMP            5139
+ 50cd:  b2 ...                  PRINT           "Bird says: `ask for ADVENTURE
+5, -THE COUNT- at your favorite computer dealer. It will be LOVE AT FIRST
+BYTE!`  "
+ 5138:  b0                      RTRUE           
+ 5139:  95 01                   INC             L00
+ 513b:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 513e:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5146
+ 5143:  8c 00 18                JUMP            515c
+ 5146:  b2 ...                  PRINT           "HELP ME, I'm stuck! "
+ 515b:  b0                      RTRUE           
+ 515c:  95 01                   INC             L00
+ 515e:  b2 ...                  PRINT           "I hear nothing. "
+ 516b:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 516c:  41 01 00 80 07          JE              L00,#00 [TRUE] 5176
+ 5171:  ad 28                   PRINT_PADDR     G18
+ 5173:  8c 00 04                JUMP            5178
+ 5176:  ad 27                   PRINT_PADDR     G17
+ 5178:  b0                      RTRUE           
+
+Routine 517c, 1 local
+    Action routine for:
+        "sta"
+
+ 517d:  41 01 00 80 07          JE              L00,#00 [TRUE] 5187
+ 5182:  ad 28                   PRINT_PADDR     G18
+ 5184:  8c 00 04                JUMP            5189
+ 5187:  ad 27                   PRINT_PADDR     G17
+ 5189:  b0                      RTRUE           
+
+Routine 518c, 1 local
+    Action routine for:
+        "sha"
+
+ 518d:  c1 8f 1a 22 88 00 0d    JE              G0a,"swo" [FALSE] 519f
+ 5194:  95 01                   INC             L00
+ 5196:  41 11 00 80 05          JE              G01,#00 [TRUE] 519e
+ 519b:  8c 00 03                JUMP            519f
+ 519e:  b0                      RTRUE           
+ 519f:  41 01 00 80 07          JE              L00,#00 [TRUE] 51a9
+ 51a4:  ad 28                   PRINT_PADDR     G18
+ 51a6:  8c 00 04                JUMP            51ab
+ 51a9:  ad 27                   PRINT_PADDR     G17
+ 51ab:  b0                      RTRUE           
+
+Routine 51ac, 1 local
+    Action routine for:
+        "sli"
+
+ 51ad:  95 01                   INC             L00
+ 51af:  93 4a 00                GET_PARENT      "Slick chute leading downward"
+-> -(SP)
+ 51b2:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 51ba
+ 51b7:  8c 00 09                JUMP            51c1
+ 51ba:  0d 11 12                STORE           G01,#12
+ 51bd:  8f 0a e2                CALL_1N         2b88
+ 51c0:  b0                      RTRUE           
+ 51c1:  41 01 00 80 07          JE              L00,#00 [TRUE] 51cb
+ 51c6:  ad 28                   PRINT_PADDR     G18
+ 51c8:  8c 00 04                JUMP            51cd
+ 51cb:  ad 27                   PRINT_PADDR     G17
+ 51cd:  b0                      RTRUE           
+
+Routine 51d0, 1 local
+    Action routine for:
+        "dan"
+
+ 51d1:  95 01                   INC             L00
+ 51d3:  b2 ...                  PRINT           "OK "
+ 51d8:  b2 ...                  PRINT           "Nothing happened "
+ 51e5:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 51e6:  41 01 00 80 07          JE              L00,#00 [TRUE] 51f0
+ 51eb:  ad 28                   PRINT_PADDR     G18
+ 51ed:  8c 00 04                JUMP            51f2
+ 51f0:  ad 27                   PRINT_PADDR     G17
+ 51f2:  b0                      RTRUE           
+
+Routine 51f4, 1 local
+    Action routine for:
+        "cry"
+
+ 51f5:  c1 8f 1a 20 e1 00 8b    JE              G0a,"med" [FALSE] 5285
+ 51fc:  95 01                   INC             L00
+ 51fe:  93 47 00                GET_PARENT      "Spirit Medium" -> -(SP)
+ 5201:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 5209
+ 5206:  8c 00 7e                JUMP            5285
+ 5209:  41 11 0e 80 05          JE              G01,#0e [TRUE] 5211
+ 520e:  8c 00 76                JUMP            5285
+ 5211:  b2 ...                  PRINT           "OK "
+ 5216:  8f 0c 28                CALL_1N         30a0
+ 5219:  b2 ...                  PRINT           " "
+ 521c:  2e 47 11                INSERT_OBJ      "Spirit Medium",G01
+ 521f:  b2 ...                  PRINT           "Medium appears, says: `Keep a
+good luck charm on you & your friend. I also see a -moving- bag helping you
+through a tight squeeze!` "
+ 5284:  b0                      RTRUE           
+ 5285:  c1 8f 1a 22 fd 00 9b    JE              G0a,"zap" [FALSE] 5325
+ 528c:  95 01                   INC             L00
+ 528e:  93 36 00                GET_PARENT      "Ju-Ju man statue" -> -(SP)
+ 5291:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 52a1
+ 5296:  93 36 00                GET_PARENT      "Ju-Ju man statue" -> -(SP)
+ 5299:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 52a1
+ 529e:  8c 00 86                JUMP            5325
+ 52a1:  99 36                   REMOVE_OBJ      "Ju-Ju man statue"
+ 52a3:  2e 4b 11                INSERT_OBJ      "Ju-Ju man",G01
+ 52a6:  8f 0c 28                CALL_1N         30a0
+ 52a9:  b2 ...                  PRINT           " "
+ 52ac:  b2 ...                  PRINT           "There's a Clap of Thunder &
+then suddenly the stone statue begins to crack. I may be in trouble now,
+there's someone in the room with me! "
+ 5311:  b2 ...                  PRINT           "I hear someone mumbling. "
+ 5324:  b0                      RTRUE           
+ 5325:  c1 8f 1a 1e d7 00 a7    JE              G0a,"cha" [FALSE] 53d1
+ 532c:  95 01                   INC             L00
+ 532e:  41 11 02 80 05          JE              G01,#02 [TRUE] 5336
+ 5333:  8c 00 9d                JUMP            53d1
+ 5336:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 5339:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 5349
+ 533e:  93 42 00                GET_PARENT      "Brightly glowing idol" ->
+-(SP)
+ 5341:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5349
+ 5346:  8c 00 8a                JUMP            53d1
+ 5349:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 534c:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 535c
+ 5351:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 5354:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 535c
+ 5359:  8c 00 77                JUMP            53d1
+ 535c:  0a 5d 06 80 05          TEST_ATTR       "flags",#06 [TRUE] 5364
+ 5361:  8c 00 6f                JUMP            53d1
+ 5364:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 5367:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 5377
+ 536c:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 536f:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5377
+ 5374:  8c 00 5c                JUMP            53d1
+ 5377:  b2 ...                  PRINT           "There's a CLAP OF THUNDER! "
+ 5396:  8f 0c 5d                CALL_1N         3174
+ 5399:  b2 ...                  PRINT           "Pins fall out of doll "
+ 53aa:  2e 5c 11                INSERT_OBJ      "Smiling Count Cristo",G01
+ 53ad:  8f 0a e2                CALL_1N         2b88
+ 53b0:  b2 ...                  PRINT           "HURRAH! Look who is in the
+room! "
+ 53cd:  8f 0c 2d                CALL_1N         30b4
+ 53d0:  b0                      RTRUE           
+ 53d1:  95 01                   INC             L00
+ 53d3:  b2 ...                  PRINT           "OK "
+ 53d8:  8f 0c 28                CALL_1N         30a0
+ 53db:  b2 ...                  PRINT           " "
+ 53de:  b2 ...                  PRINT           "Nothing happened "
+ 53eb:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 53ec:  41 01 00 80 07          JE              L00,#00 [TRUE] 53f6
+ 53f1:  ad 28                   PRINT_PADDR     G18
+ 53f3:  8c 00 04                JUMP            53f8
+ 53f6:  ad 27                   PRINT_PADDR     G17
+ 53f8:  b0                      RTRUE           
+
+Routine 53fc, 1 local
+    Action routine for:
+        "cut"
+
+ 53fd:  c1 8f 1a 20 75 00 5d    JE              G0a,"ido" [FALSE] 545f
+ 5404:  95 01                   INC             L00
+ 5406:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 5409:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 5419
+ 540e:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 5411:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5419
+ 5416:  8c 00 48                JUMP            545f
+ 5419:  93 0a 00                GET_PARENT      "Bloody Knife" -> -(SP)
+ 541c:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 542c
+ 5421:  93 0a 00                GET_PARENT      "Bloody Knife" -> -(SP)
+ 5424:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 542c
+ 5429:  8c 00 35                JUMP            545f
+ 542c:  b2 ...                  PRINT           "My idol acted strange "
+ 543d:  b2 ...                  PRINT           "Some dust fell off it and it
+glowed briefly. "
+ 545e:  b0                      RTRUE           
+ 545f:  95 01                   INC             L00
+ 5461:  93 0a 00                GET_PARENT      "Bloody Knife" -> -(SP)
+ 5464:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 5474
+ 5469:  93 0a 00                GET_PARENT      "Bloody Knife" -> -(SP)
+ 546c:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5474
+ 5471:  8c 00 2e                JUMP            54a0
+ 5474:  b2 ...                  PRINT           "OK "
+ 5479:  b2 ...                  PRINT           "Nothing happened "
+ 5486:  b2 ...                  PRINT           "Knife made no impression on
+it! "
+ 549f:  b0                      RTRUE           
+ 54a0:  95 01                   INC             L00
+ 54a2:  93 0a 00                GET_PARENT      "Bloody Knife" -> -(SP)
+ 54a5:  41 00 01 00 05          JE              (SP)+,#01 [FALSE] 54ad
+ 54aa:  8c 00 23                JUMP            54ce
+ 54ad:  b2 ...                  PRINT           "I can't do that "
+ 54ba:  b2 ...                  PRINT           "I haven't got a knife! "
+ 54cd:  b0                      RTRUE           
+ 54ce:  41 01 00 80 07          JE              L00,#00 [TRUE] 54d8
+ 54d3:  ad 28                   PRINT_PADDR     G18
+ 54d5:  8c 00 04                JUMP            54da
+ 54d8:  ad 27                   PRINT_PADDR     G17
+ 54da:  b0                      RTRUE           
+
+Routine 54dc, 1 local
+    Action routine for:
+        "rub"
+
+ 54dd:  c1 8f 1a 20 75 00 4a    JE              G0a,"ido" [FALSE] 552c
+ 54e4:  95 01                   INC             L00
+ 54e6:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 54e9:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 54f9
+ 54ee:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 54f1:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 54f9
+ 54f6:  8c 00 35                JUMP            552c
+ 54f9:  b2 ...                  PRINT           "My idol acted strange "
+ 550a:  b2 ...                  PRINT           "Some dust fell off it and it
+glowed briefly. "
+ 552b:  b0                      RTRUE           
+ 552c:  c1 8f 1a 21 b9 00 31    JE              G0a,"rin" [FALSE] 5562
+ 5533:  95 01                   INC             L00
+ 5535:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 5538:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 5548
+ 553d:  93 48 00                GET_PARENT      "Sapphire ring" -> -(SP)
+ 5540:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5548
+ 5545:  8c 00 1c                JUMP            5562
+ 5548:  b2 ...                  PRINT           "There's something written
+there "
+ 5561:  b0                      RTRUE           
+ 5562:  95 01                   INC             L00
+ 5564:  b2 ...                  PRINT           "OK "
+ 5569:  b2 ...                  PRINT           "Nothing happened "
+ 5576:  b0                      RTRUE           
+
+orphan code fragment:
+
+ 5577:  41 01 00 80 07          JE              L00,#00 [TRUE] 5581
+ 557c:  ad 28                   PRINT_PADDR     G18
+ 557e:  8c 00 04                JUMP            5583
+ 5581:  ad 27                   PRINT_PADDR     G17
+ 5583:  b0                      RTRUE           
+
+Routine 5584, 1 local
+    Action routine for:
+        "smo"
+
+ 5585:  c1 8f 1a 21 56 00 14    JE              G0a,"pot" [FALSE] 559e
+ 558c:  95 01                   INC             L00
+ 558e:  b2 ...                  PRINT           "That's illegal! "
+ 559d:  b0                      RTRUE           
+ 559e:  41 01 00 80 07          JE              L00,#00 [TRUE] 55a8
+ 55a3:  ad 28                   PRINT_PADDR     G18
+ 55a5:  8c 00 04                JUMP            55aa
+ 55a8:  ad 27                   PRINT_PADDR     G17
+ 55aa:  b0                      RTRUE           
+
+Routine 55ac, 1 local
+    Action routine for:
+        "hug"
+
+ 55ad:  c1 8f 1a 1f 9d 00 1f    JE              G0a,"dol" [FALSE] 55d1
+ 55b4:  95 01                   INC             L00
+ 55b6:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 55b9:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 55c9
+ 55be:  93 3b 00                GET_PARENT      "Doll" -> -(SP)
+ 55c1:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 55c9
+ 55c6:  8c 00 0a                JUMP            55d1
+ 55c9:  b2 ...                  PRINT           "OUCH "
+ 55d0:  b0                      RTRUE           
+ 55d1:  41 01 00 80 07          JE              L00,#00 [TRUE] 55db
+ 55d6:  ad 28                   PRINT_PADDR     G18
+ 55d8:  8c 00 04                JUMP            55dd
+ 55db:  ad 27                   PRINT_PADDR     G17
+ 55dd:  b0                      RTRUE           
+
+Routine 55e0, 0 locals
+
+ 55e1:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 55e5:  43 00 19 80 22          JG              (SP)+,#19 [TRUE] 560a
+ 55ea:  93 18 00                GET_PARENT      "Open Window" -> -(SP)
+ 55ed:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 55f5
+ 55f2:  8c 00 17                JUMP            560a
+ 55f5:  b2 ...                  PRINT           "Raven crys something outside "
+ 560a:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 560e:  43 00 64 80 41          JG              (SP)+,#64 [TRUE] 5652
+ 5613:  41 11 17 80 05          JE              G01,#17 [TRUE] 561b
+ 5618:  8c 00 39                JUMP            5652
+ 561b:  93 18 00                GET_PARENT      "Open Window" -> -(SP)
+ 561e:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5626
+ 5623:  8c 00 2e                JUMP            5652
+ 5626:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 5629:  41 00 01 80 0a          JE              (SP)+,#01 [TRUE] 5636
+ 562e:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 5631:  61 00 11 00 05          JE              (SP)+,G01 [FALSE] 5639
+ 5636:  8c 00 1b                JUMP            5652
+ 5639:  b2 ...                  PRINT           "Window just slAmmed shut "
+ 564c:  f9 17 0b a9 46 18       CALL_VN         2ea4 (#46,#18)
+ 5652:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 5656:  43 00 64 80 1b          JG              (SP)+,#64 [TRUE] 5674
+ 565b:  41 11 17 00 05          JE              G01,#17 [FALSE] 5663
+ 5660:  8c 00 13                JUMP            5674
+ 5663:  93 46 00                GET_PARENT      "Closed Window" -> -(SP)
+ 5666:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 566e
+ 566b:  8c 00 08                JUMP            5674
+ 566e:  f9 17 0b a9 46 18       CALL_VN         2ea4 (#46,#18)
+ 5674:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 5678:  43 00 2d 80 2c          JG              (SP)+,#2d [TRUE] 56a7
+ 567d:  41 11 32 80 05          JE              G01,#32 [TRUE] 5685
+ 5682:  8c 00 24                JUMP            56a7
+ 5685:  93 45 00                GET_PARENT      "Four leaf clover" -> -(SP)
+ 5688:  41 00 00 80 05          JE              (SP)+,#00 [TRUE] 5690
+ 568d:  8c 00 19                JUMP            56a7
+ 5690:  b2 ...                  PRINT           "A beam of light shines on
+grave "
+ 56a7:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 56ab:  43 00 1e 80 69          JG              (SP)+,#1e [TRUE] 5717
+ 56b0:  93 2e 00                GET_PARENT      "Chem tubes" -> -(SP)
+ 56b3:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 56c3
+ 56b8:  93 2e 00                GET_PARENT      "Chem tubes" -> -(SP)
+ 56bb:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 56c3
+ 56c0:  8c 00 56                JUMP            5717
+ 56c3:  93 1f 00                GET_PARENT      "Shield" -> -(SP)
+ 56c6:  41 00 01 00 05          JE              (SP)+,#01 [FALSE] 56ce
+ 56cb:  8c 00 4b                JUMP            5717
+ 56ce:  0d 11 3f                STORE           G01,#3f
+ 56d1:  8f 0a e2                CALL_1N         2b88
+ 56d4:  b2 ...                  PRINT           "One of the test tubes
+EXPLODED! "
+ 56f1:  b2 ...                  PRINT           "A sign here says: "
+ 5700:  b2 ...                  PRINT           "This grAve reserved for you! "
+ 5717:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 571b:  43 00 1e 80 3d          JG              (SP)+,#1e [TRUE] 575b
+ 5720:  93 2e 00                GET_PARENT      "Chem tubes" -> -(SP)
+ 5723:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 5733
+ 5728:  93 2e 00                GET_PARENT      "Chem tubes" -> -(SP)
+ 572b:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 5733
+ 5730:  8c 00 2a                JUMP            575b
+ 5733:  93 1f 00                GET_PARENT      "Shield" -> -(SP)
+ 5736:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 573e
+ 573b:  8c 00 1f                JUMP            575b
+ 573e:  b2 ...                  PRINT           "One of the test tubes
+EXPLODED! "
+ 575b:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 575f:  43 00 64 80 18          JG              (SP)+,#64 [TRUE] 577a
+ 5764:  41 11 27 80 05          JE              G01,#27 [TRUE] 576c
+ 5769:  8c 00 10                JUMP            577a
+ 576c:  0a 5d 0f 80 05          TEST_ATTR       "flags",#0f [TRUE] 5774
+ 5771:  8c 00 08                JUMP            577a
+ 5774:  0c 5d 0f                CLEAR_ATTR      "flags",#0f
+ 5777:  8f 0a e2                CALL_1N         2b88
+ 577a:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 577e:  43 00 32 80 59          JG              (SP)+,#32 [TRUE] 57da
+ 5783:  93 25 00                GET_PARENT      "Soot" -> -(SP)
+ 5786:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 578e
+ 578b:  8c 00 4e                JUMP            57da
+ 578e:  41 11 19 80 05          JE              G01,#19 [TRUE] 5796
+ 5793:  8c 00 46                JUMP            57da
+ 5796:  b2 ...                  PRINT           "Maid chased me with broom for
+tracking soot through the Ball- room. I wonder where I am? "
+ 57d7:  0d 11 1b                STORE           G01,#1b
+ 57da:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 57de:  43 00 64 80 18          JG              (SP)+,#64 [TRUE] 57f9
+ 57e3:  41 11 07 80 05          JE              G01,#07 [TRUE] 57eb
+ 57e8:  8c 00 10                JUMP            57f9
+ 57eb:  0a 5d 0f 80 05          TEST_ATTR       "flags",#0f [TRUE] 57f3
+ 57f0:  8c 00 08                JUMP            57f9
+ 57f3:  0c 5d 0f                CLEAR_ATTR      "flags",#0f
+ 57f6:  8f 0a e2                CALL_1N         2b88
+ 57f9:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 57fd:  43 00 64 80 3a          JG              (SP)+,#64 [TRUE] 583a
+ 5802:  41 11 30 80 05          JE              G01,#30 [TRUE] 580a
+ 5807:  8c 00 32                JUMP            583a
+ 580a:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 580d:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 5815
+ 5812:  8c 00 27                JUMP            583a
+ 5815:  b2 ...                  PRINT           "I hear strange sounds, as if
+someone were moaning. "
+ 583a:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 583e:  43 00 23 80 3a          JG              (SP)+,#23 [TRUE] 587b
+ 5843:  41 11 24 80 05          JE              G01,#24 [TRUE] 584b
+ 5848:  8c 00 32                JUMP            587b
+ 584b:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 584e:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 5856
+ 5853:  8c 00 27                JUMP            587b
+ 5856:  b2 ...                  PRINT           "I hear strange sounds, as if
+someone were moaning. "
+ 587b:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 587f:  43 00 23 80 3a          JG              (SP)+,#23 [TRUE] 58bc
+ 5884:  41 11 27 80 05          JE              G01,#27 [TRUE] 588c
+ 5889:  8c 00 32                JUMP            58bc
+ 588c:  93 31 00                GET_PARENT      "Stuck Chimney Sweep" -> -(SP)
+ 588f:  41 00 00 00 05          JE              (SP)+,#00 [FALSE] 5897
+ 5894:  8c 00 27                JUMP            58bc
+ 5897:  b2 ...                  PRINT           "I hear strange sounds, as if
+someone were moaning. "
+ 58bc:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 58c0:  43 00 64 80 1e          JG              (SP)+,#64 [TRUE] 58e1
+ 58c5:  41 11 3f 80 05          JE              G01,#3f [TRUE] 58cd
+ 58ca:  8c 00 16                JUMP            58e1
+ 58cd:  b2 ...                  PRINT           "Luck wasn't with me! "
+ 58de:  8f 0c 2d                CALL_1N         30b4
+ 58e1:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 58e5:  43 00 64 80 62          JG              (SP)+,#64 [TRUE] 594a
+ 58ea:  0a 5d 07 00 05          TEST_ATTR       "flags",#07 [FALSE] 58f2
+ 58ef:  8c 00 5a                JUMP            594a
+ 58f2:  b2 ...                  PRINT           "Welcome to ADVENTURE:4,
+`VOODOO CASTLE` by Alexis ADAMS. Dedicated to all MOMS! "
+ 5947:  0b 5d 07                SET_ATTR        "flags",#07
+ 594a:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 594e:  43 00 07 80 3f          JG              (SP)+,#07 [TRUE] 5990
+ 5953:  93 29 00                GET_PARENT      "Dusty Idol" -> -(SP)
+ 5956:  41 00 01 80 05          JE              (SP)+,#01 [TRUE] 595e
+ 595b:  8c 00 34                JUMP            5990
+ 595e:  b2 ...                  PRINT           "My idol acted strange "
+ 596f:  b2 ...                  PRINT           "Some dust fell off it and it
+glowed briefly. "
+ 5990:  e7 7f 64 00             RANDOM          #64 -> -(SP)
+ 5994:  43 00 23 80 28          JG              (SP)+,#23 [TRUE] 59bf
+ 5999:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 599c:  41 00 01 80 0d          JE              (SP)+,#01 [TRUE] 59ac
+ 59a1:  93 4b 00                GET_PARENT      "Ju-Ju man" -> -(SP)
+ 59a4:  61 00 11 80 05          JE              (SP)+,G01 [TRUE] 59ac
+ 59a9:  8c 00 15                JUMP            59bf
+ 59ac:  b2 ...                  PRINT           "I hear someone mumbling. "
+ 59bf:  b0                      RTRUE           
+
+Routine 59c0, 1 local
+
+ 59c1:  2d ff 01                STORE           Gef,L00
+ 59c4:  c1 8f ff 21 05 00 04    JE              Gef,"nor" [FALSE] 59cd
+ 59cb:  9b 02                   RET             #02
+ 59cd:  c1 8f ff 22 5b 00 04    JE              Gef,"sou" [FALSE] 59d6
+ 59d4:  9b 03                   RET             #03
+ 59d6:  c1 8f ff 1f d3 00 04    JE              Gef,"eas" [FALSE] 59df
+ 59dd:  9b 04                   RET             #04
+ 59df:  c1 8f ff 22 d9 00 04    JE              Gef,"wes" [FALSE] 59e8
+ 59e6:  9b 05                   RET             #05
+ 59e8:  c1 8f ff 22 be 00 04    JE              Gef,"up" [FALSE] 59f1
+ 59ef:  9b 06                   RET             #06
+ 59f1:  c1 8f ff 1f af 00 04    JE              Gef,"dow" [FALSE] 59fa
+ 59f8:  9b 07                   RET             #07
+ 59fa:  9b 00                   RET             #00
+
+orphan code fragment:
+
+ 59fc:  b0                      RTRUE           
+
+Routine 5a00, 0 locals
+
+ 5a01:  b2 ...                  PRINT           "VOODOO CASTLE"
+ 5a14:  b0                      RTRUE           
+
+[End of code at 5a15]
+
+[Start of text at 5a18]
+
+ 5a18: S001 "TRS-80"
+ 5a20: S002 "1.00"
+ 5a28: S003 "NORTH"
+ 5a30: S004 "SOUTH"
+ 5a38: S005 "EAST"
+ 5a40: S006 "WEST"
+ 5a48: S007 "UP"
+ 5a4c: S008 "DOWN"
+ 5a54: S009 "I don't understand your command. "
+ 5a6c: S010 "I can't do that yet. "
+ 5a7c: S011 "S"
+ 5a80: S012 "Start the game"
+ 5a8c: S013 "R"
+ 5a90: S014 "Restore a saved game"
+ 5aa0: S015 "C"
+ 5aa4: S016 "Show credits"
+ 5ab0: S017 "I"
+ 5ab4: S018 "Info about playing"
+ 5ac4: S019 "Q"
+ 5ac8: S020 "Quit"
+ 5acc: S021 "I'm in a chapel"
+ 5ad8: S022 "I'm in a Dingy Looking Stairwell"
+ 5af4: S023 "I'm in a room in the castle"
+ 5b08: S024 "I'm in a Tunnel"
+ 5b14: S025 "I'm in a room in the castle"
+ 5b28: S026 "I'm in Medium Maegen's Mad Room"
+ 5b44: S027 "I'm in a room in the castle"
+ 5b58: S028 "I'm in a room in the castle"
+ 5b6c: S029 "I'm in a room in the castle"
+ 5b80: S030 "I'm in a Ballroom"
+ 5b90: S031 "I'm in a dungeon"
+ 5b9c: S032 "I'm in the Armory"
+ 5bac: S033 "I'm in a torture chamber"
+ 5bc0: S034 "I'm in a Chimney"
+ 5bd0: S035 "I'm in a large fireplace"
+ 5be4: S036 "I'm in a room in the castle"
+ 5bf8: S037 "I'm in a Lab"
+ 5c04: S038 "I'm in a narrow part of the chimney"
+ 5c20: S039 "I'm in a Graveyard"
+ 5c30: S040 "I'm in a parlor"
+ 5c3c: S041 "I'm in a Jail Cell"
+ 5c4c: S042 "I'm on a ledge"
+ 5c58: S043 "I'm in a hidden VOODOO room"
+ 5c70: S044 "I'm in a room in the castle"
+ 5c84: S045 "I'm in a lot of TROUBLE!"
+
+[End of text at 5c9c]
+
+[End of file]

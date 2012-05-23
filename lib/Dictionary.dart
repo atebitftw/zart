@@ -4,8 +4,8 @@ class Dictionary {
   final List<String> separators;
   int entryLength;
 
-  int get encodedTextBytes() => Z.version <= 3 ? 4 : 6;
-  
+  int get encodedTextBytes() => Z.machine.version.toInt() <= 3 ? 4 : 6;
+
   int _address;
 
   Dictionary([int address])
@@ -34,7 +34,7 @@ class Dictionary {
 
     entryLength =
         Z.machine.mem.loadb(_address + separators.length + 1);
-    
+
     var numEntries =
         Z.machine.mem.loadw(_address + separators.length + 2);
 
@@ -52,7 +52,7 @@ class Dictionary {
 
     int wordAddress(int index) {
       var addr = _address + separators.length + 4 + (index * entryLength);
-      Debugger.verbose('>>> ${ZSCII.readZStringAndPop(addr)}');
+      Debugger.debug('>>> ${ZSCII.readZStringAndPop(addr)}');
       return addr;
     }
     int lastIndex = 0;

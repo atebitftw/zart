@@ -13,8 +13,20 @@ class Machine
 
   final _Stack stack;
   final _Stack callStack;
-  
+
   int currentWindow = 0;
+
+  // Screen
+  bool outputStream1 = true;
+
+  // Printer lol
+  bool outputStream2 = true;
+
+  // Memory Table
+  bool outputStream3 = false;
+
+  // Player input script
+  bool outputStream4 = false;
 
   DRandom r;
 
@@ -99,6 +111,9 @@ class Machine
       throw new GameException('Maximum local variable allocations (16) exceeded.');
     }
 
+    // add param length to call stack (v5+ needs this)
+    callStack.push(params.length);
+
     //set the routine to default locals (V3...)
 
     if (locals > 0){
@@ -145,6 +160,9 @@ class Machine
       callStack.pop();
       frameSize--;
     }
+
+    //unwind params length
+    callStack.pop();
 
     //unwind game stack
     var gs = stack.pop();
@@ -212,7 +230,7 @@ class Machine
       }
 
       //PC should be set by restore here
-      Z.runIt(null);
+      Z.callAsync(Z.runIt);
     });
   }
 
@@ -250,23 +268,23 @@ class Machine
     saveData.add(IOCommands.SAVE.toString());
     if (branchOn){
       saveData.addAll(Quetzal.save(pc + (offset - 2)));
-      
+
       Z.IOConfig
       .command(JSON.stringify(saveData))
       .then((result){
         Z.inInterrupt = false;
         if (result) pc += offset - 2;
-        Z.runIt(null);
+        Z.callAsync(Z.runIt);
       });
     }else{
       saveData.addAll(Quetzal.save(pc));
-      
+
       Z.IOConfig
       .command(JSON.stringify(saveData))
       .then((result){
         Z.inInterrupt = false;
         if (!result) pc += offset - 2;
-        Z.runIt(null);
+        Z.callAsync(Z.runIt);
       });
     }
   }
@@ -330,18 +348,16 @@ class Machine
   }
 
   void sendStatus(){
-    var status = [];
-    
-    status.add(IOCommands.STATUS.toString());
-    status.add(Header.isScoreGame() ? 'SCORE' : 'TIME');
+    var oid = readVariable(0x10);
 
-    var locObject = new GameObject(readVariable(0x10));
-    status.add(locObject.shortName);
+    var locObject = oid != 0 ? new GameObject(oid).shortName : '';
 
-    status.add(readVariable(0x11));
-    status.add(readVariable(0x12));
-
-    Z.IOConfig.command(JSON.stringify(status));
+    Z.sendIO(IOCommands.STATUS, [
+                              Header.isScoreGame() ? 'SCORE' : 'TIME',
+                              locObject,
+                              readVariable(0x11),
+                              readVariable(0x12)
+                                 ]);
   }
 
   void callVS(){
@@ -361,7 +377,6 @@ class Machine
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
       writeVariable(resultStore, Machine.FALSE);
-      doReturn();
     }else{
       //move to the routine address
       pc = operands[0].rawValue;
@@ -383,9 +398,9 @@ class Machine
     Z.inInterrupt = true;
 
     sendStatus();
-    
+
     Z._printBuffer();
-    
+
     var operands = this.visitOperandsVar(4, true);
 
     var maxBytes = mem.loadb(operands[0].value);
@@ -452,11 +467,11 @@ class Machine
           if (l == '/!'){
             Z.inBreak = true;
             Debugger.debugStartAddr = pc - 1;
-            Debugger.startBreak(null);
+            Z.callAsync(Debugger.startBreak);
 //            Z._io.callAsync(Debugger.startBreak);
           }else{
             processLine(l);
-            Z.runIt(null);
+            Z.callAsync(Z.runIt);
           }
         });
       }
@@ -742,9 +757,9 @@ class Machine
 
   void quit(){
     Debugger.verbose('${pcHex(-1)} [quit]');
-    
+
     Z.quit = true;
-    
+
     Z.sendIO(IOCommands.QUIT);
   }
 
@@ -766,7 +781,7 @@ class Machine
     //push dummy return address onto the call stack
     callStack.push(0);
 
-    Z.IOConfig.callAsync(Z.runIt);
+    Z.callAsync(Z.runIt);
   }
 
   void jl(){
@@ -1246,8 +1261,8 @@ class Machine
     Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
-  
-  
+
+
   void storebv(){
     Debugger.verbose('${pcHex(-1)} [storebv]');
 

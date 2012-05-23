@@ -3,36 +3,18 @@
 * Represents a contract for IO (Presentation) providers.
 */
 interface IOProvider {
-  
-//  void PrimaryOutput(String text);
-//
-//  void DebugOutput(String text);
-//
-//  Future<bool> saveGame(List<int> saveBytes);
-//
-//  Future<List<int>> restore();
-//
-//  Future<String> getLine();
-//  
-//  Future<String> getChar();
-  
-  Future<Object> command(String JSONCommand);
 
-  /**
-  * The library doesn't implement it's own async timer
-  * from dart:io or dart:html, leaving that to the presentation side.
-  *
-  * Implementors should callback the function with the appropriate timer at 0ms.
-  */
-  void callAsync(func(timer));
+  //TODO use isolates between IO and engine.
+
+  Future<Object> command(String JSONCommand);
 }
 
 /** Enumerates supported IO command message */
 class IOCommands{
   final String _str;
-  
+
   const IOCommands(this._str);
-  
+
   static final PRINT = const IOCommands('PRINT');
   static final STATUS = const IOCommands('STATUS');
   static final CLEAR_SCREEN = const IOCommands('CLEAR_SCREEN');
@@ -47,7 +29,7 @@ class IOCommands{
   static final PRINT_DEBUG = const IOCommands('PRINT_DEBUG');
   static final ASYNC = const IOCommands('ASYNC');
   static final SET_CURSOR = const IOCommands('SET_CURSOR');
-  
+
   static IOCommands toIOCommand(String cmd){
     switch(cmd){
       case "PRINT": return IOCommands.PRINT;
@@ -66,7 +48,7 @@ class IOCommands{
       case "SET_CURSOR": return IOCommands.SET_CURSOR;
     }
   }
-  
+
   String toString() => _str;
-  
+
 }

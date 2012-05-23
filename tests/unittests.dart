@@ -1,8 +1,10 @@
 #import('dart:io');
+#import('dart:builtin');
+#import('dart:json');
 #import('../../../src/lib/unittest/unittest.dart');
 //#import('dart:unittest');
 //^^ not working
-#import('../lib/zmachine.dart');
+#import('../lib/ZMachine.dart');
 
 #source('MockUIProvider.dart');
 #source('MockV3Machine.dart');
@@ -26,9 +28,11 @@ void main() {
   } catch (FileIOException fe){
     //TODO log then print friendly
     print('$fe');
+    exit(1);
   } catch (Exception e){
     //TODO log then print friendly
     print('$e');
+    exit(1);
   }
 
   final int version = 3;
@@ -154,7 +158,6 @@ void main() {
       Expect.equals(0, BinaryHelper.unset(Math.pow(2, 16), 16));
       Expect.equals(0, BinaryHelper.unset(Math.pow(2, 32), 32));
     });
-
   });
 
   group('memory tests> ', (){

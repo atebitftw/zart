@@ -15,18 +15,18 @@ class ConsoleProvider implements IOProvider
 
   Future<Object> command(String JSONCommand){
     var c = new Completer();
-    
+
     var msgSet = JSON.parse(JSONCommand);
-    
+
     var cmd = IOCommands.toIOCommand(msgSet[0]);
-    
+
     switch(cmd){
       case IOCommands.PRINT:
         output(msgSet[1], msgSet[2]);
         c.complete(null);
         break;
       case IOCommands.STATUS:
-        print('(${msgSet})');
+        print('(${msgSet})\n');
         c.complete(null);
         break;
       case IOCommands.READ:
@@ -42,7 +42,7 @@ class ConsoleProvider implements IOProvider
       case IOCommands.CLEAR_SCREEN:
         //no clear console api?
         for(int i=0; i < 50; i++){
-          print('');        
+          print('');
         }
         c.complete(null);
         break;
@@ -56,16 +56,17 @@ class ConsoleProvider implements IOProvider
       case IOCommands.QUIT:
         print('Zart: Game Over!');
         c.complete(null);
+        exit(1);
         break;
       default:
         c.complete(null);
     }
-    
+
     return c.future;
   }
-  
-  
-  
+
+
+
   Future<bool> saveGame(List<int> saveBytes){
     var c = new Completer();
     print('(Caution: will overwrite existing file!)');
@@ -162,7 +163,7 @@ class ConsoleProvider implements IOProvider
 
   Future<String> getChar(){
     var c = new Completer();
-    
+
     if (!lineBuffer.isEmpty()){
       c.complete(lineBuffer.removeLast());
     }else{
@@ -172,10 +173,10 @@ class ConsoleProvider implements IOProvider
         c.complete(textStream.read().substring(0, 1));
       };
     }
-    
+
     return c.future;
   }
-  
+
   Future<String> getLine(){
     Completer c = new Completer();
 
@@ -186,9 +187,5 @@ class ConsoleProvider implements IOProvider
     }
 
     return c.future;
-  }
-
-  void callAsync(func(timer)){
-    new Timer(0, func);
   }
 }

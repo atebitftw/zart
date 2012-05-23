@@ -15,11 +15,11 @@ class DefaultProvider implements IOProvider
   :
     script = new Queue<String>.from(script);
 
-  
+
   Future<Object> command(String JSONCommand){
-    
+
   }
-  
+
   Future<bool> saveGame(List<int> saveBytes){
     print('Save not supported with this provider.');
     var c = new Completer();
@@ -75,9 +75,5 @@ class DefaultProvider implements IOProvider
     }
 
     return c.future;
-  }
-
-  void callAsync(func(timer)){
-    func(null);
   }
 }

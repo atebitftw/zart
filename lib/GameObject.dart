@@ -2,24 +2,24 @@
 class GameObject
 {
   final int id;
-  int get PARENT_ADDR() => _address + (Z.version <= 3 ? 4 : 6);
-  int get SIBLING_ADDR() => _address + (Z.version <= 3 ? 5 : 8);
-  int get CHILD_ADDR() => _address + (Z.version <= 3 ? 6 : 10);
-  
+  int get PARENT_ADDR() => _address + (Z.machine.version.toInt() <= 3 ? 4 : 6);
+  int get SIBLING_ADDR() => _address + (Z.machine.version.toInt() <= 3 ? 5 : 8);
+  int get CHILD_ADDR() => _address + (Z.machine.version.toInt() <= 3 ? 6 : 10);
+
   int _address;
 
-  int get parent() => Z.version <= 3 ? Z.machine.mem.loadb(PARENT_ADDR) : Z.machine.mem.loadw(PARENT_ADDR);
-  set parent(int oid) => Z.version <= 3 ? Z.machine.mem.storeb(PARENT_ADDR, oid) : Z.machine.mem.storew(PARENT_ADDR, oid);
+  int get parent() => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(PARENT_ADDR) : Z.machine.mem.loadw(PARENT_ADDR);
+  set parent(int oid) => Z.machine.version.toInt() <= 3 ? Z.machine.mem.storeb(PARENT_ADDR, oid) : Z.machine.mem.storew(PARENT_ADDR, oid);
 
-  int get child() => Z.version <= 3 ? Z.machine.mem.loadb(CHILD_ADDR) : Z.machine.mem.loadw(CHILD_ADDR);
-  set child(int oid) => Z.version <= 3 ? Z.machine.mem.storeb(CHILD_ADDR, oid) : Z.machine.mem.storew(CHILD_ADDR, oid);
+  int get child() => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(CHILD_ADDR) : Z.machine.mem.loadw(CHILD_ADDR);
+  set child(int oid) => Z.machine.version.toInt() <= 3 ? Z.machine.mem.storeb(CHILD_ADDR, oid) : Z.machine.mem.storew(CHILD_ADDR, oid);
 
-  int get sibling() => Z.version <= 3 ? Z.machine.mem.loadb(SIBLING_ADDR) : Z.machine.mem.loadw(SIBLING_ADDR);
-  set sibling(int oid) => Z.version <= 3 ? Z.machine.mem.storeb(SIBLING_ADDR, oid) : Z.machine.mem.storew(SIBLING_ADDR, oid);
+  int get sibling() => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(SIBLING_ADDR) : Z.machine.mem.loadw(SIBLING_ADDR);
+  set sibling(int oid) => Z.machine.version.toInt() <= 3 ? Z.machine.mem.storeb(SIBLING_ADDR, oid) : Z.machine.mem.storew(SIBLING_ADDR, oid);
 
   int flags;
 
-  int get properties() => Z.machine.mem.loadw(_address + (Z.version <= 3 ? 7 : 12));
+  int get properties() => Z.machine.mem.loadw(_address + (Z.machine.version.toInt() <= 3 ? 7 : 12));
 
   int get propertyTableStart() => properties + (Z.machine.mem.loadb(properties) * 2) + 1;
 
@@ -28,7 +28,8 @@ class GameObject
   GameObject(this.id)
   {
     _address = _getObjectAddress();
-    shortName = _getObjectShortName();
+
+    shortName = _address != 0 ? _getObjectShortName() : '';
 
     if (id == 0) return;
     _readFlags();
@@ -49,11 +50,11 @@ class GameObject
     }
 
     var len = propertyLength(addr - 1);
-    
+
     addr += len;
 
-    len = 
-        Z.version <= 3 || BinaryHelper.isSet(Z.machine.mem.loadb(addr), 7) 
+    len =
+        Z.machine.version.toInt() <= 3 || !BinaryHelper.isSet(Z.machine.mem.loadb(addr), 7)
         ? propertyLength(addr)
         : propertyLength(addr + 1);
 
@@ -68,11 +69,11 @@ class GameObject
     int addr = propertyTableStart;
 
     while(propNum > pnum){
-      var len = 
-          Z.version <= 3 || BinaryHelper.isSet(Z.machine.mem.loadb(addr), 7) 
+      var len =
+          Z.machine.version.toInt() <= 3 || !BinaryHelper.isSet(Z.machine.mem.loadb(addr), 7)
           ? propertyLength(addr)
           : propertyLength(addr + 1);
-          
+
       propNum = propertyNumber(addr);
 
       //not found (ref 12.4.1)
@@ -81,7 +82,7 @@ class GameObject
       }
 
       if (propNum == pnum){
-        if (Z.version <= 3){
+        if (Z.machine.version.toInt() <= 3){
           return addr + 1;
         }else{
           return addr + (len > 2 ? 2 : 1);
@@ -89,7 +90,7 @@ class GameObject
       }
 
       //skip to the next property
-      if (Z.version <= 3){
+      if (Z.machine.version.toInt() <= 3){
         addr += (len + 1);
       }else{
         //if property len > 2, account for the second
@@ -131,11 +132,12 @@ class GameObject
     int addr = propertyTableStart;
 
     while(propNum > pnum){
-      var len = 
-          Z.version <= 3 || BinaryHelper.isSet(Z.machine.mem.loadb(addr), 7) 
+      propNum = propertyNumber(addr);
+
+      var len =
+          Z.machine.version.toInt() <= 3 || !BinaryHelper.isSet(Z.machine.mem.loadb(addr), 7)
           ? propertyLength(addr)
           : propertyLength(addr + 1);
-      propNum = propertyNumber(addr);
 
       //not found (ref 12.4.1)
       if (len == 0){
@@ -157,7 +159,7 @@ class GameObject
       }
 
       //skip to the next property
-      if (Z.version <= 3){
+      if (Z.machine.version.toInt() <= 3){
         addr += (len + 1);
       }else{
         //if property len > 2, account for the second
@@ -172,11 +174,11 @@ class GameObject
   }
 
   static int propertyLength(int address){
-    if (address == 0) return 0;   
-    
+    if (address == 0) return 0;
+
     var fb = Z.machine.mem.loadb(address);
-    
-    if(Z.version <= 3){
+
+    if(Z.machine.version.toInt() <= 3){
       return ((fb >> 5) & 0x07) + 1;
     }else{
       if(BinaryHelper.isSet(fb, 7)){
@@ -194,7 +196,7 @@ class GameObject
   static int propertyNumber(int address){
     if (address == 0) return 0;
 
-    if (Z.version <= 3){
+    if (Z.machine.version.toInt() <= 3){
       return Z.machine.mem.loadb(address) % 32;
     }else{
       // (ref 12.4.2)
@@ -268,19 +270,19 @@ class GameObject
   }
 
   void setFlagBit(int bit){
-    flags = BinaryHelper.set(flags, (Z.version <= 3 ? 31 : 47) - bit);
+    flags = BinaryHelper.set(flags, (Z.machine.version.toInt() <= 3 ? 31 : 47) - bit);
 
     _writeFlags();
   }
 
   void unsetFlagBit(int bit){
-    flags = BinaryHelper.unset(flags, (Z.version <= 3 ? 31 : 47) - bit);
+    flags = BinaryHelper.unset(flags, (Z.machine.version.toInt() <= 3 ? 31 : 47) - bit);
 
     _writeFlags();
   }
 
   bool isFlagBitSet(int bit){
-    return BinaryHelper.isSet(flags, (Z.version <= 3 ? 31 : 47) - bit);
+    return BinaryHelper.isSet(flags, (Z.machine.version.toInt() <= 3 ? 31 : 47) - bit);
   }
 
   //TODO convert to string return
@@ -292,10 +294,10 @@ class GameObject
     Debugger.debug('child: ${child} "${new GameObject(child).shortName}"');
 
     Debugger.debug('Property Address 0x${propertyTableStart.toRadixString(16)}');
-    
+
     var s = new StringBuffer();
-    for (int i = 0; i <= (Z.version <= 3 ? 31 : 47); i++){
-      if (BinaryHelper.isSet(flags, (Z.version <= 3 ? 31 : 47) - i)){
+    for (int i = 0; i <= (Z.machine.version.toInt() <= 3 ? 31 : 47); i++){
+      if (BinaryHelper.isSet(flags, (Z.machine.version.toInt() <= 3 ? 31 : 47) - i)){
         s.add('[$i] ');
       }
     }
@@ -305,14 +307,18 @@ class GameObject
 
   int _getObjectAddress(){
     // skip header bytes 62 or 126 (ref 12.2)
-    var objStart = Z.machine.mem.objectsAddress + (Z.version <= 3 ? 62 : 126);
+    var objStart = Z.machine.mem.objectsAddress + (Z.machine.version.toInt() <= 3 ? 62 : 126);
 
     // 9 or 14 bytes per object (ref 12.3.1)
-    return objStart += (id - 1) * (Z.version <= 3 ? 9 : 14);
+    objStart += (id - 1) * (Z.machine.version.toInt() <= 3 ? 9 : 14);
+
+    if (objStart > Z.machine.mem.loadw(Header.GLOBAL_VARS_TABLE_ADDR)) return 0;
+
+    return objStart;
   }
 
   void _readFlags(){
-    if (Z.version <= 3){
+    if (Z.machine.version.toInt() <= 3){
       flags = (Z.machine.mem.loadb(_address) << 24)
           | (Z.machine.mem.loadb(_address + 1) << 16)
           | (Z.machine.mem.loadb(_address + 2) << 8)
@@ -328,7 +334,7 @@ class GameObject
   }
 
   void _writeFlags(){
-    if (Z.version <= 3){
+    if (Z.machine.version.toInt() <= 3){
       Z.machine.mem.storeb(_address + 3, BinaryHelper.bottomBits(flags, 8));
       Z.machine.mem.storeb(_address + 2, BinaryHelper.bottomBits(flags >> 8, 8));
       Z.machine.mem.storeb(_address + 1, BinaryHelper.bottomBits(flags >> 16, 8));
