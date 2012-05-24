@@ -2,48 +2,7 @@
 
 //TODO account for the argument count value that is now on the stack!
 
-/**
-* Enumerates IFF chunks used in the Quetzal format.
-*
-*/
-class Chunk{
-  final String _str;
 
-  const Chunk(this._str);
-
-  static final IFZS = const Chunk('IFZS');
-  static final IFhd = const Chunk('IFhd');
-  static final CMem = const Chunk('CMem');
-  static final UMem = const Chunk('UMem');
-  static final Stks = const Chunk('Stks');
-  static final IntD = const Chunk('IntD');
-
-  static final FORM = const Chunk('FORM');
-  static final AUTH = const Chunk('AUTH');
-  static final CPYR = const Chunk('(c) ');
-  static final ANNO = const Chunk('ANNO');
-
-  String toString() => _str;
-
-  List<int> charCodes() => _str.charCodes();
-
-  static Chunk toChunk(String chunk){
-    switch(chunk){
-      case "IFZS": return Chunk.IFZS;
-      case "IFhd": return Chunk.IFhd;
-      case "CMem": return Chunk.CMem;
-      case "UMem": return Chunk.UMem;
-      case "Stks": return Chunk.Stks;
-      case "IntD": return Chunk.IntD;
-      case "FORM": return Chunk.FORM;
-      case "AUTH": return Chunk.AUTH;
-      case "(c) ": return Chunk.CPYR;
-      case "ANNO": return Chunk.ANNO;
-      default:
-        return null;
-    }
-  }
-}
 
 /**
 * Quetzal IFF Standard load/save implementation.
@@ -57,132 +16,34 @@ class Chunk{
 * guaranteed to successfully load Quetzal save files that are not
 * explicitly saved with it.
 *
-* Currently only V3 compatible.
 */
 class Quetzal {
-
-  static int nextByte(List stream){
-    if (stream.isEmpty()) return null;
-
-    var nb = stream[0];
-    stream.removeRange(0, 1);
-    return nb;
-  }
-
-  static void writeChunk(List stream, Chunk chunk){
-    var bytes = chunk.charCodes();
-
-    for(final byte in bytes){
-      stream.add(byte);
-    }
-  }
-
-  static Chunk readChunk(List stream){
-    if (stream.length < 4) return null;
-
-    var s = new StringBuffer();
-
-    for(int i = 0; i < 4; i++){
-      s.addCharCode(nextByte(stream));
-    }
-
-    return Chunk.toChunk(s.toString());
-  }
-
-  static int read4Byte(List stream){
-    var bl = new List();
-
-    for(int i = 0; i < 4; i++){
-      bl.add(nextByte(stream));
-    }
-
-    return (bl[0] << 24) | (bl[1] << 16) | (bl[2] << 8) | bl[3];
-  }
-
-  static int read3Byte(List stream){
-    var bl = new List();
-
-    for(int i = 0; i < 3; i++){
-      bl.add(nextByte(stream));
-    }
-
-    return (bl[0] << 16) | (bl[1] << 8) | bl[2];
-  }
-
-  static int read2Byte(List stream){
-    var bl = new List();
-
-    for(int i = 0; i < 2; i++){
-      bl.add(nextByte(stream));
-    }
-
-    return (bl[0] << 8) | bl[1];
-  }
-
-  static void write4Byte(List stream, int value){
-    stream.add((value >> 24) & 0xFF);
-    stream.add((value >> 16) & 0xFF);
-    stream.add((value >> 8) & 0xFF);
-    stream.add(value & 0xFF);
-   }
-
-  static void write3Byte(List stream, int value){
-    stream.add((value >> 16) & 0xFF);
-    stream.add((value >> 8) & 0xFF);
-    stream.add(value & 0xFF);
-   }
-
-  static void write2Byte(List stream, int value){
-    stream.add((value >> 8) & 0xFF);
-    stream.add(value & 0xFF);
-  }
-
-  static int setBottomBits(int numBits){
-    if (numBits == 0) return 0;
-
-    var i = 1;
-
-    for(int x = 1; x < numBits; x++){
-      i = (i << 1) | 1;
-    }
-
-    return i;
-  }
-
-
-  static int read16BitValue(List stream){
-     return (nextByte(stream) << 24)
-         | (nextByte(stream) << 16)
-         | (nextByte(stream) << 8)
-         | nextByte(stream);
-  }
-
   /// Generates a stream of save bytes in the Quetzal format.
   static List<int> save(int pcAddr){
     bool padByte;
 
     List<int> saveData = new List<int>();
 
-    writeChunk(saveData, Chunk.FORM);
-    writeChunk(saveData, Chunk.IFZS);
+    IFF.writeChunk(saveData, Chunk.FORM);
+    IFF.writeChunk(saveData, Chunk.IFZS);
 
     //associated story file
-    writeChunk(saveData, Chunk.IFhd);
-    write4Byte(saveData, 13);
-    write2Byte(saveData, Z.machine.mem.loadw(Header.RELEASE));
-    write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER));
-    write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER + 2));
-    write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER + 4));
-    write2Byte(saveData, Z.machine.mem.loadw(Header.CHECKSUMOFFILE));
+    IFF.writeChunk(saveData, Chunk.IFhd);
+    IFF.write4Byte(saveData, 13);
+    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.RELEASE));
+    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER));
+    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER + 2));
+    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER + 4));
+    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.CHECKSUMOFFILE));
     //pc
-    write3Byte(saveData, pcAddr); //varies depending on version.
+    IFF.write3Byte(saveData, pcAddr); //varies depending on version.
     saveData.add(0); //pad byte
 
     //uncompressed memory
-    writeChunk(saveData, Chunk.UMem);
+    IFF.writeChunk(saveData, Chunk.UMem);
 
-    //write length in bytes
-    write4Byte(saveData, Z.machine.mem._mem.length);
+    //IFF.write length in bytes
+    IFF.write4Byte(saveData, Z.machine.mem._mem.length);
 
     saveData.addAll(Z.machine.mem._mem);
 
@@ -191,7 +52,7 @@ class Quetzal {
     }
 
     //stacks, oldest first
-    writeChunk(saveData, Chunk.Stks);
+    IFF.writeChunk(saveData, Chunk.Stks);
 
     var stackData = new Queue<StackFrame>();
 
@@ -206,29 +67,41 @@ class Quetzal {
       totalStackBytes += sd.computedByteSize;
     }
 
-    write4Byte(saveData, totalStackBytes);
+    IFF.write4Byte(saveData, totalStackBytes);
 
     for(StackFrame sd in stackData){
-      write3Byte(saveData, sd.returnAddr);
+      IFF.write3Byte(saveData, sd.returnAddr);
 
-      saveData.add(0); //flags. > v3...
 
-      saveData.add(sd.returnVar);
+      //flags byte
+      var flagByte = 0;
 
-      //locals
-      //this is incorrect, but whatever
-      //the standards wants to keep track of supplied
-      //arguements for some reason...
-      saveData.add(sd.locals.length);
+      //set the call_xN bit if this stack frame is supposed to discard returns
+      if (sd.returnVar == Machine.STACK_MARKER){
+        flagByte = BinaryHelper.set(flagByte, 4);
+      }
 
-      write2Byte(saveData, sd.evals.length);
+      //using the first 4 bits, we set the number of locals... (not standard, but permissible)
+      flagByte |= sd.locals.length;
+
+      print('flagByte: $flagByte');
+      saveData.add(flagByte);
+
+      // return variable number
+      // (ref 4.6)
+      saveData.add(sd.returnVar != Machine.STACK_MARKER ? sd.returnVar : 0);
+
+      //total args passed (4.3.4)
+      saveData.add(BinaryHelper.setBottomBits(sd.totalArgsPassed));
+
+      IFF.write2Byte(saveData, sd.evals.length);
 
       for(int l in sd.locals){
-        write2Byte(saveData, l);
+        IFF.write2Byte(saveData, l);
       }
 
       for(int e in sd.evals){
-        write2Byte(saveData, e);
+        IFF.write2Byte(saveData, e);
       }
     }
 
@@ -244,10 +117,10 @@ class Quetzal {
     var fileBytes = new List.from(rawBytes);
     List<int> restoreData = new List<int>();
 
-    Chunk nextChunk = readChunk(fileBytes);
+    Chunk nextChunk = IFF.readChunk(fileBytes);
     if (!assertChunk(Chunk.FORM, nextChunk)) return false;
 
-    nextChunk = readChunk(fileBytes);
+    nextChunk = IFF.readChunk(fileBytes);
     if (!assertChunk(Chunk.IFZS, nextChunk)) return false;
 
     var gotStacks = false;
@@ -257,7 +130,7 @@ class Quetzal {
     var memBytes = [];
     final stackList = new List<StackFrame>();
 
-    nextChunk = readChunk(fileBytes);
+    nextChunk = IFF.readChunk(fileBytes);
     if (nextChunk == null) return false;
 
     while(nextChunk != null){
@@ -266,44 +139,59 @@ class Quetzal {
           // here we are validating that this file is compatible
           // with the game currently loaded into the machine.
 
-          read4Byte(fileBytes); //size (always 13)
-          if (Z.machine.mem.loadw(Header.RELEASE) != read2Byte(fileBytes)){
+          IFF.read4Byte(fileBytes); //size (always 13)
+          if (Z.machine.mem.loadw(Header.RELEASE) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER) != read2Byte(fileBytes)){
+          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER + 2) != read2Byte(fileBytes)){
+          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER + 2) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER + 4) != read2Byte(fileBytes)){
+          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER + 4) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.CHECKSUMOFFILE) != read2Byte(fileBytes)){
+          if (Z.machine.mem.loadw(Header.CHECKSUMOFFILE) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          pc = read3Byte(fileBytes); //PC
-          nextByte(fileBytes); //pad
+          pc = IFF.read3Byte(fileBytes); //PC
+          IFF.nextByte(fileBytes); //pad
           gotHeader = true;
           break;
         case Chunk.Stks.toString():
-          var stacksLen = read4Byte(fileBytes);
+          var stacksLen = IFF.read4Byte(fileBytes);
 
           StackFrame getNextStackFrame(){
             var sf = new StackFrame.empty();
 
-            sf.returnAddr = read3Byte(fileBytes);
-            nextByte(fileBytes); //we don't care about the flags
-            sf.returnVar = nextByte(fileBytes);
-            var numLocals = nextByte(fileBytes);
-            var numEvals = read2Byte(fileBytes);
+            sf.returnAddr = IFF.read3Byte(fileBytes);
+
+            var flagByte = IFF.nextByte(fileBytes);
+
+            var returnVar = IFF.nextByte(fileBytes);
+
+            sf.returnVar = BinaryHelper.isSet(flagByte, 4) ? Machine.STACK_MARKER : returnVar;
+
+            var numLocals = BinaryHelper.bottomBits(flagByte, 4);
+
+            var argsPassed = IFF.nextByte(fileBytes);
+
+            var args = 0;
+            while(BinaryHelper.isSet(argsPassed, 0)){
+              args++;
+              argsPassed = argsPassed >> 1;
+            }
+            sf.totalArgsPassed = args;
+
+            var numEvals = IFF.read2Byte(fileBytes);
 
             for(int i = 0; i < numLocals; i++){
-              sf.locals.add(read2Byte(fileBytes));
+              sf.locals.add(IFF.read2Byte(fileBytes));
             }
 
             for(int i = 0; i < numEvals; i++){
-              sf.evals.add(read2Byte(fileBytes));
+              sf.evals.add(IFF.read2Byte(fileBytes));
             }
             return sf;
           }
@@ -311,7 +199,7 @@ class Quetzal {
           while(stacksLen > 0){
             if (stacksLen == 1){
               //pad byte
-              nextByte(fileBytes);
+              IFF.nextByte(fileBytes);
               continue;
             }
 
@@ -322,7 +210,7 @@ class Quetzal {
           gotStacks = true;
           break;
         case Chunk.UMem.toString():
-          var numBytes = read4Byte(fileBytes);
+          var numBytes = IFF.read4Byte(fileBytes);
 
           //memory length mismatch
           if (numBytes != Z.machine.mem._mem.length)
@@ -331,9 +219,9 @@ class Quetzal {
           memBytes = fileBytes.getRange(0, numBytes);
           fileBytes.removeRange(0, numBytes);
 
-          //read pad byte if present
+          //IFF.read pad byte if present
           if (numBytes % 2 != 0)
-            nextByte(fileBytes);
+            IFF.nextByte(fileBytes);
           gotMem = true;
           break;
         default:
@@ -343,13 +231,13 @@ class Quetzal {
             }
 
             //attempt to skip the chunk
-            var sizeOfChunk = read4Byte(fileBytes);
+            var sizeOfChunk = IFF.read4Byte(fileBytes);
             fileBytes.removeRange(0, sizeOfChunk);
           }
       }
 
       if(gotStacks && gotMem && gotHeader) break;
-      nextChunk = readChunk(fileBytes);
+      nextChunk = IFF.readChunk(fileBytes);
     }
 
     if (!gotStacks || !gotMem || !gotHeader) return false;
@@ -366,13 +254,24 @@ class Quetzal {
 
     //stacks
     for(StackFrame sf in stackList){
+
       //callstack first
+      print(sf);
+
+      //locals
+      Z.machine.callStack.push(sf.locals.length);
+
       for(final local in sf.locals){
         Z.machine.callStack.push(local);
       }
 
+      //total locals
       Z.machine.callStack.push(sf.locals.length);
+
+      //returnTo variable
       Z.machine.callStack.push(sf.returnVar);
+
+      //return addr
       Z.machine.callStack.push(sf.returnAddr);
 
 
@@ -402,6 +301,7 @@ class StackFrame
   final Queue<int> evals;
   int nextCallStackIndex;
   int nextEvalStackIndex;
+  int totalArgsPassed;
 
   StackFrame.empty()
   :
@@ -421,6 +321,8 @@ class StackFrame
     for(int i = 0; i < totalLocals; i++){
       locals.addFirst(Z.machine.callStack[++callIndex]);
     }
+
+    totalArgsPassed = Z.machine.callStack[++callIndex];
 
     nextCallStackIndex = callIndex + 1;
 
@@ -444,6 +346,7 @@ class StackFrame
     var s = new StringBuffer();
     s.add('return addr: 0x${returnAddr.toRadixString(16)}\n');
     s.add('return var: 0x${returnVar.toRadixString(16)}\n');
+    s.add('args passed: $totalArgsPassed');
     s.add('locals: $locals \n');
     s.add('evals: $evals \n');
     s.add('nextCallStackIndex: $nextCallStackIndex \n');

@@ -17,8 +17,8 @@
 
 void main() {
 
-  var defaultGameFile = 'games${Platform.pathSeparator}VOODOO.Z5';
-  //var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+  //var defaultGameFile = 'games${Platform.pathSeparator}VOODOO.Z5';
+  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
 
   var args = new Options().arguments;
 
@@ -56,7 +56,7 @@ void main() {
 
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
-  Debugger.enableDebug = true;
+  Debugger.enableDebug = false;
   Debugger.enableVerbose = true;
   Debugger.enableTrace = false;
   Debugger.enableStackTrace = true;

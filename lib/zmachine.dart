@@ -14,7 +14,9 @@
 #source('DRandom.dart');
 #source('GameException.dart');
 
+#source('IO/IFF.dart');
 #source('IO/Quetzal.dart');
+#source('IO/Blorb.dart');
 #source('IO/DefaultProvider.dart');
 #source('IO/IOProvider.dart');
 
