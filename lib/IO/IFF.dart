@@ -3,20 +3,20 @@
 * A utility class supporting common IFF operations.
 */
 class IFF {
-  
+
   static int nextByte(List stream){
-    
+
     if (stream.isEmpty()) return null;
 
     var nb = stream[0];
-    
+
     stream.removeRange(0, 1);
-    
+
     return nb;
   }
 
   static void writeChunk(List stream, Chunk chunk){
-    
+
     var bytes = chunk.charCodes();
 
     for(final byte in bytes){
@@ -102,10 +102,13 @@ class Chunk{
   final String _str;
 
   const Chunk(this._str);
-  
+
   //Blorb chunks
   static final IFRS = const Chunk('IFRS');
-  
+  static final RIdx = const Chunk('RIdx');
+  static final ZCOD = const Chunk('ZCOD');
+  static final Exec = const Chunk('Exec');
+
   //Quetzal chunks
   static final IFZS = const Chunk('IFZS');
   static final IFhd = const Chunk('IFhd');
@@ -126,6 +129,9 @@ class Chunk{
 
   static Chunk toChunk(String chunk){
     switch(chunk){
+      case "Exec": return Chunk.Exec;
+      case "ZCOD": return Chunk.ZCOD;
+      case "RIdx": return Chunk.RIdx;
       case "IFRS": return Chunk.IFRS;
       case "IFZS": return Chunk.IFZS;
       case "IFhd": return Chunk.IFhd;

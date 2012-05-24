@@ -1,22 +1,22 @@
 
-Story file is gntests.z5
+Story file is etude.z5
 
     **** Story file header ****
 
 Z-code version:           5
 Interpreter flags:        None
-Release number:           1
-Size of resident memory:  04cc
-Start PC:                 04cd
-Dictionary address:       04c2
+Release number:           2
+Size of resident memory:  05f4
+Start PC:                 05f5
+Dictionary address:       05ec
 Object table address:     0102
 Global variables address: 02e0
-Size of dynamic memory:   04c0
-Game flags:               Supports colour
-Serial number:            970311
+Size of dynamic memory:   05ea
+Game flags:               Supports undo, Supports colour
+Serial number:            970325
 Abbreviations address:    0042
-File size:                01aa8
-Checksum:                 9be5
+File size:                0407c
+Checksum:                 b61d
 Inform Version:           6.11
 Inform Version: 611
 
@@ -32,10 +32,10 @@ Inform Version: 611
   1f0    27f     90  Property Names Table
   280    2df     60  Attribute Names Table
   2e0    4bf    1e0  Global variables
-  4c0    4c1      2
-  4c2    4c8      7  Dictionary
-  4c9    4cb      3
-  4cc   1aa7   15dc  Paged memory
+  4c0    5eb    12c
+  5ec    5f2      7  Dictionary
+  5f3    5f3      1
+  5f4   407b   3a88  Paged memory
 
     **** Abbreviations ****
 

@@ -192,7 +192,6 @@ class ZSCII {
       return 13;
     }else{
       var cc = c.charCodeAt(0);
-
       if (cc >= 32 && cc <= 126){
         return cc;
       }else if (cc >= 155 && cc <= 223){

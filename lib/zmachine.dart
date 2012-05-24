@@ -88,6 +88,8 @@ class ZMachine
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
   void load(List<int> storyBytes){
+    if (storyBytes == null) return;
+
     _rawBytes.clear();
     _rawBytes.addAll(storyBytes);
 

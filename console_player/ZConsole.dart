@@ -17,8 +17,10 @@
 
 void main() {
 
-  //var defaultGameFile = 'games${Platform.pathSeparator}VOODOO.Z5';
-  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+  //var defaultGameFile = 'games${Platform.pathSeparator}across.z8';
+  //var defaultGameFile = 'games${Platform.pathSeparator}etude.z5';
+  //var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+  var defaultGameFile = 'games${Platform.pathSeparator}Tester.z8';
 
   var args = new Options().arguments;
 
@@ -32,16 +34,23 @@ void main() {
 //    s.writeString('$bytes');
 //    s.close();
 
-    Z.load(bytes);
+    var gameData = Blorb.getZData(bytes);
+
+    if (gameData == null){
+      print('unable to load game.');
+      exit(1);
+    }
+
+    Z.load(gameData);
 
   } catch (FileIOException fe){
     //TODO log then print friendly
     print('$fe');
-    return;
+    exit(0);
   } catch (Exception e){
     //TODO log then print friendly
     print('$e');
-    return;
+    exit(0);
   }
 
   Header.setFlags1(0);
@@ -66,8 +75,10 @@ void main() {
     Z.run();
   }catch(GameException ge){
     print('got it!\n $ge');
+    exit(0);
   }catch(Exception e){
     print('$e');
+    exit(0);
   }
 }
 

@@ -1,4 +1,5 @@
 tests/V5/v5Tests.dart
 lib/ZMachine.dart
 tests/unittests.dart
+tests/V8/v8Tests.dart
 console_player/ZConsole.dart

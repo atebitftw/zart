@@ -52,7 +52,7 @@ class Dictionary {
 
     int wordAddress(int index) {
       var addr = _address + separators.length + 4 + (index * entryLength);
-      Debugger.debug('>>> ${ZSCII.readZStringAndPop(addr)}');
+      Debugger.verbose('>>> ${ZSCII.readZStringAndPop(addr)}');
       return addr;
     }
     int lastIndex = 0;

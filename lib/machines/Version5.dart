@@ -160,7 +160,6 @@ class Version5 extends Version3
         mem.storew(t2Addr, absSize);
       }
     }
-
   }
 
   void buffer_mode(){
@@ -194,7 +193,7 @@ class Version5 extends Version3
     Debugger.verbose('    (processing: "$line")');
 
     var charCount = mem.loadb(textBuffer - 1);
-    Debugger.debug('existing chars: $charCount');
+    //Debugger.debug('existing chars: $charCount');
 
     if (charCount > 0){
       //continuation of previous input
@@ -206,7 +205,7 @@ class Version5 extends Version3
       Debugger.verbose('    (text buffer truncated to "$line")');
     }
 
-    Debugger.debug('>> $line');
+    //Debugger.debug('>> $line');
 
     //write the total to the textBuffer (adjust if continuation)
     mem.storeb(textBuffer - 1, line.length + charCount > 0 ? charCount : 0);
@@ -226,8 +225,8 @@ class Version5 extends Version3
     Debugger.verbose('    (tokenized: $tokens)');
 
     var parsed = Z.machine.mem.dictionary.parse(tokens, line);
-    Debugger.debug('$tokens $charCount');
-    Debugger.debug('$parsed');
+    //Debugger.debug('$tokens $charCount');
+    //Debugger.debug('$parsed');
 
     var maxParseBufferBytes = (4 * maxWords) + 2;
 
@@ -281,7 +280,7 @@ class Version5 extends Version3
           outputStream3 = true;
           Z.sbuff = new StringBuffer();
           Z._memoryStreams.add(operands[1].value);
-         // print('>>>> Starting Memory Stream: ${Z.sbuff}');
+         // Debugger.debug('>>>> Starting Memory Stream: ${Z.sbuff}');
           if (Z._memoryStreams.length > 16){
             //(ref 7.1.2.1)
             throw new GameException('Maximum memory streams (16) exceeded.');
@@ -372,9 +371,14 @@ class Version5 extends Version3
 
     var textBuffer = operands[0].value + 2;
 
-    var maxWords = mem.loadb(operands[1].value);
+    var maxWords;
+    var parseBuffer;
 
-    var parseBuffer = operands[1].value + 1;
+    if (operands.length > 2){
+      maxWords = mem.loadb(operands[1].value);
+
+      parseBuffer = operands[1].value + 1;
+    }
 
     void processLine(String line){
       line = line.trim().toLowerCase();
@@ -393,8 +397,10 @@ class Version5 extends Version3
         Debugger.verbose('    (text buffer truncated to "$line")');
       }
 
+      var tbTotalAddr = textBuffer - 1;
+
       //write the total to the textBuffer (adjust if continuation)
-      mem.storeb(textBuffer - 1, line.length + charCount > 0 ? charCount : 0);
+      mem.storeb(tbTotalAddr, line.length + charCount > 0 ? line.length + charCount : 0);
 
       var zChars = ZSCII.toZCharList(line);
 
@@ -406,7 +412,17 @@ class Version5 extends Version3
         mem.storeb(textBuffer++, c);
       }
 
+      //Debugger.debug('${Z.machine.mem.dump(tbTotalAddr - 1, line.length + 2)}');
+
       var tokens = Z.machine.mem.dictionary.tokenize(line);
+
+      if (maxWords == null){
+        //second parameter was not passed, so
+        // we are not going to write to the parse
+        // buffer (etude.z5 does this... )
+        writeVariable(storeTo, 10);
+        return;
+      }
 
       Debugger.verbose('    (tokenized: $tokens)');
 

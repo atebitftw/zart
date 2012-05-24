@@ -248,7 +248,7 @@ class Debugger {
 
   /// Debug Channel
   static void debug(String debugString) {
-    Z.sendIO(IOCommands.PRINT_DEBUG, [debugString]);
+    Z.sendIO(IOCommands.PRINT_DEBUG, ['(Zart Debug) $debugString']);
   }
 
 

@@ -1,6 +1,6 @@
 
 
-//TODO account for the argument count value that is now on the stack!
+//TODO added total bytes after FORM chunk
 
 
 
@@ -84,7 +84,6 @@ class Quetzal {
       //using the first 4 bits, we set the number of locals... (not standard, but permissible)
       flagByte |= sd.locals.length;
 
-      print('flagByte: $flagByte');
       saveData.add(flagByte);
 
       // return variable number
@@ -171,7 +170,9 @@ class Quetzal {
 
             var returnVar = IFF.nextByte(fileBytes);
 
-            sf.returnVar = BinaryHelper.isSet(flagByte, 4) ? Machine.STACK_MARKER : returnVar;
+            sf.returnVar = BinaryHelper.isSet(flagByte, 4)
+                              ? Machine.STACK_MARKER
+                              : returnVar;
 
             var numLocals = BinaryHelper.bottomBits(flagByte, 4);
 

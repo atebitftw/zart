@@ -758,9 +758,13 @@ class Machine
   void quit(){
     Debugger.verbose('${pcHex(-1)} [quit]');
 
-    Z.quit = true;
+    Z.sendIO(IOCommands.PRINT, [currentWindow, Z.sbuff.toString()])
+    .then((_){
+      Z.sbuff.clear();
+      Z.quit = true;
 
-    Z.sendIO(IOCommands.QUIT);
+      Z.sendIO(IOCommands.QUIT);
+    });
   }
 
   void restart(){

@@ -170,7 +170,16 @@ class ConsoleProvider implements IOProvider
       //flush?
       textStream.read();
       textStream.onData = (){
-        c.complete(textStream.read().substring(0, 1));
+        var line = textStream.readLine();
+        if (line == null){
+          c.complete('');
+        }else{
+          if (line == ''){
+            c.complete('\n');
+          }else{
+            c.complete(line[0]);
+          }
+        }
       };
     }
 
@@ -183,7 +192,18 @@ class ConsoleProvider implements IOProvider
     if (!lineBuffer.isEmpty()){
       c.complete(lineBuffer.removeLast());
     }else{
-      textStream.onLine = () => c.complete(textStream.readLine());
+      textStream.onLine = (){
+        var line = textStream.readLine();
+        if (line == null){
+          c.complete('');
+        }else{
+          if (line == ''){
+            c.complete('\n');
+          }else{
+            c.complete(line);
+          }
+        }
+      };
     }
 
     return c.future;
