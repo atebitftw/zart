@@ -4,7 +4,7 @@ void objectTests(){
   group('Objects>', (){
     test('remove', (){
 
-      var o1 = new GameObjectV3(1); //forest
+      var o1 = new GameObject(1); //forest
 
       // check if we have the right object and
       // assumptions are correct.
@@ -16,20 +16,20 @@ void objectTests(){
       Expect.isTrue(o1.isFlagBitSet(28));
 
       var ls = o1.leftSibling(); //248
-      var p = new GameObjectV3(36);
+      var p = new GameObject(36);
 
       o1.removeFromTree();
       //check that 2 is now the sibling of o1's
       //left sibling
-      Expect.equals(2, new GameObjectV3(ls).sibling);
+      Expect.equals(2, new GameObject(ls).sibling);
 
       Expect.equals(0, o1.parent);
       Expect.equals(0, o1.sibling);
     });
 
     test('insert', (){
-      var o1 = new GameObjectV3(1); //forest
-      var p = new GameObjectV3(36); //parent
+      var o1 = new GameObject(1); //forest
+      var p = new GameObject(36); //parent
       var oc = p.child;
 
       o1.insertTo(36);
@@ -40,7 +40,7 @@ void objectTests(){
     });
 
     test('get next property', (){
-      GameObjectV3 o1 = new GameObjectV3(5); //"you";
+      GameObject o1 = new GameObject(5); //"you";
 
       Expect.equals('you', o1.shortName);
 
@@ -56,7 +56,7 @@ void objectTests(){
     });
 
     test('get property', (){
-      GameObjectV3 o1 = new GameObjectV3(5); //"you";
+      GameObject o1 = new GameObject(5); //"you";
 
       Expect.equals('you', o1.shortName);
 
@@ -69,7 +69,7 @@ void objectTests(){
     });
 
     test('set property', (){
-      GameObjectV3 o1 = new GameObjectV3(31); //"frigid river";
+      GameObject o1 = new GameObject(31); //"frigid river";
 
       Expect.equals('Frigid River', o1.shortName);
 
@@ -92,7 +92,7 @@ void objectTests(){
         () => o1.setPropertyValue(13, 0xffff),
           (e) => e is GameException);
 
-      o1 = new GameObjectV3(29);
+      o1 = new GameObject(29);
 
       //throw on prop len > 2
       Expect.throws(
@@ -102,7 +102,7 @@ void objectTests(){
     });
 
     test('attributes are set', (){
-      GameObjectV3 o1 = new GameObjectV3(4);// "cretin";
+      GameObject o1 = new GameObject(4);// "cretin";
 
       Expect.equals('cretin', o1.shortName);
 
@@ -122,7 +122,7 @@ void objectTests(){
     });
 
     test ('unset attribute', (){
-      GameObjectV3 o1 = new GameObjectV3(4);// "cretin";
+      GameObject o1 = new GameObject(4);// "cretin";
       Expect.isTrue(o1.isFlagBitSet(7));
       o1.unsetFlagBit(7);
       Expect.isFalse(o1.isFlagBitSet(7));
@@ -141,7 +141,7 @@ void objectTests(){
     });
 
     test('set attribute', (){
-      GameObjectV3 o1 = new GameObjectV3(30);// "you";
+      GameObject o1 = new GameObject(30);// "you";
       Expect.isFalse(o1.isFlagBitSet(1));
       o1.setFlagBit(1);
       Expect.isTrue(o1.isFlagBitSet(1));
@@ -161,13 +161,13 @@ void objectTests(){
 
 
     test('get property address', (){
-      GameObjectV3 o1 = new GameObjectV3(180); //"west of house"
+      GameObject o1 = new GameObject(180); //"west of house"
 
       var addr = o1.getPropertyAddress(31);
 
       Expect.equals(0x1c2a, addr);
 
-      var pnum = GameObjectV3.propertyNumber(addr - 1);
+      var pnum = GameObject.propertyNumber(addr - 1);
 
       Expect.equals(31, pnum);
 
@@ -185,14 +185,14 @@ void objectTests(){
     });
 
     test('get property length', (){
-      GameObjectV3 o1 = new GameObjectV3(232); //"Entrance to Hades"
+      GameObject o1 = new GameObject(232); //"Entrance to Hades"
 
-      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(28) - 1));
-      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(23) - 1));
-      Expect.equals(4, GameObjectV3.propertyLength(o1.getPropertyAddress(21) - 1));
-      Expect.equals(2, GameObjectV3.propertyLength(o1.getPropertyAddress(17) - 1));
-      Expect.equals(1, GameObjectV3.propertyLength(o1.getPropertyAddress(5) - 1));
-      Expect.equals(8, GameObjectV3.propertyLength(o1.getPropertyAddress(4) - 1));
+      Expect.equals(4, GameObject.propertyLength(o1.getPropertyAddress(28) - 1));
+      Expect.equals(1, GameObject.propertyLength(o1.getPropertyAddress(23) - 1));
+      Expect.equals(4, GameObject.propertyLength(o1.getPropertyAddress(21) - 1));
+      Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(17) - 1));
+      Expect.equals(1, GameObject.propertyLength(o1.getPropertyAddress(5) - 1));
+      Expect.equals(8, GameObject.propertyLength(o1.getPropertyAddress(4) - 1));
     });
 
   });

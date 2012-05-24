@@ -50,7 +50,12 @@ class _Stack {
   void push(int value) {
     //ref 6.3.3
     if (max > 0 && length == (max - 1))
-      throw new GameException('Stack Overflow.');
+      throw new GameException('Stack Overflow. $max');
+//
+//    if (length % 1024 == 0){
+//      Debugger.debug('stack at $length');
+//      Debugger.debug('text buffer: ${Z.sbuff}');
+//    }
 
     //excluding the stack boundary flag
     if (value < 0 && value != Machine.STACK_MARKER){

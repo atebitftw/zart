@@ -1,6 +1,7 @@
-#import('../lib/zmachine.dart');
+#import('../lib/ZMachine.dart');
 #import('dart:io');
 #import('dart:json');
+#import('dart:builtin');
 
 #source('ConsoleProvider.dart');
 #source('DebugProvider.dart');
@@ -15,7 +16,11 @@
 // dart ZConsole.dart ../games/minizork.z3
 
 void main() {
-  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+
+  //var defaultGameFile = 'games${Platform.pathSeparator}across.z8';
+  //var defaultGameFile = 'games${Platform.pathSeparator}etude.z5';
+  //var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+  var defaultGameFile = 'games${Platform.pathSeparator}Tester.z8';
 
   var args = new Options().arguments;
 
@@ -29,17 +34,27 @@ void main() {
 //    s.writeString('$bytes');
 //    s.close();
 
-    Z.load(bytes);
+    var gameData = Blorb.getZData(bytes);
+
+    if (gameData == null){
+      print('unable to load game.');
+      exit(1);
+    }
+
+    Z.load(gameData);
 
   } catch (FileIOException fe){
     //TODO log then print friendly
     print('$fe');
-    return;
+    exit(0);
   } catch (Exception e){
     //TODO log then print friendly
     print('$e');
-    return;
+    exit(0);
   }
+
+  Header.setFlags1(0);
+  Header.setFlags2(0);
 
   Z.IOConfig = new ConsoleProvider();
 
@@ -48,20 +63,22 @@ void main() {
   //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.w');
   //Z.IOConfig = new DebugProvider.with('');
 
+
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
   Debugger.enableVerbose = true;
   Debugger.enableTrace = false;
   Debugger.enableStackTrace = true;
-//  Debugger.setBreaks([0x54cd]);
+  Debugger.setBreaks([0x2bfd]);
 
   try{
     Z.run();
   }catch(GameException ge){
     print('got it!\n $ge');
+    exit(0);
   }catch(Exception e){
-    print('${Debugger.dumpLocals()}');
+    print('$e');
+    exit(0);
   }
-
 }
 

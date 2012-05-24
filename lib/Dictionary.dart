@@ -2,7 +2,9 @@
 class Dictionary {
   final List<String> entries;
   final List<String> separators;
-  int wordSize;
+  int entryLength;
+
+  int get encodedTextBytes() => Z.machine.version.toInt() <= 3 ? 4 : 6;
 
   int _address;
 
@@ -30,7 +32,7 @@ class Dictionary {
       separators.add(ZSCII.ZCharToChar(Z.machine.mem.loadb(_address + i)));
     }
 
-    wordSize =
+    entryLength =
         Z.machine.mem.loadb(_address + separators.length + 1);
 
     var numEntries =
@@ -38,9 +40,8 @@ class Dictionary {
 
     var start = _address + separators.length + 4;
 
-
     for(int i = 1; i <= numEntries; i++){
-      entries.add(ZSCII.readZStringAndPop(start + ((i - 1) * wordSize)));
+      entries.add(ZSCII.readZStringAndPop(start + ((i - 1) * entryLength)));
     }
   }
 
@@ -50,7 +51,7 @@ class Dictionary {
     parseTable.add(tokenizedList.length);
 
     int wordAddress(int index) {
-      var addr = _address + separators.length + 4 + (index * wordSize);
+      var addr = _address + separators.length + 4 + (index * entryLength);
       Debugger.verbose('>>> ${ZSCII.readZStringAndPop(addr)}');
       return addr;
     }
@@ -58,8 +59,8 @@ class Dictionary {
 
     for(final t in tokenizedList){
       var word = t;
-      if (word.length > 6){
-        word = word.substring(0, 6);
+      if (word.length > entryLength - 1){
+        word = word.substring(0, entryLength - 1);
       }
 
       var idx = entries.indexOf(word);
@@ -128,7 +129,7 @@ class Dictionary {
 
     s.add('entries: ${entries.length}\n');
     s.add('separators: ${separators}\n');
-    s.add('word size: $wordSize \n');
+    s.add('word size: $entryLength \n');
     s.add('$entries \n');
     return s.toString();
   }

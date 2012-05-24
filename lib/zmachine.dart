@@ -1,6 +1,7 @@
 #library('ZMachine');
 
 #import('dart:json');
+#import('dart:isolate');
 
 #source('Header.dart');
 #source('_Stack.dart');
@@ -13,54 +14,84 @@
 #source('DRandom.dart');
 #source('GameException.dart');
 
+#source('IO/IFF.dart');
 #source('IO/Quetzal.dart');
+#source('IO/Blorb.dart');
 #source('IO/DefaultProvider.dart');
 #source('IO/IOProvider.dart');
 
 #source('machines/Machine.dart');
 #source('machines/Version3.dart');
-#source('GameObjectV3.dart');
+#source('machines/Version5.dart');
+#source('machines/Version7.dart');
+#source('machines/Version8.dart');
+#source('GameObject.dart');
 
-//
-// Dart Implementation of the Infocom Z-Machine.
-//
+ZMachine get Z() => new ZMachine();
 
-/// Kilobytes -> Bytes
-KBtoB(int kb) => kb * 1024;
-
-
-class Z
+/**
+* This is a partial-interpreter for the Z-Machine.  It handles most interpreter
+* activites except actual IO, which is deferred to the IOConfig provider.
+*
+* The IOConfig handles tasks for whatever presentation platform
+* is in use by the application.
+*/
+class ZMachine
 {
+  bool isLoaded = false;
+  bool inBreak = false;
+  bool inInterrupt = false;
+  bool quit = false;
+  ZVersion _ver;
+  String _mostRecentInput;
 
-  static bool isLoaded = false;
-  static bool inBreak = false;
-  static bool inInterrupt = false;
-  static bool quit = false;
-  static ZVersion _ver;
-  static StringBuffer sbuff;
+  final SendPort _asyncIsolate;
 
-  static List<int> _rawBytes;
+  StringBuffer sbuff;
+  final List<int> _memoryStreams;
+  final List<int> _rawBytes;
+
+  static ZMachine _context;
 
   //contains machine version which are supported by z-machine.
-  static List<Machine> _supportedMachines;
+  final List<Machine> _supportedMachines;
 
-  static Machine machine;
+  Machine machine;
 
-  static IOProvider IOConfig;
+  IOProvider IOConfig;
 
-  static int get version() => _ver != null ? _ver.toInt() : null;
+  factory ZMachine(){
+    if (_context != null) return _context;
+
+    _context = new ZMachine._internal();
+    return _context;
+  }
+
+  ZMachine._internal()
+  :
+    sbuff = new StringBuffer(),
+    _memoryStreams = new List<int>(),
+    _rawBytes = new List<int>(),
+    _supportedMachines = [
+                          new Version3(),
+                          new Version5(),
+                          new Version7(),
+                          new Version8()
+                          ],
+    _asyncIsolate = spawnFunction(asyncIsolate)
+  {
+      IOConfig = new DefaultProvider([]);
+  }
+
 
   /**
   * Loads the given Z-Machine story file [storyBytes] into VM memory.
   */
-  static void load(List<int> storyBytes){
-    if (!Z.isLoaded){
-      _supportedMachines = [new Version3()];
-      sbuff = new StringBuffer();
-      IOConfig = new DefaultProvider([]);
-    }
+  void load(List<int> storyBytes){
+    if (storyBytes == null) return;
 
-    _rawBytes = new List.from(storyBytes);
+    _rawBytes.clear();
+    _rawBytes.addAll(storyBytes);
 
     _ver = ZVersion.intToVer(_rawBytes[Header.VERSION]);
 
@@ -70,8 +101,10 @@ class Z
     if (result.length != 1){
       throw new Exception('Z-Machine version ${_ver} not supported.');
     }else{
-      machine = result[0];
+      machine = result.dynamic[0];
     }
+
+    print('Zart: Using Z-Machine v${machine.version}.');
 
     machine.mem = new _MemoryMap(_rawBytes);
 
@@ -80,13 +113,22 @@ class Z
     isLoaded = true;
   }
 
+  callAsync(func()){
+    _asyncIsolate
+    .call('foo')
+    .then((reply){
+      func();
+    });
+  }
+
+
   /**
   * Runs the Z-Machine using the detected machine version from the story
   * file.  This can be overridden by passing [machineOverride] to the function.
   * Doing so will cause given IMachine to be used for execution.  This is handy
   * for using the [Disassembler] machine, or any other custome machine.
   */
-  static void run([Machine machineOverride = null]){
+  void run([Machine machineOverride = null]){
     _assertLoaded();
 
     if (machineOverride != null){
@@ -105,56 +147,68 @@ class Z
     machine.callStack.push(0);
 
     if (inBreak){
-      IOConfig.callAsync(Debugger.startBreak);
+      callAsync(Debugger.startBreak);
     }else{
-      IOConfig.callAsync(runIt);
+      callAsync(runIt);
     }
   }
 
-  static void runIt(timer){
+  void runIt(){
 
     while(!inBreak && !inInterrupt && !quit){
-      Z.machine.visitInstruction();
+      machine.visitInstruction();
     }
 
     if(inBreak){
-      Z.IOConfig.DebugOutput('<<< DEBUG MODE >>>');
-      Z.IOConfig.callAsync(Debugger.startBreak);
-    }
-
-    if (quit && !Debugger.isUnitTestRun){
-      Z.quit = false;
+      Z.sendIO(IOCommands.PRINT_DEBUG, ["<<< DEBUG MODE >>>"]);
+      callAsync(Debugger.startBreak);
     }
 
 //    if (!inBreak && !inInput){
-//      Z._io.callAsync(_machine.visitInstruction);
+//      _io.callAsync(_machine.visitInstruction);
 //    }else{
 //      if(inBreak){
-//        Z._io.DebugOutput('<<< DEBUG MODE >>>');
-//        Z._io.callAsync(Debugger.startBreak);
+//        _io.DebugOutput('<<< DEBUG MODE >>>');
+//        _io.callAsync(Debugger.startBreak);
 //      }
 //    }
   }
 
-  static void _printBuffer(){
-    Z.IOConfig.PrimaryOutput(sbuff.toString());
-    Z.sbuff.clear();
+  Future<Object> sendIO(IOCommands command, [List messageData]){
+    var msg = [command.toString()];
+
+    if (messageData != null && messageData is Collection){
+      msg.addAll(messageData);
+    }
+    return IOConfig.command(JSON.stringify(msg));
+  }
+
+  void _printBuffer(){
+    //if output stream 3 is active then we don't print,
+    //Just preserve the buffer until the stream is de-selected.
+    if (!machine.outputStream3){
+     sendIO(IOCommands.PRINT, [machine.currentWindow, sbuff.toString()])
+      .then((_){
+        sbuff.clear();
+      });
+    }
   }
 
   /** Reset Z-Machine to state at first load */
-  static softReset(){
-    Z._assertLoaded();
-    Z.machine.pc = 0;
-    Z.machine.stack.clear();
-    Z.machine.callStack.clear();
-    Z.machine.mem = null;
+  void softReset(){
+    _assertLoaded();
+    machine.pc = 0;
+    machine.stack.clear();
+    machine.callStack.clear();
+    _memoryStreams.clear();
+    machine.mem = null;
 
-    Z.machine.mem = new _MemoryMap(_rawBytes);
-    Z.machine.visitHeader();
+    machine.mem = new _MemoryMap(_rawBytes);
+    machine.visitHeader();
   }
 
-  static void _assertLoaded(){
-    if (!Z.isLoaded){
+  void _assertLoaded(){
+    if (!isLoaded){
       throw const Exception('Z-Machine state not loaded. Use load() first.');
     }
   }
@@ -196,6 +250,12 @@ class ZVersion{
         throw const Exception("Version number not recognized.");
     }
   }
+}
+
+void asyncIsolate(){
+  port.receive((message, SendPort replyTo){
+    replyTo.send('foo');
+  });
 }
 
 
