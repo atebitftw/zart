@@ -12,13 +12,21 @@ This project is a labor of love.  I'll start with z-machine v3 and see where it 
 	
 Enjoy!
 
-## Status - Playable for V3, V5, and V8 Games ##
+## Status - Plays V3, V5, and V8 Games ##
+There is currently a "feature" of Dart that prevents the engine from
+being used with a javascript-compiled version (dart2js) without some
+small modififications.  Explained in this post:
+
+https://groups.google.com/a/dartlang.org/forum/#!topic/misc/jjXzXYMYi-c
+
+### Older Games May Not Work ###
+Some games, especially ones compiled with older version of Inform, may not
+work properly.  Trial and error is the only way to know.
+
+Games compiled with the latest Inform 7 appear to work fine.
 
 ## Playing the Mini-Zork Game ##
-To run the game, run the ZConsole.dart app, either from the VM in shell,
-or from the Dart Editor (user-input works in the Dart Editor console too).
-
-There is a web-based version here as well (Chrome or Dartium only, for now):
+There is a web-based version (Chrome or Dartium only, for now):
 
 http://www.lucastudios.com/demos/zart/zartweb.html
 
@@ -26,17 +34,21 @@ The web version uses the Buckshot UI library:
 
 https://github.com/prujohn/Buckshot
 
-## Older Games May Not Work ##
-Some games, especially ones compiled with older version of Inform, may not
-work properly.
+### From the console ###
+To run the game, run the ZConsole.dart app, either from the VM in shell,
+or from the Dart Editor (user-input works in the Dart Editor console too).
 
-Games compiled with Inform 7 appear to work fine.
+You can change the game file within ZConsole.dart or you can run it form the 
+command line with an arguement:
+
+    dart ZConsole.dart path/to/minizork.z3
 
 ## Want to author your own IF games? ##
 http://inform7.com/
 
 ## Next Steps ##
-* Bug fixes.  Enhancements to some op codes.
+* Bug fixes, optimization, enhancements to some op codes.
+* Add in some detection to warn if the game file may not be playable.
 
 ## Debugging ##
 There is a VERY basic runtime debugger included.  To enter it, type **/!** at any prompt.
@@ -52,6 +64,7 @@ Doing so will drop you into a simple REPL.
 * **disable (tracing|verbose)** - disables tracing or verbose debug mode.
 * **header** - dumps header information
 * **dump addr len** dumps memory from address 'addr' to length
+* **stacks** - dumps the call stack and the game stack.
 * **q** - leave debug mode and return to game.
 * **n or Enter** - advance to the next instruction.
 
