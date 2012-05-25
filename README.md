@@ -15,7 +15,7 @@ Enjoy!
 ## Status - Plays V3, V5, and V8 Games ##
 There is currently a "feature" of Dart that prevents the engine from
 being used with a javascript-compiled version (dart2js) without some
-small modififications.  Explained in this post:
+small modifications.  Explained in this post:
 
 https://groups.google.com/a/dartlang.org/forum/#!topic/misc/jjXzXYMYi-c
 
