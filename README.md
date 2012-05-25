@@ -12,18 +12,32 @@ This project is a labor of love.  I'll start with z-machine v3 and see where it 
 	
 Enjoy!
 
-## Status - Plays V3, V5, and V8 Games ##
+## Features ##
+* Plays V3, V5, V7, and V8 games (see "Limitations" below)
+* Supports loading raw game files (.z3, .z5, .z8, etc)
+* Supports loading .zblorb files, but only uses the game file from the package at this time.
+* Separates the UI implementation from the core interpreter functions, providing extensibility
+to virtually any platform that Dart runs on (currently Mac, Linux, Windows, and Web).
+
+## Limitations ##
+
+### Older Games May Not Work ###
+Some games, especially ones compiled with older version of Inform, may not
+work properly.  Trial and error is the only way to know.
+
+The older Infocom games (V3 & V5) appear to work fine.
+
+Games compiled with the latest Inform 7 appear to work fine.
+
+### Dart "Bug" ###
 There is currently a "feature" of Dart that prevents the engine from
 being used with a javascript-compiled version (dart2js) without some
 small modifications.  Explained in this post:
 
 https://groups.google.com/a/dartlang.org/forum/#!topic/misc/jjXzXYMYi-c
 
-### Older Games May Not Work ###
-Some games, especially ones compiled with older version of Inform, may not
-work properly.  Trial and error is the only way to know.
-
-Games compiled with the latest Inform 7 appear to work fine.
+This really only affects people who want to build their own interpreter
+front-end in the browser.
 
 ## Playing the Mini-Zork Game ##
 There is a web-based version (Chrome or Dartium only, for now):
@@ -49,6 +63,8 @@ http://inform7.com/
 ## Next Steps ##
 * Bug fixes, optimization, enhancements to some op codes.
 * Add in some detection to warn if the game file may not be playable.
+* Improve the web interpreter (not included with this library) to support
+split screening, cursor positioning, etc.
 
 ## Debugging ##
 There is a VERY basic runtime debugger included.  To enter it, type **/!** at any prompt.

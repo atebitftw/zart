@@ -6,14 +6,14 @@
 #source('ConsoleProvider.dart');
 #source('DebugProvider.dart');
 
-// Console player for Z-Machine
+// A basic Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
 // otherwise attempts to load default minizork.z3 file from environment.
 //
 // Works in the Dart console.
 
 // VM:
-// dart ZConsole.dart ../games/minizork.z3
+// dart ZConsole.dart path/to/minizork.z3
 
 void main() {
 
