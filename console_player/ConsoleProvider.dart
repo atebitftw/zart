@@ -40,7 +40,8 @@ class ConsoleProvider implements IOProvider
           .then((result) => c.complete(result));
         break;
       case IOCommands.CLEAR_SCREEN:
-        //no clear console api?
+        //no clear console api, so 
+        //we just print a bunch of lines
         for(int i=0; i < 50; i++){
           print('');
         }
@@ -59,6 +60,7 @@ class ConsoleProvider implements IOProvider
         exit(1);
         break;
       default:
+        //print('Zart: ${cmd}');
         c.complete(null);
     }
 

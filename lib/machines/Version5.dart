@@ -298,7 +298,12 @@ class Version5 extends Version3
 
     var operands = this.visitOperandsVar(1, false);
 
-    Z.sendIO(IOCommands.SET_FONT, ['STYLE', operands[0].value]);
+    Z.inInterrupt = true;
+    Z.sendIO(IOCommands.SET_FONT, ['STYLE', operands[0].value])
+    .then((_){
+      Z.inInterrupt = false;
+      Z.callAsync(Z.runIt);
+    });
   }
 
   void extended(){
@@ -355,7 +360,7 @@ class Version5 extends Version3
 
     Z.inInterrupt = true;
 
-    sendStatus();
+//    sendStatus();
 
     Z._printBuffer();
 
@@ -442,18 +447,17 @@ class Version5 extends Version3
     }
 
     Z.sendIO(IOCommands.READ)
-    .then((String l){
-      Z.inInterrupt = false;
-      if (l == '/!'){
-        Z.inBreak = true;
-        Debugger.debugStartAddr = pc - 1;
-        Z.callAsync(Debugger.startBreak);
-//        Z._io.callAsync(Debugger.startBreak);
-      }else{
-        processLine(l);
-        Z.callAsync(Z.runIt);
-      }
-    });
+      .then((String l){
+        Z.inInterrupt = false;
+        if (l == '/!'){
+          Z.inBreak = true;
+          Debugger.debugStartAddr = pc - 1;
+          Z.callAsync(Debugger.startBreak);
+        }else{
+          processLine(l);
+          Z.callAsync(Z.runIt);
+        }
+      });
   }
 
   void check_arg_count(){
@@ -472,7 +476,7 @@ class Version5 extends Version3
     Z.inInterrupt = true;
 
     var operands = this.visitOperandsVar(1, false);
-
+    
     Z.sendIO(IOCommands.SET_FONT, [operands[0].value])
     .then((result){
       Z.inInterrupt = false;
@@ -483,16 +487,19 @@ class Version5 extends Version3
       }
       Z.callAsync(Z.runIt);
     });
-
-
   }
 
   void set_cursor(){
     Debugger.verbose('${pcHex(-1)} [set_cursor]');
 
     var operands = this.visitOperandsVar(2, false);
-
-    Z.sendIO(IOCommands.SET_CURSOR, [operands[0].value, operands[1].value]);
+    Z.inInterrupt = true;
+    
+    Z.sendIO(IOCommands.SET_CURSOR, [operands[0].value, operands[1].value])
+    .then((_){
+      Z.inInterrupt = false;
+      Z.callAsync(Z.runIt);
+    });
   }
 
   void set_window(){
@@ -699,7 +706,12 @@ class Version5 extends Version3
 
     var operands = this.visitOperandsVar(1, false);
 
-    Z.sendIO(IOCommands.CLEAR_SCREEN, [operands[0].value]);
+    Z.inInterrupt = true;
+    Z.sendIO(IOCommands.CLEAR_SCREEN, [operands[0].value])
+    .then((_){
+      Z.inInterrupt = false;
+      Z.callAsync(Z.runIt);
+    });
   }
 
   void split_window(){
@@ -707,14 +719,17 @@ class Version5 extends Version3
 
     var operands = this.visitOperandsVar(1, false);
 
-    Z.sendIO(IOCommands.SPLIT_SCREEN, [operands[0].value]);
+    Z.inInterrupt = true;
+    Z.sendIO(IOCommands.SPLIT_SCREEN, [operands[0].value])
+    .then((_){
+      Z.inInterrupt = false;
+      Z.callAsync(Z.runIt);
+    });
   }
 
   void read_char(){
     Debugger.verbose('${pcHex(-1)} [read_char]');
     Z.inInterrupt = true;
-
-    sendStatus();
 
     Z._printBuffer();
 
@@ -726,14 +741,12 @@ class Version5 extends Version3
 
     var resultTo = readb();
 
-    Z.IOConfig
-    .command(JSON.stringify([IOCommands.READ_CHAR.toString()]))
+    Z.sendIO(IOCommands.READ_CHAR)
     .then((char){
       this.writeVariable(resultTo, ZSCII.CharToZChar(char));
-      Z.inInterrupt = false;
-      Z.callAsync(Z.runIt);
+        Z.inInterrupt = false;
+        Z.callAsync(Z.runIt);
     });
-
   }
 
   //Version 5+ supports call routines that throw

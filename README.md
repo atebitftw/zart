@@ -1,7 +1,18 @@
 ## Zart - Dart Implementation of Infocom Z-Machine ##
+	West of House
+	You are standing in an open field west of a white house, with a 
+	boarded front door. You could circle the house to the north or south.
+	There is a small mailbox here.
+
+	>
+
 Some of my most memorable early gaming experiences where Infocom interactive fiction games.
 
 This project is a labor of love.  I'll start with z-machine v3 and see where it goes...
+	
+Enjoy!
+
+## Status - Playable for V3, V5, and V8 Games ##
 
 ## Playing the Mini-Zork Game ##
 To run the game, run the ZConsole.dart app, either from the VM in shell,
@@ -15,26 +26,17 @@ The web version uses the Buckshot UI library:
 
 https://github.com/prujohn/Buckshot
 
-## Status - Playable for V3 Games ##
-Minizork is included with the source and is playable.
+## Older Games May Not Work ##
+Some games, especially ones compiled with older version of Inform, may not
+work properly.
 
-All the V3 opcodes should be implemented.
+Games compiled with Inform 7 appear to work fine.
 
-	Copyright (c) 1988 Infocom, Inc. All rights reserved.
-	ZORK is a registered trademark of Infocom, Inc.
-	Release 34 / Serial number 871124
+## Want to author your own IF games? ##
+http://inform7.com/
 
-	West of House
-	You are standing in an open field west of a white house, with a 
-	boarded front door. You could circle the house to the north or south.
-	There is a small mailbox here.
-
-	>
-	
-Enjoy!
-
-### Next Steps ###
-* Work on some later machine versions (V5, V8) etc.
+## Next Steps ##
+* Bug fixes.  Enhancements to some op codes.
 
 ## Debugging ##
 There is a VERY basic runtime debugger included.  To enter it, type **/!** at any prompt.

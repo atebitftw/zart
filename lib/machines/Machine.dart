@@ -264,23 +264,15 @@ class Machine
 
     var offset = jumpToLabelOffset(jumpByte);
 
-    var saveData = [];
-    saveData.add(IOCommands.SAVE.toString());
     if (branchOn){
-      saveData.addAll(Quetzal.save(pc + (offset - 2)));
-
-      Z.IOConfig
-      .command(JSON.stringify(saveData))
+      Z.sendIO(IOCommands.SAVE, Quetzal.save(pc + (offset - 2)))
       .then((result){
         Z.inInterrupt = false;
         if (result) pc += offset - 2;
         Z.callAsync(Z.runIt);
       });
     }else{
-      saveData.addAll(Quetzal.save(pc));
-
-      Z.IOConfig
-      .command(JSON.stringify(saveData))
+      Z.sendIO(IOCommands.SAVE, Quetzal.save(pc))
       .then((result){
         Z.inInterrupt = false;
         if (!result) pc += offset - 2;
@@ -352,12 +344,17 @@ class Machine
 
     var locObject = oid != 0 ? new GameObject(oid).shortName : '';
 
+    Z.inInterrupt = true;
     Z.sendIO(IOCommands.STATUS, [
                               Header.isScoreGame() ? 'SCORE' : 'TIME',
                               locObject,
                               readVariable(0x11),
                               readVariable(0x12)
-                                 ]);
+                                 ])
+      .then((_){
+        Z.inInterrupt = false;
+        Z.callAsync(Z.runIt);
+      });
   }
 
   void callVS(){
@@ -395,10 +392,10 @@ class Machine
   void read(){
     Debugger.verbose('${pcHex(-1)} [read]');
 
-    Z.inInterrupt = true;
-
     sendStatus();
 
+    Z.inInterrupt = true;
+    
     Z._printBuffer();
 
     var operands = this.visitOperandsVar(4, true);
@@ -446,40 +443,20 @@ class Machine
         if (i > maxParseBufferBytes) break;
         mem.storeb(parseBuffer++, p);
       }
-
-//      Z._io.callAsync(Z._runIt);
     }
 
-    Future<String> line = Z.IOConfig.command(JSON.stringify([IOCommands.READ.toString()]));
-
-    doIt(foo){
-      if (line.isComplete){
+    Z.sendIO(IOCommands.READ)
+      .then((String l){
         Z.inInterrupt = false;
-        if (line == '/!'){
+        if (l == '/!'){
           Z.inBreak = true;
-//          Z._io.callAsync(Debugger.startBreak);
+          Debugger.debugStartAddr = pc - 1;
+          Z.callAsync(Debugger.startBreak);
         }else{
-          processLine(line.value);
+          processLine(l);
+          Z.callAsync(Z.runIt);
         }
-      }else{
-        line.then((String l){
-          Z.inInterrupt = false;
-          if (l == '/!'){
-            Z.inBreak = true;
-            Debugger.debugStartAddr = pc - 1;
-            Z.callAsync(Debugger.startBreak);
-//            Z._io.callAsync(Debugger.startBreak);
-          }else{
-            processLine(l);
-            Z.callAsync(Z.runIt);
-          }
-        });
-      }
-    }
-
-    doIt(null);
-
-//    Z._io.callAsync(doIt);
+      });
   }
 
   void random(){
@@ -758,8 +735,10 @@ class Machine
   void quit(){
     Debugger.verbose('${pcHex(-1)} [quit]');
 
+    Z.inInterrupt = true;
     Z.sendIO(IOCommands.PRINT, [currentWindow, Z.sbuff.toString()])
     .then((_){
+      Z.inInterrupt = false;
       Z.sbuff.clear();
       Z.quit = true;
 

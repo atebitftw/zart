@@ -17,10 +17,10 @@
 
 void main() {
 
-  //var defaultGameFile = 'games${Platform.pathSeparator}across.z8';
+  //var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
   //var defaultGameFile = 'games${Platform.pathSeparator}etude.z5';
-  //var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
-  var defaultGameFile = 'games${Platform.pathSeparator}Tester.z8';
+  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+  //var defaultGameFile = 'games${Platform.pathSeparator}Tester.z8';
 
   var args = new Options().arguments;
 
@@ -68,8 +68,8 @@ void main() {
   Debugger.enableDebug = false;
   Debugger.enableVerbose = true;
   Debugger.enableTrace = false;
-  Debugger.enableStackTrace = true;
-  Debugger.setBreaks([0x2bfd]);
+  Debugger.enableStackTrace = false;
+  //Debugger.setBreaks([0x2bfd]);
 
   try{
     Z.run();

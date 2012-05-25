@@ -2,13 +2,13 @@
 class GameObject
 {
   final int id;
-  int get PARENT_ADDR() => _address + (Z.machine.version.toInt() <= 3 ? 4 : 6);
-  int get SIBLING_ADDR() => _address + (Z.machine.version.toInt() <= 3 ? 5 : 8);
-  int get CHILD_ADDR() => _address + (Z.machine.version.toInt() <= 3 ? 6 : 10);
+  int get PARENT_ADDR() => _address + ((Z.machine.version.toInt() <= 3 ? 4 : 6));
+  int get SIBLING_ADDR() => _address + ((Z.machine.version.toInt() <= 3 ? 5 : 8));
+  int get CHILD_ADDR() => _address + ((Z.machine.version.toInt() <= 3 ? 6 : 10));
 
   int _address;
 
-  int get parent() => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(PARENT_ADDR) : Z.machine.mem.loadw(PARENT_ADDR);
+  int get parent() => (Z.machine.version.toInt() <= 3) ? Z.machine.mem.loadb(PARENT_ADDR) : Z.machine.mem.loadw(PARENT_ADDR);
   set parent(int oid) => Z.machine.version.toInt() <= 3 ? Z.machine.mem.storeb(PARENT_ADDR, oid) : Z.machine.mem.storew(PARENT_ADDR, oid);
 
   int get child() => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(CHILD_ADDR) : Z.machine.mem.loadw(CHILD_ADDR);
@@ -60,7 +60,6 @@ class GameObject
 
     return len == 0 ? len : propertyNumber(addr);
   }
-
 
   int getPropertyAddress(int pnum){
     if (pnum == 0) return 0;
@@ -228,9 +227,9 @@ class GameObject
         pgo.child = sibling;
       }
     }else{
+
       //find the sibling to the left of us...
       var leftSib = leftSibling();
-
 
       // now set that sibling's sibling to our sibling
       // effectively removing us from the list.
@@ -246,6 +245,7 @@ class GameObject
 
     while(theChild.sibling != id){
       theChild = new GameObject(theChild.sibling);
+
       if (theChild.id == 0){
         throw new GameException('Sibling list not well formed.');
       }
@@ -255,10 +255,13 @@ class GameObject
   }
 
   void insertTo(int obj){
+    
     if (parent != 0)
           removeFromTree();
 
+
     var p = new GameObject(obj);
+
 
     if (p.child > 0){
       //parent already has child, make that child our sibling now
@@ -287,22 +290,26 @@ class GameObject
 
   //TODO convert to string return
   void dump(){
-    Debugger.debug('Object #: $id, "$shortName"');
-
-    Debugger.debug('parent: ${parent} "${new GameObject(parent).shortName}"');
-    Debugger.debug('sibling: ${sibling} "${new GameObject(sibling).shortName}"');
-    Debugger.debug('child: ${child} "${new GameObject(child).shortName}"');
-
-    Debugger.debug('Property Address 0x${propertyTableStart.toRadixString(16)}');
-
+    
     var s = new StringBuffer();
     for (int i = 0; i <= (Z.machine.version.toInt() <= 3 ? 31 : 47); i++){
       if (BinaryHelper.isSet(flags, (Z.machine.version.toInt() <= 3 ? 31 : 47) - i)){
         s.add('[$i] ');
       }
     }
+    
+    var ret = 
+'''
+Object #:$id, "${shortName}"
+parent: ${parent} "${new GameObject(parent).shortName}"
+sibling: ${sibling} "${new GameObject(sibling).shortName}"
+child: ${child} "${new GameObject(child).shortName}"
+Property Address 0x${propertyTableStart.toRadixString(16)}
+flags: ${s}
+''';
+    
+  Debugger.debug(ret);
 
-    Debugger.debug('set flags: $s');
   }
 
   int _getObjectAddress(){
@@ -312,7 +319,8 @@ class GameObject
     // 9 or 14 bytes per object (ref 12.3.1)
     objStart += (id - 1) * (Z.machine.version.toInt() <= 3 ? 9 : 14);
 
-    if (objStart > Z.machine.mem.loadw(Header.GLOBAL_VARS_TABLE_ADDR)) return 0;
+    //TODO find a better check (this doesn't work in minizork)
+    //if (objStart > Z.machine.mem.loadw(Header.GLOBAL_VARS_TABLE_ADDR)) return 0;
 
     return objStart;
   }
