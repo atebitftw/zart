@@ -1040,7 +1040,7 @@ class Machine
 
     var resultTo = readb();
 
-    assert(operands[1].value == 0);
+    assert(operands[1].value != 0);
 
     var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
 
@@ -1058,7 +1058,7 @@ class Machine
 
     var resultTo = readb();
 
-    assert(operands[1].peekValue == 0);
+    assert(operands[1].peekValue != 0);
 
     var x = toSigned(operands[0].value);
     var y = toSigned(operands[1].value);
@@ -1198,7 +1198,7 @@ class Machine
 
     var operands = this.visitOperandsVar(3, false);
 
-    assert(operands.length != 3);
+    assert(operands.length == 3);
 
     var addr = operands[0].value + Machine.toSigned(operands[1].value);
 //
@@ -1387,9 +1387,8 @@ class Machine
  }
 
   void _writeLocal(int local, int value){
-    var locals = callStack[2];
 
-    assert(callStack[2] < local);
+    assert(local <= callStack[2]);
 
     assert(callStack[2] - local > -1);
 
@@ -1398,8 +1397,7 @@ class Machine
 
   int _readLocal(int local){
    // var locals = callStack[2]; //locals header
-
-    assert(callStack[2] < local);
+    assert(local <= callStack[2]);
 
     return callStack[(callStack[2] - local) + 3];
   }
