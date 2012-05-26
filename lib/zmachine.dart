@@ -138,7 +138,7 @@ class ZMachine
     }
 
     //for main routine only.
-    machine.pc--;
+    machine.PC--;
     
     // visit the main 'routine' (call stack required empty)
     machine.visitRoutine([]);
@@ -197,7 +197,7 @@ class ZMachine
   /** Reset Z-Machine to state at first load */
   void softReset(){
     _assertLoaded();
-    machine.pc = 0;
+    machine.PC = 0;
     machine.stack.clear();
     machine.callStack.clear();
     _memoryStreams.clear();

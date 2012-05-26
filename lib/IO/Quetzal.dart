@@ -283,7 +283,7 @@ class Quetzal {
       }
     }
 
-    Z.machine.pc = pc;
+    Z.machine.PC = pc;
 
     return true;
   }

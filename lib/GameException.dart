@@ -6,7 +6,7 @@ class GameException implements Exception
 
   GameException(this.msg)
   :
-    addr = Z.machine.pc - 1;
+    addr = Z.machine.PC - 1;
 
   String toString() {
     try{
