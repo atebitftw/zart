@@ -12,6 +12,8 @@ class Debugger {
   static int debugStartAddr;
 
   static List<int> _breakPoints;
+  
+  static int instructionsCounter = 0;
 
   static void setMachine(Machine newMachine){
     Z.inInterrupt = true;

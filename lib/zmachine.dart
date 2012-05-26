@@ -137,6 +137,9 @@ class ZMachine
       machine.visitHeader();
     }
 
+    //for main routine only.
+    machine.pc--;
+    
     // visit the main 'routine' (call stack required empty)
     machine.visitRoutine([]);
 
@@ -155,31 +158,28 @@ class ZMachine
 
   void runIt(){
 
-    while(!inBreak && !inInterrupt && !quit){
+//    while(!inBreak && !inInterrupt && !quit){
+    while(!inInterrupt && !quit){
       machine.visitInstruction();
+//      Debugger.instructionsCounter++;
     }
 
-    if(inBreak){
-      Z.sendIO(IOCommands.PRINT_DEBUG, ["<<< DEBUG MODE >>>"]);
-      callAsync(Debugger.startBreak);
-    }
-
-//    if (!inBreak && !inInput){
-//      _io.callAsync(_machine.visitInstruction);
-//    }else{
-//      if(inBreak){
-//        _io.DebugOutput('<<< DEBUG MODE >>>');
-//        _io.callAsync(Debugger.startBreak);
-//      }
+//    if(inBreak){
+//      Z.sendIO(IOCommands.PRINT_DEBUG, ["<<< DEBUG MODE >>>"]);
+//      callAsync(Debugger.startBreak);
 //    }
+    
+//    if (Debugger.enableDebug){
+//      Debugger.debug('<<< Interrupt, ${Debugger.instructionsCounter} instructions. >>>');
+//    }
+ //   Debugger.instructionsCounter = 0;
   }
 
-  Future<Object> sendIO(IOCommands command, [List messageData]){
+  Future<Object> sendIO(IOCommands command, [List messageData = const []]){
     var msg = [command.toString()];
 
-    if (messageData != null && messageData is Collection){
-      msg.addAll(messageData);
-    }
+    msg.addAll(messageData);
+    
     return IOConfig.command(JSON.stringify(msg));
   }
 
