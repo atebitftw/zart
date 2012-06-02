@@ -181,11 +181,7 @@ class Machine
     if (ops.containsKey('$i')){
       if (Debugger.enableDebug){
         if (Debugger.enableTrace && !Z.inBreak){
-          if (opCodes.containsKey('$i')){
-            Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) ${opCodes[i.toString()]} ($i)');
-          }else{
-            Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) UNKNOWN ($i)');
-          }
+          Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) ($i)');
           Debugger.debug('${Debugger.dumpLocals()}');
         }
 

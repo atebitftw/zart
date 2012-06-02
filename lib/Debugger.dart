@@ -34,7 +34,6 @@ class Debugger {
     [
     '(break)>>> 0x${debugStartAddr.toRadixString(16)}:'
     ' opCode: ${Z.machine.mem.loadb(debugStartAddr)}'
-    ' (${opCodes[Z.machine.mem.loadb(debugStartAddr).toString()]})'
     '\n'
     '    Locals ${dumpLocals()}\n'
     ])

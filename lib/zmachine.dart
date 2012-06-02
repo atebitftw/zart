@@ -45,7 +45,7 @@ class ZMachine
   ZVersion _ver;
   String _mostRecentInput;
 
-  final SendPort _asyncIsolate;
+  SendPort _asyncIsolate;
 
   StringBuffer sbuff;
   final List<int> _memoryStreams;
@@ -77,10 +77,12 @@ class ZMachine
                           new Version5(),
                           new Version7(),
                           new Version8()
-                          ],
-    _asyncIsolate = spawnFunction(asyncIsolate)
+                          ]
   {
       IOConfig = new DefaultProvider([]);
+      if (platform == 'vm'){
+        _asyncIsolate = spawnFunction(asyncIsolate);
+      }
   }
 
 
@@ -114,11 +116,17 @@ class ZMachine
   }
 
   callAsync(func()){
-    _asyncIsolate
-    .call('foo')
-    .then((reply){
-      func();
-    });
+    //TODO: Get rid of this once a unified async model is available
+    // in Dart.
+    if (platform == 'vm'){
+      _asyncIsolate
+        .call('foo')
+        .then((reply){
+          func();
+        });
+    }else{
+      IOConfig.dynamic.callAsync(func);
+    }
   }
 
 
@@ -163,15 +171,6 @@ class ZMachine
       Z.sendIO(IOCommands.PRINT_DEBUG, ["<<< DEBUG MODE >>>"]);
       callAsync(Debugger.startBreak);
     }
-
-//    if (!inBreak && !inInput){
-//      _io.callAsync(_machine.visitInstruction);
-//    }else{
-//      if(inBreak){
-//        _io.DebugOutput('<<< DEBUG MODE >>>');
-//        _io.callAsync(Debugger.startBreak);
-//      }
-//    }
   }
 
   Future<Object> sendIO(IOCommands command, [List messageData]){
@@ -252,128 +251,18 @@ class ZVersion{
   }
 }
 
+String get platform(){
+  final int n=9007199254740992;
+  final int newInt = n + 1;
+  if ('$newInt' == '$n') {
+    return 'js';
+  } else {
+    return 'vm';
+  }
+}
+
 void asyncIsolate(){
   port.receive((message, SendPort replyTo){
     replyTo.send('foo');
   });
 }
-
-
-Map<String, String> opCodes =
-const {
- '224' : 'callVS',
- '225' : 'storewv',
- '79' : 'loadw',
- '15' : 'loadw',
- '47' : 'loadw',
- '111' : 'loadw',
- '10' : 'test_attr',
- '42' : 'test_attr',
- '74' : 'test_attr',
- '106' : 'test_attr',
- '11' : 'set_attr',
- '43' : 'set_attr',
- '75' : 'set_attr',
- '107' : 'set_attr',
- '13' : 'store',
- '45' : 'store',
- '77' : 'store',
- '109' : 'store',
- '16' : 'loadb',
- '48' : 'loadb',
- '80' : 'loadb',
- '112' : 'loadb',
- '17' : 'get_prop',
- '49' : 'get_prop',
- '81' : 'get_prop',
- '113' : 'get_prop',
- '14' : 'insertObj',
- '46' : 'insertObj',
- '78' : 'insertObj',
- '110' : 'insertObj',
- '20' : 'add',
- '52' : 'add',
- '84' : 'add',
- '116' : 'add',
- '21' : 'sub',
- '53' : 'sub',
- '85' : 'sub',
- '117' : 'sub',
- '22' : 'mul',
- '54' : 'mul',
- '86' : 'mul',
- '118' : 'mul',
- '23' : 'div',
- '55' : 'div',
- '87' : 'div',
- '119' : 'div',
- '24' : 'mod',
- '56' : 'mod',
- '88' : 'mod',
- '120' : 'mod',
- '5' : 'inc_chk',
- '37' : 'inc_chk',
- '69' : 'inc_chk',
- '101' : 'inc_chk',
- '6' : 'jin',
- '38' : 'jin',
- '70' : 'jin',
- '102' : 'jin',
- '1' : 'je',
- '33' : 'je',
- '65' : 'je',
- '97' : 'je',
- '160' : 'jz',
- '140' : 'jump',
- '156' : 'jump',
- '144' : 'jz',
- '128' : 'jz',
- '139' : 'ret',
- '155' : 'ret',
- '171' : 'ret',
- '135' : 'print_addr',
- '151' : 'print_addr',
- '167' : 'print_addr',
- '141' : 'print_paddr',
- '157' : 'print_paddr',
- '173' : 'print_paddr',
- '178' : 'printf',
- '187' : 'newline',
- '201' : 'andV',
- '9' : 'and',
- '230' : 'print_num',
- '229' : 'print_char',
- '176' : 'rtrue',
- '177' : 'rfalse',
- '138' : 'print_obj',
- '154' : 'print_obj',
- '170' : 'print_obj',
- '130' : 'get_child',
- '146' : 'get_child',
- '162' : 'get_child',
- '193' : 'jeV',
- '131' : 'get_parent',
- '147' : 'get_parent',
- '163' : 'get_parent',
- '161' : 'get_sibling',
- '145' : 'get_sibling',
- '129' : 'get_sibling',
- '184' : 'ret_popped',
- '2' : 'jl',
- '35' : 'jl',
- '66' : 'jl',
- '98' : 'jl',
- '3' : 'jg',
- '36' : 'jg',
- '67' : 'jg',
- '99' : 'jg',
- '228' : 'read',
- '133' : 'inc',
- '149' : 'inc',
- '165' : 'inc',
- '134' : 'dec',
- '150' : 'dec',
- '166' : 'dec',
- '186' : 'quit',
- '232' : 'push'
-};
