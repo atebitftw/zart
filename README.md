@@ -29,16 +29,6 @@ The older Infocom games (V3 & V5) appear to work fine.
 
 Games compiled with the latest Inform 7 appear to work fine.
 
-### Dart "Bug" ###
-There is currently a "feature" of Dart that prevents the engine from
-being used with a javascript-compiled version (dart2js) without some
-small modifications.  Explained in this post:
-
-https://groups.google.com/a/dartlang.org/forum/#!topic/misc/jjXzXYMYi-c
-
-This really only affects people who want to build their own interpreter
-front-end in the browser.
-
 ## Playing the Mini-Zork Game ##
 There is a web-based version (Chrome or Dartium only, for now):
 
