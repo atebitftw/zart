@@ -14,6 +14,9 @@ class Machine
   final _Stack stack;
   final _Stack callStack;
 
+  /// Z-Machine Program Counter
+  int PC = 0;
+  
   int currentWindow = 0;
 
   // Screen
@@ -30,10 +33,7 @@ class Machine
 
   DRandom r;
 
-  String pcHex([int offset = 0]) => '[0x${(pc + offset).toRadixString(16)}]';
-
-  /// Z-Machine Program Counter
-  int pc = 0;
+  String pcHex([int offset = 0]) => '[0x${(PC + offset).toRadixString(16)}]';
 
   _MemoryMap mem;
 
@@ -50,7 +50,7 @@ class Machine
   static int dartSignedIntTo16BitSigned(int val){
     assert(val >= -32768 && val <= 32767);
 
-    if (val >= 0) return val;
+    if (val > -1) return val;
 
     val = val.abs();
 
@@ -63,10 +63,10 @@ class Machine
   * ref(2.2)
   */
   static int toSigned(int val){
-    if (val == 0) return val;
+    //if (val == 0) return val;
 
     // game 16-bit word is always positive number to Dart
-    assert(val > 0);
+    assert(val >= 0);
 
     // convert to signed if 16-bit MSB is set
     return (val & 0x8000) == 0x8000
@@ -92,88 +92,56 @@ class Machine
 
   void visitRoutine(List<int> params){
 
-    //V3
-    if (callStack.length == 0){
-      //main routine
-      pc--;
-    }
-
-    Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
+    //Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
 
     // assign any params passed to locals and push locals onto the call stack
     var locals = readb();
 
     stack.push(STACK_MARKER);
 
-    Debugger.verbose('    # Locals: ${locals}');
+    //Debugger.verbose('    # Locals: ${locals}');
 
-    if (locals > 16){
-      throw new GameException('Maximum local variable allocations (16) exceeded.');
-    }
-
+    assert(locals < 17);
+    
     // add param length to call stack (v5+ needs this)
     callStack.push(params.length);
 
     //set the routine to default locals (V3...)
 
-    if (locals > 0){
-      for(int i = 1; i <= locals; i++){
-        if (i <= params.length){
-          //if param avail, store it
-          callStack.push(params[i - 1]);
-          Debugger.verbose('    Local ${i}: 0x${(params[i-1]).toRadixString(16)}');
-          //mem.storew(pc, params[i - 1]);
-        }else{
-          //push otherwise push the local
-          callStack.push(mem.loadw(pc));
-          Debugger.verbose('    Local ${i}: 0x${mem.loadw(pc).toRadixString(16)}');
-        }
-
-        pc += 2;
+    for(int i = 0; i < locals; i++){
+      if (i < params.length){
+        //if param avail, store it
+        callStack.push(params[i]);
+        //Debugger.verbose('    Local ${i}: 0x${(params[i-1]).toRadixString(16)}');
+        //mem.storew(pc, params[i - 1]);
+      }else{
+        //push otherwise push the local
+        callStack.push(mem.loadw(PC));
+        //Debugger.verbose('    Local ${i}: 0x${mem.loadw(pc).toRadixString(16)}');
       }
+
+      PC += 2;
     }
 
     //push total locals onto the call stack
     callStack.push(locals);
   }
 
-  void doReturn(){
-    // pop the return value from whoever is returning
-    var result = callStack.pop();
-
+  void doReturn(var result){
     // return address
-    var returnAddr = callStack.pop();
-
+    PC = callStack.pop();
+    assert(PC > 0);
+    
     // result store address byte
     var resultAddrByte = callStack.pop();
 
-    if (returnAddr == 0)
-      throw new GameException('Illegal return from entry routine.');
-
-    // unwind the locals from the stack
-    var frameSize = callStack.peek();
-
-    Debugger.verbose('(unwinding stack 1 frame)');
-
-    //unwind locals
-    while(frameSize >= 0){
-      callStack.pop();
-      frameSize--;
-    }
-
-    //unwind params length
-    callStack.pop();
+    //unwind locals and params length
+    callStack._stack.removeRange(0, callStack.pop() + 1);
 
     //unwind game stack
-    var gs = stack.pop();
-
-    while(gs != STACK_MARKER){
-      gs = stack.pop();
-    }
-
+    while(stack.pop() != STACK_MARKER){}
+    
     writeVariable(resultAddrByte, result);
-
-    pc = returnAddr;
   }
 
   void visitInstruction(){
@@ -181,7 +149,7 @@ class Machine
     if (ops.containsKey('$i')){
       if (Debugger.enableDebug){
         if (Debugger.enableTrace && !Z.inBreak){
-          Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) ($i)');
+          Debugger.debug('>>> (0x${(PC - 1).toRadixString(16)}) ($i)');
           Debugger.debug('${Debugger.dumpLocals()}');
         }
 
@@ -190,9 +158,9 @@ class Machine
              Debugger.debug('Game Stack: $stack');
         }
 
-        if (Debugger.isBreakPoint(pc - 1)){
+        if (Debugger.isBreakPoint(PC - 1)){
           Z.inBreak = true;
-          Debugger.debugStartAddr = pc - 1;
+          Debugger.debugStartAddr = PC - 1;
         }
       }
 
@@ -200,11 +168,11 @@ class Machine
     }else{
       notFound();
     }
-
+      ops['${readb()}']();
   }
 
   void notFound(){
-    throw new GameException('Unsupported Op Code: ${mem.loadb(pc - 1)}');
+    throw new GameException('Unsupported Op Code: ${mem.loadb(PC - 1)}');
   }
 
   void restore(){
@@ -261,17 +229,17 @@ class Machine
     var offset = jumpToLabelOffset(jumpByte);
 
     if (branchOn){
-      Z.sendIO(IOCommands.SAVE, Quetzal.save(pc + (offset - 2)))
+      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC + (offset - 2)))
       .then((result){
         Z.inInterrupt = false;
-        if (result) pc += offset - 2;
+        if (result) PC += offset - 2;
         Z.callAsync(Z.runIt);
       });
     }else{
-      Z.sendIO(IOCommands.SAVE, Quetzal.save(pc))
+      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC))
       .then((result){
         Z.inInterrupt = false;
-        if (!result) pc += offset - 2;
+        if (!result) PC += offset - 2;
         Z.callAsync(Z.runIt);
       });
     }
@@ -279,60 +247,45 @@ class Machine
 
   void branch(bool testResult)
   {
+    assert(testResult is bool);
+    
     //calculates the local jump offset (ref 4.7)
-    int jumpToLabelOffset(int jumpByte){
-
-      if (BinaryHelper.isSet(jumpByte, 6)){
-        //single byte offset
-        return BinaryHelper.bottomBits(jumpByte, 6);
-      }else{
-        //create the 14-bit offset value with next byte
-        var val = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | readb();
-
-        //convert to Dart signed int (14-bit MSB is the sign bit)
-        return ((val & 0x2000) == 0x2000)
-            ? -(16384 - val)
-            : val;
-      }
-    }
 
     var jumpByte = readb();
+    var offset;
+    
+    if (BinaryHelper.isSet(jumpByte, 6)){
+      //single byte offset
+      offset = BinaryHelper.bottomBits(jumpByte, 6);
+    }else{
+      //create the 14-bit offset value with next byte
+      var val = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | readb();
 
-    bool branchOn = BinaryHelper.isSet(jumpByte, 7);
-
-    Debugger.verbose('    (branch condition: $branchOn)');
-
-    if (testResult == null || testResult is! bool){
-      throw new GameException('Test function must return a boolean value.');
+      //convert to Dart signed int (14-bit MSB is the sign bit)
+      offset = ((val & 0x2000) == 0x2000)
+                  ? -(16384 - val)
+                  : val;
     }
 
-    var offset = jumpToLabelOffset(jumpByte);
-
-    if ((branchOn && testResult) || (!branchOn && !testResult)){
+    //Debugger.verbose('    (branch condition: $branchOn)');
+   
+    //compare test result to branchOn (true|false) bit
+    if (BinaryHelper.isSet(jumpByte, 7) == testResult){
+           
       // If the offset is 0 or 1 (FALSE or TRUE), perform a return
       // operation.
-      if (offset == Machine.FALSE){
-        Debugger.verbose('    (branch returning FALSE)');
-        callStack.push(Machine.FALSE);
-        doReturn();
-        return;
-      }
-
-      if (offset == Machine.TRUE){
-        Debugger.verbose('    (branch returning TRUE)');
-        callStack.push(Machine.TRUE);
-        doReturn();
+      if (offset == Machine.FALSE || offset == Machine.TRUE){
+        doReturn(offset);
         return;
       }
 
       //jump to the offset and continue...
-      pc += offset - 2;
-      Debugger.verbose('    (branching to 0x${pc.toRadixString(16)})');
-      return;
+      PC += offset - 2;
+      //Debugger.verbose('    (branching to 0x${pc.toRadixString(16)})');
     }
 
     //otherwise just continue to the next instruction...
-    Debugger.verbose('    (continuing to next instruction)');
+    //Debugger.verbose('    (continuing to next instruction)');
   }
 
   void sendStatus(){
@@ -354,28 +307,29 @@ class Machine
   }
 
   void callVS(){
-    Debugger.verbose('${pcHex(-1)} [call_vs]');
-    var operands = this.visitOperandsVar(4, true);
+    //Debugger.verbose('${pcHex(-1)} [call_vs]');
+    var operands = visitOperandsVar(4, true);
 
     var resultStore = readb();
-    var returnAddr = pc;
+    var returnAddr = PC;
 
-    if (operands.isEmpty())
-      throw new GameException('Call function address not given.');
-
-    //unpack function address
-    operands[0].rawValue = this.unpack(operands[0].value);
+    assert(operands.length > 0);
 
     if (operands[0].value == 0){
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
       writeVariable(resultStore, Machine.FALSE);
     }else{
+      //unpack function address
+      operands[0].rawValue = unpack(operands[0].value);
+      
       //move to the routine address
-      pc = operands[0].rawValue;
+      PC = operands[0].rawValue;
 
+      operands.removeRange(0, 1);
+      
       //setup the routine stack frame and locals
-      visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      visitRoutine(operands.map((o) => o.value));
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -386,7 +340,7 @@ class Machine
   }
 
   void read(){
-    Debugger.verbose('${pcHex(-1)} [read]');
+    //Debugger.verbose('${pcHex(-1)} [read]');
 
     sendStatus();
 
@@ -394,7 +348,7 @@ class Machine
     
     Z._printBuffer();
 
-    var operands = this.visitOperandsVar(4, true);
+    var operands = visitOperandsVar(4, true);
 
     var maxBytes = mem.loadb(operands[0].value);
 
@@ -407,11 +361,11 @@ class Machine
     void processLine(String line){
       line = line.trim().toLowerCase();
 
-      Debugger.verbose('    (processing: "$line")');
+      //Debugger.verbose('    (processing: "$line")');
 
       if (line.length > maxBytes - 1){
         line = line.substring(0, maxBytes - 2);
-        Debugger.verbose('    (text buffer truncated to "$line")');
+        //Debugger.verbose('    (text buffer truncated to "$line")');
       }
 
       var zChars = ZSCII.toZCharList(line);
@@ -426,7 +380,7 @@ class Machine
 
       var tokens = Z.machine.mem.dictionary.tokenize(line);
 
-      Debugger.verbose('    (tokenized: $tokens)');
+      //Debugger.verbose('    (tokenized: $tokens)');
 
       var parsed = Z.machine.mem.dictionary.parse(tokens, line);
       //Debugger.debug('$parsed');
@@ -446,7 +400,7 @@ class Machine
         Z.inInterrupt = false;
         if (l == '/!'){
           Z.inBreak = true;
-          Debugger.debugStartAddr = pc - 1;
+          Debugger.debugStartAddr = PC - 1;
           Z.callAsync(Debugger.startBreak);
         }else{
           processLine(l);
@@ -456,11 +410,11 @@ class Machine
   }
 
   void random(){
-    Debugger.verbose('${pcHex(-1)} [random]');
+    //Debugger.verbose('${pcHex(-1)} [random]');
 
     Math.random();
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
 
     var resultTo = readb();
 
@@ -471,34 +425,34 @@ class Machine
 
     if (range < 0){
       r = new DRandom.withSeed(range);
-      Debugger.verbose('    (set RNG to seed: $range)');
+      //Debugger.verbose('    (set RNG to seed: $range)');
     }else if(range == 0){
       r = new DRandom.withSeed(new Date.now().milliseconds);
-      Debugger.verbose('    (set RNG to random seed)');
+      //Debugger.verbose('    (set RNG to random seed)');
     }else{
       result = r.NextFromMax(range) + 1;
-      Debugger.verbose('    (Rolled [1 - $range] number: $result)');
+      //Debugger.verbose('    (Rolled [1 - $range] number: $result)');
     }
 
     writeVariable(resultTo, result);
   }
 
   void pull(){
-    Debugger.verbose('${pcHex(-1)} [pull]');
-    var operand = this.visitOperandsVar(1, false);
+    //Debugger.verbose('${pcHex(-1)} [pull]');
+    var operand = visitOperandsVar(1, false);
 
     var value = stack.pop();
 
-    Debugger.verbose('    Pulling 0x${value.toRadixString(16)} from to the stack.');
+    //Debugger.verbose('    Pulling 0x${value.toRadixString(16)} from to the stack.');
 
     writeVariable(operand[0].rawValue, value);
   }
 
   void push(){
-    Debugger.verbose('${pcHex(-1)} [push]');
-    var operand = this.visitOperandsVar(1, false);
+    //Debugger.verbose('${pcHex(-1)} [push]');
+    var operand = visitOperandsVar(1, false);
 
-    Debugger.verbose('    Pushing 0x${operand[0].value.toRadixString(16)} to the stack.');
+    //Debugger.verbose('    Pushing 0x${operand[0].value.toRadixString(16)} to the stack.');
 
     stack.push(operand[0].value);
 
@@ -506,19 +460,18 @@ class Machine
 //      //pushing SP into SP would be counterintuitive...
 //      stack.push(0);
 //    }else{
-//      stack.push(this.readVariable(operand[0].value));
+//      stack.push(readVariable(operand[0].value));
 //    }
   }
 
   void ret_popped(){
-    Debugger.verbose('${pcHex(-1)} [ret_popped]');
+    //Debugger.verbose('${pcHex(-1)} [ret_popped]');
     var v = stack.pop();
 
     assertNotMarker(v);
 
-    Debugger.verbose('    Popping 0x${v.toRadixString(16)} from the stack and returning.');
-    callStack.push(v);
-    doReturn();
+    //Debugger.verbose('    Popping 0x${v.toRadixString(16)} from the stack and returning.');
+    doReturn(v);
   }
 
   assertNotMarker(m) {
@@ -528,59 +481,57 @@ class Machine
   }
 
   void rtrue(){
-    Debugger.verbose('${pcHex(-1)} [rtrue]');
-    callStack.push(Machine.TRUE);
-    doReturn();
+    //Debugger.verbose('${pcHex(-1)} [rtrue]');
+    doReturn(Machine.TRUE);
   }
 
   void rfalse(){
-    Debugger.verbose('${pcHex(-1)} [rfalse]');
-    callStack.push(Machine.FALSE);
-    doReturn();
+    //Debugger.verbose('${pcHex(-1)} [rfalse]');
+    doReturn(Machine.FALSE);
   }
 
   void nop(){
-    Debugger.verbose('${pcHex(-1)} [nop]');
+    //Debugger.verbose('${pcHex(-1)} [nop]');
   }
 
   void pop(){
-    Debugger.verbose('${pcHex(-1)} [pop]');
+    //Debugger.verbose('${pcHex(-1)} [pop]');
 
     stack.pop();
   }
 
   void show_status(){
-    Debugger.verbose('${pcHex(-1)} [show_status]');
+    //Debugger.verbose('${pcHex(-1)} [show_status]');
 
     //treat as NOP
   }
 
   void verify(){
-    Debugger.verbose('${pcHex(-1)} [verify]');
+    //Debugger.verbose('${pcHex(-1)} [verify]');
 
     //always verify
     branch(true);
   }
 
   void piracy(){
-    Debugger.verbose('${pcHex(-1)} [piracy]');
+    //Debugger.verbose('${pcHex(-1)} [piracy]');
 
     //always branch (game disk is genuine ;)
     branch(true);
   }
 
   void jz(){
-    Debugger.verbose('${pcHex(-1)} [jz]');
+    //Debugger.verbose('${pcHex(-1)} [jz]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     branch(operand.value == 0);
   }
 
   void get_sibling(){
-    Debugger.verbose('${pcHex(-1)} [get_sibling]');
+    //Debugger.verbose('${pcHex(-1)} [get_sibling]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var resultTo = readb();
 
@@ -592,9 +543,9 @@ class Machine
   }
 
   void get_child(){
-    Debugger.verbose('${pcHex(-1)} [get_child]');
+    //Debugger.verbose('${pcHex(-1)} [get_child]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var resultTo = readb();
 
@@ -606,9 +557,9 @@ class Machine
   }
 
   void inc(){
-    Debugger.verbose('${pcHex(-1)} [inc]');
+    //Debugger.verbose('${pcHex(-1)} [inc]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var value = toSigned(readVariable(operand.rawValue)) + 1;
 
@@ -617,9 +568,9 @@ class Machine
   }
 
   void dec(){
-    Debugger.verbose('${pcHex(-1)} [dec]');
+    //Debugger.verbose('${pcHex(-1)} [dec]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var value = toSigned(readVariable(operand.rawValue)) - 1;
 
@@ -627,30 +578,30 @@ class Machine
   }
 
   void test(){
-    Debugger.verbose('${pcHex(-1)} [test]');
-    var pp = pc - 1;
+    //Debugger.verbose('${pcHex(-1)} [test]');
+    var pp = PC - 1;
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
-    var jumpByte = mem.loadb(pc);
+    var jumpByte = mem.loadb(PC);
 
     bool branchOn = BinaryHelper.isSet(jumpByte, 7);
     var bitmap = operands[0].value;
     var flags = operands[1].value;
 
-    Debugger.verbose('   [0x${pp.toRadixString(16)}] testing bitmap($branchOn) "${bitmap.toRadixString(2)}" against "${flags.toRadixString(2)}" ${(bitmap & flags) == flags}');
+    //Debugger.verbose('   [0x${pp.toRadixString(16)}] testing bitmap($branchOn) "${bitmap.toRadixString(2)}" against "${flags.toRadixString(2)}" ${(bitmap & flags) == flags}');
 
     branch((bitmap & flags) == flags);
   }
 
   void dec_chk(){
-    Debugger.verbose('${pcHex(-1)} [dec_chk]');
+    //Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var value = toSigned(readVariable(operands[0].rawValue)) - 1;
 
@@ -661,11 +612,11 @@ class Machine
   }
 
   void inc_chk(){
-    Debugger.verbose('${pcHex(-1)} [inc_chk]');
+    //Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
  //   var value = toSigned(readVariable(operands[0].rawValue)) + 1;
     var varValue = readVariable(operands[0].rawValue);
@@ -679,24 +630,24 @@ class Machine
   }
 
   void test_attr(){
-    Debugger.verbose('${pcHex(-1)} [test_attr]');
+    //Debugger.verbose('${pcHex(-1)} [test_attr]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject obj = new GameObject(operands[0].value);
 
-    Debugger.verbose('    (test Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
+    //Debugger.verbose('    (test Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
     branch(obj.isFlagBitSet(operands[1].value));
   }
 
   void jin()  {
-    Debugger.verbose('${pcHex(-1)} [jin]');
+    //Debugger.verbose('${pcHex(-1)} [jin]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var child = new GameObject(operands[0].value);
     var parent = new GameObject(operands[1].value);
@@ -705,8 +656,8 @@ class Machine
   }
 
   void jeV(){
-    Debugger.verbose('${pcHex(-1)} [jeV]');
-    var operands = this.visitOperandsVar(4, true);
+    //Debugger.verbose('${pcHex(-1)} [jeV]');
+    var operands = visitOperandsVar(4, true);
 
     if (operands.length < 2){
       throw new GameException('At least 2 operands required for jeV instruction.');
@@ -729,7 +680,7 @@ class Machine
   }
 
   void quit(){
-    Debugger.verbose('${pcHex(-1)} [quit]');
+    //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
     Z.sendIO(IOCommands.PRINT, [currentWindow, Z.sbuff.toString()])
@@ -743,7 +694,7 @@ class Machine
   }
 
   void restart(){
-    Debugger.verbose('${pcHex(-1)} [restart]');
+    //Debugger.verbose('${pcHex(-1)} [restart]');
 
     Z.softReset();
 
@@ -764,44 +715,44 @@ class Machine
   }
 
   void jl(){
-    Debugger.verbose('${pcHex(-1)} [jl]');
+    //Debugger.verbose('${pcHex(-1)} [jl]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     branch(toSigned(operands[0].value) < toSigned(operands[1].value));
   }
 
   void jg(){
-    Debugger.verbose('${pcHex(-1)} [jg]');
+    //Debugger.verbose('${pcHex(-1)} [jg]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     branch(toSigned(operands[0].value) > toSigned(operands[1].value));
   }
 
   void je(){
-    Debugger.verbose('${pcHex(-1)} [je]');
+    //Debugger.verbose('${pcHex(-1)} [je]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     branch(toSigned(operands[0].value) == toSigned(operands[1].value));
   }
 
   void newline(){
-    Debugger.verbose('${pcHex(-1)} [newline]');
+    //Debugger.verbose('${pcHex(-1)} [newline]');
 
     Z.sbuff.add('\n');
   }
 
   void print_obj(){
-    Debugger.verbose('${pcHex(-1)} [print_obj]');
-    var operand = this.visitOperandsShortForm();
+    //Debugger.verbose('${pcHex(-1)} [print_obj]');
+    var operand = visitOperandsShortForm();
 
     var obj = new GameObject(operand.value);
 
@@ -809,8 +760,8 @@ class Machine
   }
 
   void print_addr(){
-    Debugger.verbose('${pcHex(-1)} [print_addr]');
-    var operand = this.visitOperandsShortForm();
+    //Debugger.verbose('${pcHex(-1)} [print_addr]');
+    var operand = visitOperandsShortForm();
 
     var addr = operand.value;
 
@@ -822,23 +773,23 @@ class Machine
   }
 
   void print_paddr(){
-    Debugger.verbose('${pcHex(-1)} [print_paddr]');
+    //Debugger.verbose('${pcHex(-1)} [print_paddr]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
-    var addr = this.unpack(operand.value);
+    var addr = unpack(operand.value);
 
     var str = ZSCII.readZStringAndPop(addr);
 
-    Debugger.verbose('${pcHex()} "$str"');
+    //Debugger.verbose('${pcHex()} "$str"');
 
     Z.sbuff.add(str);
   }
 
   void print_char(){
-    Debugger.verbose('${pcHex(-1)} [print_char]');
+    //Debugger.verbose('${pcHex(-1)} [print_char]');
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
 
     var z = operands[0].value;
 
@@ -850,71 +801,69 @@ class Machine
   }
 
   void print_num(){
-    Debugger.verbose('${pcHex(-1)} [print_num]');
+    //Debugger.verbose('${pcHex(-1)} [print_num]');
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
 
     Z.sbuff.add('${toSigned(operands[0].value)}');
   }
 
   void print_ret(){
-    Debugger.verbose('${pcHex(-1)} [print_ret]');
+    //Debugger.verbose('${pcHex(-1)} [print_ret]');
 
-    var str = ZSCII.readZStringAndPop(pc);
+    var str = ZSCII.readZStringAndPop(PC);
 
     Z.sbuff.add('${str}\n');
 
-    Debugger.verbose('${pcHex()} "$str"');
+    //Debugger.verbose('${pcHex()} "$str"');
 
-    callStack.push(Machine.TRUE);
-
-    doReturn();
+    doReturn(Machine.TRUE);
   }
 
   void printf(){
-    Debugger.verbose('${pcHex(-1)} [print]');
+    //Debugger.verbose('${pcHex(-1)} [print]');
 
-    var str = ZSCII.readZString(pc);
+    var str = ZSCII.readZString(PC);
     Z.sbuff.add(str);
 
-    Debugger.verbose('${pcHex()} "$str"');
+    //Debugger.verbose('${pcHex()} "$str"');
 
-    pc = callStack.pop();
+    PC = callStack.pop();
   }
 
   void insert_obj(){
-    Debugger.verbose('${pcHex(-1)} [insert_obj]');
+    //Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject from = new GameObject(operands[0].value);
 
     GameObject to = new GameObject(operands[1].value);
 
-    Debugger.verbose('Insert Object ${from.id}(${from.shortName}) into ${to.id}(${to.shortName})');
+    //Debugger.verbose('Insert Object ${from.id}(${from.shortName}) into ${to.id}(${to.shortName})');
 
     from.insertTo(to.id);
   }
 
   void remove_obj(){
-    Debugger.verbose('${pcHex(-1)} [remove_obj]');
+    //Debugger.verbose('${pcHex(-1)} [remove_obj]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     GameObject o = new GameObject(operand.value);
 
-    Debugger.verbose('Removing Object ${o.id}(${o.shortName}) from object tree.');
+    //Debugger.verbose('Removing Object ${o.id}(${o.shortName}) from object tree.');
     o.removeFromTree();
   }
 
   void store(){
-    Debugger.verbose('${pcHex(-1)} [store]');
+    //Debugger.verbose('${pcHex(-1)} [store]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     assert(operands[0].rawValue <= 0xff);
 
@@ -926,9 +875,9 @@ class Machine
  }
 
   void load(){
-    Debugger.verbose('${pcHex(-1)} [load]');
+    //Debugger.verbose('${pcHex(-1)} [load]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var resultTo = readb();
 
@@ -943,34 +892,32 @@ class Machine
   }
 
   void jump(){
-    Debugger.verbose('${pcHex(-1)} [jump]');
+    //Debugger.verbose('${pcHex(-1)} [jump]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var offset = toSigned(operand.value) - 2;
 
-    pc += offset;
+    PC += offset;
 
-    Debugger.verbose('    (jumping to ${pcHex()})');
+    //Debugger.verbose('    (jumping to ${pcHex()})');
   }
 
 
   void ret(){
-    Debugger.verbose('${pcHex(-1)} [ret]');
+    //Debugger.verbose('${pcHex(-1)} [ret]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
-    Debugger.verbose('    returning 0x${operand.peekValue.toRadixString(16)}');
+    //Debugger.verbose('    returning 0x${operand.peekValue.toRadixString(16)}');
 
-    callStack.push(operand.value);
-
-    doReturn();
+    doReturn(operand.value);
   }
 
   void get_parent(){
-    Debugger.verbose('${pcHex(-1)} [get_parent]');
+    //Debugger.verbose('${pcHex(-1)} [get_parent]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var resultTo = readb();
 
@@ -981,37 +928,37 @@ class Machine
   }
 
   void clear_attr(){
-    Debugger.verbose('${pcHex(-1)} [clear_attr]');
+    //Debugger.verbose('${pcHex(-1)} [clear_attr]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject obj = new GameObject(operands[0].value);
 
     obj.unsetFlagBit(operands[1].value);
-    Debugger.verbose('    (clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
+    //Debugger.verbose('    (clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
   void set_attr(){
-    Debugger.verbose('${pcHex(-1)} [set_attr]');
+    //Debugger.verbose('${pcHex(-1)} [set_attr]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject obj = new GameObject(operands[0].value);
 
     obj.setFlagBit(operands[1].value);
-    Debugger.verbose('    (set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
+    //Debugger.verbose('    (set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
   void or(){
-    Debugger.verbose('${pcHex(-1)} [or]');
+    //Debugger.verbose('${pcHex(-1)} [or]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1019,11 +966,11 @@ class Machine
   }
 
   void and(){
-    Debugger.verbose('${pcHex(-1)} [and]');
+    //Debugger.verbose('${pcHex(-1)} [and]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1031,83 +978,79 @@ class Machine
   }
 
   void sub(){
-    Debugger.verbose('${pcHex(-1)} [sub]');
+    //Debugger.verbose('${pcHex(-1)} [sub]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) - toSigned(operands[1].value);
-    Debugger.verbose('    >>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    //Debugger.verbose('    >>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
     writeVariable(resultTo, result);
   }
 
   void add(){
-    Debugger.verbose('${pcHex(-1)} [add]');
+    //Debugger.verbose('${pcHex(-1)} [add]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) + toSigned(operands[1].value);
 
-    Debugger.verbose('    >>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    //Debugger.verbose('    >>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
 
   void mul(){
-    Debugger.verbose('${pcHex(-1)} [mul]');
+    //Debugger.verbose('${pcHex(-1)} [mul]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
     var result = toSigned(operands[0].value) * toSigned(operands[1].value);
 
-    Debugger.verbose('    >>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    //Debugger.verbose('    >>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
 
   void div(){
-    Debugger.verbose('${pcHex(-1)} [div]');
+    //Debugger.verbose('${pcHex(-1)} [div]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
-    if (operands[1].value == 0){
-      throw new GameException('Divide by 0.');
-    }
+    assert(operands[1].value != 0);
 
     var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
 
-    Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    //Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
 
   void mod(){
-    Debugger.verbose('${pcHex(-1)} [mod]');
+    //Debugger.verbose('${pcHex(-1)} [mod]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
-    if (operands[1].peekValue == 0){
-      throw new GameException('Divide by 0.');
-    }
+    assert(operands[1].peekValue != 0);
 
     var x = toSigned(operands[0].value);
     var y = toSigned(operands[1].value);
@@ -1115,27 +1058,27 @@ class Machine
     var result = x.abs() % y.abs();
     if (x < 0) result = -result;
 
-    Debugger.verbose('    >>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
+    //Debugger.verbose('    >>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
 
   void get_prop_len(){
-    Debugger.verbose('${pcHex(-1)} [get_prop_len]');
+    //Debugger.verbose('${pcHex(-1)} [get_prop_len]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var resultTo = readb();
 
     var propLen = GameObject.propertyLength(operand.value - 1);
-    Debugger.verbose('    (${pcHex()}) property length: $propLen , addr: 0x${operand.value.toRadixString(16)}');
+    //Debugger.verbose('    (${pcHex()}) property length: $propLen , addr: 0x${operand.value.toRadixString(16)}');
     writeVariable(resultTo, propLen);
   }
 
   void not(){
-    Debugger.verbose('${pcHex(-1)} [not]');
+    //Debugger.verbose('${pcHex(-1)} [not]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var resultTo = readb();
 
@@ -1143,27 +1086,27 @@ class Machine
   }
 
   void get_next_prop(){
-    Debugger.verbose('${pcHex(-1)} [get_next_prop]');
+    //Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
     var obj = new GameObject(operands[0].value);
 
     var nextProp = obj.getNextProperty(operands[1].value);
-    Debugger.verbose('    (${pcHex()}) [${obj.id}] prop: ${operands[1].value} next prop:  ${nextProp}');
+    //Debugger.verbose('    (${pcHex()}) [${obj.id}] prop: ${operands[1].value} next prop:  ${nextProp}');
     writeVariable(resultTo, nextProp);
   }
 
   void get_prop_addr(){
-    Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
+    //Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1171,17 +1114,17 @@ class Machine
 
     var addr = obj.getPropertyAddress(operands[1].value);
 
-    Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] propAddr(${operands[1].value}): ${addr.toRadixString(16)}');
+    //Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] propAddr(${operands[1].value}): ${addr.toRadixString(16)}');
 
     writeVariable(resultTo, addr);
   }
 
   void get_prop(){
-    Debugger.verbose('${pcHex(-1)} [get_prop]');
+    //Debugger.verbose('${pcHex(-1)} [get_prop]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1189,29 +1132,29 @@ class Machine
 
     var value = obj.getPropertyValue(operands[1].value);
 
-    Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] getPropValue(${operands[1].value}): ${value.toRadixString(16)}');
+    //Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] getPropValue(${operands[1].value}): ${value.toRadixString(16)}');
 
     writeVariable(resultTo, value);
   }
 
   void put_prop(){
-    Debugger.verbose('${pcHex(-1)} [put_prop]');
+    //Debugger.verbose('${pcHex(-1)} [put_prop]');
 
-    var operands = this.visitOperandsVar(3, false);
+    var operands = visitOperandsVar(3, false);
 
     var obj = new GameObject(operands[0].value);
 
-    Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] putProp(${operands[1].value}): ${operands[2].value.toRadixString(16)}');
+    //Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] putProp(${operands[1].value}): ${operands[2].value.toRadixString(16)}');
 
     obj.setPropertyValue(operands[1].value, operands[2].value);
   }
 
   void loadb(){
-    Debugger.verbose('${pcHex(-1)} [loadb]');
+    //Debugger.verbose('${pcHex(-1)} [loadb]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1220,15 +1163,15 @@ class Machine
     //Debugger.todo();
     writeVariable(resultTo, mem.loadb(addr));
 
-    Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
+    //Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
   void loadw(){
-    Debugger.verbose('${pcHex(-1)} [loadw]');
+    //Debugger.verbose('${pcHex(-1)} [loadw]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultTo = readb();
 
@@ -1237,19 +1180,17 @@ class Machine
 //    assert(addr <= mem.highMemAddress);
 
     writeVariable(resultTo, mem.loadw(addr));
-    Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
+    //Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
 
 
   void storebv(){
-    Debugger.verbose('${pcHex(-1)} [storebv]');
+    //Debugger.verbose('${pcHex(-1)} [storebv]');
 
-    var operands = this.visitOperandsVar(3, false);
+    var operands = visitOperandsVar(3, false);
 
-    if (operands.length != 3){
-      throw new GameException('Expected operand count of 3 for storeb instruction.');
-    }
+    assert(operands.length == 3);
 
     var addr = operands[0].value + Machine.toSigned(operands[1].value);
 //
@@ -1257,15 +1198,15 @@ class Machine
 
     mem.storeb(addr, operands[2].value & 0xFF);
 
-    Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
+    //Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
 
   //variable arguement version of storew
   void storewv(){
-    Debugger.verbose('${pcHex(-1)} [storewv]');
+    //Debugger.verbose('${pcHex(-1)} [storewv]');
 
-    var operands = this.visitOperandsVar(3, false);
+    var operands = visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
     var addr = operands[0].value + 2 * Machine.toSigned(operands[1].value);
@@ -1274,39 +1215,40 @@ class Machine
 
     mem.storew(addr, operands[2].value);
 
-    Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
+    //Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
 
 
   Operand visitOperandsShortForm(){
-    var oc = mem.loadb(pc - 1);
+    var oc = mem.loadb(PC - 1);
 
     //(ref 4.4.1)
     var operand = new Operand((oc & 48) >> 4);
 
-    if (operand.type == OperandType.LARGE){
-      operand.rawValue = readw();
-    }else{
-      operand.rawValue = readb();
-    }
-    Debugger.verbose('    ${operand}');
+    operand.rawValue = (operand.type == OperandType.LARGE) 
+        ? readw()
+        : readb();
+        
+    //Debugger.verbose('    ${operand}');
     return operand;
   }
 
   List<Operand> visitOperandsLongForm(){
-    var oc = mem.loadb(pc - 1);
+    var oc = mem.loadb(PC - 1);
 
     var o1 = BinaryHelper.isSet(oc, 6)
-        ? new Operand(OperandType.VARIABLE) : new Operand(OperandType.SMALL);
+      ? new Operand(OperandType.VARIABLE) 
+      : new Operand(OperandType.SMALL);
 
     var o2 = BinaryHelper.isSet(oc, 5)
-        ? new Operand(OperandType.VARIABLE) : new Operand(OperandType.SMALL);
+      ? new Operand(OperandType.VARIABLE) 
+      : new Operand(OperandType.SMALL);
 
     o1.rawValue = readb();
     o2.rawValue = readb();
 
-    Debugger.verbose('    ${o1}, ${o2}');
+    //Debugger.verbose('    ${o1}, ${o2}');
 
     return [o1, o2];
   }
@@ -1332,37 +1274,24 @@ class Machine
 
     //load values
     operands.forEach((Operand o){
-      switch (o.type){
-        case OperandType.LARGE:
-          o.rawValue = readw();
-          break;
-        case OperandType.SMALL:
-          o.rawValue = readb();
-          break;
-        case OperandType.VARIABLE:
-
-          o.rawValue = readb();
-
-          break;
-        default:
-          throw new GameException('Illegal Operand Type found: ${o.type.toRadixString(16)}');
-      }
+      assert(o.type != OperandType.OMITTED);
+      o.rawValue = o.type == OperandType.LARGE ? readw() : readb();
     });
 
-    Debugger.verbose('    ${operands.length} operands:');
+//    //Debugger.verbose('    ${operands.length} operands:');
 
-    operands.forEach((Operand o) {
-      if (o.type == OperandType.VARIABLE){
-        if (o.rawValue == 0){
-          Debugger.verbose('      ${OperandType.asString(o.type)}: SP (0x${o.peekValue.toRadixString(16)})');
-        }else{
-          Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.rawValue.toRadixString(16)} (0x${o.peekValue.toRadixString(16)})');
-        }
-
-      }else{
-        Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}');
-      }
-    });
+//    operands.forEach((Operand o) {
+//      if (o.type == OperandType.VARIABLE){
+//        if (o.rawValue == 0){
+//          //Debugger.verbose('      ${OperandType.asString(o.type)}: SP (0x${o.peekValue.toRadixString(16)})');
+//        }else{
+//          //Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.rawValue.toRadixString(16)} (0x${o.peekValue.toRadixString(16)})');
+//        }
+//
+//      }else{
+//        //Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}');
+//      }
+//    });
 
     if (!isVariable && (operands.length != howMany)){
       throw new Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
@@ -1383,26 +1312,25 @@ class Machine
     mem.dictionary = new Dictionary();
 
     mem.programStart = mem.loadw(Header.PC_INITIAL_VALUE_ADDR);
-    pc = mem.programStart;
+    PC = mem.programStart;
 
-    Debugger.verbose(Debugger.dumpHeader());
+    //Debugger.verbose(Debugger.dumpHeader());
   }
 
   /** Reads 1 byte from the current program counter
   * address and advances the program counter to the next
   * unread address.
   */
-  int readb(){
-    return mem.loadb(pc++);
-  }
+  int readb() => mem.loadb(PC++);
 
   /** Reads 1 word from the current program counter
   * address and advances the program counter to the next
   * unread address.
   */
   int readw(){
-    pc += 2;
-    return mem.loadw(pc - 2);
+    var word = mem.loadw(PC);
+    PC += 2;
+    return word;
   }
 
   int peekVariable(int varNum){
@@ -1422,69 +1350,48 @@ class Machine
   }
 
   int readVariable(int varNum){
-    if (varNum == 0x00){
-      //top of stack
-      var result = stack.pop();
-      assertNotMarker(result);
-      Debugger.verbose('    (popped 0x${result.toRadixString(16)} from stack)');
-      return result;
-    }else if (varNum <= 0x0f){
-      return _readLocal(varNum);
-    }else if (varNum <= 0xff){
+    assert(varNum >= 0 && varNum <= 0xff);
+    
+    if (varNum > 0x0f){
       return mem.readGlobal(varNum);
-    }else{
-      return varNum;
-      Debugger.verbose('${mem.getRange(pc - 10, 20)}');
-      throw new Exception('Variable referencer byte out'
-        ' of range (0-255): ${varNum}');
     }
+    if (varNum == 0x00){
+      return stack.pop();
+    }
+    return _readLocal(varNum);
   }
 
   void writeVariable(int varNum, int value){
-    if (varNum == 0x00){
-      //top of stack
-      Debugger.verbose('    (pushed 0x${value.toRadixString(16)} to stack)');
-      stack.push(value);
-    }else if (varNum <= 0x0f){
-      Debugger.verbose('    (wrote 0x${value.toRadixString(16)}'
-      ' to local 0x${varNum.toRadixString(16)})');
-      _writeLocal(varNum, value);
-    }else if (varNum <= 0xff){
-      Debugger.verbose('    (wrote 0x${value.toRadixString(16)}'
-      ' to global 0x${varNum.toRadixString(16)})');
+    assert(varNum >= 0 && varNum <= 0xff);
+    
+    if (varNum > 0x0f){
       mem.writeGlobal(varNum, value);
-    }else{
-      throw new GameException('Variable referencer byte out of range (0-255)');
+      return;
     }
+    
+    if (varNum == 0x0){
+      stack.push(value);
+      return;
+    }
+    
+    _writeLocal(varNum, value);
+
  }
 
   void _writeLocal(int local, int value){
-    var locals = callStack[2];
 
-    if (locals < local){
-      throw new GameException('Attempted to access unallocated local variable.');
-    }
+    assert(local <= callStack[2]);
 
-    var index = locals - local;
+    assert(callStack[2] - local > -1);
 
-    if (index == -1){
-      Debugger.verbose('locals: $locals, local: $local');
-      throw new GameException('bad index');
-    }
-
-    callStack[index + 3] = value;
+    callStack[(callStack[2] - local) + 3] = value;
   }
 
   int _readLocal(int local){
-    var locals = callStack[2]; //locals header
+   // var locals = callStack[2]; //locals header
+    assert(local <= callStack[2]);
 
-    if (locals < local){
-      throw new GameException('Attempted to access unallocated local variable.');
-    }
-
-    var index = locals - local;
-
-    return callStack[index + 3];
+    return callStack[(callStack[2] - local) + 3];
   }
 
   Machine()

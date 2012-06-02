@@ -19,6 +19,8 @@ class ConsoleProvider implements IOProvider
     var msgSet = JSON.parse(JSONCommand);
 
     var cmd = IOCommands.toIOCommand(msgSet[0]);
+    
+    //print('msg received>>> $cmd');
 
     switch(cmd){
       case IOCommands.PRINT:

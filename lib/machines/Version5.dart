@@ -66,69 +66,45 @@ class Version5 extends Version3
   // Kb
   int get maxFileLength() => 256;
 
-  int unpack(int packedAddr){
-    return packedAddr << 2;
-  }
+  int unpack(int packedAddr) => packedAddr << 2;
 
-  int pack(int unpackedAddr){
-    return unpackedAddr >> 2;
-  }
+  int pack(int unpackedAddr) => unpackedAddr >> 2;
 
   int fileLengthMultiplier() => 2;
 
 
   void visitRoutine(List<int> params){
+    assert(params.length < 9);
 
-    //V3
-    if (callStack.length == 0){
-      //main routine
-      pc--;
-    }
-
-    if (params.length > 8){
-      throw new GameException('Maximum parameter count (8) exceeded.');
-    }
-
-    Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
+    //Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
 
     // assign any params passed to locals and push locals onto the call stack
     var locals = readb();
 
     stack.push(Machine.STACK_MARKER);
 
-    Debugger.verbose('    # Locals: ${locals}');
+    ////Debugger.verbose('    # Locals: ${locals}');
 
-    if (locals > 16){
-      throw new GameException('Maximum local variable allocations (16) exceeded.');
-    }
+    assert(locals < 17);
 
     // add param length to call stack (v5+ needs this)
     callStack.push(params.length);
 
     //set the params and locals
-    if (locals > 0){
-      for(int i = 1; i <= locals; i++){
-        //in V5, we don't need to read locals from memory, they are all set to 0
-        if (i <= params.length){
-          //if param avail, store it
-          callStack.push(params[i - 1]);
-          Debugger.verbose('    Local ${i}: 0x${(params[i-1]).toRadixString(16)}');
-        }else{
-          callStack.push(0x0);
-        }
-      }
+    for(int i = 0; i < locals; i++){
+      //in V5, we don't need to read locals from memory, they are all set to 0
+      
+      callStack.push(i < params.length ? params[i] : 0x0);
     }
-
     //push total locals onto the call stack
     callStack.push(locals);
-
   }
 
 
   void copy_table(){
-    Debugger.verbose('${pcHex(-1)} [copy_table]');
+    //Debugger.verbose('${pcHex(-1)} [copy_table]');
 
-    var operands = this.visitOperandsVar(3, false);
+    var operands = visitOperandsVar(3, false);
 
     var t1Addr = operands[0].value;
 
@@ -163,18 +139,17 @@ class Version5 extends Version3
   }
 
   void buffer_mode(){
-    Debugger.verbose('${pcHex(-1)} [buffer_mode]');
+    //Debugger.verbose('${pcHex(-1)} [buffer_mode]');
 
-    var operands = this.visitOperandsVar(1, false);
-
+    visitOperandsVar(1, false);
 
     //this is basically a no op
   }
 
   void tokenise(){
-    Debugger.verbose('${pcHex(-1)} [tokenise]');
+    //Debugger.verbose('${pcHex(-1)} [tokenise]');
 
-    var operands = this.visitOperandsVar(4, true);
+    var operands = visitOperandsVar(4, true);
 
     if (operands.length > 2){
       Debugger.todo('implement tokenise');
@@ -190,7 +165,7 @@ class Version5 extends Version3
 
     var line = Z._mostRecentInput;
 
-    Debugger.verbose('    (processing: "$line")');
+    //Debugger.verbose('    (processing: "$line")');
 
     var charCount = mem.loadb(textBuffer - 1);
     //Debugger.debug('existing chars: $charCount');
@@ -202,7 +177,7 @@ class Version5 extends Version3
 
     if (line.length > maxBytes - 1){
       line = line.substring(0, maxBytes - 2);
-      Debugger.verbose('    (text buffer truncated to "$line")');
+      //Debugger.verbose('    (text buffer truncated to "$line")');
     }
 
     //Debugger.debug('>> $line');
@@ -222,7 +197,7 @@ class Version5 extends Version3
 
     var tokens = Z.machine.mem.dictionary.tokenize(line);
 
-    Debugger.verbose('    (tokenized: $tokens)');
+    //Debugger.verbose('    (tokenized: $tokens)');
 
     var parsed = Z.machine.mem.dictionary.parse(tokens, line);
     //Debugger.debug('$tokens $charCount');
@@ -239,9 +214,9 @@ class Version5 extends Version3
   }
 
   void output_stream(){
-    Debugger.verbose('${pcHex(-1)} [output_stream]');
+    //Debugger.verbose('${pcHex(-1)} [output_stream]');
 
-    var operands = this.visitOperandsVar(2, true);
+    var operands = visitOperandsVar(2, true);
 
     var stream = Machine.toSigned(operands[0].value);
 
@@ -294,9 +269,9 @@ class Version5 extends Version3
   }
 
   void set_text_style(){
-    Debugger.verbose('${pcHex(-1)} [set_text_style]');
+    //Debugger.verbose('${pcHex(-1)} [set_text_style]');
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
     Z.sendIO(IOCommands.SET_FONT, ['STYLE', operands[0].value])
@@ -307,14 +282,14 @@ class Version5 extends Version3
   }
 
   void extended(){
-    Debugger.verbose('${pcHex(-1)} [extended]');
+    //Debugger.verbose('${pcHex(-1)} [extended]');
 
     visitExtendedInstruction();
 
   }
 
   void ext_save_undo(){
-    Debugger.verbose('${pcHex(-1)} [ext_save_undo]');
+    //Debugger.verbose('${pcHex(-1)} [ext_save_undo]');
 
     readb(); //throw away byte
 
@@ -330,7 +305,7 @@ class Version5 extends Version3
     if (ops.containsKey(i)){
       if (Debugger.enableDebug){
         if (Debugger.enableTrace && !Z.inBreak){
-          Debugger.debug('>>> (0x${(pc - 1).toRadixString(16)}) ($i)');
+          Debugger.debug('>>> (0x${(PC - 1).toRadixString(16)}) ($i)');
           Debugger.debug('${Debugger.dumpLocals()}');
         }
 
@@ -339,12 +314,11 @@ class Version5 extends Version3
              Debugger.debug('Game Stack: $stack');
         }
 
-        if (Debugger.isBreakPoint(pc - 1)){
+        if (Debugger.isBreakPoint(PC - 1)){
           Z.inBreak = true;
-          Debugger.debugStartAddr = pc - 1;
+          Debugger.debugStartAddr = PC - 1;
         }
       }
-
       ops[i]();
     }else{
       throw new GameException('Unsupported EXT Op Code: $i');
@@ -352,7 +326,7 @@ class Version5 extends Version3
   }
 
   void read(){
-    Debugger.verbose('${pcHex(-1)} [aread]');
+    //Debugger.verbose('${pcHex(-1)} [aread]');
 
     Z.inInterrupt = true;
 
@@ -360,7 +334,7 @@ class Version5 extends Version3
 
     Z._printBuffer();
 
-    var operands = this.visitOperandsVar(4, true);
+    var operands = visitOperandsVar(4, true);
 
     var storeTo = readb();
 
@@ -385,7 +359,7 @@ class Version5 extends Version3
       line = line.trim().toLowerCase();
       Z._mostRecentInput = line;
 
-      Debugger.verbose('    (processing: "$line")');
+      //Debugger.verbose('    (processing: "$line")');
 
       var charCount = mem.loadb(textBuffer - 1);
       if (charCount > 0){
@@ -395,7 +369,7 @@ class Version5 extends Version3
 
       if (line.length > maxBytes - 1){
         line = line.substring(0, maxBytes - 2);
-        Debugger.verbose('    (text buffer truncated to "$line")');
+        //Debugger.verbose('    (text buffer truncated to "$line")');
       }
 
       var tbTotalAddr = textBuffer - 1;
@@ -420,12 +394,12 @@ class Version5 extends Version3
       if (maxWords == null){
         //second parameter was not passed, so
         // we are not going to write to the parse
-        // buffer (etude.z5 does this... )
+        // buffer (etude.z5 does .. )
         writeVariable(storeTo, 10);
         return;
       }
 
-      Debugger.verbose('    (tokenized: $tokens)');
+      //Debugger.verbose('    (tokenized: $tokens)');
 
       var parsed = Z.machine.mem.dictionary.parse(tokens, line);
       //Debugger.debug('$parsed');
@@ -447,7 +421,7 @@ class Version5 extends Version3
         Z.inInterrupt = false;
         if (l == '/!'){
           Z.inBreak = true;
-          Debugger.debugStartAddr = pc - 1;
+          Debugger.debugStartAddr = PC - 1;
           Z.callAsync(Debugger.startBreak);
         }else{
           processLine(l);
@@ -457,9 +431,9 @@ class Version5 extends Version3
   }
 
   void check_arg_count(){
-    Debugger.verbose('${pcHex(-1)} [check_arg_count]');
+    //Debugger.verbose('${pcHex(-1)} [check_arg_count]');
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
 
     var locals = callStack[2];
     var argCount = callStack[3 + callStack[2]];
@@ -468,10 +442,10 @@ class Version5 extends Version3
   }
 
   void ext_set_font(){
-    Debugger.verbose('${pcHex(-1)} [ext_set_font]');
+    //Debugger.verbose('${pcHex(-1)} [ext_set_font]');
     Z.inInterrupt = true;
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
     
     Z.sendIO(IOCommands.SET_FONT, [operands[0].value])
     .then((result){
@@ -486,9 +460,9 @@ class Version5 extends Version3
   }
 
   void set_cursor(){
-    Debugger.verbose('${pcHex(-1)} [set_cursor]');
+    //Debugger.verbose('${pcHex(-1)} [set_cursor]');
 
-    var operands = this.visitOperandsVar(2, false);
+    var operands = visitOperandsVar(2, false);
     Z.inInterrupt = true;
     
     Z.sendIO(IOCommands.SET_CURSOR, [operands[0].value, operands[1].value])
@@ -499,8 +473,8 @@ class Version5 extends Version3
   }
 
   void set_window(){
-    Debugger.verbose('${pcHex(-1)} [set_window]');
-    var operands = this.visitOperandsVar(1, false);
+    //Debugger.verbose('${pcHex(-1)} [set_window]');
+    var operands = visitOperandsVar(1, false);
 
     Z._printBuffer();
 
@@ -508,30 +482,32 @@ class Version5 extends Version3
   }
 
   void call_vs2(){
-    Debugger.verbose('${pcHex(-1)} [call_vn2]');
+    //Debugger.verbose('${pcHex(-1)} [call_vn2]');
 
-    var operands = this.visitOperandsVar(8, true);
+    var operands = visitOperandsVar(8, true);
 
     var resultStore = readb();
 
-    var returnAddr = pc;
+    var returnAddr = PC;
 
-    if (operands.isEmpty())
-      throw new GameException('Call function address not given.');
-
-    //unpack function address
-    operands[0].rawValue = this.unpack(operands[0].value);
-
+    assert(operands.length > 0);
+   
     if (operands[0].value == 0){
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
       writeVariable(resultStore, Machine.FALSE);
     }else{
+      //unpack function address
+      operands[0].rawValue = unpack(operands[0].value);
+      
       //move to the routine address
-      pc = operands[0].rawValue;
+      PC = operands[0].rawValue;
 
+      //peel off the first operand
+      operands.removeRange(0, 1);
+      
       //setup the routine stack frame and locals
-      visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      visitRoutine(operands.map((o) => o.value));
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -542,30 +518,31 @@ class Version5 extends Version3
   }
 
   void call_vn2(){
-    Debugger.verbose('${pcHex(-1)} [call_vn2]');
+    //Debugger.verbose('${pcHex(-1)} [call_vn2]');
 
-    var operands = this.visitOperandsVar(8, true);
+    var operands = visitOperandsVar(8, true);
 
     var resultStore = Machine.STACK_MARKER;
 
-    var returnAddr = pc;
+    var returnAddr = PC;
 
-    if (operands.isEmpty())
-      throw new GameException('Call function address not given.');
-
-    //unpack function address
-    operands[0].rawValue = this.unpack(operands[0].value);
+    assert(operands.length > 0);
 
     if (operands[0].value == 0){
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
       writeVariable(resultStore, Machine.FALSE);
     }else{
+      //unpack function address
+      operands[0].rawValue = unpack(operands[0].value);
+      
       //move to the routine address
-      pc = operands[0].rawValue;
+      PC = operands[0].rawValue;
+      
+      operands.removeRange(0, 1);
 
       //setup the routine stack frame and locals
-      visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      visitRoutine(operands.map((o) => o.value));
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -576,29 +553,30 @@ class Version5 extends Version3
   }
 
   void call_vn(){
-    Debugger.verbose('${pcHex(-1)} [call_vn]');
+    //Debugger.verbose('${pcHex(-1)} [call_vn]');
 
-    var operands = this.visitOperandsVar(4, true);
+    var operands = visitOperandsVar(4, true);
 
     var resultStore = Machine.STACK_MARKER;
-    var returnAddr = pc;
-
-    if (operands.isEmpty())
-      throw new GameException('Call function address not given.');
-
-    //unpack function address
-    operands[0].rawValue = this.unpack(operands[0].value);
+    var returnAddr = PC;
+    
+    assert(operands.length > 0);
 
     if (operands[0].value == 0){
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
       writeVariable(resultStore, Machine.FALSE);
     }else{
+      //unpack function address
+      operands[0].rawValue = unpack(operands[0].value);
+      
       //move to the routine address
-      pc = operands[0].rawValue;
+      PC = operands[0].rawValue;
 
+      operands.removeRange(0, 1);
+      
       //setup the routine stack frame and locals
-      visitRoutine(new List.from(operands.getRange(1, operands.length - 1).map((o) => o.value)));
+      visitRoutine(operands.map((o) => o.value));
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -609,15 +587,15 @@ class Version5 extends Version3
   }
 
   void call_1s(){
-    Debugger.verbose('${pcHex(-1)} [call_1s]');
+    //Debugger.verbose('${pcHex(-1)} [call_1s]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
     var storeTo = readb();
 
-    var returnAddr = pc;
+    var returnAddr = PC;
 
-    pc = unpack(operand.value);
+    PC = unpack(operand.value);
 
     visitRoutine([]);
 
@@ -630,17 +608,17 @@ class Version5 extends Version3
 
 
   void call_2s(){
-    Debugger.verbose('${pcHex(-1)} [call_2s]');
+    //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var storeTo = readb();
 
-    var returnAddr = pc;
+    var returnAddr = PC;
 
-    pc = unpack(operands[0].value);
+    PC = unpack(operands[0].value);
 
     visitRoutine([operands[1].value]);
 
@@ -653,13 +631,13 @@ class Version5 extends Version3
 
 
   void call_1n(){
-    Debugger.verbose('${pcHex(-1)} [call_1n]');
+    //Debugger.verbose('${pcHex(-1)} [call_1n]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
-    var returnAddr = pc;
+    var returnAddr = PC;
 
-    pc = unpack(operand.value);
+    PC = unpack(operand.value);
 
     visitRoutine([]);
 
@@ -671,20 +649,20 @@ class Version5 extends Version3
   }
 
   void call_2n(){
-    Debugger.verbose('${pcHex(-1)} [call_2n]');
+    //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
-    var operands = mem.loadb(pc - 1) < 193
-        ? this.visitOperandsLongForm()
-        : this.visitOperandsVar(2, false);
+    var operands = mem.loadb(PC - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultStore = Machine.STACK_MARKER;
 
-    var returnAddr = pc;
+    var returnAddr = PC;
 
     var addr = unpack(operands[0].value);
 
     //move to the routine address
-    pc = unpack(operands[0].value);
+    PC = unpack(operands[0].value);
 
     //setup the routine stack frame and locals
     visitRoutine([operands[1].value]);
@@ -698,9 +676,9 @@ class Version5 extends Version3
   }
 
   void erase_window(){
-    Debugger.verbose('${pcHex(-1)} [erase_window]');
+    //Debugger.verbose('${pcHex(-1)} [erase_window]');
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
     Z.sendIO(IOCommands.CLEAR_SCREEN, [operands[0].value])
@@ -711,9 +689,9 @@ class Version5 extends Version3
   }
 
   void split_window(){
-    Debugger.verbose('${pcHex(-1)} [split_window]');
+    //Debugger.verbose('${pcHex(-1)} [split_window]');
 
-    var operands = this.visitOperandsVar(1, false);
+    var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
     Z.sendIO(IOCommands.SPLIT_SCREEN, [operands[0].value])
@@ -724,12 +702,12 @@ class Version5 extends Version3
   }
 
   void read_char(){
-    Debugger.verbose('${pcHex(-1)} [read_char]');
+    //Debugger.verbose('${pcHex(-1)} [read_char]');
     Z.inInterrupt = true;
 
     Z._printBuffer();
 
-    var operands = this.visitOperandsVar(4, true);
+    var operands = visitOperandsVar(4, true);
 
     if (operands.length == 3){
       Debugger.todo('read_char time & routine operands');
@@ -739,7 +717,7 @@ class Version5 extends Version3
 
     Z.sendIO(IOCommands.READ_CHAR)
     .then((char){
-      this.writeVariable(resultTo, ZSCII.CharToZChar(char));
+      writeVariable(resultTo, ZSCII.CharToZChar(char));
         Z.inInterrupt = false;
         Z.callAsync(Z.runIt);
     });
@@ -748,49 +726,28 @@ class Version5 extends Version3
   //Version 5+ supports call routines that throw
   //away return results.  Machine.STACK_MARKER is used
   //in the resultTo byte in order to mark this case.
-  void doReturn(){
-    // pop the return value from whoever is returning
-    var result = callStack.pop();
+  void doReturn(var result){
 
     // return address
-    var returnAddr = callStack.pop();
+    PC = callStack.pop();
+    assert(PC > 0);
 
     // result store address byte
     // this may not be a byte if the Machine.STACK_MARKER
     // is being used.
     var resultAddrByte = callStack.pop();
 
-    if (returnAddr == 0)
-      throw new GameException('Illegal return from entry routine.');
-
-    // unwind the locals from the stack
-    var frameSize = callStack.peek();
-
-    Debugger.verbose('(unwinding stack 1 frame)');
-
-    //unwind locals
-    while(frameSize >= 0){
-      callStack.pop();
-      frameSize--;
-    }
-
-    //unwind params length
-    callStack.pop();
+    //unwind locals and params length
+    callStack._stack.removeRange(0, callStack.peek() + 2);
 
     //unwind game stack
-    var gs = stack.pop();
-
-    while(gs != Machine.STACK_MARKER){
-      gs = stack.pop();
-    }
+    while(stack.pop() != Machine.STACK_MARKER){}
 
     //stack marker is used in the result byte to
     //mark call routines that want to throw away the result
-    if (resultAddrByte != Machine.STACK_MARKER){
-      writeVariable(resultAddrByte, result);
-    }
-
-    pc = returnAddr;
+    if (resultAddrByte == Machine.STACK_MARKER) return;
+    
+    writeVariable(resultAddrByte, result);
   }
 
   List<Operand> visitOperandsVar(int howMany, bool isVariable){
@@ -800,9 +757,10 @@ class Version5 extends Version3
     var shiftStart = howMany > 4 ? 14 : 6;
     var os = howMany > 4 ? readw() : readb();
 
+    var to;
     while(shiftStart > -2){
-      var to = os >> shiftStart; //shift
-      to &= 3; //mask higher order bits we don't care about
+      to = (os >> shiftStart) & 3; //shift and mask bottom 2 bits
+      
       if (to == OperandType.OMITTED){
         break;
       }else{
@@ -814,39 +772,12 @@ class Version5 extends Version3
 
     //load values
     operands.forEach((Operand o){
-      switch (o.type){
-        case OperandType.LARGE:
-          o.rawValue = readw();
-          break;
-        case OperandType.SMALL:
-          o.rawValue = readb();
-          break;
-        case OperandType.VARIABLE:
-          o.rawValue = readb();
-          break;
-        default:
-          throw new GameException('Illegal Operand Type found: ${o.type.toRadixString(16)}');
-      }
+      o.rawValue = o.type == OperandType.LARGE ? readw() : readb();
     });
 
-    Debugger.verbose('    ${operands.length} operands:');
-
-    operands.forEach((Operand o) {
-      if (o.type == OperandType.VARIABLE){
-        if (o.rawValue == 0){
-          Debugger.verbose('      ${OperandType.asString(o.type)}: SP (0x${o.peekValue.toRadixString(16)})');
-        }else{
-          Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.rawValue.toRadixString(16)} (0x${o.peekValue.toRadixString(16)})');
-        }
-
-      }else{
-        Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}');
-      }
-    });
-
-    if (!isVariable && (operands.length != howMany)){
-      throw new Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
-    }
+//    if (!isVariable && (operands.length != howMany)){
+//      throw new Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
+//    }
 
     return operands;
   }

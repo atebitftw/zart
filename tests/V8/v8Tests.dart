@@ -3,7 +3,7 @@
 #import('../../../../src/lib/unittest/unittest.dart');
 //#import('dart:unittest');
 //^^ not working
-#import('../../lib/ZMachine.dart');
+#import('../../lib/zmachine.dart');
 
 #source('V8ObjectTests.dart');
 

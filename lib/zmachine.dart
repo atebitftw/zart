@@ -145,6 +145,9 @@ class ZMachine
       machine.visitHeader();
     }
 
+    //for main routine only.
+    machine.PC--;
+    
     // visit the main 'routine' (call stack required empty)
     machine.visitRoutine([]);
 
@@ -163,8 +166,10 @@ class ZMachine
 
   void runIt(){
 
-    while(!inBreak && !inInterrupt && !quit){
+//    while(!inBreak && !inInterrupt && !quit){
+    while(!inInterrupt && !quit){
       machine.visitInstruction();
+//      Debugger.instructionsCounter++;
     }
 
     if(inBreak){
@@ -173,12 +178,11 @@ class ZMachine
     }
   }
 
-  Future<Object> sendIO(IOCommands command, [List messageData]){
+  Future<Object> sendIO(IOCommands command, [List messageData = const []]){
     var msg = [command.toString()];
 
-    if (messageData != null && messageData is Collection){
-      msg.addAll(messageData);
-    }
+    msg.addAll(messageData);
+    
     return IOConfig.command(JSON.stringify(msg));
   }
 
@@ -196,7 +200,7 @@ class ZMachine
   /** Reset Z-Machine to state at first load */
   void softReset(){
     _assertLoaded();
-    machine.pc = 0;
+    machine.PC = 0;
     machine.stack.clear();
     machine.callStack.clear();
     _memoryStreams.clear();

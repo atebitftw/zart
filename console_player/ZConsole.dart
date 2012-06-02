@@ -1,4 +1,4 @@
-#import('../lib/ZMachine.dart');
+#import('../lib/zmachine.dart');
 #import('dart:io');
 #import('dart:json');
 #import('dart:builtin');
@@ -8,7 +8,7 @@
 
 // A basic Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
-// otherwise attempts to load default minizork.z3 file from environment.
+// otherwise attempts to load default file (specified in main()).
 //
 // Works in the Dart console.
 
@@ -66,7 +66,7 @@ void main() {
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
-  Debugger.enableVerbose = true;
+  Debugger.enableVerbose = false;
   Debugger.enableTrace = false;
   Debugger.enableStackTrace = false;
   //Debugger.setBreaks([0x2bfd]);

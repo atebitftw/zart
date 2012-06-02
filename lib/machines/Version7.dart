@@ -19,7 +19,7 @@ class Version7 extends Version5
   }
 
   void print_paddr(){
-    Debugger.verbose('${pcHex(-1)} [print_paddr]');
+    //Debugger.verbose('${pcHex(-1)} [print_paddr]');
 
     var operand = this.visitOperandsShortForm();
 

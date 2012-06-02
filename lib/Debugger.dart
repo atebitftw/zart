@@ -12,6 +12,8 @@ class Debugger {
   static int debugStartAddr;
 
   static List<int> _breakPoints;
+  
+  static int instructionsCounter = 0;
 
   static void setMachine(Machine newMachine){
     Z.inInterrupt = true;
@@ -97,7 +99,7 @@ class Debugger {
           break;
         case '':
         case 'n':
-          debugStartAddr = Z.machine.pc;
+          debugStartAddr = Z.machine.PC;
           Z.machine.visitInstruction();
           break;
         case 'q':
@@ -254,7 +256,7 @@ class Debugger {
   static void todo([String message]){
     Z.sendIO(IOCommands.PRINT_DEBUG,
       [
-        'Stopped At: 0x${Z.machine.pc.toRadixString(16)}\n\n'
+        'Stopped At: 0x${Z.machine.PC.toRadixString(16)}\n\n'
         'Text Buffer:\n'
         '${Z.sbuff}\n'
         '${message != null ? "TODO: $message" : ""}\n'
