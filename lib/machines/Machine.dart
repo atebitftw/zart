@@ -427,7 +427,7 @@ class Machine
       r = new DRandom.withSeed(range);
       //Debugger.verbose('    (set RNG to seed: $range)');
     }else if(range == 0){
-      r = new DRandom.withSeed(new Date.now().milliseconds);
+      r = new DRandom.withSeed(new Date.now().millisecond);
       //Debugger.verbose('    (set RNG to random seed)');
     }else{
       result = r.NextFromMax(range) + 1;
@@ -1399,7 +1399,7 @@ class Machine
     stack = new _Stack(),
     callStack = new _Stack.max(1024)
   {
-    r = new DRandom.withSeed(new Date.now().milliseconds);
+    r = new DRandom.withSeed(new Date.now().millisecond);
     ops =
       {
 

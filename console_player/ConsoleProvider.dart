@@ -142,15 +142,15 @@ class ConsoleProvider implements IOProvider
           outputBuffer.addFirst('$s');
           print('$s');
           s = new StringBuffer();
-          s.add(nextWord + ' ');
+          s.add('$nextWord ');
         }else{
           if (words.isEmpty()){
-            s.add(nextWord + ' ');
+            s.add('$nextWord ');
             outputBuffer.addFirst('$s');
             print('$s');
             s = new StringBuffer();
           }else{
-            s.add(nextWord + ' ');
+            s.add('$nextWord ');
           }
         }
       }

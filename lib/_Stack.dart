@@ -38,7 +38,7 @@ class _Stack {
     return v;
   }
 
-  int operator []=(int index, int value){
+  void operator []=(int index, int value){
 
     if (value < 0 && value != Machine.STACK_MARKER){
       value = Machine.dartSignedIntTo16BitSigned(value);

@@ -1,6 +1,8 @@
 #import('dart:io');
 #import('dart:builtin');
 #import('dart:json');
+#import('dart:isolate'); //for Timer
+
 #import('../../../src/lib/unittest/unittest.dart');
 //#import('dart:unittest');
 //^^ not working

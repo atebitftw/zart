@@ -45,8 +45,6 @@ class ZMachine
   ZVersion _ver;
   String _mostRecentInput;
 
-  SendPort _asyncIsolate;
-
   StringBuffer sbuff;
   final List<int> _memoryStreams;
   final List<int> _rawBytes;
@@ -80,9 +78,6 @@ class ZMachine
                           ]
   {
       IOConfig = new DefaultProvider([]);
-      if (platform == 'vm'){
-        _asyncIsolate = spawnFunction(asyncIsolate);
-      }
   }
 
 
@@ -115,20 +110,7 @@ class ZMachine
     isLoaded = true;
   }
 
-  callAsync(func()){
-    //TODO: Get rid of this once a unified async model is available
-    // in Dart.
-    if (platform == 'vm'){
-      _asyncIsolate
-        .call('foo')
-        .then((reply){
-          func();
-        });
-    }else{
-      IOConfig.dynamic.callAsync(func);
-    }
-  }
-
+  callAsync(func()) => new Timer(0, (foo) => func());
 
   /**
   * Runs the Z-Machine using the detected machine version from the story
@@ -255,18 +237,12 @@ class ZVersion{
   }
 }
 
-String get platform(){
-  final int n=9007199254740992;
-  final int newInt = n + 1;
-  if ('$newInt' == '$n') {
-    return 'js';
-  } else {
-    return 'vm';
-  }
-}
-
-void asyncIsolate(){
-  port.receive((message, SendPort replyTo){
-    replyTo.send('foo');
-  });
-}
+//String get platform(){
+//  final int n=9007199254740992;
+//  final int newInt = n + 1;
+//  if ('$newInt' == '$n') {
+//    return 'js';
+//  } else {
+//    return 'vm';
+//  }
+//}

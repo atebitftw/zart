@@ -67,7 +67,7 @@ void main() {
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
   Debugger.enableVerbose = false;
-  Debugger.enableTrace = false;
+  Debugger.enableTrace = true;
   Debugger.enableStackTrace = false;
   //Debugger.setBreaks([0x2bfd]);
 
