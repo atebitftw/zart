@@ -133,8 +133,8 @@ class Quetzal {
     if (nextChunk == null) return false;
 
     while(nextChunk != null){
-      switch(nextChunk.toString()){
-        case Chunk.IFhd.toString():
+      switch(nextChunk){
+        case Chunk.IFhd:
           // here we are validating that this file is compatible
           // with the game currently loaded into the machine.
 
@@ -158,7 +158,7 @@ class Quetzal {
           IFF.nextByte(fileBytes); //pad
           gotHeader = true;
           break;
-        case Chunk.Stks.toString():
+        case Chunk.Stks:
           var stacksLen = IFF.read4Byte(fileBytes);
 
           StackFrame getNextStackFrame(){
@@ -210,7 +210,7 @@ class Quetzal {
 
           gotStacks = true;
           break;
-        case Chunk.UMem.toString():
+        case Chunk.UMem:
           var numBytes = IFF.read4Byte(fileBytes);
 
           //memory length mismatch

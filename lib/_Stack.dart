@@ -4,16 +4,16 @@
 class _Stack {
   /// Z-Machine Stack
   final List<int> _stack;
-  final int max;
+  final int _max;
 
   int sp = 0;
 
   _Stack()
   :
     _stack = new List<int>(),
-    max = 0;
+    _max = 0;
 
-  _Stack.max(this.max)
+  _Stack.max(this._max)
   :
     _stack = new List<int>();
 
@@ -49,8 +49,8 @@ class _Stack {
 
   void push(int value) {
     //ref 6.3.3
-    if (max > 0 && length == (max - 1))
-      throw new GameException('Stack Overflow. $max');
+    if (_max > 0 && length == (_max - 1))
+      throw new GameException('Stack Overflow. $_max');
 //
 //    if (length % 1024 == 0){
 //      Debugger.debug('stack at $length');

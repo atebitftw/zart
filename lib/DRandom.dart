@@ -3,9 +3,9 @@
 // https://github.com/financeCoding/DRandom/blob/master/DRandom.dart
 
 // Not cryptographically safe.
-// A weak seed will produce weak results. 
-// Dart Math.random does not re seed its 
-// rng so will produce the same results on every run. 
+// A weak seed will produce weak results.
+// Dart Math.random does not re seed its
+// rng so will produce the same results on every run.
 // Code referenced is mono/mcs/class/corelib/system/Random.cs
 class DRandom
 {
@@ -16,7 +16,7 @@ class DRandom
 
     int MBIG;
     int MSEED = 161803398;
-   
+
     int inext;
     int inextp;
 
@@ -27,14 +27,14 @@ class DRandom
         _init();
         _seed(Seed);
     }
-    DRandom() 
+    DRandom()
     {
         _init();
-        var i = Math.random();
-        int Seed = (i*MBIG).floor().toInt();
+        final i = new Random();
+        int Seed = (i.nextDouble() * MBIG).floor().toInt();
         _seed(Seed);
     }
-    
+
     void _seed(int Seed)
     {
         int ii;
@@ -45,7 +45,7 @@ class DRandom
         {
             mj = MSEED - (INTMAX + 1).abs();
         }
-        else 
+        else
         {
             mj = MSEED - Seed.abs();
         }
@@ -91,7 +91,7 @@ class DRandom
     {
         int retVal;
 
-        if (++inext >= 56) 
+        if (++inext >= 56)
         {
             inext=1;
         }
@@ -107,13 +107,13 @@ class DRandom
         {
             retVal += MBIG;
         }
-            
+
         SeedArray[inext] = retVal;
 
         return retVal * (1.0 / MBIG);
     }
 
-    int Next() 
+    int Next()
     {
         int retVal = (Sample() * MBIG).floor().toInt();
         return retVal;
@@ -125,7 +125,7 @@ class DRandom
         {
             throw new IllegalArgumentException("maxValue less then zero");
         }
-       
+
         int retVal = (Sample() * maxValue).toInt();
         return retVal;
     }
@@ -137,7 +137,7 @@ class DRandom
         {
             throw new IllegalArgumentException("Min value is greater than max value.");
         }
-        
+
         int diff = maxValue - minValue;
         if (diff.abs() <= 1)
         {
@@ -164,7 +164,7 @@ class DRandom
         return buff;
     }
 
-    // maxValue is exclusive. 
+    // maxValue is exclusive.
     Map<int,int> NextIntsUnique(int minValue, int maxValue, int size)
     {
         if (minValue > maxValue)
@@ -180,11 +180,11 @@ class DRandom
         Map<int,int> intMap = new Map<int,int>();
         for (int i=1; i<=size; i++)
         {
-            bool unique = false; 
+            bool unique = false;
             while (unique!=true)
             {
                 int v = NextFromRange(minValue,maxValue);
-                if (!intMap.containsValue(v) && 
+                if (!intMap.containsValue(v) &&
                 v >= minValue &&
                 v <= maxValue)
                 {

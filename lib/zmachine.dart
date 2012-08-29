@@ -2,6 +2,7 @@
 
 #import('dart:json');
 #import('dart:isolate');
+#import('dart:math');
 
 #source('Header.dart');
 #source('_Stack.dart');
@@ -129,7 +130,7 @@ class ZMachine
 
     //for main routine only.
     machine.PC--;
-    
+
     // visit the main 'routine' (call stack required empty)
     machine.visitRoutine([]);
 
@@ -164,7 +165,7 @@ class ZMachine
     var msg = [command.toString()];
 
     msg.addAll(messageData);
-    
+
     return IOConfig.command(JSON.stringify(msg));
   }
 

@@ -6,8 +6,8 @@ class BinaryHelper {
   static bool isSet(num n, int bitPosition) => ((n >> bitPosition) & 1) == 1;
 
   /// Returns the bottom [bits] bits from [n].
-  static int bottomBits(num n, int bits) => n & ((Math.pow(2, bits)) - 1);
-  
+  static int bottomBits(num n, int bits) => n & ((pow(2, bits)) - 1);
+
   /// Returns an int with the given [numBits] set at the bottom.
   static int setBottomBits(int numBits){
     if (numBits == 0) return 0;
@@ -20,12 +20,12 @@ class BinaryHelper {
 
     return i;
   }
-  
+
   static num set(num n, int bit){
     n |= (1 << bit);
     return n;
   }
-  
+
   static num unset(num n, int bit){
     n &= ~(1 << bit);
     return n;

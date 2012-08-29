@@ -93,7 +93,7 @@ class Version5 extends Version3
     //set the params and locals
     for(int i = 0; i < locals; i++){
       //in V5, we don't need to read locals from memory, they are all set to 0
-      
+
       callStack.push(i < params.length ? params[i] : 0x0);
     }
     //push total locals onto the call stack
@@ -347,7 +347,7 @@ class Version5 extends Version3
     var textBuffer = operands[0].value + 2;
 
     var maxWords;
-    var parseBuffer;
+    num parseBuffer;
 
     if (operands.length > 2){
       maxWords = mem.loadb(operands[1].value);
@@ -446,7 +446,7 @@ class Version5 extends Version3
     Z.inInterrupt = true;
 
     var operands = visitOperandsVar(1, false);
-    
+
     Z.sendIO(IOCommands.SET_FONT, [operands[0].value])
     .then((result){
       Z.inInterrupt = false;
@@ -464,7 +464,7 @@ class Version5 extends Version3
 
     var operands = visitOperandsVar(2, false);
     Z.inInterrupt = true;
-    
+
     Z.sendIO(IOCommands.SET_CURSOR, [operands[0].value, operands[1].value])
     .then((_){
       Z.inInterrupt = false;
@@ -491,7 +491,7 @@ class Version5 extends Version3
     var returnAddr = PC;
 
     assert(operands.length > 0);
-   
+
     if (operands[0].value == 0){
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
@@ -499,13 +499,13 @@ class Version5 extends Version3
     }else{
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
-      
+
       //move to the routine address
       PC = operands[0].rawValue;
 
       //peel off the first operand
       operands.removeRange(0, 1);
-      
+
       //setup the routine stack frame and locals
       visitRoutine(operands.map((o) => o.value));
 
@@ -535,10 +535,10 @@ class Version5 extends Version3
     }else{
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
-      
+
       //move to the routine address
       PC = operands[0].rawValue;
-      
+
       operands.removeRange(0, 1);
 
       //setup the routine stack frame and locals
@@ -559,7 +559,7 @@ class Version5 extends Version3
 
     var resultStore = Machine.STACK_MARKER;
     var returnAddr = PC;
-    
+
     assert(operands.length > 0);
 
     if (operands[0].value == 0){
@@ -569,12 +569,12 @@ class Version5 extends Version3
     }else{
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
-      
+
       //move to the routine address
       PC = operands[0].rawValue;
 
       operands.removeRange(0, 1);
-      
+
       //setup the routine stack frame and locals
       visitRoutine(operands.map((o) => o.value));
 
@@ -746,7 +746,7 @@ class Version5 extends Version3
     //stack marker is used in the result byte to
     //mark call routines that want to throw away the result
     if (resultAddrByte == Machine.STACK_MARKER) return;
-    
+
     writeVariable(resultAddrByte, result);
   }
 
@@ -760,7 +760,7 @@ class Version5 extends Version3
     var to;
     while(shiftStart > -2){
       to = (os >> shiftStart) & 3; //shift and mask bottom 2 bits
-      
+
       if (to == OperandType.OMITTED){
         break;
       }else{

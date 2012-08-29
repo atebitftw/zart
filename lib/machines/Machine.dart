@@ -16,7 +16,7 @@ class Machine
 
   /// Z-Machine Program Counter
   int PC = 0;
-  
+
   int currentWindow = 0;
 
   // Screen
@@ -102,7 +102,7 @@ class Machine
     //Debugger.verbose('    # Locals: ${locals}');
 
     assert(locals < 17);
-    
+
     // add param length to call stack (v5+ needs this)
     callStack.push(params.length);
 
@@ -131,7 +131,7 @@ class Machine
     // return address
     PC = callStack.pop();
     assert(PC > 0);
-    
+
     // result store address byte
     var resultAddrByte = callStack.pop();
 
@@ -140,7 +140,7 @@ class Machine
 
     //unwind game stack
     while(stack.pop() != STACK_MARKER){}
-    
+
     writeVariable(resultAddrByte, result);
   }
 
@@ -248,12 +248,12 @@ class Machine
   void branch(bool testResult)
   {
     assert(testResult is bool);
-    
+
     //calculates the local jump offset (ref 4.7)
 
     var jumpByte = readb();
     var offset;
-    
+
     if (BinaryHelper.isSet(jumpByte, 6)){
       //single byte offset
       offset = BinaryHelper.bottomBits(jumpByte, 6);
@@ -268,10 +268,10 @@ class Machine
     }
 
     //Debugger.verbose('    (branch condition: $branchOn)');
-   
+
     //compare test result to branchOn (true|false) bit
     if (BinaryHelper.isSet(jumpByte, 7) == testResult){
-           
+
       // If the offset is 0 or 1 (FALSE or TRUE), perform a return
       // operation.
       if (offset == Machine.FALSE || offset == Machine.TRUE){
@@ -322,12 +322,12 @@ class Machine
     }else{
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
-      
+
       //move to the routine address
       PC = operands[0].rawValue;
 
       operands.removeRange(0, 1);
-      
+
       //setup the routine stack frame and locals
       visitRoutine(operands.map((o) => o.value));
 
@@ -345,7 +345,7 @@ class Machine
     sendStatus();
 
     Z.inInterrupt = true;
-    
+
     Z._printBuffer();
 
     var operands = visitOperandsVar(4, true);
@@ -411,8 +411,6 @@ class Machine
 
   void random(){
     //Debugger.verbose('${pcHex(-1)} [random]');
-
-    Math.random();
 
     var operands = visitOperandsVar(1, false);
 
@@ -1226,10 +1224,10 @@ class Machine
     //(ref 4.4.1)
     var operand = new Operand((oc & 48) >> 4);
 
-    operand.rawValue = (operand.type == OperandType.LARGE) 
+    operand.rawValue = (operand.type == OperandType.LARGE)
         ? readw()
         : readb();
-        
+
     //Debugger.verbose('    ${operand}');
     return operand;
   }
@@ -1238,11 +1236,11 @@ class Machine
     var oc = mem.loadb(PC - 1);
 
     var o1 = BinaryHelper.isSet(oc, 6)
-      ? new Operand(OperandType.VARIABLE) 
+      ? new Operand(OperandType.VARIABLE)
       : new Operand(OperandType.SMALL);
 
     var o2 = BinaryHelper.isSet(oc, 5)
-      ? new Operand(OperandType.VARIABLE) 
+      ? new Operand(OperandType.VARIABLE)
       : new Operand(OperandType.SMALL);
 
     o1.rawValue = readb();
@@ -1351,7 +1349,7 @@ class Machine
 
   int readVariable(int varNum){
     assert(varNum >= 0 && varNum <= 0xff);
-    
+
     if (varNum > 0x0f){
       return mem.readGlobal(varNum);
     }
@@ -1363,17 +1361,17 @@ class Machine
 
   void writeVariable(int varNum, int value){
     assert(varNum >= 0 && varNum <= 0xff);
-    
+
     if (varNum > 0x0f){
       mem.writeGlobal(varNum, value);
       return;
     }
-    
+
     if (varNum == 0x0){
       stack.push(value);
       return;
     }
-    
+
     _writeLocal(varNum, value);
 
  }

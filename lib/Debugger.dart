@@ -12,7 +12,7 @@ class Debugger {
   static int debugStartAddr;
 
   static List<int> _breakPoints;
-  
+
   static int instructionsCounter = 0;
 
   static void setMachine(Machine newMachine){
@@ -52,14 +52,14 @@ class Debugger {
 
       switch(args[0]){
         case 'dump':
-          var addr = Math.parseInt(args[1]);
-          var howMany = Math.parseInt(args[2]);
+          var addr = parseInt(args[1]);
+          var howMany = parseInt(args[2]);
           debug('${Z.machine.mem.dump(addr, howMany)}');
           Z.callAsync(_repl);
           break;
         case 'move':
-          var obj1 = new GameObject(Math.parseInt(args[1]));
-          var obj2 = new GameObject(Math.parseInt(args[2]));
+          var obj1 = new GameObject(parseInt(args[1]));
+          var obj2 = new GameObject(parseInt(args[2]));
           obj1.insertTo(obj2.id);
           Z.callAsync(_repl);
           break;
@@ -113,7 +113,7 @@ class Debugger {
         case 'globals':
           StringBuffer s = new StringBuffer();
 
-          var col = args.length == 2 ? Math.parseInt(args[1]) : 10;
+          var col = args.length == 2 ? parseInt(args[1]) : 10;
           if (col < 1) col = 1;
 
           for(int i = 0x10; i < 0xff; i++){
@@ -140,7 +140,7 @@ class Debugger {
           Z.callAsync(_repl);
           break;
         case 'object':
-          var obj = new GameObject(Math.parseInt(args[1]));
+          var obj = new GameObject(parseInt(args[1]));
           obj.dump();
           Z.callAsync(_repl);
           break;

@@ -2,6 +2,7 @@
 #import('dart:builtin');
 #import('dart:json');
 #import('dart:isolate'); //for Timer
+#import('dart:math');
 
 #import('../../../src/lib/unittest/unittest.dart');
 //#import('dart:unittest');
@@ -107,7 +108,7 @@ void main() {
 
   group('RNG>', (){
     test('in bounds', (){
-      var r = new DRandom.withSeed(new Date.now().milliseconds);
+      var r = new DRandom.withSeed(new Date.now().millisecond);
 
       for(int i = 0; i < 1000; i++){
         var result = r.NextFromMax(10) + 1;
@@ -148,17 +149,17 @@ void main() {
 
     test('setBit()', (){
       Expect.equals(1, BinaryHelper.set(0, 0));
-      Expect.equals(Math.pow(2, 8), BinaryHelper.set(0, 8));
-      Expect.equals(Math.pow(2, 16), BinaryHelper.set(0, 16));
-      Expect.equals(Math.pow(2, 32), BinaryHelper.set(0, 32));
+      Expect.equals(pow(2, 8), BinaryHelper.set(0, 8));
+      Expect.equals(pow(2, 16), BinaryHelper.set(0, 16));
+      Expect.equals(pow(2, 32), BinaryHelper.set(0, 32));
     });
 
     test('unsetBit()', (){
       Expect.equals(0xFE, BinaryHelper.unset(0xFF, 0));
       Expect.equals(0xFD, BinaryHelper.unset(0xFF, 1));
-      Expect.equals(0, BinaryHelper.unset(Math.pow(2, 8), 8));
-      Expect.equals(0, BinaryHelper.unset(Math.pow(2, 16), 16));
-      Expect.equals(0, BinaryHelper.unset(Math.pow(2, 32), 32));
+      Expect.equals(0, BinaryHelper.unset(pow(2, 8), 8));
+      Expect.equals(0, BinaryHelper.unset(pow(2, 16), 16));
+      Expect.equals(0, BinaryHelper.unset(pow(2, 32), 32));
     });
   });
 

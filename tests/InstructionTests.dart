@@ -57,10 +57,10 @@ instructionTests(){
       switch(varType.toLowerCase()){
         case 'g':
           // G0 = 16, G1 = 17, etc
-          return Math.parseInt(item.substring(1, item.length-1)) + 0x10;
+          return parseInt(item.substring(1, item.length-1)) + 0x10;
         case 'l':
           // L0 = 1, L1 = 2, etc
-          return Math.parseInt(item.substring(1, item.length-1)) + 0x01;
+          return parseInt(item.substring(1, item.length-1)) + 0x01;
         default:
           Expect.fail('variable type not recognized: $varType');
           break;
@@ -131,7 +131,7 @@ instructionTests(){
     //clear stacks and reset program counter
     Z.machine.stack.clear();
     Z.machine.callStack.clear();
-    Z.machine.pc = callAddr + 1;
+    Z.machine.PC = callAddr + 1;
 
     // visit the main 'routine'
     Z.machine.visitRoutine([]);
