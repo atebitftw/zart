@@ -1,0 +1,6 @@
+name: zart
+description: Dart implementation of the Infocom Z-Machine.
+version: 1.0.0
+dependencies:
+  unittest:
+    sdk: unittest

@@ -1,5 +1,4 @@
 #import('dart:io');
-#import('dart:builtin');
 #import('dart:json');
 #import('dart:isolate'); //for Timer
 #import('dart:math');
@@ -7,12 +6,12 @@
 #import('../../../src/lib/unittest/unittest.dart');
 //#import('dart:unittest');
 //^^ not working
-#import('../lib/ZMachine.dart');
+#import('../lib/zart.dart');
 
-#source('MockUIProvider.dart');
-#source('MockV3Machine.dart');
-#source('InstructionTests.dart');
-#source('ObjectTests.dart');
+#source('mock_ui_provider.dart');
+#source('mock_v3_machine.dart');
+#source('instruction_tests.dart');
+#source('object_tests.dart');
 
 /*
 * IMPORTANT: Run in Checked Mode so Assertions fire.
@@ -28,11 +27,11 @@ void main() {
 
   try{
     Z.load(f.readAsBytesSync());
-  } catch (FileIOException fe){
+  } on FileIOException catch (fe){
     //TODO log then print friendly
     print('$fe');
     exit(1);
-  } catch (Exception e){
+  } on Exception catch (e){
     //TODO log then print friendly
     print('$e');
     exit(1);
@@ -74,7 +73,8 @@ void main() {
       int doMod(a, b){
 
         var result = a.abs() % b.abs();
-        if (a < 0) result = -result;
+        if (a < 0) { result = -result;
+        }
         return result;
       }
 

@@ -1,32 +1,32 @@
-#library('ZMachine');
+#library('zart.prujohn');
 
 #import('dart:json');
 #import('dart:isolate');
 #import('dart:math');
 
-#source('Header.dart');
-#source('_Stack.dart');
-#source('_MemoryMap.dart');
-#source('BinaryHelper.dart');
-#source('ZSCII.dart');
-#source('Debugger.dart');
-#source('Operand.dart');
-#source('Dictionary.dart');
-#source('DRandom.dart');
-#source('GameException.dart');
+#source('src/header.dart');
+#source('src/_stack.dart');
+#source('src/_memory_map.dart');
+#source('src/binary_helper.dart');
+#source('src/zscii.dart');
+#source('src/debugger.dart');
+#source('src/operand.dart');
+#source('src/dictionary.dart');
+#source('src/d_random.dart');
+#source('src/game_exception.dart');
 
-#source('IO/IFF.dart');
-#source('IO/Quetzal.dart');
-#source('IO/Blorb.dart');
-#source('IO/DefaultProvider.dart');
-#source('IO/IOProvider.dart');
+#source('src/IO/iff.dart');
+#source('src/IO/quetzal.dart');
+#source('src/IO/blorb.dart');
+#source('src/IO/default_provider.dart');
+#source('src/IO/io_provider.dart');
 
-#source('machines/Machine.dart');
-#source('machines/Version3.dart');
-#source('machines/Version5.dart');
-#source('machines/Version7.dart');
-#source('machines/Version8.dart');
-#source('GameObject.dart');
+#source('src/machines/machine.dart');
+#source('src/machines/version_3.dart');
+#source('src/machines/version_5.dart');
+#source('src/machines/version_7.dart');
+#source('src/machines/version_8.dart');
+#source('src/game_object.dart');
 
 ZMachine get Z() => new ZMachine();
 

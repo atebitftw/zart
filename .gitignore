@@ -1,0 +1,12 @@
+# Dart Excludes
+*~
+*.js
+*.js_
+.children
+.project
+.gitmodules
+*.map
+*.lock
+*.tmp
+packages
+packages/

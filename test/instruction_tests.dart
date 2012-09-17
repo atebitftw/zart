@@ -39,19 +39,22 @@ instructionTests(){
     var paramList = [];
 
     int getKind(item){
-      if (item == null) return OperandType.OMITTED;
+      if (item == null) { return OperandType.OMITTED;
+      }
 
       if (item is String){
         return OperandType.VARIABLE;
       }else{
-        if (item <= 0xFF) return OperandType.SMALL;
+        if (item <= 0xFF) { return OperandType.SMALL;
+        }
         return OperandType.LARGE;
       }
     }
 
     int convertToVariableLiteral(String item){
       //convert to variable literal
-      if (item.toLowerCase() == 'sp') return 0;
+      if (item.toLowerCase() == 'sp') { return 0;
+      }
 
       var varType = item.substring(0, 1);
       switch(varType.toLowerCase()){
@@ -104,7 +107,8 @@ instructionTests(){
 
     // write the operands
     for(final operand in operandList.getRange(1, 4)){
-      if (operand.type == OperandType.OMITTED) break;
+      if (operand.type == OperandType.OMITTED) { break;
+      }
       if (operand.type == OperandType.LARGE){
         callInstruction.add(fst(operand.rawValue));
         callInstruction.add(snd(operand.rawValue));

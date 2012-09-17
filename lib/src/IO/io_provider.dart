@@ -2,11 +2,11 @@
 /**
 * Represents a contract for IO (Presentation) providers.
 */
-interface IOProvider {
+class IOProvider {
 
   //TODO use isolates between IO and engine.
 
-  Future<Object> command(String JSONCommand);
+  abstract Future<Object> command(String JSONCommand);
 }
 
 /** Enumerates supported IO command message */
@@ -15,20 +15,20 @@ class IOCommands{
 
   const IOCommands(this._str);
 
-  static final PRINT = const IOCommands('PRINT');
-  static final STATUS = const IOCommands('STATUS');
-  static final CLEAR_SCREEN = const IOCommands('CLEAR_SCREEN');
-  static final SPLIT_SCREEN = const IOCommands('SPLIT_SCREEN');
-  static final SET_WINDOW = const IOCommands('SET_WINDOW');
-  static final SET_FONT = const IOCommands('SET_FONT');
-  static final SAVE = const IOCommands('SAVE');
-  static final RESTORE = const IOCommands('RESTORE');
-  static final READ = const IOCommands('READ');
-  static final READ_CHAR = const IOCommands('READ_CHAR');
-  static final QUIT = const IOCommands('QUIT');
-  static final PRINT_DEBUG = const IOCommands('PRINT_DEBUG');
-  static final ASYNC = const IOCommands('ASYNC');
-  static final SET_CURSOR = const IOCommands('SET_CURSOR');
+  static const PRINT = const IOCommands('PRINT');
+  static const STATUS = const IOCommands('STATUS');
+  static const CLEAR_SCREEN = const IOCommands('CLEAR_SCREEN');
+  static const SPLIT_SCREEN = const IOCommands('SPLIT_SCREEN');
+  static const SET_WINDOW = const IOCommands('SET_WINDOW');
+  static const SET_FONT = const IOCommands('SET_FONT');
+  static const SAVE = const IOCommands('SAVE');
+  static const RESTORE = const IOCommands('RESTORE');
+  static const READ = const IOCommands('READ');
+  static const READ_CHAR = const IOCommands('READ_CHAR');
+  static const QUIT = const IOCommands('QUIT');
+  static const PRINT_DEBUG = const IOCommands('PRINT_DEBUG');
+  static const ASYNC = const IOCommands('ASYNC');
+  static const SET_CURSOR = const IOCommands('SET_CURSOR');
 
   static IOCommands toIOCommand(String cmd){
     switch(cmd){

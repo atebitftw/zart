@@ -104,24 +104,24 @@ class Chunk{
   const Chunk(this._str);
 
   //Blorb chunks
-  static final IFRS = const Chunk('IFRS');
-  static final RIdx = const Chunk('RIdx');
-  static final ZCOD = const Chunk('ZCOD');
-  static final Exec = const Chunk('Exec');
+  static const IFRS = const Chunk('IFRS');
+  static const RIdx = const Chunk('RIdx');
+  static const ZCOD = const Chunk('ZCOD');
+  static const Exec = const Chunk('Exec');
 
   //Quetzal chunks
-  static final IFZS = const Chunk('IFZS');
-  static final IFhd = const Chunk('IFhd');
-  static final CMem = const Chunk('CMem');
-  static final UMem = const Chunk('UMem');
-  static final Stks = const Chunk('Stks');
-  static final IntD = const Chunk('IntD');
+  static const IFZS = const Chunk('IFZS');
+  static const IFhd = const Chunk('IFhd');
+  static const CMem = const Chunk('CMem');
+  static const UMem = const Chunk('UMem');
+  static const Stks = const Chunk('Stks');
+  static const IntD = const Chunk('IntD');
 
   //IFF Chunks
-  static final FORM = const Chunk('FORM');
-  static final AUTH = const Chunk('AUTH');
-  static final CPYR = const Chunk('(c) ');
-  static final ANNO = const Chunk('ANNO');
+  static const FORM = const Chunk('FORM');
+  static const AUTH = const Chunk('AUTH');
+  static const CPYR = const Chunk('(c) ');
+  static const ANNO = const Chunk('ANNO');
 
   String toString() => _str;
 

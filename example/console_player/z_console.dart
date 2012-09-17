@@ -1,10 +1,9 @@
-#import('../lib/zmachine.dart');
+#import('../../lib/zart.dart');
 #import('dart:io');
 #import('dart:json');
-#import('dart:builtin');
 
-#source('ConsoleProvider.dart');
-#source('DebugProvider.dart');
+#source('console_provider.dart');
+#source('debug_provider.dart');
 
 // A basic Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
@@ -43,11 +42,11 @@ void main() {
 
     Z.load(gameData);
 
-  } catch (FileIOException fe){
+  } on FileIOException catch (fe){
     //TODO log then print friendly
     print('$fe');
     exit(0);
-  } catch (Exception e){
+  } on Exception catch (e){
     //TODO log then print friendly
     print('$e');
     exit(0);
@@ -73,10 +72,10 @@ void main() {
 
   try{
     Z.run();
-  }catch(GameException ge){
+  }on GameException catch(ge){
     print('got it!\n $ge');
     exit(0);
-  }catch(Exception e){
+  }on Exception catch(e){
     print('$e');
     exit(0);
   }

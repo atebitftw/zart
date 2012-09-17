@@ -13,7 +13,8 @@ class DebugProvider implements IOProvider
     lineBuffer = new Queue<String>(),
     outputBuffer = new Queue<String>()
   {
-    if (script.isEmpty()) return;
+    if (script.isEmpty()) { return;
+    }
     var commands = script.split('.');
 
     for(final command in commands){
@@ -72,14 +73,16 @@ class DebugProvider implements IOProvider
 
         if (s.length > cols){
           outputBuffer.addFirst('$s');
-          if (Debugger.enableDebug) print('$s');
+          if (Debugger.enableDebug) { print('$s');
+          }
           s = new StringBuffer();
           s.add('$nextWord ');
         }else{
           if (words.isEmpty()){
             s.add('$nextWord ');
             outputBuffer.addFirst('$s');
-            if (Debugger.enableDebug) print('$s');
+            if (Debugger.enableDebug) { print('$s');
+            }
             s = new StringBuffer();
           }else{
             s.add('$nextWord ');
@@ -89,7 +92,8 @@ class DebugProvider implements IOProvider
 
       if (s.length > 0){
         outputBuffer.addFirst('$s');
-        if (Debugger.enableDebug) print('$s');
+        if (Debugger.enableDebug) { print('$s');
+        }
         s = new StringBuffer();
       }
     }

@@ -2,17 +2,14 @@
 /** A basic console provider with word-wrap support. */
 class ConsoleProvider implements IOProvider
 {
-  final StringInputStream textStream;
-  final Queue<String> lineBuffer;
-  final Queue<String> outputBuffer;
+  final StringInputStream textStream = new StringInputStream(stdin);
+  final Queue<String> lineBuffer = new Queue<String>();
+  final Queue<String> outputBuffer = new Queue<String>();
+  
   final int cols = 80;
 
-  ConsoleProvider()
-  :
-    textStream = new StringInputStream(stdin),
-    lineBuffer = new Queue<String>(),
-    outputBuffer = new Queue<String>();
-
+  ConsoleProvider();
+  
   Future<Object> command(String JSONCommand){
     var c = new Completer();
 
@@ -20,9 +17,9 @@ class ConsoleProvider implements IOProvider
 
     var cmd = IOCommands.toIOCommand(msgSet[0]);
     
-    //print('msg received>>> $cmd');
-
     switch(cmd){
+    
+    //print('msg received>>> $cmd');    switch(cmd){
       case IOCommands.PRINT:
         output(msgSet[1], msgSet[2]);
         c.complete(null);
@@ -45,7 +42,7 @@ class ConsoleProvider implements IOProvider
         //no clear console api, so 
         //we just print a bunch of lines
         for(int i=0; i < 50; i++){
-          print('');
+         print('');
         }
         c.complete(null);
         break;
@@ -90,7 +87,7 @@ class ConsoleProvider implements IOProvider
           s.writeFrom(saveBytes);
           s.close();
           c.complete(true);
-        }catch(FileIOException e){
+        }on FileIOException catch(e){
           print('File IO error.');
           c.complete(false);
         }
@@ -115,7 +112,7 @@ class ConsoleProvider implements IOProvider
           print('Restoring game "${fn}.sav"...');
           File f2 = new File('games${Platform.pathSeparator}${fn}.sav');
           c.complete(f2.readAsBytesSync());
-        }catch(FileIOException e){
+        }on FileIOException catch(e){
           print('File IO error.');
           c.complete(null);
         }

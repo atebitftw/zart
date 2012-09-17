@@ -47,16 +47,14 @@ void objectTestsV5(){
     });
     
     test('get property', (){
-      GameObject o1 = new GameObject(18); //"golden fish";
-
-      Expect.equals('*GOLDEN FISH*', o1.shortName);
+      GameObject o1 = new GameObject(18); //"golden fish";      Expect.equals('*GOLDEN FISH*', o1.shortName);
 
       Expect.equals(0x22da, o1.getPropertyValue(4), 'get property #4');
       Expect.equals(0x0007, o1.getPropertyValue(2), 'get property #4');
       
       //throw on property len > 2
       Expect.throws(() => o1.getPropertyValue(1),
-          (e) => e is GameException);
+          (e) =>GameException);
 
     });
 
