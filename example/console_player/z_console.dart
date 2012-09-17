@@ -1,6 +1,6 @@
-#import('../../lib/zart.dart');
 #import('dart:io');
 #import('dart:json');
+#import('package:zart/zart.dart');
 
 #source('console_provider.dart');
 #source('debug_provider.dart');

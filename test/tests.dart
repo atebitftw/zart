@@ -3,10 +3,8 @@
 #import('dart:isolate'); //for Timer
 #import('dart:math');
 
-#import('../../../src/lib/unittest/unittest.dart');
-//#import('dart:unittest');
-//^^ not working
-#import('../lib/zart.dart');
+#import('package:unittest/unittest.dart');
+#import('package:zart/zart.dart');
 
 #source('mock_ui_provider.dart');
 #source('mock_v3_machine.dart');
