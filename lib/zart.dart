@@ -3,6 +3,7 @@
 #import('dart:json');
 #import('dart:isolate');
 #import('dart:math');
+#import('package:drandom/drandom.dart');
 
 #source('src/header.dart');
 #source('src/_stack.dart');
@@ -12,7 +13,6 @@
 #source('src/debugger.dart');
 #source('src/operand.dart');
 #source('src/dictionary.dart');
-#source('src/d_random.dart');
 #source('src/game_exception.dart');
 
 #source('src/IO/iff.dart');
@@ -46,14 +46,19 @@ class ZMachine
   ZVersion _ver;
   String _mostRecentInput;
 
-  StringBuffer sbuff;
-  final List<int> _memoryStreams;
-  final List<int> _rawBytes;
+  StringBuffer sbuff = new StringBuffer();
+  final List<int> _memoryStreams = new List<int>();
+  final List<int> _rawBytes = new List<int>();
 
   static ZMachine _context;
 
   //contains machine version which are supported by z-machine.
-  final List<Machine> _supportedMachines;
+  final List<Machine> _supportedMachines = [
+                                            new Version3(),
+                                            new Version5(),
+                                            new Version7(),
+                                            new Version8()
+                                            ];
 
   Machine machine;
 
@@ -67,16 +72,6 @@ class ZMachine
   }
 
   ZMachine._internal()
-  :
-    sbuff = new StringBuffer(),
-    _memoryStreams = new List<int>(),
-    _rawBytes = new List<int>(),
-    _supportedMachines = [
-                          new Version3(),
-                          new Version5(),
-                          new Version7(),
-                          new Version8()
-                          ]
   {
       IOConfig = new DefaultProvider([]);
   }
@@ -116,8 +111,7 @@ class ZMachine
   /**
   * Runs the Z-Machine using the detected machine version from the story
   * file.  This can be overridden by passing [machineOverride] to the function.
-  * Doing so will cause given IMachine to be used for execution.  This is handy
-  * for using the [Disassembler] machine, or any other custome machine.
+  * Doing so will cause given [Machine] to be used for execution.
   */
   void run([Machine machineOverride = null]){
     _assertLoaded();
@@ -207,15 +201,15 @@ class ZVersion{
 
   const ZVersion(this._ver);
 
-  static final S = const ZVersion(-1); //special (disassembler, etc)
-  static final V1 = const ZVersion(1);
-  static final V2 = const ZVersion(2);
-  static final V3 = const ZVersion(3);
-  static final V4 = const ZVersion(4);
-  static final V5 = const ZVersion(5);
-  static final V6 = const ZVersion(6);
-  static final V7 = const ZVersion(7);
-  static final V8 = const ZVersion(8);
+  static const S = const ZVersion(-1); //special (disassembler, etc)
+  static const V1 = const ZVersion(1);
+  static const V2 = const ZVersion(2);
+  static const V3 = const ZVersion(3);
+  static const V4 = const ZVersion(4);
+  static const V5 = const ZVersion(5);
+  static const V6 = const ZVersion(6);
+  static const V7 = const ZVersion(7);
+  static const V8 = const ZVersion(8);
 
   String toString() => '$_ver';
 
@@ -237,13 +231,3 @@ class ZVersion{
     }
   }
 }
-
-//String get platform(){
-//  final int n=9007199254740992;
-//  final int newInt = n + 1;
-//  if ('$newInt' == '$n') {
-//    return 'js';
-//  } else {
-//    return 'vm';
-//  }
-//}

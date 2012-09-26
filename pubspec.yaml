@@ -1,6 +1,9 @@
 name: zart
 description: Dart implementation of the Infocom Z-Machine.
+author: John Evans <prujohn@gmail.com>
+homepage: https://github.com/prujohn/zart
 version: 1.0.0
 dependencies:
+  drandom:
   unittest:
     sdk: unittest

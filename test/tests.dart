@@ -5,6 +5,7 @@
 
 #import('package:unittest/unittest.dart');
 #import('package:zart/zart.dart');
+#import('package:drandom/drandom.dart');
 
 #source('mock_ui_provider.dart');
 #source('mock_v3_machine.dart');
@@ -16,9 +17,6 @@
 */
 
 void main() {
-
- // useHtmlEnhancedConfiguration();
-
   var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
 
   File f = new File(defaultGameFile);

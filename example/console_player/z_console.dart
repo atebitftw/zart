@@ -3,7 +3,6 @@
 #import('package:zart/zart.dart');
 
 #source('console_provider.dart');
-#source('debug_provider.dart');
 
 // A basic Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
@@ -16,10 +15,7 @@
 
 void main() {
 
-  //var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
-  //var defaultGameFile = 'games${Platform.pathSeparator}etude.z5';
-  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
-  //var defaultGameFile = 'games${Platform.pathSeparator}Tester.z8';
+  var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
 
   var args = new Options().arguments;
 
@@ -27,11 +23,6 @@ void main() {
 
   try{
     var bytes = f.readAsBytesSync();
-
-//    File f2 = new File('games${Platform.pathSeparator}bytes.txt');
-//    OutputStream s = f2.openOutputStream();
-//    s.writeString('$bytes');
-//    s.close();
 
     var gameData = Blorb.getZData(bytes);
 
@@ -57,27 +48,21 @@ void main() {
 
   Z.IOConfig = new ConsoleProvider();
 
-  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.take all.w.take all.move rug.open trap door.down.turn lantern on');
-
-  //Z.IOConfig = new DebugProvider.with('s.e.open window.enter.w');
-  //Z.IOConfig = new DebugProvider.with('');
-
-
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
   Debugger.enableVerbose = false;
-  Debugger.enableTrace = true;
+  Debugger.enableTrace = false;
   Debugger.enableStackTrace = false;
   //Debugger.setBreaks([0x2bfd]);
 
   try{
     Z.run();
   }on GameException catch(ge){
-    print('got it!\n $ge');
-    exit(0);
+    print('A game error occurred.');
+    exit(1);
   }on Exception catch(e){
-    print('$e');
-    exit(0);
+    print('A system error occurred.');
+    exit(1);
   }
 }
 

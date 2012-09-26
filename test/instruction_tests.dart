@@ -103,7 +103,7 @@ instructionTests(){
     var callInstruction = [224];
 
     // var operand types byte
-    callInstruction.add(operandList[0].dynamic.rawValue);
+    callInstruction.add((operandList[0] as Operand).rawValue);
 
     // write the operands
     for(final operand in operandList.getRange(1, 4)){

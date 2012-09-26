@@ -32,50 +32,19 @@ Games compiled with the latest Inform 7 appear to work fine.
 ## Playing the Mini-Zork Game ##
 There is a web-based version (Chrome or Dartium only, for now):
 
-http://www.lucastudios.com/demos/zart/zartweb.html
-
-The web version uses the Buckshot UI library:
-
-https://github.com/prujohn/Buckshot
+<http://www.lucastudios.com/demos/zart/zartweb.html>
 
 ## Want to author your own IF games? ##
-http://inform7.com/
+<http://inform7.com/>
 
 ## Next Steps ##
 * Bug fixes, optimization, enhancements to some op codes.
 * Add in some detection to warn if the game file may not be playable.
 * Improve the web interpreter (not included with this library) to support
 split screening, cursor positioning, etc.
-
-## Debugging ##
-There is a VERY basic runtime debugger included.  To enter it, type **/!** at any prompt.
-Doing so will drop you into a simple REPL.
-
-### Debug Commands ###
-* **locals** - dumps out locals for the current routine.
-* **globals** - dumps out globals.
-* **dictionary** - dumps out the game dictionary.
-* **move x to y** - moves object #x to object #y
-* **object x** - dumps info regarding object #x.
-* **enable (tracing|verbose)** - enables tracing or verbose debug mode.
-* **disable (tracing|verbose)** - disables tracing or verbose debug mode.
-* **header** - dumps header information
-* **dump addr len** dumps memory from address 'addr' to length
-* **stacks** - dumps the call stack and the game stack.
-* **q** - leave debug mode and return to game.
-* **n or Enter** - advance to the next instruction.
-
-You can also enable tracing and/or verbose with:
-
-	Debugger.enableDebug = true;  //toggles all debug options
-    Debugger.enableTrace = true;
-    Debugger.enableVerbose = true;
     
 ## Reference Material ##
 * Z-Machine Spec: http://www.gnelson.demon.co.uk/zspec/index.html
-
-## Acknowledgements ##
-Adam Smith's RNG lib "DRandom" (found here: https://github.com/financeCoding/DRandom/blob/master/DRandom.dart)
 
 ## License ##
 Source Code: Apache 2.0 (see LICENSE file)
