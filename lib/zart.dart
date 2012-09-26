@@ -94,7 +94,7 @@ class ZMachine
     if (result.length != 1){
       throw new Exception('Z-Machine version ${_ver} not supported.');
     }else{
-      machine = result.dynamic[0];
+      machine = result[0] as Machine;
     }
 
     print('Zart: Using Z-Machine v${machine.version}.');
