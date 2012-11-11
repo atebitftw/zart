@@ -1,3 +1,5 @@
+part of zart_prujohn;
+
 class _MemoryMap {
 
   // A word address specifies an even address in the bottom 128K of memory
@@ -24,8 +26,9 @@ class _MemoryMap {
 
    //if (which == 0) return Z.stack.pop();
 
-   if (which < 0x10 || which > 0xff)
+   if (which < 0x10 || which > 0xff) {
      throw new GameException('Global lookup register out of range.');
+   }
 
    //global 0x00 means pop from stack
    return loadw(globalVarsAddress + ((which - 0x10) * 2));
@@ -35,8 +38,9 @@ class _MemoryMap {
   void writeGlobal(int which, int value){
    // if (which == 0) return Z.stack.push(value);
 
-    if (which < 0x10 || which > 0xff)
+    if (which < 0x10 || which > 0xff) {
       throw new GameException('Global lookup register out of range.');
+    }
 
       storew(globalVarsAddress + ((which - 0x10) * 2), value);
   }
@@ -75,8 +79,9 @@ class _MemoryMap {
     checkBounds(address);
     checkBounds(address + 1);
 
-    if (value > 0xffff)
+    if (value > 0xffff) {
       throw new GameException('word out of range');
+    }
 
     if (value < 0){
       //convert to 16-bit signed neg
@@ -122,7 +127,7 @@ class _MemoryMap {
     return _mem.getRange(address, howMany);
   }
 
-  int get size() => _mem.length;
+  int get size => _mem.length;
 
 }
 

@@ -1,3 +1,4 @@
+part of v8_tests;
 
 
 void objectTestsV8(){

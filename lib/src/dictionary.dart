@@ -1,14 +1,15 @@
+part of zart_prujohn;
 
 class Dictionary {
   final List<String> entries;
   final List<String> separators;
   int entryLength;
 
-  int get encodedTextBytes() => Z.machine.version.toInt() <= 3 ? 4 : 6;
+  int get encodedTextBytes => Z.machine.version.toInt() <= 3 ? 4 : 6;
 
   int _address;
 
-  Dictionary([int address])
+  Dictionary({int address})
   :
     entries = new List<String>(),
     separators = new List<String>()

@@ -1,10 +1,12 @@
-#import('dart:io');
-#import('../../../../src/lib/unittest/unittest.dart');
+library v8_tests;
+
+import 'dart:io';
+import '../../../../src/lib/unittest/unittest.dart';
 //#import('dart:unittest');
 //^^ not working
-#import('../../lib/zart.dart');
+import '../../lib/zart.dart';
 
-#source('v8_object_tests.dart');
+part 'v8_object_tests.dart';
 
 main(){
   // Tests depend on using this file.  Tests will fail if changed.

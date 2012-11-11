@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 
 //TODO added total bytes after FORM chunk
@@ -58,8 +59,8 @@ class Quetzal {
 
     stackData.addFirst(new StackFrame(0,0));
 
-    while(stackData.first().nextCallStackIndex != null){
-      stackData.addFirst(new StackFrame(stackData.first().nextCallStackIndex, stackData.first().nextEvalStackIndex));
+    while(stackData.first.nextCallStackIndex != null){
+      stackData.addFirst(new StackFrame(stackData.first.nextCallStackIndex, stackData.first.nextEvalStackIndex));
     }
 
     var totalStackBytes = 0;
@@ -104,8 +105,9 @@ class Quetzal {
       }
     }
 
-    if (totalStackBytes % 2 != 0)
-      saveData.add(0); //pad byte
+    if (totalStackBytes % 2 != 0) {
+      saveData.add(0);
+    } //pad byte
 
     return saveData;
   }
@@ -205,7 +207,7 @@ class Quetzal {
             }
 
             stackList.add(getNextStackFrame());
-            stacksLen -= stackList.last().computedByteSize;
+            stacksLen -= stackList.last.computedByteSize;
           }
 
           gotStacks = true;
@@ -214,15 +216,17 @@ class Quetzal {
           var numBytes = IFF.read4Byte(fileBytes);
 
           //memory length mismatch
-          if (numBytes != Z.machine.mem._mem.length)
+          if (numBytes != Z.machine.mem._mem.length) {
             return false;
+          }
 
           memBytes = fileBytes.getRange(0, numBytes);
           fileBytes.removeRange(0, numBytes);
 
           //IFF.read pad byte if present
-          if (numBytes % 2 != 0)
+          if (numBytes % 2 != 0) {
             IFF.nextByte(fileBytes);
+          }
           gotMem = true;
           break;
         default:
@@ -327,8 +331,9 @@ class StackFrame
 
     nextCallStackIndex = callIndex + 1;
 
-    if (nextCallStackIndex >= Z.machine.callStack.length)
+    if (nextCallStackIndex >= Z.machine.callStack.length) {
       nextCallStackIndex = null;
+    }
 
     var eStack = Z.machine.stack[evalIndex];
 
@@ -337,11 +342,12 @@ class StackFrame
         eStack = Z.machine.stack[++evalIndex];
     }
 
-    if (nextCallStackIndex != null)
+    if (nextCallStackIndex != null) {
       nextEvalStackIndex = evalIndex + 1;
+    }
   }
 
-  int get computedByteSize() => 8 + (locals.length * 2) + (evals.length * 2);
+  int get computedByteSize => 8 + (locals.length * 2) + (evals.length * 2);
 
   String toString(){
     var s = new StringBuffer();

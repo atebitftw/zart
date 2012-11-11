@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 /** Helper class for binary operations */
 class BinaryHelper {

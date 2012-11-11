@@ -1,5 +1,7 @@
 //V5 Object Tests
 
+part of v5_tests;
+
 void objectTestsV5(){
   group('Objects>', (){
     test('remove', (){

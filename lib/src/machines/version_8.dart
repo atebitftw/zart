@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 /**
 * Version 8 is basically version 5 with different memory addressing
@@ -5,10 +6,10 @@
 */
 class Version8 extends Version5
 {
-  ZVersion get version() => ZVersion.V8;
+  ZVersion get version => ZVersion.V8;
 
   // Kb
-  int get maxFileLength() => 512;
+  int get maxFileLength => 512;
 
   int unpack(int packedAddr) => packedAddr << 3;
 

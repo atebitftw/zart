@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 /**
 * A runtime debugger for Z-Machine.
@@ -52,14 +53,14 @@ class Debugger {
 
       switch(args[0]){
         case 'dump':
-          var addr = parseInt(args[1]);
-          var howMany = parseInt(args[2]);
+          var addr = int.parse(args[1]);
+          var howMany = int.parse(args[2]);
           debug('${Z.machine.mem.dump(addr, howMany)}');
           Z.callAsync(_repl);
           break;
         case 'move':
-          var obj1 = new GameObject(parseInt(args[1]));
-          var obj2 = new GameObject(parseInt(args[2]));
+          var obj1 = new GameObject(int.parse(args[1]));
+          var obj2 = new GameObject(int.parse(args[2]));
           obj1.insertTo(obj2.id);
           Z.callAsync(_repl);
           break;
@@ -113,7 +114,7 @@ class Debugger {
         case 'globals':
           StringBuffer s = new StringBuffer();
 
-          var col = args.length == 2 ? parseInt(args[1]) : 10;
+          var col = args.length == 2 ? int.parse(args[1]) : 10;
           if (col < 1) col = 1;
 
           for(int i = 0x10; i < 0xff; i++){
@@ -140,7 +141,7 @@ class Debugger {
           Z.callAsync(_repl);
           break;
         case 'object':
-          var obj = new GameObject(parseInt(args[1]));
+          var obj = new GameObject(int.parse(args[1]));
           obj.dump();
           Z.callAsync(_repl);
           break;
@@ -243,8 +244,9 @@ class Debugger {
   /// Verbose Channel (via Debug)
   static void verbose(String outString){
     //TODO support redirect to file.
-    if (Debugger.enableDebug && Debugger.enableVerbose)
+    if (Debugger.enableDebug && Debugger.enableVerbose) {
       debug(outString);
+    }
   }
 
   /// Debug Channel

@@ -1,3 +1,4 @@
+part of tests;
 
 //first (most significant) byte
 int fst(int word) => word >> 8;
@@ -60,10 +61,10 @@ instructionTests(){
       switch(varType.toLowerCase()){
         case 'g':
           // G0 = 16, G1 = 17, etc
-          return parseInt(item.substring(1, item.length-1)) + 0x10;
+          return int.parse(item.substring(1, item.length-1)) + 0x10;
         case 'l':
           // L0 = 1, L1 = 2, etc
-          return parseInt(item.substring(1, item.length-1)) + 0x01;
+          return int.parse(item.substring(1, item.length-1)) + 0x01;
         default:
           Expect.fail('variable type not recognized: $varType');
           break;
@@ -168,7 +169,7 @@ instructionTests(){
       test('test routine check', (){
         //first/last byte of testRoutineRestore is correct
         Expect.equals(Z.machine.mem.loadb(testRoutineAddr), testRoutineRestoreBytes[0]);
-        Expect.equals(Z.machine.mem.loadb(testRoutineEndAddr), testRoutineRestoreBytes.last());
+        Expect.equals(Z.machine.mem.loadb(testRoutineEndAddr), testRoutineRestoreBytes.last);
       });
 
       test('routine restore check', (){

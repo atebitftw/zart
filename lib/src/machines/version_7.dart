@@ -1,10 +1,11 @@
+part of zart_prujohn;
 
 class Version7 extends Version5
 {
-  ZVersion get version() => ZVersion.V7;
+  ZVersion get version => ZVersion.V7;
 
   // Kb
-  int get maxFileLength() => 320;
+  int get maxFileLength => 320;
 
   int unpack(int packedAddr){
     return (packedAddr << 2) + (mem.loadw(Header.ROUTINES_OFFSET) << 3);

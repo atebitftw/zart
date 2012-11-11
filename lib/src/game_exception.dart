@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 class GameException implements Exception
 {

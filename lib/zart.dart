@@ -1,34 +1,34 @@
-#library('zart.prujohn');
+library zart_prujohn;
 
-#import('dart:json');
-#import('dart:isolate');
-#import('dart:math');
-#import('package:drandom/drandom.dart');
+import 'dart:json';
+import 'dart:isolate';
+import 'dart:math';
+import 'package:drandom/drandom.dart';
 
-#source('src/header.dart');
-#source('src/_stack.dart');
-#source('src/_memory_map.dart');
-#source('src/binary_helper.dart');
-#source('src/zscii.dart');
-#source('src/debugger.dart');
-#source('src/operand.dart');
-#source('src/dictionary.dart');
-#source('src/game_exception.dart');
+part 'src/header.dart';
+part 'src/_stack.dart';
+part 'src/_memory_map.dart';
+part 'src/binary_helper.dart';
+part 'src/zscii.dart';
+part 'src/debugger.dart';
+part 'src/operand.dart';
+part 'src/dictionary.dart';
+part 'src/game_exception.dart';
 
-#source('src/IO/iff.dart');
-#source('src/IO/quetzal.dart');
-#source('src/IO/blorb.dart');
-#source('src/IO/default_provider.dart');
-#source('src/IO/io_provider.dart');
+part 'src/io/iff.dart';
+part 'src/io/quetzal.dart';
+part 'src/io/blorb.dart';
+part 'src/io/default_provider.dart';
+part 'src/io/io_provider.dart';
 
-#source('src/machines/machine.dart');
-#source('src/machines/version_3.dart');
-#source('src/machines/version_5.dart');
-#source('src/machines/version_7.dart');
-#source('src/machines/version_8.dart');
-#source('src/game_object.dart');
+part 'src/machines/machine.dart';
+part 'src/machines/version_3.dart';
+part 'src/machines/version_5.dart';
+part 'src/machines/version_7.dart';
+part 'src/machines/version_8.dart';
+part 'src/game_object.dart';
 
-ZMachine get Z() => new ZMachine();
+ZMachine get Z => new ZMachine();
 
 /**
 * This is a partial-interpreter for the Z-Machine.  It handles most interpreter

@@ -1,3 +1,4 @@
+part of z_console;
 
 /** A basic console provider with word-wrap support. */
 class ConsoleProvider implements IOProvider
@@ -5,20 +6,20 @@ class ConsoleProvider implements IOProvider
   final StringInputStream textStream = new StringInputStream(stdin);
   final Queue<String> lineBuffer = new Queue<String>();
   final Queue<String> outputBuffer = new Queue<String>();
-  
+
   final int cols = 80;
 
   ConsoleProvider();
-  
+
   Future<Object> command(String JSONCommand){
     var c = new Completer();
 
     var msgSet = JSON.parse(JSONCommand);
 
     var cmd = IOCommands.toIOCommand(msgSet[0]);
-    
+
     switch(cmd){
-    
+
     //print('msg received>>> $cmd');    switch(cmd){
       case IOCommands.PRINT:
         output(msgSet[1], msgSet[2]);
@@ -39,7 +40,7 @@ class ConsoleProvider implements IOProvider
           .then((result) => c.complete(result));
         break;
       case IOCommands.CLEAR_SCREEN:
-        //no clear console api, so 
+        //no clear console api, so
         //we just print a bunch of lines
         for(int i=0; i < 50; i++){
          print('');
@@ -75,7 +76,7 @@ class ConsoleProvider implements IOProvider
 
     textStream.onLine = (){
       var fn = textStream.readLine();
-      if (fn == null || fn.isEmpty())
+      if (fn == null || fn.isEmpty)
       {
         print('Invalid file name given.');
         c.complete(false);
@@ -103,7 +104,7 @@ class ConsoleProvider implements IOProvider
 
     textStream.onLine = (){
       var fn = textStream.readLine();
-      if (fn == null || fn.isEmpty())
+      if (fn == null || fn.isEmpty)
       {
         print('Invalid file name given.');
         c.complete(null);
@@ -132,7 +133,7 @@ class ConsoleProvider implements IOProvider
       var words = new Queue<String>.from(l.split(' '));
 
       var s = new StringBuffer();
-      while(!words.isEmpty()){
+      while(!words.isEmpty){
         var nextWord = words.removeFirst();
 
         if (s.length > cols){
@@ -141,7 +142,7 @@ class ConsoleProvider implements IOProvider
           s = new StringBuffer();
           s.add('$nextWord ');
         }else{
-          if (words.isEmpty()){
+          if (words.isEmpty){
             s.add('$nextWord ');
             outputBuffer.addFirst('$s');
             print('$s');
@@ -165,7 +166,7 @@ class ConsoleProvider implements IOProvider
   Future<String> getChar(){
     var c = new Completer();
 
-    if (!lineBuffer.isEmpty()){
+    if (!lineBuffer.isEmpty){
       c.complete(lineBuffer.removeLast());
     }else{
       //flush?
@@ -190,7 +191,7 @@ class ConsoleProvider implements IOProvider
   Future<String> getLine(){
     Completer c = new Completer();
 
-    if (!lineBuffer.isEmpty()){
+    if (!lineBuffer.isEmpty){
       c.complete(lineBuffer.removeLast());
     }else{
       textStream.onLine = (){

@@ -1,3 +1,4 @@
+part of tests;
 
 
 void objectTests(){

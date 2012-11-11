@@ -1,3 +1,5 @@
+part of zart_prujohn;
+
 /**
 * Header address lookups (all z-machine versions).
 */

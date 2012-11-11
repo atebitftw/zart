@@ -1,3 +1,5 @@
+part of zart_prujohn;
+
 /**
 * Default provider with word-wrap support.
 *
@@ -40,7 +42,7 @@ class DefaultProvider implements IOProvider
       var words = new Queue<String>.from(l.split(' '));
 
       var s = new StringBuffer();
-      while(!words.isEmpty()){
+      while(!words.isEmpty){
         var nextWord = words.removeFirst();
 
         if (s.length > cols){
@@ -48,7 +50,7 @@ class DefaultProvider implements IOProvider
           s = new StringBuffer();
           s.add('$nextWord ');
         }else{
-          if (words.isEmpty()){
+          if (words.isEmpty){
             s.add('$nextWord ');
             print('$s');
             s = new StringBuffer();
@@ -70,7 +72,7 @@ class DefaultProvider implements IOProvider
   Future<String> getLine(){
     Completer c = new Completer();
 
-    if (!script.isEmpty()){
+    if (!script.isEmpty){
       c.complete(script.removeFirst());
     }
 

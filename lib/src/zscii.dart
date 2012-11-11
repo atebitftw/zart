@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 class ZChar{
   final bool terminatorSet;
@@ -182,7 +183,7 @@ class ZSCII {
   }
 
   static int CharToZChar(String c){
-    if (c.isEmpty() || c.length != 1){
+    if (c.isEmpty || c.length != 1){
       throw new GameException('String must be length of 1');
     }
 

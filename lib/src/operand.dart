@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 class Operand
 {
@@ -12,7 +13,7 @@ class Operand
   /// If the type is VARIABLE, then performns an implicit
   /// read of the variable's address, otherwise just
   /// returns the rawValue (SMALL or LARGE);
-  int get value(){
+  int get value{
     switch(type){
       case OperandType.LARGE:
       case OperandType.SMALL:
@@ -29,7 +30,7 @@ class Operand
     }
   }
 
-  int get peekValue(){
+  int get peekValue{
     switch(type){
       case OperandType.LARGE:
       case OperandType.SMALL:

@@ -1,8 +1,10 @@
-#import('dart:io');
-#import('dart:json');
-#import('package:zart/zart.dart');
+library z_console;
 
-#source('console_provider.dart');
+import 'dart:io';
+import 'dart:json';
+import 'package:zart/zart.dart';
+
+part 'console_provider.dart';
 
 // A basic Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
@@ -15,11 +17,11 @@
 
 void main() {
 
-  var defaultGameFile = 'games${Platform.pathSeparator}minizork.z3';
+  var defaultGameFile = 'example\\games${Platform.pathSeparator}minizork.z3';
 
   var args = new Options().arguments;
 
-  File f = (args.isEmpty()) ? new File(defaultGameFile) : new File(args[0]);
+  File f = (args.isEmpty) ? new File(defaultGameFile) : new File(args[0]);
 
   try{
     var bytes = f.readAsBytesSync();

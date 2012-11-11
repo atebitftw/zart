@@ -1,3 +1,5 @@
+part of zart_prujohn;
+
 /**
 * Base machine that is compatible with Z-Machine V1.
 *
@@ -33,13 +35,13 @@ class Machine
 
   DRandom r;
 
-  String pcHex([int offset = 0]) => '[0x${(PC + offset).toRadixString(16)}]';
+  String pcHex({int offset: 0}) => '[0x${(PC + offset).toRadixString(16)}]';
 
   _MemoryMap mem;
 
   Map<String, Function> ops;
 
-  int get propertyDefaultsTableSize() => 31;
+  int get propertyDefaultsTableSize => 31;
 
   /**
   * Takes any Dart int between -32768 & 32767 and makes a machine-readable
@@ -75,10 +77,10 @@ class Machine
   }
 
 
-  ZVersion get version() => ZVersion.V1;
+  ZVersion get version => ZVersion.V1;
 
   // Kb
-  int get maxFileLength() => 128;
+  int get maxFileLength => 128;
 
   int unpack(int packedAddr){
     return packedAddr << 1;

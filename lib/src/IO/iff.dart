@@ -1,3 +1,4 @@
+part of zart_prujohn;
 
 /**
 * A utility class supporting common IFF operations.
@@ -6,7 +7,7 @@ class IFF {
 
   static int nextByte(List stream){
 
-    if (stream.isEmpty()) return null;
+    if (stream.isEmpty) return null;
 
     var nb = stream[0];
 
@@ -125,7 +126,7 @@ class Chunk{
 
   String toString() => _str;
 
-  List<int> charCodes() => _str.charCodes();
+  List<int> charCodes() => _str.charCodes;
 
   static Chunk toChunk(String chunk){
     switch(chunk){

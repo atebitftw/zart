@@ -1,10 +1,11 @@
+part of zart_prujohn;
 
 /**
 * Implementation of Z-Machine v5
 */
 class Version5 extends Version3
 {
-  ZVersion get version() => ZVersion.V5;
+  ZVersion get version => ZVersion.V5;
 
 
   //TODOs
@@ -64,7 +65,7 @@ class Version5 extends Version3
   }
 
   // Kb
-  int get maxFileLength() => 256;
+  int get maxFileLength => 256;
 
   int unpack(int packedAddr) => packedAddr << 2;
 
@@ -229,10 +230,10 @@ class Version5 extends Version3
         break;
       case 3:
         if (stream < 0){
-          if (Z._memoryStreams.isEmpty()) return;
+          if (Z._memoryStreams.isEmpty) return;
 
           //write out to memory
-          var addr = Z._memoryStreams.last();
+          var addr = Z._memoryStreams.last;
           Z._memoryStreams.removeLast();
 
           var data = Z.sbuff.toString();
@@ -247,7 +248,7 @@ class Version5 extends Version3
           }
 
           //if the output stream queue is empty then
-          if (Z._memoryStreams.isEmpty()){
+          if (Z._memoryStreams.isEmpty){
             outputStream3 = false;
           }
         }else{

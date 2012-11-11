@@ -1,27 +1,29 @@
+part of zart_prujohn;
+
 /** Helper class for working with v3 game objects. */
 class GameObject
 {
   final int id;
-  int get PARENT_ADDR() => _address + ((Z.machine.version.toInt() <= 3 ? 4 : 6));
-  int get SIBLING_ADDR() => _address + ((Z.machine.version.toInt() <= 3 ? 5 : 8));
-  int get CHILD_ADDR() => _address + ((Z.machine.version.toInt() <= 3 ? 6 : 10));
+  int get PARENT_ADDR => _address + ((Z.machine.version.toInt() <= 3 ? 4 : 6));
+  int get SIBLING_ADDR => _address + ((Z.machine.version.toInt() <= 3 ? 5 : 8));
+  int get CHILD_ADDR => _address + ((Z.machine.version.toInt() <= 3 ? 6 : 10));
 
   int _address;
 
-  int get parent() => (Z.machine.version.toInt() <= 3) ? Z.machine.mem.loadb(PARENT_ADDR) : Z.machine.mem.loadw(PARENT_ADDR);
+  int get parent => (Z.machine.version.toInt() <= 3) ? Z.machine.mem.loadb(PARENT_ADDR) : Z.machine.mem.loadw(PARENT_ADDR);
   set parent(int oid) => Z.machine.version.toInt() <= 3 ? Z.machine.mem.storeb(PARENT_ADDR, oid) : Z.machine.mem.storew(PARENT_ADDR, oid);
 
-  int get child() => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(CHILD_ADDR) : Z.machine.mem.loadw(CHILD_ADDR);
+  int get child => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(CHILD_ADDR) : Z.machine.mem.loadw(CHILD_ADDR);
   set child(int oid) => Z.machine.version.toInt() <= 3 ? Z.machine.mem.storeb(CHILD_ADDR, oid) : Z.machine.mem.storew(CHILD_ADDR, oid);
 
-  int get sibling() => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(SIBLING_ADDR) : Z.machine.mem.loadw(SIBLING_ADDR);
+  int get sibling => Z.machine.version.toInt() <= 3 ? Z.machine.mem.loadb(SIBLING_ADDR) : Z.machine.mem.loadw(SIBLING_ADDR);
   set sibling(int oid) => Z.machine.version.toInt() <= 3 ? Z.machine.mem.storeb(SIBLING_ADDR, oid) : Z.machine.mem.storew(SIBLING_ADDR, oid);
 
   int flags;
 
-  int get properties() => Z.machine.mem.loadw(_address + (Z.machine.version.toInt() <= 3 ? 7 : 12));
+  int get properties => Z.machine.mem.loadw(_address + (Z.machine.version.toInt() <= 3 ? 7 : 12));
 
-  int get propertyTableStart() => properties + (Z.machine.mem.loadb(properties) * 2) + 1;
+  int get propertyTableStart => properties + (Z.machine.mem.loadb(properties) * 2) + 1;
 
   String shortName;
 
@@ -115,8 +117,9 @@ class GameObject
     }
 
     if (len == 1){
-      if (value < 0)
+      if (value < 0) {
         Debugger.todo('length is 1 & value < 0');
+      }
       value &= 0xff;
       Z.machine.mem.storeb(addr, value);
     }else if (len == 2){
@@ -256,8 +259,9 @@ class GameObject
 
   void insertTo(int obj){
     
-    if (parent != 0)
+    if (parent != 0) {
           removeFromTree();
+    }
 
 
     var p = new GameObject(obj);

@@ -1,23 +1,26 @@
-#import('dart:io');
-#import('dart:json');
-#import('dart:isolate'); //for Timer
-#import('dart:math');
+library tests;
 
-#import('package:unittest/unittest.dart');
-#import('package:zart/zart.dart');
-#import('package:drandom/drandom.dart');
+import 'dart:io';
+import 'dart:json';
+import 'dart:isolate'; //for Timer
+import 'dart:math';
 
-#source('mock_ui_provider.dart');
-#source('mock_v3_machine.dart');
-#source('instruction_tests.dart');
-#source('object_tests.dart');
+import 'package:unittest/unittest.dart';
+import 'package:zart/zart.dart';
+import 'package:drandom/drandom.dart';
+
+part 'mock_ui_provider.dart';
+part 'mock_v3_machine.dart';
+part 'instruction_tests.dart';
+part 'object_tests.dart';
 
 /*
 * IMPORTANT: Run in Checked Mode so Assertions fire.
 */
 
 void main() {
-  var defaultGameFile = 'games${Platform.pathSeparator}zork1.z3';
+  final s = Platform.pathSeparator;
+  var defaultGameFile = 'example${s}games${s}minizork.z3';
 
   File f = new File(defaultGameFile);
 

@@ -1,12 +1,13 @@
+part of zart_prujohn;
 
 /**
 * Represents a contract for IO (Presentation) providers.
 */
-class IOProvider {
+abstract class IOProvider {
 
   //TODO use isolates between IO and engine.
 
-  abstract Future<Object> command(String JSONCommand);
+  Future<Object> command(String JSONCommand);
 }
 
 /** Enumerates supported IO command message */

@@ -1,3 +1,4 @@
+part of tests;
 
 /**
 * Mock UI Provider for Unit Testing
