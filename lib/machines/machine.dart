@@ -64,13 +64,13 @@ class Machine
   * ref(2.2)
   */
   static int dartSignedIntTo16BitSigned(int val){
-    assert(val >= -32768 && val <= 32767);
+    if(val < -32768 || val > 32767){
+      throw GameException("Signed 16-bit int is out of range: $val");
+    }
 
     if (val > -1) return val;
 
-    val = val.abs();
-
-    return 65536 - val;
+    return 65536 - val.abs();
   }
 
   /**

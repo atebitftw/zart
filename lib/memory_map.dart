@@ -2,6 +2,8 @@ import 'package:zart/dictionary.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/machines/machine.dart';
 
+import 'binary_helper.dart';
+
 class MemoryMap {
 
   // A word address specifies an even address in the bottom 128K of memory
@@ -20,7 +22,7 @@ class MemoryMap {
   Dictionary dictionary;
 
   MemoryMap(List bytes)
-  : memList = new List.from(bytes);
+    : memList = new List.from(bytes);
 
 
   // Reads a global variable (word)
@@ -100,6 +102,12 @@ class MemoryMap {
 
   int _getWord(int address) {
     var word = ((memList[address] << 8) | memList[address + 1]) & 0xffff;
+    // if (address == 6){
+    //   print("address index: ${address}, word: $word");
+    //   print("address: ${BinaryHelper.binaryOf(memList[address])}, address << 8: ${BinaryHelper.binaryOf(memList[address] << 8)}, address + 1: ${BinaryHelper.binaryOf(memList[address+1])} ");
+    //   print("address<<8 | address + 1: = ${BinaryHelper.binaryOf(((memList[address] << 8) | memList[address + 1]))}");
+    //   print("final: ${BinaryHelper.binaryOf(((memList[address] << 8) | memList[address + 1]) & 0xffff)}");
+    // }
 
     //no Dart-signed values should be present.
     assert(word >= 0);

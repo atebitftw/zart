@@ -8,7 +8,7 @@ class GameException implements Exception
 
   GameException(this.msg)
   :
-    addr = Z.machine.PC - 1;
+    addr = Z.machine.PC - 1{print(this);}
 
   String toString() {
     try{
