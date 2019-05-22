@@ -1,18 +1,21 @@
 library tests;
 
 import 'dart:io';
-import 'dart:json';
-import 'dart:isolate'; //for Timer
 import 'dart:math';
 
-import 'package:unittest/unittest.dart';
+import 'package:test/test.dart';
+import 'package:zart/binary_helper.dart';
+import 'package:zart/debugger.dart';
+import 'package:zart/header.dart';
+import 'package:zart/machines/machine.dart';
 import 'package:zart/zart.dart';
-import 'package:drandom/drandom.dart';
-
-part 'mock_ui_provider.dart';
-part 'mock_v3_machine.dart';
-part 'instruction_tests.dart';
-part 'object_tests.dart';
+import 'package:DRandom/DRandom.dart';
+import 'package:zart/zscii.dart';
+import 'instruction_tests.dart';
+import 'mock_ui_provider.dart';
+import 'mock_v3_machine.dart';
+import 'object_tests.dart';
+import 'test_helper.dart';
 
 /*
 * IMPORTANT: Run in Checked Mode so Assertions fire.
@@ -26,13 +29,9 @@ void main() {
 
   try{
     Z.load(f.readAsBytesSync());
-  } on FileIOException catch (fe){
+  } on Exception catch (fe){
     //TODO log then print friendly
     print('$fe');
-    exit(1);
-  } on Exception catch (e){
-    //TODO log then print friendly
-    print('$e');
     exit(1);
   }
 
@@ -57,16 +56,20 @@ void main() {
       Expect.equals(0, Machine.dartSignedIntTo16BitSigned(0));
       Expect.equals(42, Machine.dartSignedIntTo16BitSigned(42));
 
-      Expect.throws(() => Machine.dartSignedIntTo16BitSigned(-32769),
-          (e) => e is AssertionError);
+      // Expect.throws(() => Machine.dartSignedIntTo16BitSigned(-32769),
+      //     (e) => e is AssertionError);
+      expect(() => Machine.dartSignedIntTo16BitSigned(-32769), throwsA(AssertionError));
 
     });
 
     test('division', (){
       //ref (2.4.3)
-      Expect.equals(-5, (-11 / 2).toInt());
-      Expect.equals(5, (-11 / -2).toInt());
-      Expect.equals(-5, (11 / -2).toInt());
+      // Expect.equals(-5, (-11 / 2).toInt());
+      // Expect.equals(5, (-11 / -2).toInt());
+      // Expect.equals(-5, (11 / -2).toInt());
+      Expect.equals(-5, (-11 ~/ 2));
+      Expect.equals(5, (-11 ~/ -2));
+      Expect.equals(-5, (11 ~/ -2));
       Expect.equals(3, (13 % -5).toInt());
 
       int doMod(a, b){
@@ -88,7 +91,7 @@ void main() {
     test('unicode translations', (){
       for(int i = 155; i <= 223; i++){
         var s = new StringBuffer();
-        s.addCharCode(ZSCII.UNICODE_TRANSLATIONS['$i']);
+        s.writeCharCode(ZSCII.UNICODE_TRANSLATIONS['$i']);
         Expect.equals(s.toString(), ZSCII.ZCharToChar(i));
       }
     });
@@ -107,15 +110,13 @@ void main() {
 
   group('RNG>', (){
     test('in bounds', (){
-      var r = new DRandom.withSeed(new Date.now().millisecond);
+      var r = new DRandom.withSeed(new DateTime.now().millisecond);
 
       for(int i = 0; i < 1000; i++){
         var result = r.NextFromMax(10) + 1;
         Expect.isTrue(result >= 1 && result <= 10, 'between 1 - 10 inclusive');
       }
-
     });
-
   });
 
 

@@ -1,26 +1,25 @@
-part of zart_prujohn;
+import 'package:zart/machines/machine.dart';
+import 'package:zart/game_exception.dart';
 
-//TODO error handling
-
-class _Stack {
-  /// Z-Machine Stack
-  final List<int> _stack;
+/// Z-Machine Stack
+class Stack {
+  final List<int> stack;
   final int _max;
 
   int sp = 0;
 
-  _Stack()
+  Stack()
   :
-    _stack = new List<int>(),
+    stack = new List<int>(),
     _max = 0;
 
-  _Stack.max(this._max)
+  Stack.max(this._max)
   :
-    _stack = new List<int>();
+    stack = new List<int>();
 
   int pop() {
-    var v = _stack[0];
-    _stack.removeRange(0, 1);
+    var v = stack[0];
+    stack.removeRange(0, 1);
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
@@ -30,7 +29,7 @@ class _Stack {
   }
 
   int operator [](int index){
-    var v = _stack[index];
+    var v = stack[index];
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
@@ -45,7 +44,7 @@ class _Stack {
       value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
-    _stack[index] = value;
+    stack[index] = value;
   }
 
   void push(int value) {
@@ -64,11 +63,11 @@ class _Stack {
       value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
-    _stack.insertRange(0, 1, value);
+    stack.fillRange(0, 1, value);
   }
 
   int peek(){
-    var v = _stack[0];
+    var v = stack[0];
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
@@ -77,17 +76,17 @@ class _Stack {
     return v;
   }
 
-  void clear() => _stack.clear();
+  void clear() => stack.clear();
 
   void dump(){
     int p = 0;
-    _stack.forEach((i){
+    stack.forEach((i){
       print("${p++}: 0x${i.toRadixString(16)}");
     });
   }
 
   String toString(){
-    var mapped = _stack.map((s) => '0x${s.toRadixString(16)}');
+    var mapped = stack.map((s) => '0x${s.toRadixString(16)}');
     return '$mapped';
   }
 
@@ -99,5 +98,5 @@ class _Stack {
 //    sp -= amount;
 //  }
 
-  int get length => _stack.length;
+  int get length => stack.length;
 }

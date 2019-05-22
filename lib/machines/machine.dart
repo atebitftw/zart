@@ -1,4 +1,18 @@
-part of zart_prujohn;
+
+import 'package:DRandom/DRandom.dart';
+import 'package:zart/IO/io_provider.dart';
+import 'package:zart/IO/quetzal.dart';
+import 'package:zart/binary_helper.dart';
+import 'package:zart/debugger.dart';
+import 'package:zart/dictionary.dart';
+import 'package:zart/game_exception.dart';
+import 'package:zart/game_object.dart';
+import 'package:zart/header.dart';
+import 'package:zart/memory_map.dart';
+import 'package:zart/operand.dart';
+import 'package:zart/stack.dart';
+import 'package:zart/z_machine.dart';
+import 'package:zart/zscii.dart';
 
 /**
 * Base machine that is compatible with Z-Machine V1.
@@ -13,8 +27,8 @@ class Machine
   static final int TRUE = 1;
   static final int SP = 0;
 
-  final _Stack stack;
-  final _Stack callStack;
+  final Stack stack;
+  final Stack callStack;
 
   /// Z-Machine Program Counter
   int PC = 0;
@@ -37,7 +51,7 @@ class Machine
 
   String pcHex({int offset: 0}) => '[0x${(PC + offset).toRadixString(16)}]';
 
-  _MemoryMap mem;
+  MemoryMap mem;
 
   Map<String, Function> ops;
 
@@ -138,7 +152,7 @@ class Machine
     var resultAddrByte = callStack.pop();
 
     //unwind locals and params length
-    callStack._stack.removeRange(0, callStack.pop() + 1);
+    callStack.stack.removeRange(0, callStack.pop() + 1);
 
     //unwind game stack
     while(stack.pop() != STACK_MARKER){}
@@ -174,7 +188,7 @@ class Machine
   }
 
   void notFound(){
-    throw new GameException('Unsupported Op Code: ${mem.loadb(PC - 1)}');
+    throw GameException('Unsupported Op Code: ${mem.loadb(PC - 1)}');
   }
 
   void restore(){
@@ -293,14 +307,14 @@ class Machine
   void sendStatus(){
     var oid = readVariable(0x10);
 
-    var locObject = oid != 0 ? new GameObject(oid).shortName : '';
+    var locObject = oid != 0 ? GameObject(oid).shortName : '';
 
     Z.inInterrupt = true;
     Z.sendIO(IOCommands.STATUS, [
                               Header.isScoreGame() ? 'SCORE' : 'TIME',
                               locObject,
-                              readVariable(0x11),
-                              readVariable(0x12)
+                              readVariable(0x11).toString(),
+                              readVariable(0x12).toString()
                                  ])
       .then((_){
         Z.inInterrupt = false;
@@ -341,14 +355,14 @@ class Machine
     }
   }
 
-  void read(){
+  void read() async {
     //Debugger.verbose('${pcHex(-1)} [read]');
 
     sendStatus();
 
     Z.inInterrupt = true;
 
-    Z._printBuffer();
+    Z.printBuffer();
 
     var operands = visitOperandsVar(4, true);
 
@@ -397,18 +411,17 @@ class Machine
       }
     }
 
-    Z.sendIO(IOCommands.READ)
-      .then((String l){
-        Z.inInterrupt = false;
-        if (l == '/!'){
-          Z.inBreak = true;
-          Debugger.debugStartAddr = PC - 1;
-          Z.callAsync(Debugger.startBreak);
-        }else{
-          processLine(l);
-          Z.callAsync(Z.runIt);
-        }
-      });
+    final l = await Z.sendIO(IOCommands.READ);
+    Z.inInterrupt = false;
+    if (l == '/!'){
+      Z.inBreak = true;
+      Debugger.debugStartAddr = PC - 1;
+      Z.callAsync(Debugger.startBreak);
+    }else{
+      processLine(l);
+      Z.callAsync(Z.runIt);
+    }
+
   }
 
   void random(){
@@ -424,10 +437,10 @@ class Machine
     var result = 0;
 
     if (range < 0){
-      r = new DRandom.withSeed(range);
+      r = DRandom.withSeed(range);
       //Debugger.verbose('    (set RNG to seed: $range)');
     }else if(range == 0){
-      r = new DRandom.withSeed(new Date.now().millisecond);
+      r = DRandom.withSeed(DateTime.now().millisecond);
       //Debugger.verbose('    (set RNG to random seed)');
     }else{
       result = r.NextFromMax(range) + 1;
@@ -476,7 +489,7 @@ class Machine
 
   assertNotMarker(m) {
     if (m == Machine.STACK_MARKER){
-      throw new GameException('Stack Underflow.');
+      throw GameException('Stack Underflow.');
     }
   }
 
@@ -535,7 +548,7 @@ class Machine
 
     var resultTo = readb();
 
-    GameObject obj = new GameObject(operand.value);
+    GameObject obj = GameObject(operand.value);
 
     writeVariable(resultTo, obj.sibling);
 
@@ -549,7 +562,7 @@ class Machine
 
     var resultTo = readb();
 
-    GameObject obj = new GameObject(operand.value);
+    GameObject obj = GameObject(operand.value);
 
     writeVariable(resultTo, obj.child);
 
@@ -636,7 +649,7 @@ class Machine
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    GameObject obj = new GameObject(operands[0].value);
+    GameObject obj = GameObject(operands[0].value);
 
     //Debugger.verbose('    (test Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
     branch(obj.isFlagBitSet(operands[1].value));
@@ -649,8 +662,8 @@ class Machine
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    var child = new GameObject(operands[0].value);
-    var parent = new GameObject(operands[1].value);
+    var child = GameObject(operands[0].value);
+    var parent = GameObject(operands[1].value);
 
     branch(child.parent == parent.id);
   }
@@ -660,7 +673,7 @@ class Machine
     var operands = visitOperandsVar(4, true);
 
     if (operands.length < 2){
-      throw new GameException('At least 2 operands required for jeV instruction.');
+      throw GameException('At least 2 operands required for jeV instruction.');
     }
 
     var foundMatch = false;
@@ -683,7 +696,7 @@ class Machine
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
-    Z.sendIO(IOCommands.PRINT, [currentWindow, Z.sbuff.toString()])
+    Z.sendIO(IOCommands.PRINT, [currentWindow.toString(), Z.sbuff.toString()])
     .then((_){
       Z.inInterrupt = false;
       Z.sbuff.clear();
@@ -698,7 +711,7 @@ class Machine
 
     Z.softReset();
 
-    var obj = new GameObject(4);
+    var obj = GameObject(4);
 
     assert(obj.child == 0);
 
@@ -747,16 +760,16 @@ class Machine
   void newline(){
     //Debugger.verbose('${pcHex(-1)} [newline]');
 
-    Z.sbuff.add('\n');
+    Z.sbuff.write('\n');
   }
 
   void print_obj(){
     //Debugger.verbose('${pcHex(-1)} [print_obj]');
     var operand = visitOperandsShortForm();
 
-    var obj = new GameObject(operand.value);
+    var obj = GameObject(operand.value);
 
-    Z.sbuff.add(obj.shortName);
+    Z.sbuff.write(obj.shortName);
   }
 
   void print_addr(){
@@ -769,7 +782,7 @@ class Machine
 
     //print('${pcHex()} "$str"');
 
-    Z.sbuff.add(str);
+    Z.sbuff.write(str);
   }
 
   void print_paddr(){
@@ -783,7 +796,7 @@ class Machine
 
     //Debugger.verbose('${pcHex()} "$str"');
 
-    Z.sbuff.add(str);
+    Z.sbuff.write(str);
   }
 
   void print_char(){
@@ -794,10 +807,10 @@ class Machine
     var z = operands[0].value;
 
     if (z < 0 || z > 1023){
-      throw new GameException('ZSCII char is out of bounds.');
+      throw GameException('ZSCII char is out of bounds.');
     }
 
-    Z.sbuff.add(ZSCII.ZCharToChar(z));
+    Z.sbuff.write(ZSCII.ZCharToChar(z));
   }
 
   void print_num(){
@@ -805,7 +818,7 @@ class Machine
 
     var operands = visitOperandsVar(1, false);
 
-    Z.sbuff.add('${toSigned(operands[0].value)}');
+    Z.sbuff.write('${toSigned(operands[0].value)}');
   }
 
   void print_ret(){
@@ -813,7 +826,7 @@ class Machine
 
     var str = ZSCII.readZStringAndPop(PC);
 
-    Z.sbuff.add('${str}\n');
+    Z.sbuff.write('${str}\n');
 
     //Debugger.verbose('${pcHex()} "$str"');
 
@@ -824,7 +837,7 @@ class Machine
     //Debugger.verbose('${pcHex(-1)} [print]');
 
     var str = ZSCII.readZString(PC);
-    Z.sbuff.add(str);
+    Z.sbuff.write(str);
 
     //Debugger.verbose('${pcHex()} "$str"');
 
@@ -838,9 +851,9 @@ class Machine
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    GameObject from = new GameObject(operands[0].value);
+    GameObject from = GameObject(operands[0].value);
 
-    GameObject to = new GameObject(operands[1].value);
+    GameObject to = GameObject(operands[1].value);
 
     //Debugger.verbose('Insert Object ${from.id}(${from.shortName}) into ${to.id}(${to.shortName})');
 
@@ -852,7 +865,7 @@ class Machine
 
     var operand = visitOperandsShortForm();
 
-    GameObject o = new GameObject(operand.value);
+    GameObject o = GameObject(operand.value);
 
     //Debugger.verbose('Removing Object ${o.id}(${o.shortName}) from object tree.');
     o.removeFromTree();
@@ -921,7 +934,7 @@ class Machine
 
     var resultTo = readb();
 
-    GameObject obj = new GameObject(operand.value);
+    GameObject obj = GameObject(operand.value);
 
     writeVariable(resultTo, obj.parent);
 
@@ -934,7 +947,7 @@ class Machine
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    GameObject obj = new GameObject(operands[0].value);
+    GameObject obj = GameObject(operands[0].value);
 
     obj.unsetFlagBit(operands[1].value);
     //Debugger.verbose('    (clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
@@ -947,7 +960,7 @@ class Machine
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    GameObject obj = new GameObject(operands[0].value);
+    GameObject obj = GameObject(operands[0].value);
 
     obj.setFlagBit(operands[1].value);
     //Debugger.verbose('    (set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
@@ -1094,7 +1107,7 @@ class Machine
 
     var resultTo = readb();
 
-    var obj = new GameObject(operands[0].value);
+    var obj = GameObject(operands[0].value);
 
     var nextProp = obj.getNextProperty(operands[1].value);
     //Debugger.verbose('    (${pcHex()}) [${obj.id}] prop: ${operands[1].value} next prop:  ${nextProp}');
@@ -1110,7 +1123,7 @@ class Machine
 
     var resultTo = readb();
 
-    var obj = new GameObject(operands[0].value);
+    var obj = GameObject(operands[0].value);
 
     var addr = obj.getPropertyAddress(operands[1].value);
 
@@ -1128,7 +1141,7 @@ class Machine
 
     var resultTo = readb();
 
-    var obj = new GameObject(operands[0].value);
+    var obj = GameObject(operands[0].value);
 
     var value = obj.getPropertyValue(operands[1].value);
 
@@ -1142,7 +1155,7 @@ class Machine
 
     var operands = visitOperandsVar(3, false);
 
-    var obj = new GameObject(operands[0].value);
+    var obj = GameObject(operands[0].value);
 
     //Debugger.verbose('    (${pc.toRadixString(16)}) [${obj.id}] putProp(${operands[1].value}): ${operands[2].value.toRadixString(16)}');
 
@@ -1224,9 +1237,9 @@ class Machine
     var oc = mem.loadb(PC - 1);
 
     //(ref 4.4.1)
-    var operand = new Operand((oc & 48) >> 4);
+    var operand = Operand((oc & 48) >> 4);
 
-    operand.rawValue = (operand.type == OperandType.LARGE)
+    operand.rawValue = (operand.oType == OperandType.LARGE)
         ? readw()
         : readb();
 
@@ -1238,12 +1251,12 @@ class Machine
     var oc = mem.loadb(PC - 1);
 
     var o1 = BinaryHelper.isSet(oc, 6)
-      ? new Operand(OperandType.VARIABLE)
-      : new Operand(OperandType.SMALL);
+      ? Operand(OperandType.VARIABLE)
+      : Operand(OperandType.SMALL);
 
     var o2 = BinaryHelper.isSet(oc, 5)
-      ? new Operand(OperandType.VARIABLE)
-      : new Operand(OperandType.SMALL);
+      ? Operand(OperandType.VARIABLE)
+      : Operand(OperandType.SMALL);
 
     o1.rawValue = readb();
     o2.rawValue = readb();
@@ -1254,7 +1267,7 @@ class Machine
   }
 
   List<Operand> visitOperandsVar(int howMany, bool isVariable){
-    var operands = new List<Operand>();
+    var operands = List<Operand>();
 
     //load operand types
     var shiftStart = howMany > 4 ? 14 : 6;
@@ -1266,7 +1279,7 @@ class Machine
       if (to == OperandType.OMITTED){
         break;
       }else{
-        operands.add(new Operand(to));
+        operands.add(Operand(to));
         if (operands.length == howMany) break;
         shiftStart -= 2;
       }
@@ -1274,8 +1287,8 @@ class Machine
 
     //load values
     operands.forEach((Operand o){
-      assert(o.type != OperandType.OMITTED);
-      o.rawValue = o.type == OperandType.LARGE ? readw() : readb();
+      assert(o.oType != OperandType.OMITTED);
+      o.rawValue = o.oType == OperandType.LARGE ? readw() : readb();
     });
 
 //    //Debugger.verbose('    ${operands.length} operands:');
@@ -1294,7 +1307,7 @@ class Machine
 //    });
 
     if (!isVariable && (operands.length != howMany)){
-      throw new Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
+      throw Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
     }
 
     return operands;
@@ -1309,7 +1322,7 @@ class Machine
     mem.highMemAddress = mem.loadw(Header.HIGHMEM_START_ADDR);
 
     //initialize the game dictionary
-    mem.dictionary = new Dictionary();
+    mem.dictionary = Dictionary();
 
     mem.programStart = mem.loadw(Header.PC_INITIAL_VALUE_ADDR);
     PC = mem.programStart;
@@ -1339,12 +1352,12 @@ class Machine
       var result = stack.peek();
       return result;
     }else if (varNum <= 0x0f){
-      return _readLocal(varNum);
+      return readLocal(varNum);
     }else if (varNum <= 0xff){
       return mem.readGlobal(varNum);
     }else{
       return varNum;
-      throw new Exception('Variable referencer byte'
+      throw Exception('Variable referencer byte'
         ' out of range (0-255): ${varNum}');
     }
   }
@@ -1358,7 +1371,7 @@ class Machine
     if (varNum == 0x00){
       return stack.pop();
     }
-    return _readLocal(varNum);
+    return readLocal(varNum);
   }
 
   void writeVariable(int varNum, int value){
@@ -1387,7 +1400,7 @@ class Machine
     callStack[(callStack[2] - local) + 3] = value;
   }
 
-  int _readLocal(int local){
+  int readLocal(int local){
    // var locals = callStack[2]; //locals header
     assert(local <= callStack[2]);
 
@@ -1396,10 +1409,10 @@ class Machine
 
   Machine()
   :
-    stack = new _Stack(),
-    callStack = new _Stack.max(1024)
+    stack = Stack(),
+    callStack = Stack.max(1024)
   {
-    r = new DRandom.withSeed(new Date.now().millisecond);
+    r = DRandom.withSeed(DateTime.now().millisecond);
     ops =
       {
 

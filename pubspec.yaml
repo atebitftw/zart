@@ -3,8 +3,9 @@ description: Dart implementation of the Infocom Z-Machine.
 author: John Evans <prujohn@gmail.com>
 homepage: https://github.com/prujohn/zart
 version: 1.0.0
+environment:
+  sdk: '>=2.0.0 <3.0.0'
 dependencies:
-  drandom:
-    git: git://github.com/financeCoding/DRandom.git
-  unittest:
-    sdk: unittest
+  test: ^1.6.3
+  DRandom:
+    path: DRandom

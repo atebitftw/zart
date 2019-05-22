@@ -1,5 +1,3 @@
-part of zart_prujohn;
-
 /// Detects and loads Z game file component, if present.
 class Blorb {
 

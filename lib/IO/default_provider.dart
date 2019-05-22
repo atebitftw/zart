@@ -1,4 +1,6 @@
-part of zart_prujohn;
+import 'dart:collection';
+import 'dart:async';
+import 'package:zart/IO/io_provider.dart';
 
 /**
 * Default provider with word-wrap support.
@@ -13,13 +15,13 @@ class DefaultProvider implements IOProvider
   final Queue<String> script;
   final int cols = 80;
 
-  DefaultProvider(Collection<String> script)
+  DefaultProvider(List<String> script)
   :
     script = new Queue<String>.from(script);
 
 
   Future<Object> command(String JSONCommand){
-
+    return Future.value(null);
   }
 
   Future<bool> saveGame(List<int> saveBytes){
@@ -48,14 +50,14 @@ class DefaultProvider implements IOProvider
         if (s.length > cols){
           print('$s');
           s = new StringBuffer();
-          s.add('$nextWord ');
+          s.write('$nextWord ');
         }else{
           if (words.isEmpty){
-            s.add('$nextWord ');
+            s.write('$nextWord ');
             print('$s');
             s = new StringBuffer();
           }else{
-            s.add('$nextWord ');
+            s.write('$nextWord ');
           }
         }
       }

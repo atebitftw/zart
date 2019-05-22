@@ -1,4 +1,5 @@
-part of zart_prujohn;
+import 'package:zart/machines/version_5.dart';
+import 'package:zart/z_machine.dart';
 
 /**
 * Version 8 is basically version 5 with different memory addressing

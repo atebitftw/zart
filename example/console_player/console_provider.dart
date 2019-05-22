@@ -1,4 +1,8 @@
-part of z_console;
+import 'dart:async';
+import 'dart:collection';
+import 'dart:convert' as JSON;
+import 'dart:io';
+import 'package:zart/IO/io_provider.dart';
 
 /** A basic console provider with word-wrap support. */
 class ConsoleProvider implements IOProvider
@@ -11,10 +15,11 @@ class ConsoleProvider implements IOProvider
 
   ConsoleProvider();
 
+  @override
   Future<Object> command(String JSONCommand){
     var c = new Completer();
 
-    var msgSet = JSON.parse(JSONCommand);
+    var msgSet = JSON.json.decode(JSONCommand);
 
     var cmd = IOCommands.toIOCommand(msgSet[0]);
 
@@ -63,7 +68,6 @@ class ConsoleProvider implements IOProvider
         //print('Zart: ${cmd}');
         c.complete(null);
     }
-
     return c.future;
   }
 
@@ -88,7 +92,7 @@ class ConsoleProvider implements IOProvider
           s.writeFrom(saveBytes);
           s.close();
           c.complete(true);
-        }on FileIOException catch(e){
+        }on Exception catch(_){
           print('File IO error.');
           c.complete(false);
         }
@@ -113,7 +117,7 @@ class ConsoleProvider implements IOProvider
           print('Restoring game "${fn}.sav"...');
           File f2 = new File('games${Platform.pathSeparator}${fn}.sav');
           c.complete(f2.readAsBytesSync());
-        }on FileIOException catch(e){
+        }on Exception catch(_){
           print('File IO error.');
           c.complete(null);
         }
@@ -140,15 +144,15 @@ class ConsoleProvider implements IOProvider
           outputBuffer.addFirst('$s');
           print('$s');
           s = new StringBuffer();
-          s.add('$nextWord ');
+          s.write('$nextWord ');
         }else{
           if (words.isEmpty){
-            s.add('$nextWord ');
+            s.write('$nextWord ');
             outputBuffer.addFirst('$s');
             print('$s');
             s = new StringBuffer();
           }else{
-            s.add('$nextWord ');
+            s.write('$nextWord ');
           }
         }
       }

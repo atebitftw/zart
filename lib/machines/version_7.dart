@@ -1,4 +1,9 @@
-part of zart_prujohn;
+import 'package:zart/debugger.dart';
+import 'package:zart/header.dart';
+import 'package:zart/machines/version_5.dart';
+import 'package:zart/z_machine.dart';
+import 'package:zart/zart.dart';
+import 'package:zart/zscii.dart';
 
 class Version7 extends Version5
 {
@@ -12,7 +17,7 @@ class Version7 extends Version5
   }
 
   int pack(int unpackedAddr){
-    throw const NotImplementedException();
+    throw Exception();
   }
 
   int unpack_paddr(int packed_print_addr){
@@ -30,6 +35,6 @@ class Version7 extends Version5
 
     Debugger.verbose('${pcHex()} "$str"');
 
-    Z.sbuff.add(str);
+    Z.sbuff.write(str);
   }
 }

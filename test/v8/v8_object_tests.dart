@@ -1,35 +1,39 @@
-part of v8_tests;
 
+import 'package:test/test.dart';
+import 'package:zart/game_exception.dart';
+import 'package:zart/game_object.dart';
+
+import '../test_helper.dart';
 
 void objectTestsV8(){
   group('Objects>', (){
 
     final SHIP = 63;
     final DREAMBRIDGE = 60;
-    final PIRATES = 62;
+    //final PIRATES = 62;
     final LADDER = 64;
 
     test('remove', (){
 
-      var o1 = new GameObject(SHIP);
+      var o1 = GameObject(SHIP);
 
       // check if we have the right object and
       // assumptions are correct.
-      Expect.equals('ship', o1.shortName);
-      Expect.equals(DREAMBRIDGE, o1.parent);
-      Expect.equals(LADDER, o1.sibling);
-      Expect.equals(0, o1.child);
+      expect('ship', equals(o1.shortName));
+      expect(DREAMBRIDGE, equals(o1.parent));
+      expect(LADDER, equals(o1.sibling));
+      expect(0, equals(o1.child));
 
       var ls = o1.leftSibling(); //PIRATES
-      var p = new GameObject(DREAMBRIDGE); //(dream bridge)
+      // var p = GameObject(DREAMBRIDGE); //(dream bridge)
 
       o1.removeFromTree();
       //check that 2 is now the sibling of o1's
       //left sibling
-      Expect.equals(LADDER, new GameObject(ls).sibling);
+      expect(LADDER, equals(GameObject(ls).sibling));
 
-      Expect.equals(0, o1.parent);
-      Expect.equals(0, o1.sibling);
+      expect(0, equals(o1.parent));
+      expect(0, equals(o1.sibling));
     });
 
     test('insert', (){
@@ -38,10 +42,10 @@ void objectTestsV8(){
       var oc = p.child;
 
       o1.insertTo(p.id);
-      Expect.equals(p.id, o1.parent);
+      expect(p.id, equals(o1.parent));
 
-      Expect.equals(SHIP, p.child);
-      Expect.equals(oc, o1.sibling);
+      expect(SHIP, equals(p.child));
+      expect(oc, equals(o1.sibling));
     });
 
     test('get property length', (){
@@ -62,9 +66,9 @@ void objectTestsV8(){
       Expect.equals(0x74a9, o1.getPropertyValue(3), 'get property #3');
 
       //throw on property len > 2
-      Expect.throws(() => o1.getPropertyValue(1),
-          (e) => e is GameException);
-
+      // Expect.throws(() => o1.getPropertyValue(1),
+      //     (e) => e is GameException);
+      expect(() => o1.getPropertyValue(1), throwsA(GameException));
     });
 
     test('get property address', (){
@@ -102,10 +106,12 @@ void objectTestsV8(){
       Expect.equals(1, o1.getNextProperty(3));
       Expect.equals(35, o1.getNextProperty(0));
 
-      Expect.throws(
-        () => o1.getNextProperty(19),
-        (e) => e is GameException
-        );
+      // Expect.throws(
+      //   () => o1.getNextProperty(19),
+      //   (e) => e is GameException
+      //   );
+
+      expect(() => o1.getNextProperty(19), throwsA(GameException));
 
     });
 
@@ -119,15 +125,16 @@ void objectTestsV8(){
       Expect.equals(0xffff, o1.getPropertyValue(4));
 
       //throw on prop no exist
-      Expect.throws(
-        () => o1.setPropertyValue(13, 0xffff),
-          (e) => e is GameException);
+      // Expect.throws(
+      //   () => o1.setPropertyValue(13, 0xffff),
+      //     (e) => e is GameException);
+      expect(() => o1.setPropertyValue(13, 0xffff), throwsA(GameException));
 
       //throw on prop len > 2
-      Expect.throws(
-        () => o1.setPropertyValue(1, 0xffff),
-          (e) => e is GameException);
-
+      // Expect.throws(
+      //   () => o1.setPropertyValue(1, 0xffff),
+      //     (e) => e is GameException);
+      expect(() => o1.setPropertyValue(1, 0xffff), throwsA(GameException));
     });
 
     test('attributes are set', (){

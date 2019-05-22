@@ -1,4 +1,5 @@
-part of zart_prujohn;
+import 'package:zart/machines/machine.dart';
+import 'package:zart/z_machine.dart';
 
 /**
 * Implementation of Z-Machine v3

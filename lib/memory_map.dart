@@ -1,11 +1,13 @@
-part of zart_prujohn;
+import 'package:zart/dictionary.dart';
+import 'package:zart/game_exception.dart';
+import 'package:zart/machines/machine.dart';
 
-class _MemoryMap {
+class MemoryMap {
 
   // A word address specifies an even address in the bottom 128K of memory
   // (by giving the address divided by 2). (Word addresses are used only in the abbreviations table.)
 
-  final List<int> _mem; //each element in the array represents a byte of z-machine memory.
+  final List<int> memList; //each element in the array represents a byte of z-machine memory.
 
   // memory map address offsets
   int abbrAddress;
@@ -17,8 +19,8 @@ class _MemoryMap {
   int programStart;
   Dictionary dictionary;
 
-  _MemoryMap(List bytes)
-  : _mem = new List.from(bytes);
+  MemoryMap(List bytes)
+  : memList = new List.from(bytes);
 
 
   // Reads a global variable (word)
@@ -50,7 +52,7 @@ class _MemoryMap {
   int loadb(int address){
     assert(address != null);
     checkBounds(address);
-    return _mem[address] & 0xff;
+    return memList[address] & 0xff;
   }
 
   //get word
@@ -70,7 +72,7 @@ class _MemoryMap {
 
     assert(value != null && (value <= 0xff && value >= 0));
 
-    _mem[address] = value;
+    memList[address] = value;
   }
 
   //put word
@@ -92,12 +94,12 @@ class _MemoryMap {
 
     assert(((value >> 8) & 0xff) == (value >> 8));
 
-    _mem[address] = value >> 8;
-    _mem[address + 1] = value & 0xff;
+    memList[address] = value >> 8;
+    memList[address + 1] = value & 0xff;
   }
 
   int _getWord(int address) {
-    var word = ((_mem[address] << 8) | _mem[address + 1]) & 0xffff;
+    var word = ((memList[address] << 8) | memList[address + 1]) & 0xffff;
 
     //no Dart-signed values should be present.
     assert(word >= 0);
@@ -107,7 +109,7 @@ class _MemoryMap {
   void checkBounds(int address){
    assert(address != null);
 
-   if ((address == null) || (address < 0) || (address > _mem.length - 1)){
+   if ((address == null) || (address < 0) || (address > memList.length - 1)){
 
     // Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
 
@@ -124,21 +126,17 @@ class _MemoryMap {
   List getRange(int address, int howMany){
     checkBounds(address);
     checkBounds(address + howMany);
-    return _mem.getRange(address, howMany);
+    return memList.getRange(address, howMany) as List<int>;
   }
 
-  int get size => _mem.length;
+  int get size => memList.length;
 
 }
 
 
 //enumerates addressTypes
-class AddressType{
-  final String _str;
-
-  const AddressType(this._str);
-
-  static final ByteAddress = const AddressType('ByteAddress');
-  static final WordAddress = const AddressType('WordAddress');
-  static final PackedAddress = const AddressType('PackedAddress');
+enum AddressType{
+  ByteAddress,
+  WordAddress,
+  PackedAddress,
 }

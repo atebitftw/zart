@@ -1,20 +1,21 @@
-part of zart_prujohn;
+import 'package:zart/game_exception.dart';
+import 'package:zart/z_machine.dart';
 
 class Operand
 {
-  final int type;
+  final int oType;
   int rawValue;
 
   int _cachedValue;
 
-  Operand(this.type);
+  Operand(this.oType);
 
   /// Gets a read of the [rawValue].
   /// If the type is VARIABLE, then performns an implicit
   /// read of the variable's address, otherwise just
   /// returns the rawValue (SMALL or LARGE);
   int get value{
-    switch(type){
+    switch(oType){
       case OperandType.LARGE:
       case OperandType.SMALL:
         return rawValue;
@@ -26,12 +27,12 @@ class Operand
         }
         return _cachedValue;
       default:
-        throw new GameException('Invalid Operand Type: $type');
+        throw GameException('Invalid Operand Type: $oType');
     }
   }
 
   int get peekValue{
-    switch(type){
+    switch(oType){
       case OperandType.LARGE:
       case OperandType.SMALL:
         return rawValue;
@@ -42,7 +43,7 @@ class Operand
     }
   }
 
-  String toString() => '[${OperandType.asString(type)}, 0x${peekValue.toRadixString(16)}]';
+  String toString() => '[${OperandType.asString(oType)}, 0x${peekValue.toRadixString(16)}]';
 
   /// Used primarily for unit testing
   static int createVarOperandByte(List<int> types){
@@ -50,8 +51,6 @@ class Operand
 
     return (types[0] << 6) | (types[1] << 4) | (types[2] << 2) | types[3];
   }
-
-
 }
 
 /// Declares the 4 different operand types
@@ -68,6 +67,14 @@ class OperandType {
 
   /** Omitted Flag, terminates Operand Type list */
   static const int OMITTED = 0x03;
+
+  static OperandType intToOperandType(int value){
+    switch(value){
+      case 0x00: return OperandType.LARGE;
+      case 0x01: return OperaadType.SMALL;
+      
+    }
+  }
 
   static String asString(int type){
     switch(type){

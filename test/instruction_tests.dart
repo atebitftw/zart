@@ -1,6 +1,13 @@
-part of tests;
 
 //first (most significant) byte
+import 'dart:async';
+
+import 'package:test/test.dart';
+import 'package:zart/debugger.dart';
+import 'package:zart/machines/machine.dart';
+import 'package:zart/operand.dart';
+import 'package:zart/z_machine.dart';
+
 int fst(int word) => word >> 8;
 //second (least significant) byte
 int snd(int word) => word & 0xff;
@@ -35,7 +42,7 @@ instructionTests(){
     }
   }
 
-  List<int> createVarParamList(item1, [item2, item3, item4]){
+  List<Operand> createVarParamList(item1, [item2, item3, item4]){
     var kindList = [];
     var paramList = [];
 
@@ -66,7 +73,7 @@ instructionTests(){
           // L0 = 1, L1 = 2, etc
           return int.parse(item.substring(1, item.length-1)) + 0x01;
         default:
-          Expect.fail('variable type not recognized: $varType');
+          throw Exception('variable type not recognized: $varType');
           break;
       }
     }
@@ -104,13 +111,13 @@ instructionTests(){
     var callInstruction = [224];
 
     // var operand types byte
-    callInstruction.add((operandList[0] as Operand).rawValue);
+    callInstruction.add((operandList[0]).rawValue);
 
     // write the operands
     for(final operand in operandList.getRange(1, 4)){
-      if (operand.type == OperandType.OMITTED) { break;
+      if (operand.oType == OperandType.OMITTED) { break;
       }
-      if (operand.type == OperandType.LARGE){
+      if (operand.oType == OperandType.LARGE){
         callInstruction.add(fst(operand.rawValue));
         callInstruction.add(snd(operand.rawValue));
       }else{
@@ -151,7 +158,8 @@ instructionTests(){
 
     Z.callAsync(Z.runIt);
 
-    callbackDone();
+    //TODO figure this out
+    //callbackDone();
   }
 
   void restoreRoutine(){
@@ -168,22 +176,22 @@ instructionTests(){
 
       test('test routine check', (){
         //first/last byte of testRoutineRestore is correct
-        Expect.equals(Z.machine.mem.loadb(testRoutineAddr), testRoutineRestoreBytes[0]);
-        Expect.equals(Z.machine.mem.loadb(testRoutineEndAddr), testRoutineRestoreBytes.last);
+        expect(Z.machine.mem.loadb(testRoutineAddr), equals(testRoutineRestoreBytes[0]));
+        expect(Z.machine.mem.loadb(testRoutineEndAddr), equals(testRoutineRestoreBytes.last));
       });
 
       test('routine restore check', (){
         var start = testRoutineAddr;
 
         //zero out the routine memory
-        for (final b in testRoutineRestoreBytes){
+        for (final _ in testRoutineRestoreBytes){
           Z.machine.mem.storeb(start++, 0);
         }
 
         start = testRoutineAddr;
         //validate 0's
-        for (final b in testRoutineRestoreBytes){
-          Expect.equals(0, Z.machine.mem.loadb(start++));
+        for (final _ in testRoutineRestoreBytes){
+          expect(0, equals(Z.machine.mem.loadb(start++)));
         }
 
         restoreRoutine();
@@ -192,7 +200,7 @@ instructionTests(){
 
         //validate restore
         for (final b in testRoutineRestoreBytes){
-          Expect.equals(b, Z.machine.mem.loadb(start++));
+          expect(b, equals(Z.machine.mem.loadb(start++)));
         }
       });
 
@@ -203,7 +211,7 @@ instructionTests(){
 
         int i = 0;
         for(final b in routine){
-          Expect.equals(testBytes[i++], b);
+          expect(testBytes[i++], equals(b));
         }
 
         restoreRoutine();
@@ -213,15 +221,15 @@ instructionTests(){
     Future<int> pollUntilQuit(){
       Completer c = new Completer();
 
-      doIt(t){
+      doIt(){
         if (Z.quit){
           c.complete(Z.machine.stack.pop());
         }else{
-          new Timer(0, doIt);
+          new Timer(Duration(seconds:0), doIt);
         }
       }
 
-      new Timer(0, doIt);
+      new Timer(Duration(seconds:0), doIt);
 
       return c.future;
     }
@@ -251,29 +259,25 @@ instructionTests(){
 */
 
 
-      asyncTest('simple return true', 2, (){
+      test('simple return true', () async{
         injectRoutine([], [0xb0]); //RTRUE
         //Debugger.enableAll();
 
         runRoutine();
 
-        pollUntilQuit().then((v){
-          Expect.equals(Machine.TRUE, v);
-          callbackDone();
-        });
+        var v = await pollUntilQuit();
+        expect(Machine.TRUE, equals(v));
       });
 
-      asyncTest('simple return false', 2, (){
+      test('simple return false', () async {
         injectRoutine([], [0xb1]); //RFALSE
         runRoutine();
 
-        pollUntilQuit().then((v){
-          Expect.equals(Machine.FALSE, v);
-          callbackDone();
-        });
+        var v = await pollUntilQuit();
+        expect(Machine.FALSE, equals(v));
       });
 
-      asyncTest('push non-negative small', 2, (){
+      test('push non-negative small', () async {
         /*
         * PUSH L00 (25)
         * RET SP
@@ -281,13 +285,11 @@ instructionTests(){
         injectRoutine([0x0], [0xe8, 0xbf, 0x01, 0xab, 0x00]);
         runRoutine(25);
 
-        pollUntilQuit().then((v){
-          Expect.equals(25, v);
-          callbackDone();
-        });
+        final v = await pollUntilQuit();
+        expect(25, equals(v));
       });
 
-      asyncTest('push non-negative big', 2, (){
+      test('push non-negative big', () async {
 
         /*
         * PUSH L00 (0xFFFF)
@@ -296,29 +298,24 @@ instructionTests(){
         injectRoutine([0x0], [0xe8, 0xbf, 0x01, 0xab, 0x00]);
         runRoutine(0xffff);
 
-        pollUntilQuit().then((v){
-          Expect.equals(0xffff, v);
-          callbackDone();
-        });
+        final v = await pollUntilQuit();
+        expect(0xffff, equals(v));
       });
 
-      asyncTest('push negative small', 2, (){
+      test('push negative small', () async {
 
         /*
         * PUSH L00
         * RET SP
         */
         injectRoutine([0x0], [0xe8, 0xbf, 0x01, 0xab, 0x00]);
-
         runRoutine(Machine.dartSignedIntTo16BitSigned(-42));
 
-        pollUntilQuit().then((v){
-          Expect.equals(Machine.dartSignedIntTo16BitSigned(-42), v);
-          callbackDone();
-        });
+        final v = await pollUntilQuit();
+        expect(Machine.dartSignedIntTo16BitSigned(-42), equals(v));
       });
 
-      asyncTest('push negative big', 2, (){
+      test('push negative big', () async {
 
         /*
         * PUSH L00
@@ -328,10 +325,8 @@ instructionTests(){
 
         runRoutine(Machine.dartSignedIntTo16BitSigned(-30000));
 
-        pollUntilQuit().then((v){
-          Expect.equals(Machine.dartSignedIntTo16BitSigned(-30000), v);
-          callbackDone();
-        });
+        final v = await pollUntilQuit();
+        expect(Machine.dartSignedIntTo16BitSigned(-30000), equals(v));
       });
     });
   });

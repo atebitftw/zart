@@ -1,4 +1,11 @@
-part of zart_prujohn;
+import 'package:zart/IO/io_provider.dart';
+import 'package:zart/debugger.dart';
+import 'package:zart/game_exception.dart';
+import 'package:zart/machines/machine.dart';
+import 'package:zart/machines/version_3.dart';
+import 'package:zart/z_machine.dart';
+import 'package:zart/zart.dart';
+import 'package:zart/zscii.dart';
 
 /**
 * Implementation of Z-Machine v5
@@ -322,7 +329,7 @@ class Version5 extends Version3
       }
       ops[i]();
     }else{
-      throw new GameException('Unsupported EXT Op Code: $i');
+      throw GameException('Unsupported EXT Op Code: $i');
     }
   }
 
@@ -739,7 +746,7 @@ class Version5 extends Version3
     var resultAddrByte = callStack.pop();
 
     //unwind locals and params length
-    callStack._stack.removeRange(0, callStack.peek() + 2);
+    callStack.stack.removeRange(0, callStack.peek() + 2);
 
     //unwind game stack
     while(stack.pop() != Machine.STACK_MARKER){}
@@ -773,7 +780,7 @@ class Version5 extends Version3
 
     //load values
     operands.forEach((Operand o){
-      o.rawValue = o.type == OperandType.LARGE ? readw() : readb();
+      o.rawValue = o.oType == OperandType.LARGE ? readw() : readb();
     });
 
 //    if (!isVariable && (operands.length != howMany)){

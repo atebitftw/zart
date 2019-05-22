@@ -1,8 +1,5 @@
-part of zart_prujohn;
 
-/**
-* A utility class supporting common IFF operations.
-*/
+/// A utility class supporting common IFF operations.
 class IFF {
 
   static int nextByte(List stream){
@@ -31,7 +28,7 @@ class IFF {
     var s = new StringBuffer();
 
     for(int i = 0; i < 4; i++){
-      s.addCharCode(nextByte(stream));
+      s.writeCharCode(nextByte(stream));
     }
 
     return Chunk.toChunk(s.toString());
@@ -126,7 +123,8 @@ class Chunk{
 
   String toString() => _str;
 
-  List<int> charCodes() => _str.charCodes;
+  // List<int> charCodes() => _str.charCodes;
+  List<int> charCodes() => throw Exception("need to implement charCodes");
 
   static Chunk toChunk(String chunk){
     switch(chunk){

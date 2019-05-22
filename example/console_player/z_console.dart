@@ -1,10 +1,13 @@
 library z_console;
 
 import 'dart:io';
-import 'dart:json';
+import 'package:zart/IO/blorb.dart';
+import 'package:zart/debugger.dart';
+import 'package:zart/header.dart';
 import 'package:zart/zart.dart';
+import 'package:zart/game_exception.dart';
+import 'console_provider.dart';
 
-part 'console_provider.dart';
 
 // A basic Console player for Z-Machine
 // Assumes first command line arguement is path to story file,
@@ -15,13 +18,11 @@ part 'console_provider.dart';
 // VM:
 // dart ZConsole.dart path/to/minizork.z3
 
-void main() {
+void main(List<String> args) {
 
   var defaultGameFile = 'example\\games${Platform.pathSeparator}minizork.z3';
 
-  var args = new Options().arguments;
-
-  File f = (args.isEmpty) ? new File(defaultGameFile) : new File(args[0]);
+  File f = (args.isEmpty) ? new File(defaultGameFile) : new File(args.first);
 
   try{
     var bytes = f.readAsBytesSync();
@@ -29,19 +30,15 @@ void main() {
     var gameData = Blorb.getZData(bytes);
 
     if (gameData == null){
-      print('unable to load game.');
+      print('Unable to load game.');
       exit(1);
     }
 
     Z.load(gameData);
 
-  } on FileIOException catch (fe){
+  } on Exception catch (fe){
     //TODO log then print friendly
     print('$fe');
-    exit(0);
-  } on Exception catch (e){
-    //TODO log then print friendly
-    print('$e');
     exit(0);
   }
 
@@ -59,10 +56,10 @@ void main() {
 
   try{
     Z.run();
-  }on GameException catch(ge){
+  }on GameException catch(_){
     print('A game error occurred.');
     exit(1);
-  }on Exception catch(e){
+  }on Exception catch(_){
     print('A system error occurred.');
     exit(1);
   }

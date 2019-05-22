@@ -1,8 +1,8 @@
-part of zart_prujohn;
+import 'package:zart/binary_helper.dart';
+import 'package:zart/game_exception.dart';
+import 'package:zart/z_machine.dart';
 
-/**
-* Header address lookups (all z-machine versions).
-*/
+/// Header address lookups (all z-machine versions).
 class Header{
 
   //z-machine version
@@ -108,15 +108,16 @@ class Header{
   static final int FLAG2_USE_MENUS = 1 << 8;
   
   static void checkLoaded() {
-    if (!Z.isLoaded) throw new GameException('A game must first be loaded.');
+    // Who know that this old code would predict Game Of Thrones!
+    if (!Z.isLoaded) throw GameException('A game must first be loaded.');
   }
   
-  static bool setFlags1(int flags){
+  static void setFlags1(int flags){
     checkLoaded();
     Z.machine.mem.storeb(Header.FLAGS1, flags);
   }
   
-  static bool setFlags2(int flags){
+  static void setFlags2(int flags){
     checkLoaded();
     Z.machine.mem.storeb(Header.FLAGS2, flags);
   }

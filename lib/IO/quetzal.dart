@@ -1,9 +1,14 @@
-part of zart_prujohn;
-
 
 //TODO added total bytes after FORM chunk
 
 
+import 'dart:collection';
+import 'package:zart/IO/iff.dart';
+import 'package:zart/binary_helper.dart';
+import 'package:zart/header.dart';
+import 'package:zart/machines/machine.dart';
+import 'package:zart/memory_map.dart';
+import 'package:zart/z_machine.dart';
 
 /**
 * Quetzal IFF Standard load/save implementation.
@@ -44,11 +49,11 @@ class Quetzal {
     IFF.writeChunk(saveData, Chunk.UMem);
 
     //IFF.write length in bytes
-    IFF.write4Byte(saveData, Z.machine.mem._mem.length);
+    IFF.write4Byte(saveData, Z.machine.mem.memList.length);
 
-    saveData.addAll(Z.machine.mem._mem);
+    saveData.addAll(Z.machine.mem.memList);
 
-    if (Z.machine.mem._mem.length % 2 != 0){
+    if (Z.machine.mem.memList.length % 2 != 0){
       saveData.add(0); //pad byte
     }
 
@@ -216,7 +221,7 @@ class Quetzal {
           var numBytes = IFF.read4Byte(fileBytes);
 
           //memory length mismatch
-          if (numBytes != Z.machine.mem._mem.length) {
+          if (numBytes != Z.machine.mem.memList.length) {
             return false;
           }
 
@@ -250,7 +255,7 @@ class Quetzal {
     //now that we have all the data structures, do the restore...
 
     //memory
-    Z.machine.mem = new _MemoryMap(memBytes);
+    Z.machine.mem = MemoryMap(memBytes);
     Z.machine.visitHeader();
 
 
@@ -351,13 +356,13 @@ class StackFrame
 
   String toString(){
     var s = new StringBuffer();
-    s.add('return addr: 0x${returnAddr.toRadixString(16)}\n');
-    s.add('return var: 0x${returnVar.toRadixString(16)}\n');
-    s.add('args passed: $totalArgsPassed');
-    s.add('locals: $locals \n');
-    s.add('evals: $evals \n');
-    s.add('nextCallStackIndex: $nextCallStackIndex \n');
-    s.add('nextEvalStackIndex: $nextEvalStackIndex\n\n');
+    s.write('return addr: 0x${returnAddr.toRadixString(16)}\n');
+    s.write('return var: 0x${returnVar.toRadixString(16)}\n');
+    s.write('args passed: $totalArgsPassed');
+    s.write('locals: $locals \n');
+    s.write('evals: $evals \n');
+    s.write('nextCallStackIndex: $nextCallStackIndex \n');
+    s.write('nextEvalStackIndex: $nextEvalStackIndex\n\n');
     return s.toString();
   }
 }

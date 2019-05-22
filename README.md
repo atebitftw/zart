@@ -8,7 +8,7 @@
 
 Some of my most memorable early gaming experiences were playing Infocom interactive fiction games.
 
-This project is a labor of love.  I'll start with z-machine v3 and see where it goes...
+This project is a labor of love.
 	
 Enjoy!
 
@@ -29,11 +29,6 @@ The older Infocom games (V3 & V5) appear to work fine.
 
 Games compiled with the latest Inform 7 appear to work fine.
 
-## Playing the Mini-Zork Game ##
-There is a web-based version (Chrome or Dartium only, for now):
-
-<http://www.lucastudios.com/demos/zart/zartweb.html>
-
 ## Want to author your own IF games? ##
 <http://inform7.com/>
 
@@ -44,11 +39,14 @@ There is a web-based version (Chrome or Dartium only, for now):
 split screening, cursor positioning, etc.
     
 ## Reference Material ##
-* Z-Machine Spec: http://www.gnelson.demon.co.uk/zspec/index.html
+* Z-Machine Spec: https://www.inform-fiction.org/zmachine/standards/
 
 ## License ##
 Source Code: Apache 2.0 (see LICENSE file)
 
 Game files include are covered under their own applicable copyrights 
 and licensing.
+
+## Fun Fact ##
+This was the first package ever uploaded to https://pub.dev back during the pre v1.0 days of Dart.
 
