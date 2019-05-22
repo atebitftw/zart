@@ -1,3 +1,5 @@
+import 'package:zart/IO/iff.dart';
+
 /// Detects and loads Z game file component, if present.
 class Blorb {
 
@@ -8,7 +10,7 @@ class Blorb {
 
     if (IFF.readChunk(fileBytes) != Chunk.FORM) return false;
 
-    var size = IFF.read4Byte(fileBytes);
+    // var size = IFF.read4Byte(fileBytes);
 
     if (IFF.readChunk(fileBytes) != Chunk.IFRS) return false;
 
@@ -34,7 +36,7 @@ class Blorb {
 
     if (IFF.readChunk(fileBytes) != Chunk.RIdx) return null;
 
-    var resourceIndexSize = IFF.read16BitValue(fileBytes);
+    // var resourceIndexSize = IFF.read16BitValue(fileBytes);
     var numResources = IFF.read16BitValue(fileBytes);
 
     int i = 0;

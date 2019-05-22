@@ -26,7 +26,7 @@ import 'package:zart/z_machine.dart';
 class Quetzal {
   /// Generates a stream of save bytes in the Quetzal format.
   static List<int> save(int pcAddr){
-    bool padByte;
+    // bool padByte;
 
     List<int> saveData = new List<int>();
 
@@ -121,7 +121,7 @@ class Quetzal {
   // Restores current machine state with the given stream of file bytes.
   static bool restore(rawBytes){
     var fileBytes = new List.from(rawBytes);
-    List<int> restoreData = new List<int>();
+    //List<int> restoreData = new List<int>();
 
     Chunk nextChunk = IFF.readChunk(fileBytes);
     if (!assertChunk(Chunk.FORM, nextChunk)) return false;

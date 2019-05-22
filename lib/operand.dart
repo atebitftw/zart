@@ -68,11 +68,14 @@ class OperandType {
   /** Omitted Flag, terminates Operand Type list */
   static const int OMITTED = 0x03;
 
-  static OperandType intToOperandType(int value){
+  static int intToOperandType(int value){
     switch(value){
       case 0x00: return OperandType.LARGE;
-      case 0x01: return OperaadType.SMALL;
-      
+      case 0x01: return OperandType.SMALL;
+      case 0x02: return OperandType.VARIABLE;
+      case 0x03: return OperandType.OMITTED;
+      default:
+        throw Exception("Unrecognized int when attempting to convert to OperandType");
     }
   }
 

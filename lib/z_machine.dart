@@ -1,7 +1,5 @@
 import 'dart:convert' as JSON;
 import 'dart:async';
-import 'dart:html';
-import 'dart:mirrors';
 import 'package:zart/IO/default_provider.dart';
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/debugger.dart';
@@ -28,7 +26,7 @@ class ZMachine {
   bool inInterrupt = false;
   bool quit = false;
   ZVersion ver;
-  // String _mostRecentInput;
+  String mostRecentInput;
 
   StringBuffer sbuff = new StringBuffer();
   final List<int> memoryStreams = new List<int>();
@@ -120,8 +118,7 @@ class ZMachine {
 
     ver = ZMachine.intToVer(rawBytes[Header.VERSION]);
 
-    var result = _supportedMachines.where(((Machine m) => m.version == ver))
-        as List<Machine>;
+    var result = _supportedMachines.where(((Machine m) => m.version == ver)).toList();
 
     if (result.length != 1) {
       throw Exception('Z-Machine version ${ver} not supported.');
@@ -187,11 +184,17 @@ class ZMachine {
     }
   }
 
-  Future<Object> sendIO(IOCommands command, [List<String> messageData]) {
-    messageData = messageData == null ? List<String>() : messageData;
+  Future<Object> sendIO(IOCommands command, [List<Object> messageData]) {
+    messageData = messageData == null ? [] : messageData;
     List<String> msg = [command.toString()];
 
-    msg.addAll(messageData);
+    for(final m in messageData){
+      msg.add(m);
+    }
+    // messageData.forEach((m){
+    //   msg
+    // });
+    // msg.addAll(messageData as Iterable<Object>);
 
     return IOConfig.command(JSON.json.encode(msg));
   }

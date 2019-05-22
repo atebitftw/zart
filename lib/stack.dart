@@ -10,12 +10,12 @@ class Stack {
 
   Stack()
   :
-    stack = new List<int>(),
+    stack = List<int>(),
     _max = 0;
 
   Stack.max(this._max)
   :
-    stack = new List<int>();
+    stack = List<int>();
 
   int pop() {
     var v = stack[0];
@@ -63,7 +63,8 @@ class Stack {
       value = Machine.dartSignedIntTo16BitSigned(value);
     }
 
-    stack.fillRange(0, 1, value);
+    // stack.insertRange(0, 1, value);
+    stack.insert(0, value);
   }
 
   int peek(){

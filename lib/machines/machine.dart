@@ -345,7 +345,7 @@ class Machine
       operands.removeRange(0, 1);
 
       //setup the routine stack frame and locals
-      visitRoutine(operands.map((o) => o.value));
+      visitRoutine(operands.map((o) => o.value).toList());
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -592,15 +592,15 @@ class Machine
 
   void test(){
     //Debugger.verbose('${pcHex(-1)} [test]');
-    var pp = PC - 1;
+    //var pp = PC - 1;
 
     var operands = mem.loadb(PC - 1) < 193
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    var jumpByte = mem.loadb(PC);
+    // var jumpByte = mem.loadb(PC);
 
-    bool branchOn = BinaryHelper.isSet(jumpByte, 7);
+    // bool branchOn = BinaryHelper.isSet(jumpByte, 7);
     var bitmap = operands[0].value;
     var flags = operands[1].value;
 
@@ -632,7 +632,7 @@ class Machine
         : visitOperandsVar(2, false);
 
  //   var value = toSigned(readVariable(operands[0].rawValue)) + 1;
-    var varValue = readVariable(operands[0].rawValue);
+    // var varValue = readVariable(operands[0].rawValue);
 
     var value = toSigned(readVariable(operands[0].rawValue)) + 1;
 
@@ -1047,7 +1047,8 @@ class Machine
 
     assert(operands[1].value != 0);
 
-    var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
+    // var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
+    var result = (toSigned(operands[0].value) ~/ toSigned(operands[1].value));
 
     //Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1357,8 +1358,8 @@ class Machine
       return mem.readGlobal(varNum);
     }else{
       return varNum;
-      throw Exception('Variable referencer byte'
-        ' out of range (0-255): ${varNum}');
+      // throw Exception('Variable referencer byte'
+      //   ' out of range (0-255): ${varNum}');
     }
   }
 
