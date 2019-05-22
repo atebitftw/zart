@@ -7,5 +7,3 @@ environment:
   sdk: '>=2.0.0 <3.0.0'
 dependencies:
   test: ^1.6.3
-  DRandom:
-    path: DRandom
