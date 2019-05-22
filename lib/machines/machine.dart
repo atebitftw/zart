@@ -1,5 +1,5 @@
 
-import 'package:DRandom/DRandom.dart';
+import 'package:zart/DRandom.dart';
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/IO/quetzal.dart';
 import 'package:zart/binary_helper.dart';

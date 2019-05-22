@@ -1,7 +1,0 @@
-name: DRandom
-description: Alternative pseudorandom random number generator for dart based on a similar implementation in mono/C#
-version: 0.0.3
-author: Adam Singer <financeCoding@gmail.com>
-homepage: https://github.com/financeCoding/DRandom
-environment:
-  sdk: '>=2.0.0 <3.0.0'

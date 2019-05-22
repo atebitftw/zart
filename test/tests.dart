@@ -9,7 +9,7 @@ import 'package:zart/debugger.dart';
 import 'package:zart/header.dart';
 import 'package:zart/machines/machine.dart';
 import 'package:zart/zart.dart';
-import 'package:DRandom/DRandom.dart';
+import 'package:zart/DRandom.dart';
 import 'package:zart/zscii.dart';
 import 'instruction_tests.dart';
 import 'mock_ui_provider.dart';
