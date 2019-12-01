@@ -9,15 +9,14 @@ import 'package:zart/game_exception.dart';
 import 'console_provider.dart';
 
 
-// A basic Console player for Z-Machine
-// Assumes first command line arguement is path to story file,
-// otherwise attempts to load default file (specified in main()).
-//
-// Works in the Dart console.
-
-// VM:
-// dart ZConsole.dart path/to/minizork.z3
-
+/// A basic Console player for Z-Machine
+/// Assumes first command line arguement is path to story file,
+/// otherwise attempts to load default file (specified in main()).
+///
+/// Works in the Dart console.
+///
+/// VM:
+/// dart ZConsole.dart path/to/minizork.z3
 void main(List<String> args) {
 
   var defaultGameFile = 'example${Platform.pathSeparator}games${Platform.pathSeparator}minizork.z3';
