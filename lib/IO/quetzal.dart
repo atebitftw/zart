@@ -28,7 +28,7 @@ class Quetzal {
   static List<int> save(int pcAddr){
     // bool padByte;
 
-    List<int> saveData = new List<int>();
+    List<int> saveData = List<int>();
 
     IFF.writeChunk(saveData, Chunk.FORM);
     IFF.writeChunk(saveData, Chunk.IFZS);
@@ -60,12 +60,12 @@ class Quetzal {
     //stacks, oldest first
     IFF.writeChunk(saveData, Chunk.Stks);
 
-    var stackData = new Queue<StackFrame>();
+    var stackData = Queue<StackFrame>();
 
-    stackData.addFirst(new StackFrame(0,0));
+    stackData.addFirst(StackFrame(0,0));
 
     while(stackData.first.nextCallStackIndex != null){
-      stackData.addFirst(new StackFrame(stackData.first.nextCallStackIndex, stackData.first.nextEvalStackIndex));
+      stackData.addFirst(StackFrame(stackData.first.nextCallStackIndex, stackData.first.nextEvalStackIndex));
     }
 
     var totalStackBytes = 0;
@@ -120,8 +120,8 @@ class Quetzal {
 
   // Restores current machine state with the given stream of file bytes.
   static bool restore(rawBytes){
-    var fileBytes = new List.from(rawBytes);
-    //List<int> restoreData = new List<int>();
+    var fileBytes = List.from(rawBytes);
+    //List<int> restoreData = List<int>();
 
     Chunk nextChunk = IFF.readChunk(fileBytes);
     if (!assertChunk(Chunk.FORM, nextChunk)) return false;
@@ -134,7 +134,7 @@ class Quetzal {
     var gotHeader = false;
     var pc;
     var memBytes = [];
-    final stackList = new List<StackFrame>();
+    final stackList = List<StackFrame>();
 
     nextChunk = IFF.readChunk(fileBytes);
     if (nextChunk == null) return false;
@@ -169,7 +169,7 @@ class Quetzal {
           var stacksLen = IFF.read4Byte(fileBytes);
 
           StackFrame getNextStackFrame(){
-            var sf = new StackFrame.empty();
+            var sf = StackFrame.empty();
 
             sf.returnAddr = IFF.read3Byte(fileBytes);
 
@@ -315,13 +315,13 @@ class StackFrame
 
   StackFrame.empty()
   :
-    locals = new Queue<int>(),
-    evals = new Queue<int>();
+    locals = Queue<int>(),
+    evals = Queue<int>();
 
   StackFrame(int callIndex, evalIndex)
   :
-    locals = new Queue<int>(),
-    evals = new Queue<int>()
+    locals = Queue<int>(),
+    evals = Queue<int>()
   {
     returnAddr = Z.machine.callStack[callIndex];
     returnVar = Z.machine.callStack[++callIndex];
@@ -355,7 +355,7 @@ class StackFrame
   int get computedByteSize => 8 + (locals.length * 2) + (evals.length * 2);
 
   String toString(){
-    var s = new StringBuffer();
+    var s = StringBuffer();
     s.write('return addr: 0x${returnAddr.toRadixString(16)}\n');
     s.write('return var: 0x${returnVar.toRadixString(16)}\n');
     s.write('args passed: $totalArgsPassed');

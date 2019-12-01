@@ -8,7 +8,7 @@ void objectTestsV5(){
   group('Objects>', (){
     test('remove', (){
 
-      var o1 = new GameObject(18); //golden fish
+      var o1 = GameObject(18); //golden fish
 
       // check if we have the right object and
       // assumptions are correct.
@@ -18,7 +18,7 @@ void objectTestsV5(){
       expect(0, equals(o1.child));
 
       var ls = o1.leftSibling(); //19
-      //var p = new GameObject(16); //lakeside
+      //var p = GameObject(16); //lakeside
 
       o1.removeFromTree();
       //check that 2 is now the sibling of o1's

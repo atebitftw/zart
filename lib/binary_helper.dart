@@ -3,7 +3,7 @@ import 'dart:math';
 /// Helper class for binary operations
 class BinaryHelper {
   static String binaryOf(int n) {
-    if (n < 0) throw new Exception("negative numbers require 2s complement");
+    if (n < 0) throw Exception("negative numbers require 2s complement");
     if (n == 0) return "0";
     String res = "";
     while (n > 0) {

@@ -88,14 +88,14 @@ class ZSCII {
   ///     Z.callStack.pop();
   static String readZString(int fromAddress){
     bool finished = false;
-    var s = new StringBuffer();
+    var s = StringBuffer();
     int currentAlphabet = ZSCII.A0;
 
     List<int> charList = [];
 
     //first load all the z chars into an array.
     while(!finished){
-      ZChar nextz = new ZChar(Z.machine.mem.loadw(fromAddress));
+      ZChar nextz = ZChar(Z.machine.mem.loadw(fromAddress));
 
       fromAddress += 2;
 
@@ -179,7 +179,7 @@ class ZSCII {
   }
 
   static List<int> toZCharList(String line){
-    var list = new List<int>();
+    var list = List<int>();
 
     for(int i = 0; i < line.length; i++){
       list.add(CharToZChar(line.substring(i, i + 1)));
@@ -205,7 +205,7 @@ class ZSCII {
       }
     }
 
-    throw new GameException('Could not convert from char to ZChar.');
+    throw GameException('Could not convert from char to ZChar.');
   }
 
   static String ZCharToChar(int c){

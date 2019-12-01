@@ -84,15 +84,15 @@ instructionTests(){
     kindList.add(getKind(item3));
     kindList.add(getKind(item4));
 
-    var operandByte = new Operand(OperandType.OMITTED);
+    var operandByte = Operand(OperandType.OMITTED);
     operandByte.rawValue = Operand.createVarOperandByte(kindList);
     paramList.add(operandByte);
 
     //convert any variable types to literals
-    paramList.add(new Operand(kindList[0]));
-    paramList.add(new Operand(kindList[1]));
-    paramList.add(new Operand(kindList[2]));
-    paramList.add(new Operand(kindList[3]));
+    paramList.add(Operand(kindList[0]));
+    paramList.add(Operand(kindList[1]));
+    paramList.add(Operand(kindList[2]));
+    paramList.add(Operand(kindList[3]));
 
     paramList[1].rawValue = (kindList[0] == OperandType.VARIABLE) ? convertToVariableLiteral(item1) : item1;
     paramList[2].rawValue = (kindList[1] == OperandType.VARIABLE) ? convertToVariableLiteral(item2) : item2;
@@ -219,17 +219,17 @@ instructionTests(){
     });
 
     Future<int> pollUntilQuit(){
-      Completer c = new Completer();
+      Completer c = Completer();
 
       doIt(){
         if (Z.quit){
           c.complete(Z.machine.stack.pop());
         }else{
-          new Timer(Duration(seconds:0), doIt);
+          Timer(Duration(seconds:0), doIt);
         }
       }
 
-      new Timer(Duration(seconds:0), doIt);
+      Timer(Duration(seconds:0), doIt);
 
       return c.future;
     }

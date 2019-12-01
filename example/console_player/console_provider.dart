@@ -6,8 +6,8 @@ import 'package:zart/IO/io_provider.dart';
 
 /** A basic console provider with word-wrap support. */
 class ConsoleProvider implements IOProvider {
-  final Queue<String> lineBuffer = new Queue<String>();
-  final Queue<String> outputBuffer = new Queue<String>();
+  final Queue<String> lineBuffer = Queue<String>();
+  final Queue<String> outputBuffer = Queue<String>();
   final int cols = 80;
 
   ConsoleProvider();
@@ -17,7 +17,7 @@ class ConsoleProvider implements IOProvider {
 
   @override
   Future<Object> command(String jsonCommand) async {
-    var c = new Completer();
+    var c = Completer();
 
     final msgSet = json.decode(jsonCommand);
 
@@ -74,7 +74,7 @@ class ConsoleProvider implements IOProvider {
   }
 
   Future<bool> saveGame(List<int> saveBytes) {
-    var c = new Completer();
+    var c = Completer();
     print('(Caution: will overwrite existing file!)');
     print('Enter file name to save to (no extension):');
 
@@ -85,7 +85,7 @@ class ConsoleProvider implements IOProvider {
     } else {
       try {
         print('Saving game "${fn}.sav".  Use "restore" to restore it.');
-        File f2 = new File('games${Platform.pathSeparator}${fn}.sav');
+        File f2 = File('games${Platform.pathSeparator}${fn}.sav');
         f2.writeAsBytesSync(saveBytes);
         c.complete(true);
       } on Exception catch (_) {
@@ -98,7 +98,7 @@ class ConsoleProvider implements IOProvider {
   }
 
   Future<List<int>> restore() {
-    var c = new Completer();
+    var c = Completer();
     print('Enter game file name to load (no extension):');
 
     String fn = stdin.readLineSync();
@@ -109,7 +109,7 @@ class ConsoleProvider implements IOProvider {
     } else {
       try {
         print('Restoring game "${fn}.sav"...');
-        File f2 = new File('games${Platform.pathSeparator}${fn}.sav');
+        File f2 = File('games${Platform.pathSeparator}${fn}.sav');
         c.complete(f2.readAsBytesSync());
       } on Exception catch (_) {
         print('File IO error.');
@@ -127,23 +127,23 @@ class ConsoleProvider implements IOProvider {
     }
     var lines = text.split('\n');
     for (final l in lines) {
-      var words = new Queue<String>.from(l.split(' '));
+      var words = Queue<String>.from(l.split(' '));
 
-      var s = new StringBuffer();
+      var s = StringBuffer();
       while (!words.isEmpty) {
         var nextWord = words.removeFirst();
 
         if (s.length > cols) {
           outputBuffer.addFirst('$s');
           print('$s');
-          s = new StringBuffer();
+          s = StringBuffer();
           s.write('$nextWord ');
         } else {
           if (words.isEmpty) {
             s.write('$nextWord ');
             outputBuffer.addFirst('$s');
             print('$s');
-            s = new StringBuffer();
+            s = StringBuffer();
           } else {
             s.write('$nextWord ');
           }
@@ -153,7 +153,7 @@ class ConsoleProvider implements IOProvider {
       if (s.length > 0) {
         outputBuffer.addFirst('$s');
         print('$s');
-        s = new StringBuffer();
+        s = StringBuffer();
       }
     }
   }
@@ -161,7 +161,7 @@ class ConsoleProvider implements IOProvider {
   void DebugOutput(String text) => print(text);
 
   Future<String> getChar() {
-    var c = new Completer();
+    var c = Completer();
 
     if (!lineBuffer.isEmpty) {
       c.complete(lineBuffer.removeLast());

@@ -24,9 +24,9 @@ class Blorb {
   static List<int> getZData(List fileBytes){
     var rawBytes = fileBytes;
 
-    if (!isBlorb(new List.from(fileBytes.getRange(0, 12)))) return fileBytes;
+    if (!isBlorb(List.from(fileBytes.getRange(0, 12)))) return fileBytes;
 
-    fileBytes = new List.from(fileBytes);
+    fileBytes = List.from(fileBytes);
 
     //print(fileBytes);
 
@@ -49,7 +49,7 @@ class Blorb {
 
         var start = IFF.read16BitValue(fileBytes);
 
-        fileBytes = new List.from(rawBytes.getRange(start, rawBytes.length - start));
+        fileBytes = List.from(rawBytes.getRange(start, rawBytes.length - start));
 
         if (IFF.readChunk(fileBytes) != Chunk.ZCOD) return null;
 

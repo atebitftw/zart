@@ -20,9 +20,9 @@ import 'console_provider.dart';
 
 void main(List<String> args) {
 
-  var defaultGameFile = 'example\\games${Platform.pathSeparator}minizork.z3';
+  var defaultGameFile = 'example${Platform.pathSeparator}games${Platform.pathSeparator}minizork.z3';
 
-  File f = (args.isEmpty) ? new File(defaultGameFile) : new File(args.first);
+  File f = (args.isEmpty) ? File(defaultGameFile) : File(args.first);
 
   try{
     var bytes = f.readAsBytesSync();
@@ -45,7 +45,7 @@ void main(List<String> args) {
   Header.setFlags1(0);
   Header.setFlags2(0);
 
-  Z.IOConfig = new ConsoleProvider();
+  Z.IOConfig = ConsoleProvider();
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
@@ -56,8 +56,8 @@ void main(List<String> args) {
 
   try{
     Z.run();
-  }on GameException catch(_){
-    print('A game error occurred.');
+  }on GameException catch(e){
+    print('A game error occurred: ${e}');
     exit(1);
   }on Exception catch(_){
     print('A system error occurred.');

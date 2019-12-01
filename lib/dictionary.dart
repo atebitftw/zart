@@ -19,8 +19,8 @@ class Dictionary {
   int _address;
 
   Dictionary({int address})
-      : entries = new List<String>(),
-        separators = new List<String>() {
+      : entries = List<String>(),
+        separators = List<String>() {
     _address = Z.machine.mem.loadw(Header.DICTIONARY_ADDR);
 
     if (address != null) {
@@ -52,7 +52,7 @@ class Dictionary {
   }
 
   List<int> parse(List<String> tokenizedList, String line) {
-    var parseTable = new List<int>();
+    var parseTable = List<int>();
 
     parseTable.add(tokenizedList.length);
 
@@ -98,24 +98,24 @@ class Dictionary {
   }
 
   List<String> tokenize(String line) {
-    var tokens = new List<String>();
+    var tokens = List<String>();
 
-    var s = new StringBuffer();
+    var s = StringBuffer();
 
     for (int i = 0; i < line.length; i++) {
       var c = line.substring(i, i + 1);
 //      if (i == line.length - 1){
 //        s.add(c);
 //        tokens.add(s.toString().trim());
-//        s = new StringBuffer();
+//        s = StringBuffer();
 //      }else
       if (c == ' ' && s.length > 0) {
         tokens.add(s.toString().trim());
-        s = new StringBuffer();
+        s = StringBuffer();
       } else if (Z.machine.mem.dictionary.separators.indexOf(c) != -1) {
         if (s.length > 0) {
           tokens.add(s.toString().trim());
-          s = new StringBuffer();
+          s = StringBuffer();
         }
         tokens.add(c.trim());
       } else {
@@ -131,7 +131,7 @@ class Dictionary {
   }
 
   String dump() {
-    var s = new StringBuffer();
+    var s = StringBuffer();
 
     s.write('entries: ${entries.length}\n');
     s.write('separators: ${separators}\n');

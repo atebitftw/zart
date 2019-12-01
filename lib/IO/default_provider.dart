@@ -17,7 +17,7 @@ class DefaultProvider implements IOProvider
 
   DefaultProvider(List<String> script)
   :
-    script = new Queue<String>.from(script);
+    script = Queue<String>.from(script);
 
 
   Future<Object> command(String JSONCommand){
@@ -26,14 +26,14 @@ class DefaultProvider implements IOProvider
 
   Future<bool> saveGame(List<int> saveBytes){
     print('Save not supported with this provider.');
-    var c = new Completer();
+    var c = Completer();
     c.complete(false);
     return c.future;
   }
 
   Future<List<int>> restore(){
     print('Restore not supported with this provider.');
-    var c = new Completer();
+    var c = Completer();
     c.complete(null);
     return c.future;
   }
@@ -41,21 +41,21 @@ class DefaultProvider implements IOProvider
   void PrimaryOutput(String text) {
     var lines = text.split('\n');
     for(final l in lines){
-      var words = new Queue<String>.from(l.split(' '));
+      var words = Queue<String>.from(l.split(' '));
 
-      var s = new StringBuffer();
+      var s = StringBuffer();
       while(!words.isEmpty){
         var nextWord = words.removeFirst();
 
         if (s.length > cols){
           print('$s');
-          s = new StringBuffer();
+          s = StringBuffer();
           s.write('$nextWord ');
         }else{
           if (words.isEmpty){
             s.write('$nextWord ');
             print('$s');
-            s = new StringBuffer();
+            s = StringBuffer();
           }else{
             s.write('$nextWord ');
           }
@@ -64,7 +64,7 @@ class DefaultProvider implements IOProvider
 
       if (s.length > 0){
         print('$s');
-        s = new StringBuffer();
+        s = StringBuffer();
       }
     }
   }
@@ -72,7 +72,7 @@ class DefaultProvider implements IOProvider
   void DebugOutput(String text) => print(text);
 
   Future<String> getLine(){
-    Completer c = new Completer();
+    Completer c = Completer();
 
     if (!script.isEmpty){
       c.complete(script.removeFirst());

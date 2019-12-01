@@ -6,16 +6,12 @@ import 'dart:math';
 import 'package:test/test.dart';
 import 'package:zart/binary_helper.dart';
 import 'package:zart/debugger.dart';
-import 'package:zart/game_exception.dart';
 import 'package:zart/header.dart';
 import 'package:zart/machines/machine.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/DRandom.dart';
 import 'package:zart/zscii.dart';
-import 'instruction_tests.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
-import 'object_tests.dart';
 import 'test_helper.dart';
 
 /*

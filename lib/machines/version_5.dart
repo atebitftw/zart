@@ -242,7 +242,7 @@ class Version5 extends Version3 {
           Z.memoryStreams.removeLast();
 
           var data = Z.sbuff.toString();
-          Z.sbuff = new StringBuffer();
+          Z.sbuff = StringBuffer();
           //Debugger.debug('(streams: ${Z._memoryStreams.length}}>>> Writing "$data"');
           mem.storew(addr, data.length);
 
@@ -257,14 +257,14 @@ class Version5 extends Version3 {
             outputStream3 = false;
           }
         } else {
-          //adding a new buffer location to the output stream stack
+          //adding a buffer location to the output stream stack
           outputStream3 = true;
-          Z.sbuff = new StringBuffer();
+          Z.sbuff = StringBuffer();
           Z.memoryStreams.add(operands[1].value);
           // Debugger.debug('>>>> Starting Memory Stream: ${Z.sbuff}');
           if (Z.memoryStreams.length > 16) {
             //(ref 7.1.2.1)
-            throw new GameException('Maximum memory streams (16) exceeded.');
+            throw GameException('Maximum memory streams (16) exceeded.');
           }
         }
         break;
@@ -746,7 +746,7 @@ class Version5 extends Version3 {
   }
 
   List<Operand> visitOperandsVar(int howMany, bool isVariable) {
-    var operands = new List<Operand>();
+    var operands = List<Operand>();
 
     //load operand types
     var shiftStart = howMany > 4 ? 14 : 6;
@@ -759,7 +759,7 @@ class Version5 extends Version3 {
       if (to == OperandType.OMITTED) {
         break;
       } else {
-        operands.add(new Operand(to));
+        operands.add(Operand(to));
         if (operands.length == howMany) break;
         shiftStart -= 2;
       }
@@ -771,7 +771,7 @@ class Version5 extends Version3 {
     });
 
 //    if (!isVariable && (operands.length != howMany)){
-//      throw new Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
+//      throw Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
 //    }
 
     return operands;

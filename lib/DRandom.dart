@@ -67,7 +67,7 @@ class DRandom
     DRandom()
     {
         _init();
-        int i = new Math.Random().nextInt((1<<32) - 1);
+        int i = Math.Random().nextInt((1<<32) - 1);
         int Seed = (i*MBIG).floor().toInt();
         _seed(Seed);
     }
@@ -122,7 +122,7 @@ class DRandom
     void _init()
     {
         MBIG = INTMAX;
-        SeedArray = new List<int>(56);
+        SeedArray = List<int>(56);
     }
 
     /// Return sample from PRNG
@@ -164,7 +164,7 @@ class DRandom
     {
         if (maxValue < 0)
         {
-            throw new ArgumentError("maxValue less then zero");
+            throw ArgumentError("maxValue less then zero");
         }
 
         int retVal = (Sample() * maxValue).toInt();
@@ -176,7 +176,7 @@ class DRandom
     {
         if (minValue > maxValue)
         {
-            throw new ArgumentError("Min value is greater than max value.");
+            throw ArgumentError("Min value is greater than max value.");
         }
 
         int diff = maxValue - minValue;
@@ -194,10 +194,10 @@ class DRandom
     {
         if (size <= 0)
         {
-            throw new ArgumentError("size less then equal to zero");
+            throw ArgumentError("size less then equal to zero");
         }
 
-        List<int> buff = new List<int>(size);
+        List<int> buff = List<int>(size);
         for (int i=0; i<size; i++)
         {
             buff[i] = (Sample() * (MBIG + 1)).toInt();
@@ -211,15 +211,15 @@ class DRandom
     {
         if (minValue > maxValue)
         {
-            throw new ArgumentError("Min value is greater than max value.");
+            throw ArgumentError("Min value is greater than max value.");
         }
 
         if (size > (maxValue - minValue))
         {
-            throw new ArgumentError("size less then maxValue-minValue");
+            throw ArgumentError("size less then maxValue-minValue");
         }
 
-        Map<int,int> intMap = new Map<int,int>();
+        Map<int,int> intMap = Map<int,int>();
         for (int i=1; i<=size; i++)
         {
             bool unique = false;

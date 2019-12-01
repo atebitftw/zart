@@ -10,7 +10,7 @@ class MockUIProvider implements IOProvider
 {
 
   Future<Object> command(String JSONCommand){
-    var c = new Completer();
+    var c = Completer();
     var cmd = JSON.json.encode(JSONCommand);
     print('Command received: ${cmd[0]} ');
     c.complete(null);

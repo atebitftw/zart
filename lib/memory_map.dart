@@ -22,7 +22,7 @@ class MemoryMap {
   Dictionary dictionary;
 
   MemoryMap(List bytes)
-    : memList = new List.from(bytes);
+    : memList = List.from(bytes);
 
 
   // Reads a global variable (word)
@@ -31,7 +31,7 @@ class MemoryMap {
    //if (which == 0) return Z.stack.pop();
 
    if (which < 0x10 || which > 0xff) {
-     throw new GameException('Global lookup register out of range.');
+     throw GameException('Global lookup register out of range.');
    }
 
    //global 0x00 means pop from stack
@@ -43,7 +43,7 @@ class MemoryMap {
    // if (which == 0) return Z.stack.push(value);
 
     if (which < 0x10 || which > 0xff) {
-      throw new GameException('Global lookup register out of range.');
+      throw GameException('Global lookup register out of range.');
     }
 
       storew(globalVarsAddress + ((which - 0x10) * 2), value);
@@ -84,7 +84,7 @@ class MemoryMap {
     checkBounds(address + 1);
 
     if (value > 0xffff) {
-      throw new GameException('word out of range');
+      throw GameException('word out of range');
     }
 
     if (value < 0){
@@ -121,7 +121,7 @@ class MemoryMap {
 
     // Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
 
-     throw new GameException('Attempted access to memory address'
+     throw GameException('Attempted access to memory address'
        ' that is out of bounds: $address 0x${address.toRadixString(16)}');
    }
   }

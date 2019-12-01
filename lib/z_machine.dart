@@ -11,7 +11,7 @@ import 'package:zart/machines/version_7.dart';
 import 'package:zart/machines/version_8.dart';
 import 'package:zart/memory_map.dart';
 
-ZMachine get Z => new ZMachine();
+ZMachine get Z => ZMachine();
 
 /**
 * This is a partial-interpreter for the Z-Machine.  It handles most interpreter
@@ -28,9 +28,9 @@ class ZMachine {
   ZVersion ver;
   String mostRecentInput;
 
-  StringBuffer sbuff = new StringBuffer();
-  final List<int> memoryStreams = new List<int>();
-  final List<int> rawBytes = new List<int>();
+  StringBuffer sbuff = StringBuffer();
+  final List<int> memoryStreams = List<int>();
+  final List<int> rawBytes = List<int>();
 
   static ZMachine _context;
 
@@ -49,7 +49,7 @@ class ZMachine {
   factory ZMachine() {
     if (_context != null) return _context;
 
-    _context = new ZMachine._internal();
+    _context = ZMachine._internal();
     return _context;
   }
 
@@ -130,7 +130,7 @@ class ZMachine {
 
     print('Zart: Using Z-Machine v${machine.version}.');
 
-    machine.mem = new MemoryMap(rawBytes);
+    machine.mem = MemoryMap(rawBytes);
 
     machine.visitHeader();
 
@@ -150,7 +150,7 @@ class ZMachine {
 
     if (machineOverride != null) {
       machine = machineOverride;
-      machine.mem = new MemoryMap(rawBytes);
+      machine.mem = MemoryMap(rawBytes);
       machine.visitHeader();
     }
 
@@ -220,7 +220,7 @@ class ZMachine {
     memoryStreams.clear();
     machine.mem = null;
 
-    machine.mem = new MemoryMap(rawBytes);
+    machine.mem = MemoryMap(rawBytes);
     machine.visitHeader();
   }
 

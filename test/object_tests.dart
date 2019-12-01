@@ -7,7 +7,7 @@ void objectTests(){
   group('Objects>', (){
     test('remove', (){
 
-      var o1 = new GameObject(1); //forest
+      var o1 = GameObject(1); //forest
 
       // check if we have the right object and
       // assumptions are correct.
@@ -23,20 +23,20 @@ void objectTests(){
       expect(o1.isFlagBitSet(28), equals(true));
 
       var ls = o1.leftSibling(); //248
-      //var p = new GameObject(36);
+      //var p = GameObject(36);
 
       o1.removeFromTree();
       //check that 2 is now the sibling of o1's
       //left sibling
-      expect(2, equals(new GameObject(ls).sibling));
+      expect(2, equals(GameObject(ls).sibling));
 
       expect(0, equals(o1.parent));
       expect(0, equals(o1.sibling));
     });
 
     test('insert', (){
-      var o1 = new GameObject(1); //forest
-      var p = new GameObject(36); //parent
+      var o1 = GameObject(1); //forest
+      var p = GameObject(36); //parent
       var oc = p.child;
 
       o1.insertTo(36);
@@ -47,7 +47,7 @@ void objectTests(){
     });
 
     test('get next property', (){
-      GameObject o1 = new GameObject(5); //"you";
+      GameObject o1 = GameObject(5); //"you";
 
       expect('you', equals(o1.shortName));
 
@@ -60,7 +60,7 @@ void objectTests(){
     });
 
     test('get property', (){
-      GameObject o1 = new GameObject(5); //"you";
+      GameObject o1 = GameObject(5); //"you";
 
       expect('you', equals(o1.shortName));
 
@@ -71,7 +71,7 @@ void objectTests(){
     });
 
     test('set property', (){
-      GameObject o1 = new GameObject(31); //"frigid river";
+      GameObject o1 = GameObject(31); //"frigid river";
 
       expect('Frigid River', equals(o1.shortName));
 
@@ -95,7 +95,7 @@ void objectTests(){
       //   () => o1.setPropertyValue(13, 0xffff),
       //     (e) => e is GameException);
 
-      o1 = new GameObject(29);
+      o1 = GameObject(29);
 
       //throw on prop len > 2
       // Expect.throws(
@@ -106,7 +106,7 @@ void objectTests(){
     });
 
     test('attributes are set', (){
-      GameObject o1 = new GameObject(4);// "cretin";
+      GameObject o1 = GameObject(4);// "cretin";
 
       expect('cretin', equals(o1.shortName));
 
@@ -126,7 +126,7 @@ void objectTests(){
     });
 
     test ('unset attribute', (){
-      GameObject o1 = new GameObject(4);// "cretin";
+      GameObject o1 = GameObject(4);// "cretin";
       expect(o1.isFlagBitSet(7), equals(true));
       o1.unsetFlagBit(7);
       expect(o1.isFlagBitSet(7), equals(false));
@@ -145,7 +145,7 @@ void objectTests(){
     });
 
     test('set attribute', (){
-      GameObject o1 = new GameObject(30);// "you";
+      GameObject o1 = GameObject(30);// "you";
       expect(o1.isFlagBitSet(1), equals(false));
       o1.setFlagBit(1);
       expect(o1.isFlagBitSet(1), equals(true));
@@ -165,7 +165,7 @@ void objectTests(){
 
 
     test('get property address', (){
-      GameObject o1 = new GameObject(180); //"west of house"
+      GameObject o1 = GameObject(180); //"west of house"
 
       var addr = o1.getPropertyAddress(31);
 
@@ -189,7 +189,7 @@ void objectTests(){
     });
 
     test('get property length', (){
-      GameObject o1 = new GameObject(232); //"Entrance to Hades"
+      GameObject o1 = GameObject(232); //"Entrance to Hades"
 
       expect(4, equals(GameObject.propertyLength(o1.getPropertyAddress(28) - 1)));
       expect(1, equals(GameObject.propertyLength(o1.getPropertyAddress(23) - 1)));

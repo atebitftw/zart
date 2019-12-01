@@ -113,11 +113,11 @@ class GameObject
     var len = propertyLength(addr - 1);
 
     if (addr == 0){
-      throw new GameException('Property not found.');
+      throw GameException('Property not found.');
     }
 
     if (len < 1 || len > 2){
-      throw new GameException('Cannot set property on properties > 2 bytes.');
+      throw GameException('Cannot set property on properties > 2 bytes.');
     }
 
     if (len == 1){
@@ -154,7 +154,7 @@ class GameObject
         //ding ding ding
 
         if (len > 2){
-          throw new GameException('Only property length of 1 or 2 is supported by this function: $len');
+          throw GameException('Only property length of 1 or 2 is supported by this function: $len');
         }
 
         if (len == 1){
@@ -215,7 +215,7 @@ class GameObject
     propertyNum %= 31;
 
     if (propertyNum < 0 || propertyNum > 31){
-      throw new GameException('property number out of bounds (1-31)');
+      throw GameException('property number out of bounds (1-31)');
     }
     return Z.machine.mem.loadw(Z.machine.mem.objectsAddress + (propertyNum * 2));
   }
@@ -224,7 +224,7 @@ class GameObject
     //already an orphan
     if (parent == 0) return;
 
-    var pgo = new GameObject(parent);
+    var pgo = GameObject(parent);
 
     if (pgo.child == id){
       //we are the parent's child so...
@@ -240,21 +240,21 @@ class GameObject
 
       // now set that sibling's sibling to our sibling
       // effectively removing us from the list.
-      new GameObject(leftSib).sibling = sibling;
+      GameObject(leftSib).sibling = sibling;
     }
     parent = 0;
     sibling = 0;
   }
 
   int leftSibling(){
-    var pgo = new GameObject(parent);
-    var theChild = new GameObject(pgo.child);
+    var pgo = GameObject(parent);
+    var theChild = GameObject(pgo.child);
 
     while(theChild.sibling != id){
-      theChild = new GameObject(theChild.sibling);
+      theChild = GameObject(theChild.sibling);
 
       if (theChild.id == 0){
-        throw new GameException('Sibling list not well formed.');
+        throw GameException('Sibling list not well formed.');
       }
     }
 
@@ -268,7 +268,7 @@ class GameObject
     }
 
 
-    var p = new GameObject(obj);
+    var p = GameObject(obj);
 
 
     if (p.child > 0){
@@ -299,7 +299,7 @@ class GameObject
   //TODO convert to string return
   void dump(){
     
-    var s = new StringBuffer();
+    var s = StringBuffer();
     for (int i = 0; i <= (ZMachine.verToInt(Z.machine.version) <= 3 ? 31 : 47); i++){
       if (BinaryHelper.isSet(flags, (ZMachine.verToInt(Z.machine.version) <= 3 ? 31 : 47) - i)){
         s.write('[$i] ');
@@ -309,9 +309,9 @@ class GameObject
     var ret = 
 '''
 Object #:$id, "${shortName}"
-parent: ${parent} "${new GameObject(parent).shortName}"
-sibling: ${sibling} "${new GameObject(sibling).shortName}"
-child: ${child} "${new GameObject(child).shortName}"
+parent: ${parent} "${GameObject(parent).shortName}"
+sibling: ${sibling} "${GameObject(sibling).shortName}"
+child: ${child} "${GameObject(child).shortName}"
 Property Address 0x${propertyTableStart.toRadixString(16)}
 flags: ${s}
 ''';

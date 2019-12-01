@@ -25,7 +25,7 @@ class IFF {
   static Chunk readChunk(List stream){
     if (stream.length < 4) return null;
 
-    var s = new StringBuffer();
+    var s = StringBuffer();
 
     for(int i = 0; i < 4; i++){
       s.writeCharCode(nextByte(stream));
@@ -35,7 +35,7 @@ class IFF {
   }
 
   static int read4Byte(List stream){
-    var bl = new List();
+    var bl = List();
 
     for(int i = 0; i < 4; i++){
       bl.add(nextByte(stream));
@@ -45,7 +45,7 @@ class IFF {
   }
 
   static int read3Byte(List stream){
-    var bl = new List();
+    var bl = List();
 
     for(int i = 0; i < 3; i++){
       bl.add(nextByte(stream));
@@ -55,7 +55,7 @@ class IFF {
   }
 
   static int read2Byte(List stream){
-    var bl = new List();
+    var bl = List();
 
     for(int i = 0; i < 2; i++){
       bl.add(nextByte(stream));

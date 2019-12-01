@@ -37,8 +37,8 @@ void objectTestsV8(){
     });
 
     test('insert', (){
-      var o1 = new GameObject(SHIP); //ship
-      var p = new GameObject(DREAMBRIDGE); //parent
+      var o1 = GameObject(SHIP); //ship
+      var p = GameObject(DREAMBRIDGE); //parent
       var oc = p.child;
 
       o1.insertTo(p.id);
@@ -49,7 +49,7 @@ void objectTestsV8(){
     });
 
     test('get property length', (){
-      GameObject o1 = new GameObject(SHIP); //ship
+      GameObject o1 = GameObject(SHIP); //ship
 
       Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(35) - 1));
       Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(4) - 1));
@@ -58,7 +58,7 @@ void objectTestsV8(){
     });
 
     test('get property', (){
-      GameObject o1 = new GameObject(SHIP);
+      GameObject o1 = GameObject(SHIP);
 
       Expect.equals('ship', o1.shortName);
 
@@ -72,7 +72,7 @@ void objectTestsV8(){
     });
 
     test('get property address', (){
-      GameObject o1 = new GameObject(SHIP); //"west of house"
+      GameObject o1 = GameObject(SHIP); //"west of house"
 
       var addr = o1.getPropertyAddress(4);
 
@@ -97,7 +97,7 @@ void objectTestsV8(){
 
 
     test('get next property', (){
-      GameObject o1 = new GameObject(SHIP);
+      GameObject o1 = GameObject(SHIP);
 
       Expect.equals('ship', o1.shortName);
 
@@ -116,7 +116,7 @@ void objectTestsV8(){
     });
 
     test('set property', (){
-      GameObject o1 = new GameObject(SHIP);
+      GameObject o1 = GameObject(SHIP);
 
       Expect.equals('ship', o1.shortName);
 
@@ -138,7 +138,7 @@ void objectTestsV8(){
     });
 
     test('attributes are set', (){
-      GameObject o1 = new GameObject(SHIP);
+      GameObject o1 = GameObject(SHIP);
 
       Expect.equals('ship', o1.shortName);
 
@@ -157,7 +157,7 @@ void objectTestsV8(){
     });
 
     test ('unset attribute', (){
-      GameObject o1 = new GameObject(SHIP);
+      GameObject o1 = GameObject(SHIP);
 
       Expect.isTrue(o1.isFlagBitSet(17));
       o1.unsetFlagBit(17);
@@ -172,7 +172,7 @@ void objectTestsV8(){
     });
 
     test('set attribute', (){
-      GameObject o1 = new GameObject(58);// "the door";
+      GameObject o1 = GameObject(58);// "the door";
       Expect.isFalse(o1.isFlagBitSet(1), '1');
       o1.setFlagBit(1);
       Expect.isTrue(o1.isFlagBitSet(1));

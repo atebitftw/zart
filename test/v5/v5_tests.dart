@@ -11,7 +11,7 @@ main() {
   // Tests depend on using this file.  Tests will fail if changed.
   var defaultGameFile = 'games${Platform.pathSeparator}ADVLAND.Z5';
 
-  File f = new File(defaultGameFile);
+  File f = File(defaultGameFile);
 
   try {
     Z.load(f.readAsBytesSync());

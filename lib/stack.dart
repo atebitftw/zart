@@ -50,7 +50,7 @@ class Stack {
   void push(int value) {
     //ref 6.3.3
     if (_max > 0 && length == (_max - 1)) {
-      throw new GameException('Stack Overflow. $_max');
+      throw GameException('Stack Overflow. $_max');
     }
 //
 //    if (length % 1024 == 0){

@@ -31,7 +31,7 @@ class Debugger {
     Z.machine = newMachine;
     Z.machine.mem = MemoryMap(Z.rawBytes);
     Z.machine.visitHeader();
-    debug('<<< New machine installed: v${newMachine.version} >>>');
+    debug('<<< machine installed: v${newMachine.version} >>>');
     Z.inInterrupt = false;
   }
 
@@ -63,8 +63,8 @@ class Debugger {
           Z.callAsync(_repl);
           break;
         case 'move':
-          var obj1 = new GameObject(int.parse(args[1]));
-          var obj2 = new GameObject(int.parse(args[2]));
+          var obj1 = GameObject(int.parse(args[1]));
+          var obj2 = GameObject(int.parse(args[2]));
           obj1.insertTo(obj2.id);
           Z.callAsync(_repl);
           break;
@@ -116,7 +116,7 @@ class Debugger {
           Z.callAsync(Z.runIt);
           break;
         case 'globals':
-          StringBuffer s = new StringBuffer();
+          StringBuffer s = StringBuffer();
 
           var col = args.length == 2 ? int.parse(args[1]) : 10;
           if (col < 1) col = 1;
@@ -145,7 +145,7 @@ class Debugger {
           Z.callAsync(_repl);
           break;
         case 'object':
-          var obj = new GameObject(int.parse(args[1]));
+          var obj = GameObject(int.parse(args[1]));
           obj.dump();
           Z.callAsync(_repl);
           break;
@@ -187,7 +187,7 @@ class Debugger {
 
   static void setBreaks(breakPoints) {
     if (_breakPoints == null){
-      _breakPoints = new List<int>();
+      _breakPoints = List<int>();
     }else{
       _breakPoints.clear();
     }
@@ -195,7 +195,7 @@ class Debugger {
   }
 
   static String crashReport(){
-    var s = new StringBuffer();
+    var s = StringBuffer();
     s.write('Call Stack: ${Z.machine.callStack}\n');
     s.write('Game Stack: ${Z.machine.stack}\n');
     s.write(dumpLocals());
@@ -204,7 +204,7 @@ class Debugger {
 
   static String dumpLocals(){
     var locals = Z.machine.callStack[2];
-    StringBuffer s = new StringBuffer();
+    StringBuffer s = StringBuffer();
 
     for(int i = 0; i < locals; i++){
       s.write('(L${i}: 0x${Z.machine.readLocal(i + 1).toRadixString(16)}) ');
@@ -216,7 +216,7 @@ class Debugger {
   static String dumpHeader(){
     if (!Z.isLoaded) return '<<< Machine Not Loaded >>>\n';
 
-    var s = new StringBuffer();
+    var s = StringBuffer();
 
     s.write('(Story contains ${Z.machine.mem.size} bytes.)\n');
     s.write('\n');
