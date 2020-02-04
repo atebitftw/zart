@@ -14,9 +14,6 @@ import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
 import 'test_helper.dart';
 
-/*
-* IMPORTANT: Run in Checked Mode so Assertions fire.
-*/
 
 void main() {
   final s = Platform.pathSeparator;

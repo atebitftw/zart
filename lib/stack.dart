@@ -22,7 +22,7 @@ class Stack {
     stack.removeRange(0, 1);
 
     //no Dart negative values should exist here
-    //except the spcecial stack-end flag 0x-10000
+    //except the special stack-end flag 0x-10000
     assert(v == Machine.STACK_MARKER || v >= 0);
 
     return v;
