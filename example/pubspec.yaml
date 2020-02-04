@@ -1,0 +1,9 @@
+name: zart_examples
+description: Examples folder for Z-Machine
+author: John Evans <prujohn@gmail.com>
+homepage: https://github.com/prujohn/zart
+version: 1.0.1
+environment:
+  sdk: '>=2.6.0 <3.0.0'
+zart:
+    path: ../
