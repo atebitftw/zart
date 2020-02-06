@@ -5,5 +5,5 @@ homepage: https://github.com/prujohn/zart
 version: 1.0.1
 environment:
   sdk: '>=2.6.0 <3.0.0'
-dependencies:
-  test: ^1.6.3
+dev_dependencies:
+  test: ^1.12.0

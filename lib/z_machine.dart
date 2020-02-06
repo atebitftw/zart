@@ -115,8 +115,8 @@ class ZMachine {
 
     rawBytes.clear();
     rawBytes.addAll(storyBytes);
-    print("First 10 Story Bytes");
-    print(rawBytes.getRange(0,10));
+    // print("First 10 Story Bytes");
+    // print(rawBytes.getRange(0,10));
 
     ver = ZMachine.intToVer(rawBytes[Header.VERSION]);
 

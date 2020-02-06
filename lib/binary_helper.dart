@@ -2,19 +2,22 @@ import 'dart:math';
 
 /// Helper class for binary operations
 class BinaryHelper {
-  static String binaryOf(int n) {
-    if (n < 0) throw Exception("negative numbers require 2s complement");
-    if (n == 0) return "0";
-    String res = "";
-    while (n > 0) {
-      res = (n % 2).toString() + res;
-      n = (n ~/ 2);
-    }
-    return res;
-  }
+  // static String binaryOf(int n) {
+  //   if (n < 0) throw Exception("negative numbers require 2s complement");
+  //   if (n == 0) return "0";
+  //   String res = "";
+  //   while (n > 0) {
+  //     res = (n % 2).toString() + res;
+  //     n = (n ~/ 2);
+  //   }
+  //   return res;
+  // }
+
+  /// Returns a binary string of bits representing [n].
+  static String binaryOf(int n) => n.toRadixString(2);
 
   /// Returns true if bit is set in [n] at [bitPosition].
-  static bool isSet(int n, int bitPosition) => ((n >> bitPosition) & 1) == 1;
+  static bool isSet(int n, int bitPosition) => (n >> bitPosition) & 1 == 1;
 
   /// Returns the bottom [bits] bits from [n].
   static int bottomBits(int n, int bits) => n & ((pow(2, bits)) - 1);
@@ -32,13 +35,13 @@ class BinaryHelper {
     return i;
   }
 
-  /// Sets a bit at [bit]
+  /// Sets a bit in [n] at bit position [bit].
   static int set(int n, int bit) {
     n |= (1 << bit);
     return n;
   }
 
-  /// Unsets a bit at [bit]
+  /// Unsets a bit in [n] at bit position [bit].
   static int unset(int n, int bit) {
     n &= ~(1 << bit);
     return n;

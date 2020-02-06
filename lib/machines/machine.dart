@@ -1,4 +1,3 @@
-
 import 'package:zart/DRandom.dart';
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/IO/quetzal.dart';
@@ -18,14 +17,15 @@ import 'package:zart/zscii.dart';
 * Base machine that is compatible with Z-Machine V1.
 *
 */
-class Machine
-{
-  static final int STACK_MARKER = -0x10000;
+class Machine {
+  static const int STACK_MARKER = -0x10000;
+
   /// Z-Machine False = 0
-  static final int FALSE = 0;
+  static const int FALSE = 0;
+
   /// Z-Machine True = 1
-  static final int TRUE = 1;
-  static final int SP = 0;
+  static const int TRUE = 1;
+  static const int SP = 0;
 
   final Stack stack;
   final Stack callStack;
@@ -63,8 +63,8 @@ class Machine
   *
   * ref(2.2)
   */
-  static int dartSignedIntTo16BitSigned(int val){
-    if(val < -32768 || val > 32767){
+  static int dartSignedIntTo16BitSigned(int val) {
+    if (val < -32768 || val > 32767) {
       throw GameException("Signed 16-bit int is out of range: $val");
     }
 
@@ -78,36 +78,32 @@ class Machine
   *
   * ref(2.2)
   */
-  static int toSigned(int val){
+  static int toSigned(int val) {
     //if (val == 0) return val;
 
     // game 16-bit word is always positive number to Dart
     assert(val >= 0);
 
     // convert to signed if 16-bit MSB is set
-    return (val & 0x8000) == 0x8000
-        ? -(65536 - val)
-        : val;
+    return (val & 0x8000) == 0x8000 ? -(65536 - val) : val;
   }
-
 
   ZVersion get version => ZVersion.V1;
 
   // Kb
   int get maxFileLength => 128;
 
-  int unpack(int packedAddr){
+  int unpack(int packedAddr) {
     return packedAddr << 1;
   }
 
-  int pack(int unpackedAddr){
+  int pack(int unpackedAddr) {
     return unpackedAddr >> 1;
   }
 
   int fileLengthMultiplier() => 2;
 
-  void visitRoutine(List<int> params){
-
+  void visitRoutine(List<int> params) {
     //Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
 
     // assign any params passed to locals and push locals onto the call stack
@@ -124,13 +120,13 @@ class Machine
 
     //set the routine to default locals (V3...)
 
-    for(int i = 0; i < locals; i++){
-      if (i < params.length){
+    for (int i = 0; i < locals; i++) {
+      if (i < params.length) {
         //if param avail, store it
         callStack.push(params[i]);
         //Debugger.verbose('    Local ${i}: 0x${(params[i-1]).toRadixString(16)}');
         //mem.storew(pc, params[i - 1]);
-      }else{
+      } else {
         //push otherwise push the local
         callStack.push(mem.loadw(PC));
         //Debugger.verbose('    Local ${i}: 0x${mem.loadw(pc).toRadixString(16)}');
@@ -143,7 +139,7 @@ class Machine
     callStack.push(locals);
   }
 
-  void doReturn(var result){
+  void doReturn(var result) {
     // return address
     PC = callStack.pop();
     assert(PC > 0);
@@ -155,56 +151,56 @@ class Machine
     callStack.stack.removeRange(0, callStack.pop() + 1);
 
     //unwind game stack
-    while(stack.pop() != STACK_MARKER){}
+    while (stack.pop() != STACK_MARKER) {}
 
     writeVariable(resultAddrByte, result);
   }
 
-  void visitInstruction(){
+  void visitInstruction() {
     var i = readb();
-    if (ops.containsKey('$i')){
-      if (Debugger.enableDebug){
-        if (Debugger.enableTrace && !Z.inBreak){
+    if (ops.containsKey('$i')) {
+      if (Debugger.enableDebug) {
+        if (Debugger.enableTrace && !Z.inBreak) {
           Debugger.debug('>>> (0x${(PC - 1).toRadixString(16)}) ($i)');
           Debugger.debug('${Debugger.dumpLocals()}');
         }
 
-        if (Debugger.enableStackTrace){
-             Debugger.debug('Call Stack: $callStack');
-             Debugger.debug('Game Stack: $stack');
+        if (Debugger.enableStackTrace) {
+          Debugger.debug('Call Stack: $callStack');
+          Debugger.debug('Game Stack: $stack');
         }
 
-        if (Debugger.isBreakPoint(PC - 1)){
+        if (Debugger.isBreakPoint(PC - 1)) {
           Z.inBreak = true;
           Debugger.debugStartAddr = PC - 1;
         }
       }
 
       ops['$i']();
-    }else{
+    } else {
       notFound();
     }
-      ops['${readb()}']();
+    ops['${readb()}']();
   }
 
-  void notFound(){
+  void notFound() {
     throw GameException('Unsupported Op Code: ${mem.loadb(PC - 1)}');
   }
 
-  void restore(){
+  void restore() {
     if (Z.inInterrupt) {
       return;
     }
 
     Z.inInterrupt = true;
 
-    Z.sendIO(IOCommands.RESTORE).then((stream){
+    Z.sendIO(IOCommands.RESTORE).then((stream) {
       Z.inInterrupt = false;
       if (stream == null) {
         branch(false);
-      }else{
+      } else {
         var result = Quetzal.restore(stream);
-        if (!result){
+        if (!result) {
           branch(false);
         }
       }
@@ -214,7 +210,7 @@ class Machine
     });
   }
 
-  void save(){
+  void save() {
     if (Z.inInterrupt) {
       return;
     }
@@ -222,19 +218,16 @@ class Machine
     Z.inInterrupt = true;
 
     //calculates the local jump offset (ref 4.7)
-    int jumpToLabelOffset(int jumpByte){
-
-      if (BinaryHelper.isSet(jumpByte, 6)){
+    int jumpToLabelOffset(int jumpByte) {
+      if (BinaryHelper.isSet(jumpByte, 6)) {
         //single byte offset
         return BinaryHelper.bottomBits(jumpByte, 6);
-      }else{
+      } else {
         //create the 14-bit offset value with next byte
         var val = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | readb();
 
         //convert to Dart signed int (14-bit MSB is the sign bit)
-        return ((val & 0x2000) == 0x2000)
-            ? -(16384 - val)
-            : val;
+        return ((val & 0x2000) == 0x2000) ? -(16384 - val) : val;
       }
     }
 
@@ -244,16 +237,14 @@ class Machine
 
     var offset = jumpToLabelOffset(jumpByte);
 
-    if (branchOn){
-      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC + (offset - 2)))
-      .then((result){
+    if (branchOn) {
+      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC + (offset - 2))).then((result) {
         Z.inInterrupt = false;
         if (result) PC += offset - 2;
         Z.callAsync(Z.runIt);
       });
-    }else{
-      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC))
-      .then((result){
+    } else {
+      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC)).then((result) {
         Z.inInterrupt = false;
         if (!result) PC += offset - 2;
         Z.callAsync(Z.runIt);
@@ -261,8 +252,7 @@ class Machine
     }
   }
 
-  void branch(bool testResult)
-  {
+  void branch(bool testResult) {
     assert(testResult is bool);
 
     //calculates the local jump offset (ref 4.7)
@@ -270,33 +260,30 @@ class Machine
     var jumpByte = readb();
     var offset;
 
-    if (BinaryHelper.isSet(jumpByte, 6)){
+    if (BinaryHelper.isSet(jumpByte, 6)) {
       //single byte offset
       offset = BinaryHelper.bottomBits(jumpByte, 6);
-    }else{
+    } else {
       //create the 14-bit offset value with next byte
       var val = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | readb();
 
       //convert to Dart signed int (14-bit MSB is the sign bit)
-      offset = ((val & 0x2000) == 0x2000)
-                  ? -(16384 - val)
-                  : val;
+      offset = ((val & 0x2000) == 0x2000) ? -(16384 - val) : val;
     }
 
     //Debugger.verbose('    (branch condition: $branchOn)');
 
     //compare test result to branchOn (true|false) bit
-    if (BinaryHelper.isSet(jumpByte, 7) == testResult){
-
+    if (BinaryHelper.isSet(jumpByte, 7) == testResult) {
       // If the offset is 0 or 1 (FALSE or TRUE), perform a return
       // operation.
-      if (offset == Machine.FALSE || offset == Machine.TRUE){
+      if (offset == Machine.FALSE || offset == Machine.TRUE) {
         doReturn(offset);
         return;
       }
 
       //jump to the offset and continue...
-      PC += offset - 2;
+      PC += (offset - 2);
       //Debugger.verbose('    (branching to 0x${pc.toRadixString(16)})');
     }
 
@@ -304,25 +291,24 @@ class Machine
     //Debugger.verbose('    (continuing to next instruction)');
   }
 
-  void sendStatus(){
+  void sendStatus() {
     var oid = readVariable(0x10);
 
     var locObject = oid != 0 ? GameObject(oid).shortName : '';
 
     Z.inInterrupt = true;
     Z.sendIO(IOCommands.STATUS, [
-                              Header.isScoreGame() ? 'SCORE' : 'TIME',
-                              locObject,
-                              readVariable(0x11).toString(),
-                              readVariable(0x12).toString()
-                                 ])
-      .then((_){
-        Z.inInterrupt = false;
-        Z.callAsync(Z.runIt);
-      });
+      Header.isScoreGame() ? 'SCORE' : 'TIME',
+      locObject,
+      readVariable(0x11).toString(),
+      readVariable(0x12).toString()
+    ]).then((_) {
+      Z.inInterrupt = false;
+      Z.callAsync(Z.runIt);
+    });
   }
 
-  void callVS(){
+  void callVS() {
     //Debugger.verbose('${pcHex(-1)} [call_vs]');
     var operands = visitOperandsVar(4, true);
 
@@ -331,11 +317,11 @@ class Machine
 
     assert(operands.length > 0);
 
-    if (operands[0].value == 0){
+    if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
       writeVariable(resultStore, Machine.FALSE);
-    }else{
+    } else {
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
 
@@ -374,37 +360,37 @@ class Machine
 
     var parseBuffer = operands[1].value + 1;
 
-    void processLine(String line){
+    void processLine(String line) {
       line = line.trim().toLowerCase();
 
       //Debugger.verbose('    (processing: "$line")');
 
-      if (line.length > maxBytes - 1){
+      if (line.length > maxBytes - 1) {
         line = line.substring(0, maxBytes - 2);
         //Debugger.verbose('    (text buffer truncated to "$line")');
       }
 
-      var zChars = ZSCII.toZCharList(line);
+      final zChars = ZSCII.toZCharList(line);
 
       //store the zscii chars in text buffer
-      for(final c in zChars){
+      for (final c in zChars) {
         mem.storeb(textBuffer++, c);
       }
 
       //terminator
       mem.storeb(textBuffer, 0);
 
-      var tokens = Z.machine.mem.dictionary.tokenize(line);
+      final tokens = Z.machine.mem.dictionary.tokenize(line);
 
       //Debugger.verbose('    (tokenized: $tokens)');
 
-      var parsed = Z.machine.mem.dictionary.parse(tokens, line);
+      final parsed = Z.machine.mem.dictionary.parse(tokens, line);
       //Debugger.debug('$parsed');
 
-      var maxParseBufferBytes = (4 * maxWords) + 2;
+      final maxParseBufferBytes = (4 * maxWords) + 2;
 
       var i = 0;
-      for(final p in parsed){
+      for (final p in parsed) {
         i++;
         if (i > maxParseBufferBytes) break;
         mem.storeb(parseBuffer++, p);
@@ -412,19 +398,19 @@ class Machine
     }
 
     final l = await Z.sendIO(IOCommands.READ);
+
     Z.inInterrupt = false;
-    if (l == '/!'){
+    if (l == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = PC - 1;
       Z.callAsync(Debugger.startBreak);
-    }else{
+    } else {
       processLine(l);
       Z.callAsync(Z.runIt);
     }
-
   }
 
-  void random(){
+  void random() {
     //Debugger.verbose('${pcHex(-1)} [random]');
 
     var operands = visitOperandsVar(1, false);
@@ -436,13 +422,13 @@ class Machine
     //default return value in first two cases
     var result = 0;
 
-    if (range < 0){
+    if (range < 0) {
       r = DRandom.withSeed(range);
       //Debugger.verbose('    (set RNG to seed: $range)');
-    }else if(range == 0){
-      r = DRandom.withSeed(DateTime.now().millisecond);
+    } else if (range == 0) {
+      r = DRandom.withSeed(DateTime.now().millisecondsSinceEpoch);
       //Debugger.verbose('    (set RNG to random seed)');
-    }else{
+    } else {
       result = r.NextFromMax(range) + 1;
       //Debugger.verbose('    (Rolled [1 - $range] number: $result)');
     }
@@ -450,7 +436,7 @@ class Machine
     writeVariable(resultTo, result);
   }
 
-  void pull(){
+  void pull() {
     //Debugger.verbose('${pcHex(-1)} [pull]');
     var operand = visitOperandsVar(1, false);
 
@@ -461,7 +447,7 @@ class Machine
     writeVariable(operand[0].rawValue, value);
   }
 
-  void push(){
+  void push() {
     //Debugger.verbose('${pcHex(-1)} [push]');
     var operand = visitOperandsVar(1, false);
 
@@ -477,7 +463,7 @@ class Machine
 //    }
   }
 
-  void ret_popped(){
+  void ret_popped() {
     //Debugger.verbose('${pcHex(-1)} [ret_popped]');
     var v = stack.pop();
 
@@ -488,52 +474,52 @@ class Machine
   }
 
   assertNotMarker(m) {
-    if (m == Machine.STACK_MARKER){
+    if (m == Machine.STACK_MARKER) {
       throw GameException('Stack Underflow.');
     }
   }
 
-  void rtrue(){
+  void rtrue() {
     //Debugger.verbose('${pcHex(-1)} [rtrue]');
     doReturn(Machine.TRUE);
   }
 
-  void rfalse(){
+  void rfalse() {
     //Debugger.verbose('${pcHex(-1)} [rfalse]');
     doReturn(Machine.FALSE);
   }
 
-  void nop(){
+  void nop() {
     //Debugger.verbose('${pcHex(-1)} [nop]');
   }
 
-  void pop(){
+  void pop() {
     //Debugger.verbose('${pcHex(-1)} [pop]');
 
     stack.pop();
   }
 
-  void show_status(){
+  void show_status() {
     //Debugger.verbose('${pcHex(-1)} [show_status]');
 
     //treat as NOP
   }
 
-  void verify(){
+  void verify() {
     //Debugger.verbose('${pcHex(-1)} [verify]');
 
     //always verify
     branch(true);
   }
 
-  void piracy(){
+  void piracy() {
     //Debugger.verbose('${pcHex(-1)} [piracy]');
 
     //always branch (game disk is genuine ;)
     branch(true);
   }
 
-  void jz(){
+  void jz() {
     //Debugger.verbose('${pcHex(-1)} [jz]');
 
     var operand = visitOperandsShortForm();
@@ -541,7 +527,7 @@ class Machine
     branch(operand.value == 0);
   }
 
-  void get_sibling(){
+  void get_sibling() {
     //Debugger.verbose('${pcHex(-1)} [get_sibling]');
 
     var operand = visitOperandsShortForm();
@@ -555,7 +541,7 @@ class Machine
     branch(obj.sibling != 0);
   }
 
-  void get_child(){
+  void get_child() {
     //Debugger.verbose('${pcHex(-1)} [get_child]');
 
     var operand = visitOperandsShortForm();
@@ -569,7 +555,7 @@ class Machine
     branch(obj.child != 0);
   }
 
-  void inc(){
+  void inc() {
     //Debugger.verbose('${pcHex(-1)} [inc]');
 
     var operand = visitOperandsShortForm();
@@ -577,10 +563,9 @@ class Machine
     var value = toSigned(readVariable(operand.rawValue)) + 1;
 
     writeVariable(operand.rawValue, value);
-
   }
 
-  void dec(){
+  void dec() {
     //Debugger.verbose('${pcHex(-1)} [dec]');
 
     var operand = visitOperandsShortForm();
@@ -590,7 +575,7 @@ class Machine
     writeVariable(operand.rawValue, value);
   }
 
-  void test(){
+  void test() {
     //Debugger.verbose('${pcHex(-1)} [test]');
     //var pp = PC - 1;
 
@@ -609,7 +594,7 @@ class Machine
     branch((bitmap & flags) == flags);
   }
 
-  void dec_chk(){
+  void dec_chk() {
     //Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -624,14 +609,14 @@ class Machine
     branch(value < toSigned(operands[1].value));
   }
 
-  void inc_chk(){
+  void inc_chk() {
     //Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
     var operands = mem.loadb(PC - 1) < 193
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
- //   var value = toSigned(readVariable(operands[0].rawValue)) + 1;
+    //   var value = toSigned(readVariable(operands[0].rawValue)) + 1;
     // var varValue = readVariable(operands[0].rawValue);
 
     var value = toSigned(readVariable(operands[0].rawValue)) + 1;
@@ -642,7 +627,7 @@ class Machine
     branch(value > toSigned(operands[1].value));
   }
 
-  void test_attr(){
+  void test_attr() {
     //Debugger.verbose('${pcHex(-1)} [test_attr]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -655,7 +640,7 @@ class Machine
     branch(obj.isFlagBitSet(operands[1].value));
   }
 
-  void jin()  {
+  void jin() {
     //Debugger.verbose('${pcHex(-1)} [jin]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -668,11 +653,11 @@ class Machine
     branch(child.parent == parent.id);
   }
 
-  void jeV(){
+  void jeV() {
     //Debugger.verbose('${pcHex(-1)} [jeV]');
     var operands = visitOperandsVar(4, true);
 
-    if (operands.length < 2){
+    if (operands.length < 2) {
       throw GameException('At least 2 operands required for jeV instruction.');
     }
 
@@ -680,11 +665,11 @@ class Machine
 
     var testVal = toSigned(operands[0].value);
 
-    for(int i = 1; i < operands.length; i++){
+    for (int i = 1; i < operands.length; i++) {
       if (foundMatch == true) break;
       var against = toSigned(operands[i].value);
 
-      if (testVal == against){
+      if (testVal == against) {
         foundMatch = true;
       }
     }
@@ -692,12 +677,12 @@ class Machine
     branch(foundMatch);
   }
 
-  void quit(){
+  void quit() {
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
-    Z.sendIO(IOCommands.PRINT, [currentWindow.toString(), Z.sbuff.toString()])
-    .then((_){
+    Z.sendIO(IOCommands.PRINT,
+        [currentWindow.toString(), Z.sbuff.toString()]).then((_) {
       Z.inInterrupt = false;
       Z.sbuff.clear();
       Z.quit = true;
@@ -706,7 +691,7 @@ class Machine
     });
   }
 
-  void restart(){
+  void restart() {
     //Debugger.verbose('${pcHex(-1)} [restart]');
 
     Z.softReset();
@@ -727,7 +712,7 @@ class Machine
     Z.callAsync(Z.runIt);
   }
 
-  void jl(){
+  void jl() {
     //Debugger.verbose('${pcHex(-1)} [jl]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -737,7 +722,7 @@ class Machine
     branch(toSigned(operands[0].value) < toSigned(operands[1].value));
   }
 
-  void jg(){
+  void jg() {
     //Debugger.verbose('${pcHex(-1)} [jg]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -747,7 +732,7 @@ class Machine
     branch(toSigned(operands[0].value) > toSigned(operands[1].value));
   }
 
-  void je(){
+  void je() {
     //Debugger.verbose('${pcHex(-1)} [je]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -757,13 +742,13 @@ class Machine
     branch(toSigned(operands[0].value) == toSigned(operands[1].value));
   }
 
-  void newline(){
+  void newline() {
     //Debugger.verbose('${pcHex(-1)} [newline]');
 
     Z.sbuff.write('\n');
   }
 
-  void print_obj(){
+  void print_obj() {
     //Debugger.verbose('${pcHex(-1)} [print_obj]');
     var operand = visitOperandsShortForm();
 
@@ -772,7 +757,7 @@ class Machine
     Z.sbuff.write(obj.shortName);
   }
 
-  void print_addr(){
+  void print_addr() {
     //Debugger.verbose('${pcHex(-1)} [print_addr]');
     var operand = visitOperandsShortForm();
 
@@ -785,7 +770,7 @@ class Machine
     Z.sbuff.write(str);
   }
 
-  void print_paddr(){
+  void print_paddr() {
     //Debugger.verbose('${pcHex(-1)} [print_paddr]');
 
     var operand = visitOperandsShortForm();
@@ -799,21 +784,21 @@ class Machine
     Z.sbuff.write(str);
   }
 
-  void print_char(){
+  void print_char() {
     //Debugger.verbose('${pcHex(-1)} [print_char]');
 
     var operands = visitOperandsVar(1, false);
 
     var z = operands[0].value;
 
-    if (z < 0 || z > 1023){
+    if (z < 0 || z > 1023) {
       throw GameException('ZSCII char is out of bounds.');
     }
 
     Z.sbuff.write(ZSCII.ZCharToChar(z));
   }
 
-  void print_num(){
+  void print_num() {
     //Debugger.verbose('${pcHex(-1)} [print_num]');
 
     var operands = visitOperandsVar(1, false);
@@ -821,7 +806,7 @@ class Machine
     Z.sbuff.write('${toSigned(operands[0].value)}');
   }
 
-  void print_ret(){
+  void print_ret() {
     //Debugger.verbose('${pcHex(-1)} [print_ret]');
 
     var str = ZSCII.readZStringAndPop(PC);
@@ -833,7 +818,7 @@ class Machine
     doReturn(Machine.TRUE);
   }
 
-  void printf(){
+  void printf() {
     //Debugger.verbose('${pcHex(-1)} [print]');
 
     var str = ZSCII.readZString(PC);
@@ -844,7 +829,7 @@ class Machine
     PC = callStack.pop();
   }
 
-  void insert_obj(){
+  void insert_obj() {
     //Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -860,7 +845,7 @@ class Machine
     from.insertTo(to.id);
   }
 
-  void remove_obj(){
+  void remove_obj() {
     //Debugger.verbose('${pcHex(-1)} [remove_obj]');
 
     var operand = visitOperandsShortForm();
@@ -871,7 +856,7 @@ class Machine
     o.removeFromTree();
   }
 
-  void store(){
+  void store() {
     //Debugger.verbose('${pcHex(-1)} [store]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -880,31 +865,30 @@ class Machine
 
     assert(operands[0].rawValue <= 0xff);
 
-    if (operands[0].rawValue == Machine.SP){
+    if (operands[0].rawValue == Machine.SP) {
       operands[0].rawValue = readVariable(Machine.SP);
     }
 
     writeVariable(operands[0].rawValue, operands[1].value);
- }
+  }
 
-  void load(){
+  void load() {
     //Debugger.verbose('${pcHex(-1)} [load]');
 
     var operand = visitOperandsShortForm();
 
     var resultTo = readb();
 
-    if (operand.rawValue == Machine.SP){
+    if (operand.rawValue == Machine.SP) {
       operand.rawValue = readVariable(Machine.SP);
     }
-
 
     var v = readVariable(operand.rawValue);
 
     writeVariable(resultTo, v);
   }
 
-  void jump(){
+  void jump() {
     //Debugger.verbose('${pcHex(-1)} [jump]');
 
     var operand = visitOperandsShortForm();
@@ -916,8 +900,7 @@ class Machine
     //Debugger.verbose('    (jumping to ${pcHex()})');
   }
 
-
-  void ret(){
+  void ret() {
     //Debugger.verbose('${pcHex(-1)} [ret]');
 
     var operand = visitOperandsShortForm();
@@ -927,7 +910,7 @@ class Machine
     doReturn(operand.value);
   }
 
-  void get_parent(){
+  void get_parent() {
     //Debugger.verbose('${pcHex(-1)} [get_parent]');
 
     var operand = visitOperandsShortForm();
@@ -937,10 +920,9 @@ class Machine
     GameObject obj = GameObject(operand.value);
 
     writeVariable(resultTo, obj.parent);
-
   }
 
-  void clear_attr(){
+  void clear_attr() {
     //Debugger.verbose('${pcHex(-1)} [clear_attr]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -953,7 +935,7 @@ class Machine
     //Debugger.verbose('    (clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
-  void set_attr(){
+  void set_attr() {
     //Debugger.verbose('${pcHex(-1)} [set_attr]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -966,7 +948,7 @@ class Machine
     //Debugger.verbose('    (set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
-  void or(){
+  void or() {
     //Debugger.verbose('${pcHex(-1)} [or]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -978,7 +960,7 @@ class Machine
     writeVariable(resultTo, (operands[0].value | operands[1].value));
   }
 
-  void and(){
+  void and() {
     //Debugger.verbose('${pcHex(-1)} [and]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -990,7 +972,7 @@ class Machine
     writeVariable(resultTo, (operands[0].value & operands[1].value));
   }
 
-  void sub(){
+  void sub() {
     //Debugger.verbose('${pcHex(-1)} [sub]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1004,7 +986,7 @@ class Machine
     writeVariable(resultTo, result);
   }
 
-  void add(){
+  void add() {
     //Debugger.verbose('${pcHex(-1)} [add]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1020,7 +1002,7 @@ class Machine
     writeVariable(resultTo, result);
   }
 
-  void mul(){
+  void mul() {
     //Debugger.verbose('${pcHex(-1)} [mul]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1036,26 +1018,37 @@ class Machine
     writeVariable(resultTo, result);
   }
 
-  void div(){
+  void div() {
     //Debugger.verbose('${pcHex(-1)} [div]');
 
-    var operands = mem.loadb(PC - 1) < 193
+    final operands = mem.loadb(PC - 1) < 193
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    var resultTo = readb();
+    final resultTo = readb();
 
     assert(operands[1].value != 0);
 
     // var result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
-    var result = (toSigned(operands[0].value) ~/ toSigned(operands[1].value));
+    final result = toSigned(operands[0].value) ~/ toSigned(operands[1].value);
 
     //Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
 
-  void mod(){
+  // This patch is required when the first term is negative,
+  // otherwise dart calculates it incorrectly according to
+  // the z-machine's expectations. 2.4.3
+  static int doMod(a, b) {
+    var result = a.abs() % b.abs();
+    if (a < 0) {
+      result = -result;
+    }
+    return result;
+  }
+
+  void mod() {
     //Debugger.verbose('${pcHex(-1)} [mod]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1069,15 +1062,14 @@ class Machine
     var x = toSigned(operands[0].value);
     var y = toSigned(operands[1].value);
 
-    var result = x.abs() % y.abs();
-    if (x < 0) result = -result;
+    final result = doMod(x,y);
 
     //Debugger.verbose('    >>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
     writeVariable(resultTo, result);
   }
 
-  void get_prop_len(){
+  void get_prop_len() {
     //Debugger.verbose('${pcHex(-1)} [get_prop_len]');
 
     var operand = visitOperandsShortForm();
@@ -1089,7 +1081,7 @@ class Machine
     writeVariable(resultTo, propLen);
   }
 
-  void not(){
+  void not() {
     //Debugger.verbose('${pcHex(-1)} [not]');
 
     var operand = visitOperandsShortForm();
@@ -1099,7 +1091,7 @@ class Machine
     writeVariable(resultTo, ~(operand.value));
   }
 
-  void get_next_prop(){
+  void get_next_prop() {
     //Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1115,7 +1107,7 @@ class Machine
     writeVariable(resultTo, nextProp);
   }
 
-  void get_prop_addr(){
+  void get_prop_addr() {
     //Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1133,7 +1125,7 @@ class Machine
     writeVariable(resultTo, addr);
   }
 
-  void get_prop(){
+  void get_prop() {
     //Debugger.verbose('${pcHex(-1)} [get_prop]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1151,7 +1143,7 @@ class Machine
     writeVariable(resultTo, value);
   }
 
-  void put_prop(){
+  void put_prop() {
     //Debugger.verbose('${pcHex(-1)} [put_prop]');
 
     var operands = visitOperandsVar(3, false);
@@ -1163,7 +1155,7 @@ class Machine
     obj.setPropertyValue(operands[1].value, operands[2].value);
   }
 
-  void loadb(){
+  void loadb() {
     //Debugger.verbose('${pcHex(-1)} [loadb]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1180,7 +1172,7 @@ class Machine
     //Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
-  void loadw(){
+  void loadw() {
     //Debugger.verbose('${pcHex(-1)} [loadw]');
 
     var operands = mem.loadb(PC - 1) < 193
@@ -1197,9 +1189,7 @@ class Machine
     //Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
-
-
-  void storebv(){
+  void storebv() {
     //Debugger.verbose('${pcHex(-1)} [storebv]');
 
     var operands = visitOperandsVar(3, false);
@@ -1215,9 +1205,8 @@ class Machine
     //Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
-
   //variable arguement version of storew
-  void storewv(){
+  void storewv() {
     //Debugger.verbose('${pcHex(-1)} [storewv]');
 
     var operands = visitOperandsVar(3, false);
@@ -1232,32 +1221,28 @@ class Machine
     //Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
-
-
-  Operand visitOperandsShortForm(){
-    var oc = mem.loadb(PC - 1);
+  Operand visitOperandsShortForm() {
+    final oc = mem.loadb(PC - 1);
 
     //(ref 4.4.1)
-    var operand = Operand((oc & 48) >> 4);
+    final operand = Operand((oc & 48) >> 4);
 
-    operand.rawValue = (operand.oType == OperandType.LARGE)
-        ? readw()
-        : readb();
+    operand.rawValue = (operand.oType == OperandType.LARGE) ? readw() : readb();
 
     //Debugger.verbose('    ${operand}');
     return operand;
   }
 
-  List<Operand> visitOperandsLongForm(){
+  List<Operand> visitOperandsLongForm() {
     var oc = mem.loadb(PC - 1);
 
     var o1 = BinaryHelper.isSet(oc, 6)
-      ? Operand(OperandType.VARIABLE)
-      : Operand(OperandType.SMALL);
+        ? Operand(OperandType.VARIABLE)
+        : Operand(OperandType.SMALL);
 
     var o2 = BinaryHelper.isSet(oc, 5)
-      ? Operand(OperandType.VARIABLE)
-      : Operand(OperandType.SMALL);
+        ? Operand(OperandType.VARIABLE)
+        : Operand(OperandType.SMALL);
 
     o1.rawValue = readb();
     o2.rawValue = readb();
@@ -1267,19 +1252,19 @@ class Machine
     return [o1, o2];
   }
 
-  List<Operand> visitOperandsVar(int howMany, bool isVariable){
+  List<Operand> visitOperandsVar(int howMany, bool isVariable) {
     var operands = List<Operand>();
 
     //load operand types
     var shiftStart = howMany > 4 ? 14 : 6;
     var os = howMany > 4 ? readw() : readb();
 
-    while(shiftStart > -2){
+    while (shiftStart > -2) {
       var to = os >> shiftStart; //shift
       to &= 3; //mask higher order bits we don't care about
-      if (to == OperandType.OMITTED){
+      if (to == OperandType.OMITTED) {
         break;
-      }else{
+      } else {
         operands.add(Operand(to));
         if (operands.length == howMany) break;
         shiftStart -= 2;
@@ -1287,7 +1272,7 @@ class Machine
     }
 
     //load values
-    operands.forEach((Operand o){
+    operands.forEach((Operand o) {
       assert(o.oType != OperandType.OMITTED);
       o.rawValue = o.oType == OperandType.LARGE ? readw() : readb();
     });
@@ -1307,14 +1292,15 @@ class Machine
 //      }
 //    });
 
-    if (!isVariable && (operands.length != howMany)){
-      throw Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
+    if (!isVariable && (operands.length != howMany)) {
+      throw Exception(
+          'Operand count mismatch.  Expected ${howMany}, found ${operands.length}');
     }
 
     return operands;
   }
 
-  void visitHeader(){
+  void visitHeader() {
     mem.abbrAddress = mem.loadw(Header.ABBREVIATIONS_TABLE_ADDR);
     mem.objectsAddress = mem.loadw(Header.OBJECT_TABLE_ADDR);
     mem.globalVarsAddress = mem.loadw(Header.GLOBAL_VARS_TABLE_ADDR);
@@ -1341,59 +1327,57 @@ class Machine
   * address and advances the program counter to the next
   * unread address.
   */
-  int readw(){
+  int readw() {
     var word = mem.loadw(PC);
     PC += 2;
     return word;
   }
 
-  int peekVariable(int varNum){
-    if (varNum == 0x00){
+  int peekVariable(int varNum) {
+    if (varNum == 0x00) {
       //top of stack
       var result = stack.peek();
       return result;
-    }else if (varNum <= 0x0f){
+    } else if (varNum <= 0x0f) {
       return readLocal(varNum);
-    }else if (varNum <= 0xff){
+    } else if (varNum <= 0xff) {
       return mem.readGlobal(varNum);
-    }else{
+    } else {
       return varNum;
       // throw Exception('Variable referencer byte'
       //   ' out of range (0-255): ${varNum}');
     }
   }
 
-  int readVariable(int varNum){
+  int readVariable(int varNum) {
     assert(varNum >= 0 && varNum <= 0xff);
 
-    if (varNum > 0x0f){
+    if (varNum > 0x0f) {
       return mem.readGlobal(varNum);
     }
-    if (varNum == 0x00){
+    if (varNum == 0x00) {
       return stack.pop();
     }
     return readLocal(varNum);
   }
 
-  void writeVariable(int varNum, int value){
+  void writeVariable(int varNum, int value) {
     assert(varNum >= 0 && varNum <= 0xff);
 
-    if (varNum > 0x0f){
+    if (varNum > 0x0f) {
       mem.writeGlobal(varNum, value);
       return;
     }
 
-    if (varNum == 0x0){
+    if (varNum == 0x0) {
       stack.push(value);
       return;
     }
 
     _writeLocal(varNum, value);
+  }
 
- }
-
-  void _writeLocal(int local, int value){
-
+  void _writeLocal(int local, int value) {
     assert(local <= callStack[2]);
 
     assert(callStack[2] - local > -1);
@@ -1401,324 +1385,319 @@ class Machine
     callStack[(callStack[2] - local) + 3] = value;
   }
 
-  int readLocal(int local){
-   // var locals = callStack[2]; //locals header
+  int readLocal(int local) {
+    // var locals = callStack[2]; //locals header
     assert(local <= callStack[2]);
 
     return callStack[(callStack[2] - local) + 3];
   }
 
   Machine()
-  :
-    stack = Stack(),
-    callStack = Stack.max(1024)
-  {
+      : stack = Stack(),
+        callStack = Stack.max(1024) {
     r = DRandom.withSeed(DateTime.now().millisecond);
-    ops =
-      {
+    ops = {
+      /* 2OP, small, small */
+      '1': je,
+      '2': jl,
+      '3': jg,
+      '4': dec_chk,
+      '5': inc_chk,
+      '6': jin,
+      '7': test,
+      '8': or,
+      '9': and,
+      '10': test_attr,
+      '11': set_attr,
+      '12': clear_attr,
+      '13': store,
+      '14': insert_obj,
+      '15': loadw,
+      '16': loadb,
+      '17': get_prop,
+      '18': get_prop_addr,
+      '19': get_next_prop,
+      '20': add,
+      '21': sub,
+      '22': mul,
+      '23': div,
+      '24': mod,
+      /* 25 : call_2s */
+      '25': notFound,
+      /* 26 : call_2n */
+      '26': notFound,
+      /* 27 : set_colour */
+      '27': notFound,
+      /* 28 : throw */
+      '28': notFound,
 
-        /* 2OP, small, small */
-        '1' : je,
-        '2' : jl,
-        '3' : jg,
-        '4' : dec_chk,
-        '5' : inc_chk,
-        '6' : jin,
-        '7' : test,
-        '8' : or,
-        '9' : and,
-        '10' : test_attr,
-        '11' : set_attr,
-        '12' : clear_attr,
-        '13' : store,
-        '14' : insert_obj,
-        '15' : loadw,
-        '16' : loadb,
-        '17' : get_prop,
-        '18' : get_prop_addr,
-        '19' : get_next_prop,
-        '20' : add,
-        '21' : sub,
-        '22' : mul,
-        '23' : div,
-        '24' : mod,
-        /* 25 : call_2s */
-        '25' : notFound,
-        /* 26 : call_2n */
-        '26' : notFound,
-        /* 27 : set_colour */
-        '27' : notFound,
-        /* 28 : throw */
-        '28' : notFound,
+      /* 2OP, small, variable */
+      '33': je,
+      '34': jg,
+      '35': jl,
+      '36': dec_chk,
+      '37': inc_chk,
+      '38': jin,
+      '39': test,
+      '40': or,
+      '41': and,
+      '42': test_attr,
+      '43': set_attr,
+      '44': clear_attr,
+      '45': store,
+      '46': insert_obj,
+      '47': loadw,
+      '48': loadb,
+      '49': get_prop,
+      '50': get_prop_addr,
+      '51': get_next_prop,
+      '52': add,
+      '53': sub,
+      '54': mul,
+      '55': div,
+      '56': mod,
+      /* 57 : call_2s */
+      '57': notFound,
+      /* 58 : call_2n */
+      '58': notFound,
+      /* 59 : set_colour */
+      '59': notFound,
+      /* 60 : throw */
+      '60': notFound,
 
+      /* 2OP, variable, small */
+      '65': je,
+      '66': jl,
+      '67': jg,
+      '68': dec_chk,
+      '69': inc_chk,
+      '70': jin,
+      '71': test,
+      '72': or,
+      '73': and,
+      '74': test_attr,
+      '75': set_attr,
+      '76': clear_attr,
+      '77': store,
+      '78': insert_obj,
+      '79': loadw,
+      '80': loadb,
+      '81': get_prop,
+      '82': get_prop_addr,
+      '83': get_next_prop,
+      '84': add,
+      '85': sub,
+      '86': mul,
+      '87': div,
+      '88': mod,
+      /* 89 : call_2s */
+      '89': notFound,
+      /* 90 : call_2n */
+      '90': notFound,
+      /* 91 : set_colour */
+      '91': notFound,
+      /* 92 : throw */
+      '92': notFound,
 
-        /* 2OP, small, variable */
-        '33' : je,
-        '34' : jg,
-        '35' : jl,
-        '36' : dec_chk,
-        '37' : inc_chk,
-        '38' : jin,
-        '39' : test,
-        '40' : or,
-        '41' : and,
-        '42' : test_attr,
-        '43' : set_attr,
-        '44' : clear_attr,
-        '45' : store,
-        '46' : insert_obj,
-        '47' : loadw,
-        '48' : loadb,
-        '49' : get_prop,
-        '50' : get_prop_addr,
-        '51' : get_next_prop,
-        '52' : add,
-        '53' : sub,
-        '54' : mul,
-        '55' : div,
-        '56' : mod,
-        /* 57 : call_2s */
-        '57' : notFound,
-        /* 58 : call_2n */
-        '58' : notFound,
-        /* 59 : set_colour */
-        '59' : notFound,
-        /* 60 : throw */
-        '60' : notFound,
+      /* 2OP, variable, variable */
+      '97': je,
+      '98': jl,
+      '99': jg,
+      '100': dec_chk,
+      '101': inc_chk,
+      '102': jin,
+      '103': test,
+      '104': or,
+      '105': and,
+      '106': test_attr,
+      '107': set_attr,
+      '108': clear_attr,
+      '109': store,
+      '110': insert_obj,
+      '111': loadw,
+      '112': loadb,
+      '113': get_prop,
+      '114': get_prop_addr,
+      '115': get_next_prop,
+      '116': add,
+      '117': sub,
+      '118': mul,
+      '119': div,
+      '120': mod,
+      /* 121 : call_2s */
+      '121': notFound,
+      /* 122 : call_2n */
+      '122': notFound,
+      /* 123 : set_colour */
+      '123': notFound,
+      /* 124 : throw */
+      '124': notFound,
 
-        /* 2OP, variable, small */
-        '65' : je,
-        '66' : jl,
-        '67' : jg,
-        '68' : dec_chk,
-        '69' : inc_chk,
-        '70' : jin,
-        '71' : test,
-        '72' : or,
-        '73' : and,
-        '74' : test_attr,
-        '75' : set_attr,
-        '76' : clear_attr,
-        '77' : store,
-        '78' : insert_obj,
-        '79' : loadw,
-        '80' : loadb,
-        '81' : get_prop,
-        '82' : get_prop_addr,
-        '83' : get_next_prop,
-        '84' : add,
-        '85' : sub,
-        '86' : mul,
-        '87' : div,
-        '88' : mod,
-        /* 89 : call_2s */
-        '89' : notFound,
-        /* 90 : call_2n */
-        '90' : notFound,
-        /* 91 : set_colour */
-        '91' : notFound,
-        /* 92 : throw */
-        '92' : notFound,
+      /* 1OP, large */
+      '128': jz,
+      '129': get_sibling,
+      '130': get_child,
+      '131': get_parent,
+      '132': get_prop_len,
+      '133': inc,
+      '134': dec,
+      '135': print_addr,
+      /* 136 : call_1s */
+      '136': notFound,
+      '137': remove_obj,
+      '138': print_obj,
+      '139': ret,
+      '140': jump,
+      '141': print_paddr,
+      '142': load,
+      '143': not,
 
-        /* 2OP, variable, variable */
-        '97' : je,
-        '98' : jl,
-        '99' : jg,
-        '100' : dec_chk,
-        '101' : inc_chk,
-        '102' : jin,
-        '103' : test,
-        '104' : or,
-        '105' : and,
-        '106' : test_attr,
-        '107' : set_attr,
-        '108' : clear_attr,
-        '109' : store,
-        '110' : insert_obj,
-        '111' : loadw,
-        '112' : loadb,
-        '113' : get_prop,
-        '114' : get_prop_addr,
-        '115' : get_next_prop,
-        '116' : add,
-        '117' : sub,
-        '118' : mul,
-        '119' : div,
-        '120' : mod,
-        /* 121 : call_2s */
-        '121' : notFound,
-        /* 122 : call_2n */
-        '122' : notFound,
-        /* 123 : set_colour */
-        '123' : notFound,
-        /* 124 : throw */
-        '124' :notFound,
+      /*** 1OP, small ***/
+      '144': jz,
+      '145': get_sibling,
+      '146': get_child,
+      '147': get_parent,
+      '148': get_prop_len,
+      '149': inc,
+      '150': dec,
+      '151': print_addr,
+      /* 152 : call_1s */
+      '152': notFound,
+      '153': remove_obj,
+      '154': print_obj,
+      '155': ret,
+      '156': jump,
+      '157': print_paddr,
+      '158': load,
+      '159': not,
 
-        /* 1OP, large */
-        '128' : jz,
-        '129' : get_sibling,
-        '130' : get_child,
-        '131' : get_parent,
-        '132' : get_prop_len,
-        '133' : inc,
-        '134' : dec,
-        '135' : print_addr,
-        /* 136 : call_1s */
-        '136' : notFound,
-        '137' : remove_obj,
-        '138' : print_obj,
-        '139' : ret,
-        '140' : jump,
-        '141' : print_paddr,
-        '142' : load,
-        '143' : not,
+      /*** 1OP, variable ***/
+      '160': jz,
+      '161': get_sibling,
+      '162': get_child,
+      '163': get_parent,
+      '164': get_prop_len,
+      '165': inc,
+      '166': dec,
+      '167': print_addr,
+      /* 168 : call_1s */
+      '168': notFound,
+      '169': remove_obj,
+      '170': print_obj,
+      '171': ret,
+      '172': jump,
+      '173': print_paddr,
+      '174': load,
+      '175': not,
 
-        /*** 1OP, small ***/
-        '144' : jz,
-        '145' : get_sibling,
-        '146' : get_child,
-        '147' : get_parent,
-        '148' : get_prop_len,
-        '149' : inc,
-        '150' : dec,
-        '151' : print_addr,
-        /* 152 : call_1s */
-        '152' : notFound,
-        '153' : remove_obj,
-        '154' : print_obj,
-        '155' : ret,
-        '156' : jump,
-        '157' : print_paddr,
-        '158' : load,
-        '159' : not,
+      /* 0 OP */
+      '176': rtrue,
+      '177': rfalse,
+      '178': printf,
+      '179': print_ret,
+      '180': nop,
+      '181': save,
+      '182': restore,
+      '183': restart,
+      '184': ret_popped,
+      '185': pop,
+      '186': quit,
+      '187': newline,
+      '188': show_status,
+      '189': verify,
+      /* 190 : extended */
+      '190': notFound,
+      '191': piracy,
 
-        /*** 1OP, variable ***/
-        '160' : jz,
-        '161' : get_sibling,
-        '162' : get_child,
-        '163' : get_parent,
-        '164' : get_prop_len,
-        '165' : inc,
-        '166' : dec,
-        '167' : print_addr,
-        /* 168 : call_1s */
-        '168' : notFound,
-        '169' : remove_obj,
-        '170' : print_obj,
-        '171' : ret,
-        '172' : jump,
-        '173' : print_paddr,
-        '174' : load,
-        '175' : not,
+      /* 2OP, Variable of op codes 1-31 */
+      '193': jeV,
+      '194': jl,
+      '195': jg,
+      '196': dec_chk,
+      '197': inc_chk,
+      '198': jin,
+      '199': test,
+      '200': or,
+      '201': and,
+      '202': test_attr,
+      '203': set_attr,
+      '204': clear_attr,
+      '205': store,
+      '206': insert_obj,
+      '207': loadw,
+      '208': loadb,
+      '209': get_prop,
+      '210': get_prop_addr,
+      '211': get_next_prop,
+      '212': add,
+      '213': sub,
+      '214': mul,
+      '215': div,
+      '216': mod,
+      /* 217 : call_2sV */
+      '217': notFound,
+      /* 218 : call_2nV */
+      '218': notFound,
+      /* 219 : set_colourV */
+      '219': notFound,
+      /* 220 : throwV */
+      '220': notFound,
 
-        /* 0 OP */
-        '176' : rtrue,
-        '177' : rfalse,
-        '178' : printf,
-        '179' : print_ret,
-        '180' : nop,
-        '181' : save,
-        '182' : restore,
-        '183' : restart,
-        '184' : ret_popped,
-        '185' : pop,
-        '186' : quit,
-        '187' : newline,
-        '188' : show_status,
-        '189' : verify,
-        /* 190 : extended */
-        '190' : notFound,
-        '191' : piracy,
-
-        /* 2OP, Variable of op codes 1-31 */
-        '193' : jeV,
-        '194' : jl,
-        '195' : jg,
-        '196' : dec_chk,
-        '197' : inc_chk,
-        '198' : jin,
-        '199' : test,
-        '200' : or,
-        '201' : and,
-        '202' : test_attr,
-        '203' : set_attr,
-        '204' : clear_attr,
-        '205' : store,
-        '206' : insert_obj,
-        '207' : loadw,
-        '208' : loadb,
-        '209' : get_prop,
-        '210' : get_prop_addr,
-        '211' : get_next_prop,
-        '212' : add,
-        '213' : sub,
-        '214' : mul,
-        '215' : div,
-        '216' : mod,
-        /* 217 : call_2sV */
-        '217' : notFound,
-        /* 218 : call_2nV */
-        '218' : notFound,
-        /* 219 : set_colourV */
-        '219' : notFound,
-        /* 220 : throwV */
-        '220' : notFound,
-
-        /* xOP, Operands Vary */
-        '224' : callVS,
-        '225' : storewv,
-        '226' : storebv,
-        '227' : put_prop,
-        '228' : read,
-        '229' : print_char,
-        '230' : print_num,
-        '231' : random,
-        '232' : push,
-        '233' : pull,
-        /* 234 : split_window */
-        '234' : notFound,
-        /* 235 : set_window */
-        '235' : notFound,
-        /* 236 : call_vs2 */
-        '236' : notFound,
-        /* 237 : erase_window */
-        '237' : notFound,
-        /* 238 : erase_line */
-        '238' : notFound,
-        /* 239 : set_cursor */
-        '239' : notFound,
-        /* 240 : get_cursor */
-        '240' : notFound,
-        /* 241 : set_text_style */
-        '241' : notFound,
-        /* 242 : buffer_mode_flag */
-        '242' : notFound,
-        /* 243 : output_stream */
-        '243' : notFound,
-        /* 244 : input_stream */
-        '244' : notFound,
-        /* 245 : sound_effect */
-        '245' : notFound,
-        /* 246 : read_char */
-        '246' : notFound,
-        /* 247 : scan_table */
-        '247' : notFound,
-        /* 248 : not */
-        '248' : notFound,
-        /* 249 : call_vn */
-        '249' : notFound,
-        /* 250 : call_vn2 */
-        '250' : notFound,
-        /* 251 : tokenise */
-        '251' : notFound,
-        /* 252 : encode_text */
-        '252' : notFound,
-        /* 253 : copy_table */
-        '253' : notFound,
-        /* 254 : print_table */
-        '254' : notFound,
-        /* 255 : check_arg_count */
-        '255' : notFound
-      };
+      /* xOP, Operands Vary */
+      '224': callVS,
+      '225': storewv,
+      '226': storebv,
+      '227': put_prop,
+      '228': read,
+      '229': print_char,
+      '230': print_num,
+      '231': random,
+      '232': push,
+      '233': pull,
+      /* 234 : split_window */
+      '234': notFound,
+      /* 235 : set_window */
+      '235': notFound,
+      /* 236 : call_vs2 */
+      '236': notFound,
+      /* 237 : erase_window */
+      '237': notFound,
+      /* 238 : erase_line */
+      '238': notFound,
+      /* 239 : set_cursor */
+      '239': notFound,
+      /* 240 : get_cursor */
+      '240': notFound,
+      /* 241 : set_text_style */
+      '241': notFound,
+      /* 242 : buffer_mode_flag */
+      '242': notFound,
+      /* 243 : output_stream */
+      '243': notFound,
+      /* 244 : input_stream */
+      '244': notFound,
+      /* 245 : sound_effect */
+      '245': notFound,
+      /* 246 : read_char */
+      '246': notFound,
+      /* 247 : scan_table */
+      '247': notFound,
+      /* 248 : not */
+      '248': notFound,
+      /* 249 : call_vn */
+      '249': notFound,
+      /* 250 : call_vn2 */
+      '250': notFound,
+      /* 251 : tokenise */
+      '251': notFound,
+      /* 252 : encode_text */
+      '252': notFound,
+      /* 253 : copy_table */
+      '253': notFound,
+      /* 254 : print_table */
+      '254': notFound,
+      /* 255 : check_arg_count */
+      '255': notFound
+    };
   }
 }

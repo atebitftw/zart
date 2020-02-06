@@ -71,14 +71,19 @@ class Version5 extends Version3 {
   }
 
   // Kb
+  @override
   int get maxFileLength => 256;
 
+  @override
   int unpack(int packedAddr) => packedAddr << 2;
 
+  @override
   int pack(int unpackedAddr) => unpackedAddr >> 2;
 
+  @override
   int fileLengthMultiplier() => 2;
 
+  @override
   void visitRoutine(List<int> params) {
     assert(params.length < 9);
 
@@ -329,6 +334,7 @@ class Version5 extends Version3 {
     }
   }
 
+  @override
   void read() async {
     //Debugger.verbose('${pcHex(-1)} [aread]');
 

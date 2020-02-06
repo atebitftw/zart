@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/game_object.dart';
@@ -157,7 +159,104 @@ class Debugger {
 
     final line = await Z.sendIO(IOCommands.READ, []);
     parse(line);
-    
+  }
+
+  static String whitespace(int amount, [String kind = ' ']) {
+    final sb = StringBuffer();
+    for (var i = 0; i < amount; i++) {
+      sb.write(kind);
+    }
+
+    return sb.toString();
+  }
+
+  static Set<int> objects = Set<int>();
+  static var highestObject = 0;
+
+  static String _writeChildren(int objectNum, int indent) {
+    final sb = StringBuffer();
+    final obj = GameObject(objectNum);
+    final child = obj.child != 0 ? GameObject(obj.child).shortName : "";
+    final sibling = obj.sibling != 0 ? GameObject(obj.sibling).shortName : "";
+    sb.writeln(
+        "${whitespace(indent, '.')}${obj.shortName}(${obj.id}), child: $child(${obj.child}), sib: $sibling(${obj.sibling})");
+
+    if (obj.child != 0) {
+      updateObjectState(obj.child);
+      sb.write(_writeChildren(obj.child, indent + 3));
+    }
+
+    if (obj.sibling != 0) {
+      updateObjectState(obj.sibling);
+      sb.write(_writeChildren(obj.sibling, indent));
+    }
+
+    return sb.toString();
+  }
+
+  static void updateObjectState(int objectNum) {
+    highestObject = max<int>(objectNum, highestObject);
+    objects.add(objectNum);
+  }
+
+  static int getNextAvailableObject(){
+    int i = highestObject;
+
+    while(i > 0){
+      if (objects.contains(i)){
+        i--;
+        continue;
+      }
+
+      return i;
+    }
+
+    return -1;
+  }
+
+  static String getObjectTree([int objectNum = 1]) {
+    highestObject = 0;
+    objects.clear();
+    updateObjectState(objectNum);
+
+    final sb = StringBuffer();
+          //first find root parent, which we assume is 0...
+      var rootObject = GameObject(objectNum);
+
+    void doTree(GameObject currentObject) {
+      while (currentObject.parent != 0) {
+        currentObject = GameObject(currentObject.parent);
+      }
+
+      sb.writeln(
+          "${currentObject.shortName}(${currentObject.id}) child: ${currentObject.child}, sib: ${currentObject.sibling}");
+
+      if (currentObject.child != 0) {
+        updateObjectState(currentObject.child);
+        sb.write(_writeChildren(currentObject.child, 3));
+      }
+
+      if (currentObject.sibling != 0) {
+        updateObjectState(currentObject.sibling);
+        sb.write(_writeChildren(currentObject.sibling, 0));
+      }
+    }
+
+    doTree(rootObject);
+
+    while(highestObject > objects.length){
+      final nextObjectId = getNextAvailableObject();
+      if (nextObjectId < 1) break;
+      updateObjectState(nextObjectId);
+      final next = GameObject(nextObjectId);
+      doTree(next);
+    }
+
+    sb.writeln("");
+    sb.writeln("Total Objects Found: ${objects.length}");
+    sb.writeln(
+        "Highest Object: ${GameObject(highestObject).shortName}($highestObject)");
+    return sb.toString();
   }
 
   static void enableAll() {
@@ -263,14 +362,14 @@ class Debugger {
     Z.sendIO(IOCommands.PRINT_DEBUG, ['(Zart Debug) $debugString']);
   }
 
-  static void todo([String message]) {
-    Z.sendIO(IOCommands.PRINT_DEBUG, [
+  static void todo([String message]) async {
+    await Z.sendIO(IOCommands.PRINT_DEBUG, [
       'Stopped At: 0x${Z.machine.PC.toRadixString(16)}\n\n'
           'Text Buffer:\n'
           '${Z.sbuff}\n'
           '${message != null ? "TODO: $message" : ""}\n'
-    ]).then((_) {
-      throw Exception("Not Implemented");
-    });
+    ]);
+
+    throw Exception("Not Implemented");
   }
 }

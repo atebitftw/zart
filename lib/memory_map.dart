@@ -127,8 +127,7 @@ class MemoryMap {
   }
 
   String dump(int address, int howMany){
-    var map = getRange(address, howMany).map((o)=> '0x${o.toRadixString(16)}');
-    return '$map';
+    return getRange(address, howMany).map((o)=> '0x${o.toRadixString(16)}').toString();
   }
 
   List getRange(int address, int howMany){
@@ -139,12 +138,4 @@ class MemoryMap {
 
   int get size => memList.length;
 
-}
-
-
-//enumerates addressTypes
-enum AddressType{
-  ByteAddress,
-  WordAddress,
-  PackedAddress,
 }
