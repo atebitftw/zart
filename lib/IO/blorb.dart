@@ -18,9 +18,9 @@ class Blorb {
   }
 
 
-  /// Attempts to extract the Z-Machine game file data form the Blorb
-  /// file.  If the file is not a Blorb type, then the original
-  /// data is returned.
+  /// Attempts to extract the Z-Machine game file data from the Blorb
+  /// file bytes in [fileBytes].  If the file is not a Blorb type, then the 
+  /// original bytes are returned (assumes it's a valid compiled ZIL file.)
   static List<int> getZData(List fileBytes){
     var rawBytes = fileBytes;
 

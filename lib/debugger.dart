@@ -5,35 +5,64 @@ import 'package:zart/game_exception.dart';
 import 'package:zart/game_object.dart';
 import 'package:zart/header.dart';
 import 'package:zart/machines/machine.dart';
+import 'package:zart/machines/version_3.dart';
+import 'package:zart/machines/version_5.dart';
+import 'package:zart/machines/version_7.dart';
+import 'package:zart/machines/version_8.dart';
 import 'package:zart/memory_map.dart';
+import 'package:zart/mixins/loggable.dart';
+import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 
 /// A runtime debugger for Z-Machine.
-class Debugger {
+class Debugger with Loggable{
+  Debugger(){
+    logName = "Debugger";
+  }
+
   static bool enableVerbose = false;
   static bool enableTrace = false;
   static bool enableDebug = false;
   static bool enableStackTrace = false;
   static bool isUnitTestRun = false;
-
   static int debugStartAddr;
-
   static List<int> _breakPoints;
-
   static int instructionsCounter = 0;
 
-  static void setMachine(Machine newMachine) {
+  static Machine _getMachineByVersion(ZVersion version) {
+    switch (version) {
+      case ZVersion.V1:
+        return Machine();
+      case ZVersion.V3:
+        return Version3();
+      case ZVersion.V5:
+        return Version5();
+      case ZVersion.V7:
+        return Version7();
+      case ZVersion.V8:
+        return Version8();
+      default:
+        throw GameException(
+            "Unsupported gamefile version.  This interpreter does not support $version");
+    }
+  }
+
+  static void initializeMachine([Machine newMachine]) {
     Z.inInterrupt = true;
-    if (Z.isLoaded) {
-      if (newMachine.version != Z.ver) {
-        throw GameException('Machine/Story version mismatch.');
-      }
+    if (!Z.isLoaded) {
+      throw GameException(
+          "Unable to initialize Z-Machine.  No game file is loaded.");
     }
 
-    Z.machine = newMachine;
+    if (newMachine != null && newMachine.version != Z.ver) {
+      throw GameException(
+          'Machine/Story version mismatch. Expected ${Z.ver}. Got ${newMachine.version}');
+    }
+
+    Z.machine = newMachine == null ? _getMachineByVersion(Z.ver) : newMachine;
     Z.machine.mem = MemoryMap(Z.rawBytes);
     Z.machine.visitHeader();
-    debug('<<< machine installed: v${newMachine.version} >>>');
+    debug('<<< machine installed: v${Z.machine.version} >>>');
     Z.inInterrupt = false;
   }
 
@@ -159,104 +188,6 @@ class Debugger {
 
     final line = await Z.sendIO(IOCommands.READ, []);
     parse(line);
-  }
-
-  static String whitespace(int amount, [String kind = ' ']) {
-    final sb = StringBuffer();
-    for (var i = 0; i < amount; i++) {
-      sb.write(kind);
-    }
-
-    return sb.toString();
-  }
-
-  static Set<int> objects = Set<int>();
-  static var highestObject = 0;
-
-  static String _writeChildren(int objectNum, int indent) {
-    final sb = StringBuffer();
-    final obj = GameObject(objectNum);
-    final child = obj.child != 0 ? GameObject(obj.child).shortName : "";
-    final sibling = obj.sibling != 0 ? GameObject(obj.sibling).shortName : "";
-    sb.writeln(
-        "${whitespace(indent, '.')}${obj.shortName}(${obj.id}), child: $child(${obj.child}), sib: $sibling(${obj.sibling})");
-
-    if (obj.child != 0) {
-      updateObjectState(obj.child);
-      sb.write(_writeChildren(obj.child, indent + 3));
-    }
-
-    if (obj.sibling != 0) {
-      updateObjectState(obj.sibling);
-      sb.write(_writeChildren(obj.sibling, indent));
-    }
-
-    return sb.toString();
-  }
-
-  static void updateObjectState(int objectNum) {
-    highestObject = max<int>(objectNum, highestObject);
-    objects.add(objectNum);
-  }
-
-  static int getNextAvailableObject(){
-    int i = highestObject;
-
-    while(i > 0){
-      if (objects.contains(i)){
-        i--;
-        continue;
-      }
-
-      return i;
-    }
-
-    return -1;
-  }
-
-  static String getObjectTree([int objectNum = 1]) {
-    highestObject = 0;
-    objects.clear();
-    updateObjectState(objectNum);
-
-    final sb = StringBuffer();
-          //first find root parent, which we assume is 0...
-      var rootObject = GameObject(objectNum);
-
-    void doTree(GameObject currentObject) {
-      while (currentObject.parent != 0) {
-        currentObject = GameObject(currentObject.parent);
-      }
-
-      sb.writeln(
-          "${currentObject.shortName}(${currentObject.id}) child: ${currentObject.child}, sib: ${currentObject.sibling}");
-
-      if (currentObject.child != 0) {
-        updateObjectState(currentObject.child);
-        sb.write(_writeChildren(currentObject.child, 3));
-      }
-
-      if (currentObject.sibling != 0) {
-        updateObjectState(currentObject.sibling);
-        sb.write(_writeChildren(currentObject.sibling, 0));
-      }
-    }
-
-    doTree(rootObject);
-
-    while(highestObject > objects.length){
-      final nextObjectId = getNextAvailableObject();
-      if (nextObjectId < 1) break;
-      updateObjectState(nextObjectId);
-      final next = GameObject(nextObjectId);
-      doTree(next);
-    }
-
-    sb.writeln("");
-    sb.writeln("Total Objects Found: ${objects.length}");
-    sb.writeln(
-        "Highest Object: ${GameObject(highestObject).shortName}($highestObject)");
-    return sb.toString();
   }
 
   static void enableAll() {

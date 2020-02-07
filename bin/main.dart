@@ -1,6 +1,6 @@
+import 'package:logging/logging.dart';
 import 'package:zart/debugger.dart';
-import 'package:zart/header.dart';
-import 'package:zart/machines/version_5.dart';
+import 'package:zart/utils.dart' as Utils;
 import 'package:zart/zart.dart';
 import 'dart:io';
 import 'dart:async';
@@ -8,44 +8,48 @@ import 'dart:convert' as JSON;
 
 import 'package:zart/IO/io_provider.dart';
 
+Logger log = Logger("main()");
+
 /**
 * Mock UI Provider for Unit Testing
 */
-class MockUIProvider implements IOProvider
-{
-
-  Future<Object> command(String JSONCommand){
+class MockUIProvider implements IOProvider {
+  Future<Object> command(String JSONCommand) {
     var c = Completer();
     var cmd = JSON.json.encode(JSONCommand);
     print('Command received: ${cmd[0]} ');
     c.complete(null);
     return c.future;
   }
-
 }
 
-main(){
-    final s = Platform.pathSeparator;
-  var defaultGameFile = 'assets${s}games${s}etude.z5';
+main([List<String> args]) {
+  initLogger(Level.WARNING);
 
-  final f = File(defaultGameFile);
+  final s = Platform.pathSeparator;
+  final pathToFile = 'assets${s}games${s}hitchhik.z5';
+
+  final f = File(pathToFile);
 
   try {
     Z.load(f.readAsBytesSync());
-  } on Exception catch (fe) {
-    //TODO log then print friendly
-    print('$fe');
+  } catch (e) {
+    log.severe("An error occurred while loading the story file: $e");
     exit(1);
   }
 
-  const int version = 3;
-  const int programCounterAddress =
-      14297; // initial program counter address for minizork
-  final machine = Version5();
+  Debugger.initializeMachine();
 
-  Debugger.setMachine(machine);
   Z.IOConfig = MockUIProvider();
 
   print(Debugger.dumpHeader());
-  print(Debugger.getObjectTree(1));
+  print(Utils.generateObjectTree());
+}
+
+void initLogger(Level level) {
+  Logger.root.level = level;
+
+  Logger.root.onRecord.listen((LogRecord rec) {
+    print('(${rec.time}:)[${rec.loggerName}]${rec.level.name}: ${rec.message}');
+  });
 }

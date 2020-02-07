@@ -14,6 +14,7 @@ import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
+import 'package:zart/utils.dart' as Utils;
 
 part 'integers_test.dart';
 part 'math_test.dart';
@@ -40,11 +41,10 @@ void main() {
       14297; // initial program counter address for minizork
   final machine = MockV3Machine();
 
-  Debugger.setMachine(machine);
+  Debugger.initializeMachine(machine);
   Z.IOConfig = MockUIProvider();
 
   print(Debugger.dumpHeader());
-  print(Debugger.getObjectTree(1));
 
   // http://inform-fiction.org/zmachine/standards/z1point1/sect02.html
 
@@ -107,10 +107,7 @@ void main() {
 
 
   group("Object Tests", (){
-    test("look at an object", (){
-      print(Debugger.getObjectTree(2));
-      //print(GameObject(2).toString());
-    });
+
   });
   // objectTests();
 
