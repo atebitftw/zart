@@ -22,12 +22,14 @@ class Debugger with Loggable {
   static bool enableTrace = false;
   static bool enableDebug = false;
   static bool enableStackTrace = false;
+  /// This flag is meant to alert the game engine that it is being
+  /// run for unit testing purposes, but is currently not supported.
   static bool isUnitTestRun = false;
   static int debugStartAddr;
   static List<int> _breakPoints;
-  static int instructionsCounter = 0;
+  static int instructionCounter = 0;
 
-  static Engine _getMachineByVersion(ZVersion version) {
+  static Engine _getEngineByVersion(ZVersion version) {
     switch (version) {
       case ZVersion.V1:
         return Engine();
@@ -45,19 +47,23 @@ class Debugger with Loggable {
     }
   }
 
-  static void initializeMachine([Engine newMachine]) {
+  /// Selects the best suited [Engine] version for the game file.
+  /// will also accept optional [newEngine] which will be used
+  /// to run the game (throws a [GameException] if [newEngine] version
+  /// and game version do not match).
+  static void initializeEngine([Engine newEngine]) {
     Z.inInterrupt = true;
     if (!Z.isLoaded) {
       throw GameException(
           "Unable to initialize Z-Machine.  No game file is loaded.");
     }
 
-    if (newMachine != null && newMachine.version != Z.ver) {
+    if (newEngine != null && newEngine.version != Z.ver) {
       throw GameException(
-          'Machine/Story version mismatch. Expected ${Z.ver}. Got ${newMachine.version}');
+          'Machine/Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}');
     }
 
-    Z.engine = newMachine == null ? _getMachineByVersion(Z.ver) : newMachine;
+    Z.engine = newEngine == null ? _getEngineByVersion(Z.ver) : newEngine;
     Z.engine.mem = MemoryMap(Z.rawBytes);
     Z.engine.visitHeader();
     debug('<<< machine installed: v${Z.engine.version} >>>');
