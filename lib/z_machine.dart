@@ -1,14 +1,13 @@
-import 'dart:convert' as JSON;
 import 'dart:async';
 import 'package:zart/IO/default_provider.dart';
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/debugger.dart';
 import 'package:zart/header.dart';
-import 'package:zart/machines/machine.dart';
-import 'package:zart/machines/version_3.dart';
-import 'package:zart/machines/version_5.dart';
-import 'package:zart/machines/version_7.dart';
-import 'package:zart/machines/version_8.dart';
+import 'package:zart/engines/engine.dart';
+import 'package:zart/engines/version_3.dart';
+import 'package:zart/engines/version_5.dart';
+import 'package:zart/engines/version_7.dart';
+import 'package:zart/engines/version_8.dart';
 import 'package:zart/memory_map.dart';
 
 ZMachine get Z => ZMachine();
@@ -35,16 +34,20 @@ class ZMachine {
   static ZMachine _context;
 
   //contains machine version which are supported by z-machine.
-  final List<Machine> _supportedMachines = [
+  final List<Engine> _supportedEngines = [
     Version3(),
     Version5(),
     Version7(),
     Version8()
   ];
 
-  Machine machine;
+  /// Represents the underlying interpreter engine used to run the
+  /// game (different versions require different engines).
+  Engine engine;
 
-  IOProvider IOConfig;
+  /// This field must be set so that the interpeter has a place to send
+  /// commands and receive results from those commands (if any).
+  IOProvider io;
 
   factory ZMachine() {
     if (_context != null) return _context;
@@ -54,7 +57,7 @@ class ZMachine {
   }
 
   ZMachine._internal() {
-    IOConfig = DefaultProvider([]);
+    io = DefaultProvider([]);
   }
 
   static int verToInt(ZVersion v) {
@@ -107,9 +110,8 @@ class ZMachine {
     }
   }
 
-  /**
-  * Loads the given Z-Machine story file [storyBytes] into VM memory.
-  */
+  /// Loads the given Z-Machine story file [storyBytes] into the
+  /// interpreter memory.
   void load(List<int> storyBytes) {
     if (storyBytes == null) return;
 
@@ -120,19 +122,20 @@ class ZMachine {
 
     ver = ZMachine.intToVer(rawBytes[Header.VERSION]);
 
-    var result = _supportedMachines.where(((Machine m) => m.version == ver)).toList();
+    var result =
+        _supportedEngines.where(((Engine m) => m.version == ver)).toList();
 
     if (result.length != 1) {
       throw Exception('Z-Machine version ${ver} not supported.');
     } else {
-      machine = result[0];
+      engine = result[0];
     }
 
-    print('Zart: Using Z-Machine v${machine.version}.');
+    print('Zart: Using Z-Machine v${engine.version}.');
 
-    machine.mem = MemoryMap(rawBytes);
+    engine.mem = MemoryMap(rawBytes);
 
-    machine.visitHeader();
+    engine.visitHeader();
 
     isLoaded = true;
   }
@@ -143,28 +146,28 @@ class ZMachine {
   /**
   * Runs the Z-Machine using the detected machine version from the story
   * file.  This can be overridden by passing [machineOverride] to the function.
-  * Doing so will cause given [Machine] to be used for execution.
+  * Doing so will cause given [Engine] to be used for execution.
   */
-  void run([Machine machineOverride = null]) {
+  void run([Engine machineOverride = null]) {
     _assertLoaded();
 
     if (machineOverride != null) {
-      machine = machineOverride;
-      machine.mem = MemoryMap(rawBytes);
-      machine.visitHeader();
+      engine = machineOverride;
+      engine.mem = MemoryMap(rawBytes);
+      engine.visitHeader();
     }
 
     //for main routine only.
-    machine.PC--;
+    engine.PC--;
 
     // visit the main 'routine' (call stack required empty)
-    machine.visitRoutine([]);
+    engine.visitRoutine([]);
 
     //push dummy result store onto the call stack
-    machine.callStack.push(0);
+    engine.callStack.push(0);
 
     //push dummy return address onto the call stack
-    machine.callStack.push(0);
+    engine.callStack.push(0);
 
     if (inBreak) {
       callAsync(Debugger.startBreak);
@@ -176,37 +179,29 @@ class ZMachine {
   void runIt() {
 //    while(!inBreak && !inInterrupt && !quit){
     while (!inInterrupt && !quit) {
-      machine.visitInstruction();
+      engine.visitInstruction();
 //      Debugger.instructionsCounter++;
     }
 
     if (inBreak) {
-      Z.sendIO(IOCommands.PRINT_DEBUG, ["<<< DEBUG MODE >>>"]);
-      callAsync(Debugger.startBreak);
+      Z.sendIO({
+        "command": IOCommands.PRINT_DEBUG,
+        "message": "<<< DEBUG MODE >>>"
+      }).then((_) {
+        callAsync(Debugger.startBreak);
+      });
     }
   }
 
-  Future<Object> sendIO(IOCommands command, [List<Object> messageData]) {
-    messageData = messageData == null ? [] : messageData;
-    List<String> msg = [command.toString()];
-
-    for(final m in messageData){
-      msg.add(m);
-    }
-    // messageData.forEach((m){
-    //   msg
-    // });
-    // msg.addAll(messageData as Iterable<Object>);
-
-    return IOConfig.command(JSON.json.encode(msg));
+  Future<Object> sendIO(Map<String, dynamic> ioData) async {
+    return io.command(ioData);
   }
 
   void printBuffer() async {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
-    if (!machine.outputStream3) {
-      await sendIO(IOCommands.PRINT,
-          [machine.currentWindow.toString(), sbuff.toString()]);
+    if (!engine.outputStream3) {
+      await sendIO({"command" : IOCommands.PRINT, "window" : engine.currentWindow, "buffer" : sbuff.toString()});
       sbuff.clear();
     }
   }
@@ -214,14 +209,14 @@ class ZMachine {
   /** Reset Z-Machine to state at first load */
   void softReset() {
     _assertLoaded();
-    machine.PC = 0;
-    machine.stack.clear();
-    machine.callStack.clear();
+    engine.PC = 0;
+    engine.stack.clear();
+    engine.callStack.clear();
     memoryStreams.clear();
-    machine.mem = null;
+    engine.mem = null;
 
-    machine.mem = MemoryMap(rawBytes);
-    machine.visitHeader();
+    engine.mem = MemoryMap(rawBytes);
+    engine.visitHeader();
   }
 
   void _assertLoaded() {

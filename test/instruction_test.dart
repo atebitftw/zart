@@ -4,7 +4,7 @@ import 'dart:async';
 
 import 'package:test/test.dart';
 import 'package:zart/debugger.dart';
-import 'package:zart/machines/machine.dart';
+import 'package:zart/engines/engine.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/z_machine.dart';
 
@@ -21,23 +21,23 @@ instructionTests(){
   final maxTestRoutineLength = (testRoutineEndAddr + 1) - testRoutineAddr;
   final SP = 0;
 
-  final testRoutineRestoreBytes = Z.machine.mem.getRange(testRoutineAddr, maxTestRoutineLength);
+  final testRoutineRestoreBytes = Z.engine.mem.getRange(testRoutineAddr, maxTestRoutineLength);
 
   void injectRoutine(List<int> locals, List<int> instructionBytes){
 
-    Z.machine.mem.storeb(testRoutineAddr, locals.length);
+    Z.engine.mem.storeb(testRoutineAddr, locals.length);
 
     //write the locals
     var start = testRoutineAddr + 1;
 
     for(final l in locals){
-      Z.machine.mem.storew(start, l);
+      Z.engine.mem.storew(start, l);
       start += 2;
     }
 
     //write the instructions
     for(final b in instructionBytes){
-      Z.machine.mem.storeb(start, b);
+      Z.engine.mem.storeb(start, b);
       start++;
     }
   }
@@ -104,7 +104,7 @@ instructionTests(){
 
   runRoutine([param1, param2, param3]){
 
-    var operandList = createVarParamList(Z.machine.pack(testRoutineAddr), param1, param2, param3);
+    var operandList = createVarParamList(Z.engine.pack(testRoutineAddr), param1, param2, param3);
     Debugger.isUnitTestRun = true;
     Z.quit = false;
 
@@ -136,23 +136,23 @@ instructionTests(){
     var addr = callAddr + 1;
 
     for(final inst in callInstruction){
-      Z.machine.mem.storeb(addr, inst);
+      Z.engine.mem.storeb(addr, inst);
       addr++;
     }
 
     //clear stacks and reset program counter
-    Z.machine.stack.clear();
-    Z.machine.callStack.clear();
-    Z.machine.PC = callAddr + 1;
+    Z.engine.stack.clear();
+    Z.engine.callStack.clear();
+    Z.engine.PC = callAddr + 1;
 
     // visit the main 'routine'
-    Z.machine.visitRoutine([]);
+    Z.engine.visitRoutine([]);
 
     //push dummy result store onto the call stack
-    Z.machine.callStack.push(0);
+    Z.engine.callStack.push(0);
 
     //push dummy return address onto the call stack
-    Z.machine.callStack.push(0);
+    Z.engine.callStack.push(0);
 
 //    Debugger.debug('${Z.machine.mem.dump(callAddr, 20)}');
 
@@ -166,7 +166,7 @@ instructionTests(){
     var start = testRoutineAddr;
 
     for (final b in testRoutineRestoreBytes){
-      Z.machine.mem.storeb(start++, b);
+      Z.engine.mem.storeb(start++, b);
     }
   }
 
@@ -176,8 +176,8 @@ instructionTests(){
 
       test('test routine check', (){
         //first/last byte of testRoutineRestore is correct
-        expect(Z.machine.mem.loadb(testRoutineAddr), equals(testRoutineRestoreBytes[0]));
-        expect(Z.machine.mem.loadb(testRoutineEndAddr), equals(testRoutineRestoreBytes.last));
+        expect(Z.engine.mem.loadb(testRoutineAddr), equals(testRoutineRestoreBytes[0]));
+        expect(Z.engine.mem.loadb(testRoutineEndAddr), equals(testRoutineRestoreBytes.last));
       });
 
       test('routine restore check', (){
@@ -185,13 +185,13 @@ instructionTests(){
 
         //zero out the routine memory
         for (final _ in testRoutineRestoreBytes){
-          Z.machine.mem.storeb(start++, 0);
+          Z.engine.mem.storeb(start++, 0);
         }
 
         start = testRoutineAddr;
         //validate 0's
         for (final _ in testRoutineRestoreBytes){
-          expect(0, equals(Z.machine.mem.loadb(start++)));
+          expect(0, equals(Z.engine.mem.loadb(start++)));
         }
 
         restoreRoutine();
@@ -200,14 +200,14 @@ instructionTests(){
 
         //validate restore
         for (final b in testRoutineRestoreBytes){
-          expect(b, equals(Z.machine.mem.loadb(start++)));
+          expect(b, equals(Z.engine.mem.loadb(start++)));
         }
       });
 
       test('inject routine', (){
         injectRoutine([0xffff, 0xeeee, 0x0, 0x0, 0x0, 0x0], []);
         var testBytes = [0x6, 0xff, 0xff, 0xee, 0xee, 0, 0, 0, 0];
-        var routine = Z.machine.mem.getRange(testRoutineAddr, testBytes.length);
+        var routine = Z.engine.mem.getRange(testRoutineAddr, testBytes.length);
 
         int i = 0;
         for(final b in routine){
@@ -223,7 +223,7 @@ instructionTests(){
 
       doIt(){
         if (Z.quit){
-          c.complete(Z.machine.stack.pop());
+          c.complete(Z.engine.stack.pop());
         }else{
           Timer(Duration(seconds:0), doIt);
         }
@@ -266,7 +266,7 @@ instructionTests(){
         runRoutine();
 
         var v = await pollUntilQuit();
-        expect(Machine.TRUE, equals(v));
+        expect(Engine.TRUE, equals(v));
       });
 
       test('simple return false', () async {
@@ -274,7 +274,7 @@ instructionTests(){
         runRoutine();
 
         var v = await pollUntilQuit();
-        expect(Machine.FALSE, equals(v));
+        expect(Engine.FALSE, equals(v));
       });
 
       test('push non-negative small', () async {
@@ -309,10 +309,10 @@ instructionTests(){
         * RET SP
         */
         injectRoutine([0x0], [0xe8, 0xbf, 0x01, 0xab, 0x00]);
-        runRoutine(Machine.dartSignedIntTo16BitSigned(-42));
+        runRoutine(Engine.dartSignedIntTo16BitSigned(-42));
 
         final v = await pollUntilQuit();
-        expect(Machine.dartSignedIntTo16BitSigned(-42), equals(v));
+        expect(Engine.dartSignedIntTo16BitSigned(-42), equals(v));
       });
 
       test('push negative big', () async {
@@ -323,10 +323,10 @@ instructionTests(){
         */
         injectRoutine([0x0], [0xe8, 0xbf, 0x01, 0xab, 0x00]);
 
-        runRoutine(Machine.dartSignedIntTo16BitSigned(-30000));
+        runRoutine(Engine.dartSignedIntTo16BitSigned(-30000));
 
         final v = await pollUntilQuit();
-        expect(Machine.dartSignedIntTo16BitSigned(-30000), equals(v));
+        expect(Engine.dartSignedIntTo16BitSigned(-30000), equals(v));
       });
     });
   });

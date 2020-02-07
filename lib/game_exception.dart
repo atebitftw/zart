@@ -5,7 +5,7 @@ class GameException implements Exception {
   final int addr;
   final String msg;
 
-  GameException(this.msg) : addr = Z.machine.PC - 1 {
+  GameException(this.msg) : addr = Z.engine.PC - 1 {
     print(this);
   }
 

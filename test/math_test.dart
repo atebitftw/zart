@@ -1,7 +1,7 @@
 part of 'main_test.dart';
 
 void mathTests() {
-  group("Integer Signing And Bounderies>", () {
+  group("Integer Signing And Boundaries>", () {
     integerTests();
   });
 

@@ -20,7 +20,7 @@ class DefaultProvider implements IOProvider
     script = Queue<String>.from(script);
 
 
-  Future<Object> command(String JSONCommand){
+  Future<Object> command(Map<String, dynamic> command){
     return Future.value(null);
   }
 

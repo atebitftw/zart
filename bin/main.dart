@@ -4,7 +4,6 @@ import 'package:zart/utils.dart' as Utils;
 import 'package:zart/zart.dart';
 import 'dart:io';
 import 'dart:async';
-import 'dart:convert' as JSON;
 
 import 'package:zart/IO/io_provider.dart';
 
@@ -14,12 +13,10 @@ Logger log = Logger("main()");
 * Mock UI Provider for Unit Testing
 */
 class MockUIProvider implements IOProvider {
-  Future<Object> command(String JSONCommand) {
-    var c = Completer();
-    var cmd = JSON.json.encode(JSONCommand);
-    print('Command received: ${cmd[0]} ');
-    c.complete(null);
-    return c.future;
+  Future<dynamic> command(Map<String, dynamic> command) async {
+    final cmd = command['command'];
+    print('Command received: $cmd ');
+    return;
   }
 }
 
@@ -40,7 +37,7 @@ main([List<String> args]) {
 
   Debugger.initializeMachine();
 
-  Z.IOConfig = MockUIProvider();
+  Z.io = MockUIProvider();
 
   print(Debugger.dumpHeader());
   print(Utils.generateObjectTree());

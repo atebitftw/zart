@@ -9,12 +9,9 @@ import 'package:zart/IO/io_provider.dart';
 class MockUIProvider implements IOProvider
 {
 
-  Future<Object> command(String JSONCommand){
-    var c = Completer();
-    var cmd = JSON.json.encode(JSONCommand);
-    print('Command received: ${cmd[0]} ');
-    c.complete(null);
-    return c.future;
+  @override
+  Future<Object> command(Map<String, dynamic> command) async {
+    print('Command received: ${command['command']} ');
+    return null;
   }
-
 }

@@ -1,20 +1,19 @@
-library tests;
-
 import 'dart:io';
-import 'dart:math';
 
 import 'package:test/test.dart';
+import 'package:zart/IO/blorb.dart';
 import 'package:zart/binary_helper.dart';
 import 'package:zart/debugger.dart';
 import 'package:zart/game_exception.dart';
-import 'package:zart/game_object.dart';
 import 'package:zart/header.dart';
-import 'package:zart/machines/machine.dart';
+import 'package:zart/engines/engine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
 import 'package:zart/utils.dart' as Utils;
+
+import 'object_test.dart';
 
 part 'integers_test.dart';
 part 'math_test.dart';
@@ -29,7 +28,9 @@ void main() {
   final f = File(defaultGameFile);
 
   try {
-    Z.load(f.readAsBytesSync());
+    final rawBytes = f.readAsBytesSync();
+    final data = Blorb.getZData(rawBytes);
+    Z.load(data);
   } on Exception catch (fe) {
     //TODO log then print friendly
     print('$fe');
@@ -42,11 +43,10 @@ void main() {
   final machine = MockV3Machine();
 
   Debugger.initializeMachine(machine);
-  Z.IOConfig = MockUIProvider();
+  Z.io = MockUIProvider();
 
   print(Debugger.dumpHeader());
-
-  // http://inform-fiction.org/zmachine/standards/z1point1/sect02.html
+  print(Utils.generateObjectTree(1));
 
   group("All>", () {
     group('Maths>', () {
@@ -59,6 +59,10 @@ void main() {
 
     group('Z Memory> ', () {
       memoryTests(version, programCounterAddress);
+    });
+
+    group("Game Objects", (){
+      objectTests();
     });
   });
 
@@ -101,7 +105,7 @@ void main() {
       expect(ZSCII.readZString(addrStart), equals(testString));
 
       // address after string end should be at 0xb0be
-      expect(Z.machine.callStack.pop(), equals(addrEnd));
+      expect(Z.engine.callStack.pop(), equals(addrEnd));
     });
   });
 

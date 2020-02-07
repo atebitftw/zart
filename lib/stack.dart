@@ -1,4 +1,4 @@
-import 'package:zart/machines/machine.dart';
+import 'package:zart/engines/engine.dart';
 import 'package:zart/game_exception.dart';
 
 /// Z-Machine Stack
@@ -23,7 +23,7 @@ class Stack {
 
     //no Dart negative values should exist here
     //except the special stack-end flag 0x-10000
-    assert(v == Machine.STACK_MARKER || v >= 0);
+    assert(v == Engine.STACK_MARKER || v >= 0);
 
     return v;
   }
@@ -33,15 +33,15 @@ class Stack {
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
-    assert(v == Machine.STACK_MARKER || v >= 0);
+    assert(v == Engine.STACK_MARKER || v >= 0);
 
     return v;
   }
 
   void operator []=(int index, int value){
 
-    if (value < 0 && value != Machine.STACK_MARKER){
-      value = Machine.dartSignedIntTo16BitSigned(value);
+    if (value < 0 && value != Engine.STACK_MARKER){
+      value = Engine.dartSignedIntTo16BitSigned(value);
     }
 
     stack[index] = value;
@@ -59,8 +59,8 @@ class Stack {
 //    }
 
     //excluding the stack boundary flag
-    if (value < 0 && value != Machine.STACK_MARKER){
-      value = Machine.dartSignedIntTo16BitSigned(value);
+    if (value < 0 && value != Engine.STACK_MARKER){
+      value = Engine.dartSignedIntTo16BitSigned(value);
     }
 
     // stack.insertRange(0, 1, value);
@@ -72,7 +72,7 @@ class Stack {
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
-    assert(v == Machine.STACK_MARKER || v >= 0);
+    assert(v == Engine.STACK_MARKER || v >= 0);
 
     return v;
   }

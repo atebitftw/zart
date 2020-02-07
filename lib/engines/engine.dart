@@ -17,7 +17,7 @@ import 'package:zart/zscii.dart';
 * Base machine that is compatible with Z-Machine V1.
 *
 */
-class Machine {
+class Engine {
   static const int STACK_MARKER = -0x10000;
 
   /// Z-Machine False = 0
@@ -187,30 +187,31 @@ class Machine {
     throw GameException('Unsupported Op Code: ${mem.loadb(PC - 1)}');
   }
 
-  void restore() {
+  void restore() async {
     if (Z.inInterrupt) {
       return;
     }
 
     Z.inInterrupt = true;
 
-    Z.sendIO(IOCommands.RESTORE).then((stream) {
-      Z.inInterrupt = false;
-      if (stream == null) {
-        branch(false);
-      } else {
-        var result = Quetzal.restore(stream);
-        if (!result) {
-          branch(false);
-        }
-      }
+    final result = await Z.sendIO({"command": IOCommands.RESTORE});
 
-      //PC should be set by restore here
-      Z.callAsync(Z.runIt);
-    });
+    Z.inInterrupt = false;
+
+    if (result == null) {
+      branch(false);
+    } else {
+      final restoreResult = Quetzal.restore(result);
+      if (!restoreResult) {
+        branch(false);
+      }
+    }
+
+    //PC should be set by restore here
+    Z.callAsync(Z.runIt);
   }
 
-  void save() {
+  void save() async {
     if (Z.inInterrupt) {
       return;
     }
@@ -238,17 +239,19 @@ class Machine {
     var offset = jumpToLabelOffset(jumpByte);
 
     if (branchOn) {
-      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC + (offset - 2))).then((result) {
-        Z.inInterrupt = false;
-        if (result) PC += offset - 2;
-        Z.callAsync(Z.runIt);
+      final result = await Z.sendIO({
+        "command": IOCommands.SAVE,
+        "file_data": Quetzal.save(PC + (offset - 2))
       });
+      Z.inInterrupt = false;
+      if (result) PC += offset - 2;
+      Z.callAsync(Z.runIt);
     } else {
-      Z.sendIO(IOCommands.SAVE, Quetzal.save(PC)).then((result) {
-        Z.inInterrupt = false;
-        if (!result) PC += offset - 2;
-        Z.callAsync(Z.runIt);
-      });
+      final result = await Z
+          .sendIO({"command": IOCommands.SAVE, "file_data": Quetzal.save(PC)});
+      Z.inInterrupt = false;
+      if (!result) PC += offset - 2;
+      Z.callAsync(Z.runIt);
     }
   }
 
@@ -277,7 +280,7 @@ class Machine {
     if (BinaryHelper.isSet(jumpByte, 7) == testResult) {
       // If the offset is 0 or 1 (FALSE or TRUE), perform a return
       // operation.
-      if (offset == Machine.FALSE || offset == Machine.TRUE) {
+      if (offset == Engine.FALSE || offset == Engine.TRUE) {
         doReturn(offset);
         return;
       }
@@ -291,21 +294,22 @@ class Machine {
     //Debugger.verbose('    (continuing to next instruction)');
   }
 
-  void sendStatus() {
+  void sendStatus() async {
     var oid = readVariable(0x10);
 
-    var locObject = oid != 0 ? GameObject(oid).shortName : '';
+    var roomName = oid != 0 ? GameObject(oid).shortName : '';
 
     Z.inInterrupt = true;
-    Z.sendIO(IOCommands.STATUS, [
-      Header.isScoreGame() ? 'SCORE' : 'TIME',
-      locObject,
-      readVariable(0x11).toString(),
-      readVariable(0x12).toString()
-    ]).then((_) {
-      Z.inInterrupt = false;
-      Z.callAsync(Z.runIt);
+
+    await Z.sendIO({
+      "command": IOCommands.STATUS,
+      "game_type": Header.isScoreGame() ? 'SCORE' : 'TIME',
+      "room_name": roomName,
+      "score_one": readVariable(0x11).toString(),
+      "score_two": readVariable(0x12).toString()
     });
+    Z.inInterrupt = false;
+    Z.callAsync(Z.runIt);
   }
 
   void callVS() {
@@ -320,7 +324,7 @@ class Machine {
     if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
-      writeVariable(resultStore, Machine.FALSE);
+      writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
@@ -380,11 +384,11 @@ class Machine {
       //terminator
       mem.storeb(textBuffer, 0);
 
-      final tokens = Z.machine.mem.dictionary.tokenize(line);
+      final tokens = Z.engine.mem.dictionary.tokenize(line);
 
       //Debugger.verbose('    (tokenized: $tokens)');
 
-      final parsed = Z.machine.mem.dictionary.parse(tokens, line);
+      final parsed = Z.engine.mem.dictionary.parse(tokens, line);
       //Debugger.debug('$parsed');
 
       final maxParseBufferBytes = (4 * maxWords) + 2;
@@ -397,7 +401,7 @@ class Machine {
       }
     }
 
-    final l = await Z.sendIO(IOCommands.READ);
+    final l = await Z.sendIO({"command": IOCommands.READ});
 
     Z.inInterrupt = false;
     if (l == '/!') {
@@ -474,19 +478,19 @@ class Machine {
   }
 
   assertNotMarker(m) {
-    if (m == Machine.STACK_MARKER) {
+    if (m == Engine.STACK_MARKER) {
       throw GameException('Stack Underflow.');
     }
   }
 
   void rtrue() {
     //Debugger.verbose('${pcHex(-1)} [rtrue]');
-    doReturn(Machine.TRUE);
+    doReturn(Engine.TRUE);
   }
 
   void rfalse() {
     //Debugger.verbose('${pcHex(-1)} [rfalse]');
-    doReturn(Machine.FALSE);
+    doReturn(Engine.FALSE);
   }
 
   void nop() {
@@ -677,18 +681,17 @@ class Machine {
     branch(foundMatch);
   }
 
-  void quit() {
+  void quit() async {
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
-    Z.sendIO(IOCommands.PRINT,
-        [currentWindow.toString(), Z.sbuff.toString()]).then((_) {
+    await Z.sendIO({"command" : IOCommands.PRINT, "window" : currentWindow, "buffer" : Z.sbuff.toString()});
+
       Z.inInterrupt = false;
       Z.sbuff.clear();
       Z.quit = true;
 
-      Z.sendIO(IOCommands.QUIT);
-    });
+      await Z.sendIO({"command" : IOCommands.QUIT});
   }
 
   void restart() {
@@ -815,7 +818,7 @@ class Machine {
 
     //Debugger.verbose('${pcHex()} "$str"');
 
-    doReturn(Machine.TRUE);
+    doReturn(Engine.TRUE);
   }
 
   void printf() {
@@ -865,8 +868,8 @@ class Machine {
 
     assert(operands[0].rawValue <= 0xff);
 
-    if (operands[0].rawValue == Machine.SP) {
-      operands[0].rawValue = readVariable(Machine.SP);
+    if (operands[0].rawValue == Engine.SP) {
+      operands[0].rawValue = readVariable(Engine.SP);
     }
 
     writeVariable(operands[0].rawValue, operands[1].value);
@@ -879,8 +882,8 @@ class Machine {
 
     var resultTo = readb();
 
-    if (operand.rawValue == Machine.SP) {
-      operand.rawValue = readVariable(Machine.SP);
+    if (operand.rawValue == Engine.SP) {
+      operand.rawValue = readVariable(Engine.SP);
     }
 
     var v = readVariable(operand.rawValue);
@@ -1062,7 +1065,7 @@ class Machine {
     var x = toSigned(operands[0].value);
     var y = toSigned(operands[1].value);
 
-    final result = doMod(x,y);
+    final result = doMod(x, y);
 
     //Debugger.verbose('    >>> (mod ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) % ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1164,7 +1167,7 @@ class Machine {
 
     var resultTo = readb();
 
-    var addr = operands[0].value + Machine.toSigned(operands[1].value);
+    var addr = operands[0].value + Engine.toSigned(operands[1].value);
 
     //Debugger.todo();
     writeVariable(resultTo, mem.loadb(addr));
@@ -1181,7 +1184,7 @@ class Machine {
 
     var resultTo = readb();
 
-    var addr = operands[0].value + 2 * Machine.toSigned(operands[1].value);
+    var addr = operands[0].value + 2 * Engine.toSigned(operands[1].value);
 
 //    assert(addr <= mem.highMemAddress);
 
@@ -1196,7 +1199,7 @@ class Machine {
 
     assert(operands.length == 3);
 
-    var addr = operands[0].value + Machine.toSigned(operands[1].value);
+    var addr = operands[0].value + Engine.toSigned(operands[1].value);
 //
 //    assert(operands[2].value <= 0xff);
 
@@ -1212,7 +1215,7 @@ class Machine {
     var operands = visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    var addr = operands[0].value + 2 * Machine.toSigned(operands[1].value);
+    var addr = operands[0].value + 2 * Engine.toSigned(operands[1].value);
 
     assert(addr <= mem.highMemAddress);
 
@@ -1392,7 +1395,7 @@ class Machine {
     return callStack[(callStack[2] - local) + 3];
   }
 
-  Machine()
+  Engine()
       : stack = Stack(),
         callStack = Stack.max(1024) {
     r = DRandom.withSeed(DateTime.now().millisecond);

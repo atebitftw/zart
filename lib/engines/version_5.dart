@@ -1,8 +1,8 @@
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/debugger.dart';
 import 'package:zart/game_exception.dart';
-import 'package:zart/machines/machine.dart';
-import 'package:zart/machines/version_3.dart';
+import 'package:zart/engines/engine.dart';
+import 'package:zart/engines/version_3.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
@@ -92,7 +92,7 @@ class Version5 extends Version3 {
     // assign any params passed to locals and push locals onto the call stack
     var locals = readb();
 
-    stack.push(Machine.STACK_MARKER);
+    stack.push(Engine.STACK_MARKER);
 
     ////Debugger.verbose('    # Locals: ${locals}');
 
@@ -206,11 +206,11 @@ class Version5 extends Version3 {
       mem.storeb(textBuffer++, c);
     }
 
-    var tokens = Z.machine.mem.dictionary.tokenize(line);
+    var tokens = Z.engine.mem.dictionary.tokenize(line);
 
     //Debugger.verbose('    (tokenized: $tokens)');
 
-    var parsed = Z.machine.mem.dictionary.parse(tokens, line);
+    var parsed = Z.engine.mem.dictionary.parse(tokens, line);
     //Debugger.debug('$tokens $charCount');
     //Debugger.debug('$parsed');
 
@@ -229,7 +229,7 @@ class Version5 extends Version3 {
 
     var operands = visitOperandsVar(2, true);
 
-    var stream = Machine.toSigned(operands[0].value);
+    var stream = Engine.toSigned(operands[0].value);
 
     switch (stream.abs()) {
       case 1:
@@ -279,16 +279,17 @@ class Version5 extends Version3 {
     }
   }
 
-  void set_text_style() {
+  void set_text_style() async {
     //Debugger.verbose('${pcHex(-1)} [set_text_style]');
 
     var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
-    Z.sendIO(IOCommands.SET_FONT, ['STYLE', operands[0].value]).then((_) {
-      Z.inInterrupt = false;
-      Z.callAsync(Z.runIt);
-    });
+
+    await Z
+        .sendIO({"command": IOCommands.SET_FONT, "style": operands[0].value});
+    Z.inInterrupt = false;
+    Z.callAsync(Z.runIt);
   }
 
   void extended() {
@@ -400,7 +401,7 @@ class Version5 extends Version3 {
 
       //Debugger.debug('${Z.machine.mem.dump(tbTotalAddr - 1, line.length + 2)}');
 
-      var tokens = Z.machine.mem.dictionary.tokenize(line);
+      var tokens = Z.engine.mem.dictionary.tokenize(line);
 
       if (maxWords == null) {
         //second parameter was not passed, so
@@ -412,7 +413,7 @@ class Version5 extends Version3 {
 
       //Debugger.verbose('    (tokenized: $tokens)');
 
-      var parsed = Z.machine.mem.dictionary.parse(tokens, line);
+      var parsed = Z.engine.mem.dictionary.parse(tokens, line);
       //Debugger.debug('$parsed');
 
       var maxParseBufferBytes = (4 * maxWords) + 2;
@@ -427,14 +428,15 @@ class Version5 extends Version3 {
       writeVariable(storeTo, 10);
     }
 
-    final l = await Z.sendIO(IOCommands.READ);
+    final result = await Z.sendIO({"command": IOCommands.READ});
+
     Z.inInterrupt = false;
-    if (l == '/!') {
+    if (result == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = PC - 1;
       Z.callAsync(Debugger.startBreak);
     } else {
-      processLine(l);
+      processLine(result);
       Z.callAsync(Z.runIt);
     }
   }
@@ -450,34 +452,41 @@ class Version5 extends Version3 {
     branch(argCount == operands[0].value);
   }
 
-  void ext_set_font() {
+  void ext_set_font() async {
     //Debugger.verbose('${pcHex(-1)} [ext_set_font]');
     Z.inInterrupt = true;
 
     var operands = visitOperandsVar(1, false);
 
-    Z.sendIO(IOCommands.SET_FONT, [operands[0].value]).then((result) {
-      Z.inInterrupt = false;
-      if (result != null) {
-        writeVariable(readb(), result);
-      } else {
-        writeVariable(readb(), 0);
-      }
-      Z.callAsync(Z.runIt);
-    });
+    final result = await Z
+        .sendIO({"command": IOCommands.SET_FONT, "font_id": operands[0].value});
+    Z.inInterrupt = false;
+
+    if (result != null) {
+      writeVariable(readb(), result);
+    } else {
+      writeVariable(readb(), 0);
+    }
+
+    Z.callAsync(Z.runIt);
   }
 
-  void set_cursor() {
+  void set_cursor() async {
     //Debugger.verbose('${pcHex(-1)} [set_cursor]');
 
-    var operands = visitOperandsVar(2, false);
+    final operands = visitOperandsVar(2, false);
+
     Z.inInterrupt = true;
 
-    Z.sendIO(IOCommands.SET_CURSOR,
-        [operands[0].value, operands[1].value]).then((_) {
-      Z.inInterrupt = false;
-      Z.callAsync(Z.runIt);
+    await Z.sendIO({
+      "command": IOCommands.SET_CURSOR,
+      "x": operands[0].value,
+      "y": operands[1].value
     });
+
+    Z.inInterrupt = false;
+
+    Z.callAsync(Z.runIt);
   }
 
   void set_window() {
@@ -503,7 +512,7 @@ class Version5 extends Version3 {
     if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
-      writeVariable(resultStore, Machine.FALSE);
+      writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
@@ -530,7 +539,7 @@ class Version5 extends Version3 {
 
     var operands = visitOperandsVar(8, true);
 
-    var resultStore = Machine.STACK_MARKER;
+    var resultStore = Engine.STACK_MARKER;
 
     var returnAddr = PC;
 
@@ -539,7 +548,7 @@ class Version5 extends Version3 {
     if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
-      writeVariable(resultStore, Machine.FALSE);
+      writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
@@ -565,7 +574,7 @@ class Version5 extends Version3 {
 
     var operands = visitOperandsVar(4, true);
 
-    var resultStore = Machine.STACK_MARKER;
+    var resultStore = Engine.STACK_MARKER;
     var returnAddr = PC;
 
     assert(operands.length > 0);
@@ -573,7 +582,7 @@ class Version5 extends Version3 {
     if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
-      writeVariable(resultStore, Machine.FALSE);
+      writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
@@ -648,7 +657,7 @@ class Version5 extends Version3 {
     visitRoutine([]);
 
     //push the result store address onto the call stack
-    callStack.push(Machine.STACK_MARKER);
+    callStack.push(Engine.STACK_MARKER);
 
     //push the return address onto the call stack
     callStack.push(returnAddr);
@@ -661,7 +670,7 @@ class Version5 extends Version3 {
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    var resultStore = Machine.STACK_MARKER;
+    var resultStore = Engine.STACK_MARKER;
 
     var returnAddr = PC;
 
@@ -680,31 +689,32 @@ class Version5 extends Version3 {
     callStack.push(returnAddr);
   }
 
-  void erase_window() {
+  void erase_window() async {
     //Debugger.verbose('${pcHex(-1)} [erase_window]');
 
     var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
-    Z.sendIO(IOCommands.CLEAR_SCREEN, [operands[0].value]).then((_) {
-      Z.inInterrupt = false;
-      Z.callAsync(Z.runIt);
-    });
+    await Z.sendIO(
+        {"command": IOCommands.CLEAR_SCREEN, "window_id": operands[0].value});
+    Z.inInterrupt = false;
+    Z.callAsync(Z.runIt);
   }
 
-  void split_window() {
+  void split_window() async {
     //Debugger.verbose('${pcHex(-1)} [split_window]');
 
     var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
-    Z.sendIO(IOCommands.SPLIT_SCREEN, [operands[0].value]).then((_) {
-      Z.inInterrupt = false;
-      Z.callAsync(Z.runIt);
-    });
+
+    await Z.sendIO(
+        {"command": IOCommands.SPLIT_SCREEN, "window_id": operands[0].value});
+    Z.inInterrupt = false;
+    Z.callAsync(Z.runIt);
   }
 
-  void read_char() {
+  void read_char() async {
     //Debugger.verbose('${pcHex(-1)} [read_char]');
     Z.inInterrupt = true;
 
@@ -718,11 +728,10 @@ class Version5 extends Version3 {
 
     var resultTo = readb();
 
-    Z.sendIO(IOCommands.READ_CHAR).then((char) {
-      writeVariable(resultTo, ZSCII.CharToZChar(char));
-      Z.inInterrupt = false;
-      Z.callAsync(Z.runIt);
-    });
+    final char = await Z.sendIO({"command": IOCommands.READ_CHAR});
+    writeVariable(resultTo, ZSCII.CharToZChar(char));
+    Z.inInterrupt = false;
+    Z.callAsync(Z.runIt);
   }
 
   //Version 5+ supports call routines that throw
@@ -742,11 +751,11 @@ class Version5 extends Version3 {
     callStack.stack.removeRange(0, callStack.peek() + 2);
 
     //unwind game stack
-    while (stack.pop() != Machine.STACK_MARKER) {}
+    while (stack.pop() != Engine.STACK_MARKER) {}
 
     //stack marker is used in the result byte to
     //mark call routines that want to throw away the result
-    if (resultAddrByte == Machine.STACK_MARKER) return;
+    if (resultAddrByte == Engine.STACK_MARKER) return;
 
     writeVariable(resultAddrByte, result);
   }

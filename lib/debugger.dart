@@ -1,22 +1,20 @@
-import 'dart:math';
-
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/game_object.dart';
 import 'package:zart/header.dart';
-import 'package:zart/machines/machine.dart';
-import 'package:zart/machines/version_3.dart';
-import 'package:zart/machines/version_5.dart';
-import 'package:zart/machines/version_7.dart';
-import 'package:zart/machines/version_8.dart';
+import 'package:zart/engines/engine.dart';
+import 'package:zart/engines/version_3.dart';
+import 'package:zart/engines/version_5.dart';
+import 'package:zart/engines/version_7.dart';
+import 'package:zart/engines/version_8.dart';
 import 'package:zart/memory_map.dart';
 import 'package:zart/mixins/loggable.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 
 /// A runtime debugger for Z-Machine.
-class Debugger with Loggable{
-  Debugger(){
+class Debugger with Loggable {
+  Debugger() {
     logName = "Debugger";
   }
 
@@ -29,10 +27,10 @@ class Debugger with Loggable{
   static List<int> _breakPoints;
   static int instructionsCounter = 0;
 
-  static Machine _getMachineByVersion(ZVersion version) {
+  static Engine _getMachineByVersion(ZVersion version) {
     switch (version) {
       case ZVersion.V1:
-        return Machine();
+        return Engine();
       case ZVersion.V3:
         return Version3();
       case ZVersion.V5:
@@ -47,7 +45,7 @@ class Debugger with Loggable{
     }
   }
 
-  static void initializeMachine([Machine newMachine]) {
+  static void initializeMachine([Engine newMachine]) {
     Z.inInterrupt = true;
     if (!Z.isLoaded) {
       throw GameException(
@@ -59,20 +57,21 @@ class Debugger with Loggable{
           'Machine/Story version mismatch. Expected ${Z.ver}. Got ${newMachine.version}');
     }
 
-    Z.machine = newMachine == null ? _getMachineByVersion(Z.ver) : newMachine;
-    Z.machine.mem = MemoryMap(Z.rawBytes);
-    Z.machine.visitHeader();
-    debug('<<< machine installed: v${Z.machine.version} >>>');
+    Z.engine = newMachine == null ? _getMachineByVersion(Z.ver) : newMachine;
+    Z.engine.mem = MemoryMap(Z.rawBytes);
+    Z.engine.visitHeader();
+    debug('<<< machine installed: v${Z.engine.version} >>>');
     Z.inInterrupt = false;
   }
 
-  static void startBreak() async {
-    await Z.sendIO(IOCommands.PRINT_DEBUG, [
-      '(break)>>> 0x${debugStartAddr.toRadixString(16)}:'
-          ' opCode: ${Z.machine.mem.loadb(debugStartAddr)}'
+  static Future<void> startBreak() async {
+    await Z.sendIO({
+      "command": IOCommands.PRINT_DEBUG,
+      "message": '(break)>>> 0x${debugStartAddr.toRadixString(16)}:'
+          ' opCode: ${Z.engine.mem.loadb(debugStartAddr)}'
           '\n'
           '    Locals ${dumpLocals()}\n'
-    ]);
+    });
 
     Z.callAsync(_repl);
   }
@@ -86,7 +85,7 @@ class Debugger with Loggable{
         case 'dump':
           var addr = int.parse(args[1]);
           var howMany = int.parse(args[2]);
-          debug('${Z.machine.mem.dump(addr, howMany)}');
+          debug('${Z.engine.mem.dump(addr, howMany)}');
           Z.callAsync(_repl);
           break;
         case 'move':
@@ -131,15 +130,15 @@ class Debugger with Loggable{
           break;
         case '':
         case 'n':
-          debugStartAddr = Z.machine.PC;
-          Z.machine.visitInstruction();
+          debugStartAddr = Z.engine.PC;
+          Z.engine.visitInstruction();
           break;
         case 'q':
           Z.inBreak = false;
           Z.callAsync(Z.runIt);
           break;
         case 'dictionary':
-          debug('${Z.machine.mem.dictionary.dump()}');
+          debug('${Z.engine.mem.dictionary.dump()}');
           Z.callAsync(Z.runIt);
           break;
         case 'globals':
@@ -150,7 +149,7 @@ class Debugger with Loggable{
 
           for (int i = 0x10; i < 0xff; i++) {
             s.write('g${i - 16 < 10 ? "0" : ""}${i - 16}:'
-                ' 0x${Z.machine.mem.readGlobal(i).toRadixString(16)}');
+                ' 0x${Z.engine.mem.readGlobal(i).toRadixString(16)}');
 
             if ((i - 15) % col != 0) {
               s.write('\t');
@@ -166,13 +165,13 @@ class Debugger with Loggable{
           Z.callAsync(_repl);
           break;
         case 'stacks':
-          debug('call stack: ${Z.machine.callStack}');
-          debug('eval stack: ${Z.machine.stack}');
+          debug('call stack: ${Z.engine.callStack}');
+          debug('eval stack: ${Z.engine.stack}');
           Z.callAsync(_repl);
           break;
         case 'object':
           var obj = GameObject(int.parse(args[1]));
-          obj.dump();
+          debug(obj.toString());
           Z.callAsync(_repl);
           break;
         case 'header':
@@ -186,7 +185,7 @@ class Debugger with Loggable{
       }
     }
 
-    final line = await Z.sendIO(IOCommands.READ, []);
+    final line = await Z.sendIO({"command": IOCommands.READ});
     parse(line);
   }
 
@@ -220,18 +219,18 @@ class Debugger with Loggable{
 
   static String crashReport() {
     var s = StringBuffer();
-    s.write('Call Stack: ${Z.machine.callStack}\n');
-    s.write('Game Stack: ${Z.machine.stack}\n');
+    s.write('Call Stack: ${Z.engine.callStack}\n');
+    s.write('Game Stack: ${Z.engine.stack}\n');
     s.write(dumpLocals());
     return s.toString();
   }
 
   static String dumpLocals() {
-    var locals = Z.machine.callStack[2];
+    var locals = Z.engine.callStack[2];
     StringBuffer s = StringBuffer();
 
     for (int i = 0; i < locals; i++) {
-      s.write('(L${i}: 0x${Z.machine.readLocal(i + 1).toRadixString(16)}) ');
+      s.write('(L${i}: 0x${Z.engine.readLocal(i + 1).toRadixString(16)}) ');
     }
     s.write('\n');
     return s.toString();
@@ -242,36 +241,36 @@ class Debugger with Loggable{
 
     var s = StringBuffer();
 
-    s.write('(Story contains ${Z.machine.mem.size} bytes.)\n');
+    s.write('(Story contains ${Z.engine.mem.size} bytes.)\n');
     s.write('\n');
     s.write('------- START HEADER -------\n');
-    s.write('Z-Machine Version: ${Z.machine.version}\n');
+    s.write('Z-Machine Version: ${Z.engine.version}\n');
     s.write(
-        'Flags1(binary): 0b${Z.machine.mem.loadw(Header.FLAGS1).toRadixString(2)}\n');
+        'Flags1(binary): 0b${Z.engine.mem.loadw(Header.FLAGS1).toRadixString(2)}\n');
     // word after flags1 is used by Inform
     s.write(
-        'Abbreviations Location: 0x${Z.machine.mem.abbrAddress.toRadixString(16)}\n');
+        'Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n');
     s.write(
-        'Object Table Location: 0x${Z.machine.mem.objectsAddress.toRadixString(16)}\n');
+        'Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n');
     s.write(
-        'Global Variables Location: 0x${Z.machine.mem.globalVarsAddress.toRadixString(16)}\n');
+        'Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n');
     s.write(
-        'Static Memory Start: 0x${Z.machine.mem.staticMemAddress.toRadixString(16)}\n');
+        'Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n');
     s.write(
-        'Dictionary Location: 0x${Z.machine.mem.dictionaryAddress.toRadixString(16)}\n');
+        'Dictionary Location: 0x${Z.engine.mem.dictionaryAddress.toRadixString(16)}\n');
     s.write(
-        'High Memory Start: 0x${Z.machine.mem.highMemAddress.toRadixString(16)}\n');
+        'High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n');
     s.write(
-        'Program Counter Start: 0x${Z.machine.mem.programStart.toRadixString(16)}\n');
+        'Program Counter Start: 0x${Z.engine.mem.programStart.toRadixString(16)}\n');
     s.write(
-        'Flags2(binary): 0b${Z.machine.mem.loadb(Header.FLAGS2).toRadixString(2)}\n');
+        'Flags2(binary): 0b${Z.engine.mem.loadb(Header.FLAGS2).toRadixString(2)}\n');
     s.write(
-        'Length Of File: ${Z.machine.mem.loadw(Header.LENGTHOFFILE) * Z.machine.fileLengthMultiplier()}\n');
+        'Length Of File: ${Z.engine.mem.loadw(Header.LENGTHOFFILE) * Z.engine.fileLengthMultiplier()}\n');
     s.write(
-        'Checksum Of File: ${Z.machine.mem.loadw(Header.CHECKSUMOFFILE)}\n');
+        'Checksum Of File: ${Z.engine.mem.loadw(Header.CHECKSUMOFFILE)}\n');
     //TODO v4+ header stuff here
     s.write(
-        'Standard Revision: ${Z.machine.mem.loadw(Header.REVISION_NUMBER)}\n');
+        'Standard Revision: ${Z.engine.mem.loadw(Header.REVISION_NUMBER)}\n');
     s.write('-------- END HEADER ---------\n');
 
     //s.write('main Routine: ${Z.machine.mem.getRange(Z.pc - 4, 10)}');
@@ -289,17 +288,21 @@ class Debugger with Loggable{
   }
 
   /// Debug Channel
-  static void debug(String debugString) {
-    Z.sendIO(IOCommands.PRINT_DEBUG, ['(Zart Debug) $debugString']);
+  static void debug(String debugString) async {
+    await Z.sendIO({
+      "command": IOCommands.PRINT_DEBUG,
+      "message": '(Zart Debug) $debugString'
+    });
   }
 
   static void todo([String message]) async {
-    await Z.sendIO(IOCommands.PRINT_DEBUG, [
-      'Stopped At: 0x${Z.machine.PC.toRadixString(16)}\n\n'
+    await Z.sendIO({
+      "command": IOCommands.PRINT_DEBUG,
+      "message": 'Stopped At: 0x${Z.engine.PC.toRadixString(16)}\n\n'
           'Text Buffer:\n'
           '${Z.sbuff}\n'
           '${message != null ? "TODO: $message" : ""}\n'
-    ]);
+    });
 
     throw Exception("Not Implemented");
   }

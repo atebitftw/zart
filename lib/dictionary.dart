@@ -9,10 +9,10 @@ class Dictionary {
   final List<String> separators;
   int entryLength;
 
-  int get encodedTextBytes => Z.machine.version == ZVersion.S ||
-          Z.machine.version == ZVersion.V1 ||
-          Z.machine.version == ZVersion.V2 ||
-          Z.machine.version == ZVersion.V3
+  int get encodedTextBytes => Z.engine.version == ZVersion.S ||
+          Z.engine.version == ZVersion.V1 ||
+          Z.engine.version == ZVersion.V2 ||
+          Z.engine.version == ZVersion.V3
       ? 4
       : 6;
 
@@ -21,7 +21,7 @@ class Dictionary {
   Dictionary({int address})
       : entries = List<String>(),
         separators = List<String>() {
-    _address = Z.machine.mem.loadw(Header.DICTIONARY_ADDR);
+    _address = Z.engine.mem.loadw(Header.DICTIONARY_ADDR);
 
     if (address != null) {
       //custom dictionary
@@ -34,15 +34,15 @@ class Dictionary {
   }
 
   void _initDictionary() {
-    var iCodes = Z.machine.mem.loadb(_address);
+    var iCodes = Z.engine.mem.loadb(_address);
 
     for (int i = 1; i <= iCodes; i++) {
-      separators.add(ZSCII.ZCharToChar(Z.machine.mem.loadb(_address + i)));
+      separators.add(ZSCII.ZCharToChar(Z.engine.mem.loadb(_address + i)));
     }
 
-    entryLength = Z.machine.mem.loadb(_address + separators.length + 1);
+    entryLength = Z.engine.mem.loadb(_address + separators.length + 1);
 
-    var numEntries = Z.machine.mem.loadw(_address + separators.length + 2);
+    var numEntries = Z.engine.mem.loadw(_address + separators.length + 2);
 
     var start = _address + separators.length + 4;
 
@@ -112,7 +112,7 @@ class Dictionary {
       if (c == ' ' && s.length > 0) {
         tokens.add(s.toString().trim());
         s = StringBuffer();
-      } else if (Z.machine.mem.dictionary.separators.indexOf(c) != -1) {
+      } else if (Z.engine.mem.dictionary.separators.indexOf(c) != -1) {
         if (s.length > 0) {
           tokens.add(s.toString().trim());
           s = StringBuffer();

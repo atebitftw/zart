@@ -3,42 +3,42 @@ part of 'main_test.dart';
 void integerTests() {
   test("Machine.toSigned(0xFFFF) should return -1.", () {
     print("${0xFFFF}");
-    expect(Machine.toSigned(0xFFFF), equals(-1));
+    expect(Engine.toSigned(0xFFFF), equals(-1));
   });
 
   test("Machine.toSigned(32767) should return 32767.", () {
-    expect(Machine.toSigned(32767), equals(32767));
+    expect(Engine.toSigned(32767), equals(32767));
   });
 
   test(
       "Machine.toSigned(32768) (0x10000 - 32768) should yield signed int -32768.",
       () {
-    expect(Machine.toSigned(32768), equals(-32768));
+    expect(Engine.toSigned(32768), equals(-32768));
   });
 
   test("Machine.dartSignedIntTo16BitSigned(-1) should return 65535.", () {
-    expect(Machine.dartSignedIntTo16BitSigned(-1), equals(65535));
+    expect(Engine.dartSignedIntTo16BitSigned(-1), equals(65535));
   });
 
   test("Machine.dartSignedIntTo16BitSigned(-32767) should return 32769.", () {
-    expect(Machine.dartSignedIntTo16BitSigned(-32767), equals(32769));
+    expect(Engine.dartSignedIntTo16BitSigned(-32767), equals(32769));
   });
 
   test("Machine.dartSignedIntTo16BitSigned(0) should return 0.", () {
-    expect(Machine.dartSignedIntTo16BitSigned(0), equals(0));
+    expect(Engine.dartSignedIntTo16BitSigned(0), equals(0));
   });
 
   test("Machine.dartSignedIntTo16BitSigned(42) should return 42.", () {
-    expect(42, equals(Machine.dartSignedIntTo16BitSigned(42)));
+    expect(42, equals(Engine.dartSignedIntTo16BitSigned(42)));
   });
 
   test("Machine.dartSignedIntTo16BitSigned(-42) should return 65494.", () {
-    expect(65494, equals(Machine.dartSignedIntTo16BitSigned(-42)));
+    expect(65494, equals(Engine.dartSignedIntTo16BitSigned(-42)));
   });
 
   test('16-bit signed out of range (-32769) throws GameException', () {
     expect(
-        () => Machine.dartSignedIntTo16BitSigned(-32769),
+        () => Engine.dartSignedIntTo16BitSigned(-32769),
         throwsA(allOf(
             TypeMatcher<GameException>(),
             predicate((e) =>
@@ -47,7 +47,7 @@ void integerTests() {
 
   test('16-bit signed out of range (32768) throws GameException', () {
     expect(
-        () => Machine.dartSignedIntTo16BitSigned(32768),
+        () => Engine.dartSignedIntTo16BitSigned(32768),
         throwsA(allOf(
             TypeMatcher<GameException>(),
             predicate((e) =>

@@ -113,18 +113,18 @@ class Header {
 
   static void setFlags1(int flags) {
     checkLoaded();
-    Z.machine.mem.storeb(Header.FLAGS1, flags);
+    Z.engine.mem.storeb(Header.FLAGS1, flags);
   }
 
   static void setFlags2(int flags) {
     checkLoaded();
-    Z.machine.mem.storeb(Header.FLAGS2, flags);
+    Z.engine.mem.storeb(Header.FLAGS2, flags);
   }
 
   /// Feturns false if the game is a timed game.
   static bool isScoreGame() {
     checkLoaded();
 
-    return !BinaryHelper.isSet(Z.machine.mem.loadb(FLAGS1), 1);
+    return !BinaryHelper.isSet(Z.engine.mem.loadb(FLAGS1), 1);
   }
 }

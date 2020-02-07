@@ -6,7 +6,7 @@ import 'dart:collection';
 import 'package:zart/IO/iff.dart';
 import 'package:zart/binary_helper.dart';
 import 'package:zart/header.dart';
-import 'package:zart/machines/machine.dart';
+import 'package:zart/engines/engine.dart';
 import 'package:zart/memory_map.dart';
 import 'package:zart/z_machine.dart';
 
@@ -36,11 +36,11 @@ class Quetzal {
     //associated story file
     IFF.writeChunk(saveData, Chunk.IFhd);
     IFF.write4Byte(saveData, 13);
-    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.RELEASE));
-    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER));
-    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER + 2));
-    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.SERIAL_NUMBER + 4));
-    IFF.write2Byte(saveData, Z.machine.mem.loadw(Header.CHECKSUMOFFILE));
+    IFF.write2Byte(saveData, Z.engine.mem.loadw(Header.RELEASE));
+    IFF.write2Byte(saveData, Z.engine.mem.loadw(Header.SERIAL_NUMBER));
+    IFF.write2Byte(saveData, Z.engine.mem.loadw(Header.SERIAL_NUMBER + 2));
+    IFF.write2Byte(saveData, Z.engine.mem.loadw(Header.SERIAL_NUMBER + 4));
+    IFF.write2Byte(saveData, Z.engine.mem.loadw(Header.CHECKSUMOFFILE));
     //pc
     IFF.write3Byte(saveData, pcAddr); //varies depending on version.
     saveData.add(0); //pad byte
@@ -49,11 +49,11 @@ class Quetzal {
     IFF.writeChunk(saveData, Chunk.UMem);
 
     //IFF.write length in bytes
-    IFF.write4Byte(saveData, Z.machine.mem.memList.length);
+    IFF.write4Byte(saveData, Z.engine.mem.memList.length);
 
-    saveData.addAll(Z.machine.mem.memList);
+    saveData.addAll(Z.engine.mem.memList);
 
-    if (Z.machine.mem.memList.length % 2 != 0){
+    if (Z.engine.mem.memList.length % 2 != 0){
       saveData.add(0); //pad byte
     }
 
@@ -83,7 +83,7 @@ class Quetzal {
       var flagByte = 0;
 
       //set the call_xN bit if this stack frame is supposed to discard returns
-      if (sd.returnVar == Machine.STACK_MARKER){
+      if (sd.returnVar == Engine.STACK_MARKER){
         flagByte = BinaryHelper.set(flagByte, 4);
       }
 
@@ -94,7 +94,7 @@ class Quetzal {
 
       // return variable number
       // (ref 4.6)
-      saveData.add(sd.returnVar != Machine.STACK_MARKER ? sd.returnVar : 0);
+      saveData.add(sd.returnVar != Engine.STACK_MARKER ? sd.returnVar : 0);
 
       //total args passed (4.3.4)
       saveData.add(BinaryHelper.setBottomBits(sd.totalArgsPassed));
@@ -146,19 +146,19 @@ class Quetzal {
           // with the game currently loaded into the machine.
 
           IFF.read4Byte(fileBytes); //size (always 13)
-          if (Z.machine.mem.loadw(Header.RELEASE) != IFF.read2Byte(fileBytes)){
+          if (Z.engine.mem.loadw(Header.RELEASE) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER) != IFF.read2Byte(fileBytes)){
+          if (Z.engine.mem.loadw(Header.SERIAL_NUMBER) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER + 2) != IFF.read2Byte(fileBytes)){
+          if (Z.engine.mem.loadw(Header.SERIAL_NUMBER + 2) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.SERIAL_NUMBER + 4) != IFF.read2Byte(fileBytes)){
+          if (Z.engine.mem.loadw(Header.SERIAL_NUMBER + 4) != IFF.read2Byte(fileBytes)){
             return false;
           }
-          if (Z.machine.mem.loadw(Header.CHECKSUMOFFILE) != IFF.read2Byte(fileBytes)){
+          if (Z.engine.mem.loadw(Header.CHECKSUMOFFILE) != IFF.read2Byte(fileBytes)){
             return false;
           }
           pc = IFF.read3Byte(fileBytes); //PC
@@ -178,7 +178,7 @@ class Quetzal {
             var returnVar = IFF.nextByte(fileBytes);
 
             sf.returnVar = BinaryHelper.isSet(flagByte, 4)
-                              ? Machine.STACK_MARKER
+                              ? Engine.STACK_MARKER
                               : returnVar;
 
             var numLocals = BinaryHelper.bottomBits(flagByte, 4);
@@ -221,7 +221,7 @@ class Quetzal {
           var numBytes = IFF.read4Byte(fileBytes);
 
           //memory length mismatch
-          if (numBytes != Z.machine.mem.memList.length) {
+          if (numBytes != Z.engine.mem.memList.length) {
             return false;
           }
 
@@ -255,12 +255,12 @@ class Quetzal {
     //now that we have all the data structures, do the restore...
 
     //memory
-    Z.machine.mem = MemoryMap(memBytes);
-    Z.machine.visitHeader();
+    Z.engine.mem = MemoryMap(memBytes);
+    Z.engine.visitHeader();
 
 
-    Z.machine.callStack.clear();
-    Z.machine.stack.clear();
+    Z.engine.callStack.clear();
+    Z.engine.stack.clear();
 
     //stacks
     for(StackFrame sf in stackList){
@@ -269,30 +269,30 @@ class Quetzal {
       print(sf);
 
       //locals
-      Z.machine.callStack.push(sf.locals.length);
+      Z.engine.callStack.push(sf.locals.length);
 
       for(final local in sf.locals){
-        Z.machine.callStack.push(local);
+        Z.engine.callStack.push(local);
       }
 
       //total locals
-      Z.machine.callStack.push(sf.locals.length);
+      Z.engine.callStack.push(sf.locals.length);
 
       //returnTo variable
-      Z.machine.callStack.push(sf.returnVar);
+      Z.engine.callStack.push(sf.returnVar);
 
       //return addr
-      Z.machine.callStack.push(sf.returnAddr);
+      Z.engine.callStack.push(sf.returnAddr);
 
 
       //eval stack
-      Z.machine.stack.push(Machine.STACK_MARKER);
+      Z.engine.stack.push(Engine.STACK_MARKER);
       for(final eval in sf.evals){
-        Z.machine.stack.push(eval);
+        Z.engine.stack.push(eval);
       }
     }
 
-    Z.machine.PC = pc;
+    Z.engine.PC = pc;
 
     return true;
   }
@@ -323,28 +323,28 @@ class StackFrame
     locals = Queue<int>(),
     evals = Queue<int>()
   {
-    returnAddr = Z.machine.callStack[callIndex];
-    returnVar = Z.machine.callStack[++callIndex];
+    returnAddr = Z.engine.callStack[callIndex];
+    returnVar = Z.engine.callStack[++callIndex];
 
-    var totalLocals = Z.machine.callStack[++callIndex];
+    var totalLocals = Z.engine.callStack[++callIndex];
 
     for(int i = 0; i < totalLocals; i++){
-      locals.addFirst(Z.machine.callStack[++callIndex]);
+      locals.addFirst(Z.engine.callStack[++callIndex]);
     }
 
-    totalArgsPassed = Z.machine.callStack[++callIndex];
+    totalArgsPassed = Z.engine.callStack[++callIndex];
 
     nextCallStackIndex = callIndex + 1;
 
-    if (nextCallStackIndex >= Z.machine.callStack.length) {
+    if (nextCallStackIndex >= Z.engine.callStack.length) {
       nextCallStackIndex = null;
     }
 
-    var eStack = Z.machine.stack[evalIndex];
+    var eStack = Z.engine.stack[evalIndex];
 
-    while(eStack != Machine.STACK_MARKER){
+    while(eStack != Engine.STACK_MARKER){
         evals.addFirst(eStack);
-        eStack = Z.machine.stack[++evalIndex];
+        eStack = Z.engine.stack[++evalIndex];
     }
 
     if (nextCallStackIndex != null) {

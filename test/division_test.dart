@@ -20,10 +20,10 @@ void divisionTests() {
   });
 
   test("-13 % -5 should returns -3.", () {
-    expect(Machine.doMod(-13, -5), equals(-3));
+    expect(Engine.doMod(-13, -5), equals(-3));
   });
 
   test("-13 % 5 should returns -3.", () {
-    expect(Machine.doMod(-13, 5), equals(-3));
+    expect(Engine.doMod(-13, 5), equals(-3));
   });
 }

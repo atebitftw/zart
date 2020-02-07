@@ -2,10 +2,7 @@ import 'dart:async';
 
 /// Represents a contract for IO (Presentation) providers.
 abstract class IOProvider {
-
-  //TODO use isolates between IO and engine?
-
-  Future<Object> command(String JSONCommand);
+  Future<dynamic> command(Map<String, dynamic> commandMessage);
 }
 
 IOCommands toIOCommand(String cmd){

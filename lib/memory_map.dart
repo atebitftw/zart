@@ -1,8 +1,6 @@
 import 'package:zart/dictionary.dart';
 import 'package:zart/game_exception.dart';
-import 'package:zart/machines/machine.dart';
-
-import 'binary_helper.dart';
+import 'package:zart/engines/engine.dart';
 
 class MemoryMap {
 
@@ -89,7 +87,7 @@ class MemoryMap {
 
     if (value < 0){
       //convert to 16-bit signed neg
-      value = Machine.dartSignedIntTo16BitSigned(value);
+      value = Engine.dartSignedIntTo16BitSigned(value);
     }
 
     assert(value >= 0);

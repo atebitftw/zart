@@ -48,7 +48,7 @@ void main(List<String> args) {
   Header.setFlags1(0);
   Header.setFlags2(0);
 
-  Z.IOConfig = ConsoleProvider();
+  Z.io = ConsoleProvider();
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
@@ -70,75 +70,60 @@ void main(List<String> args) {
 
 /// A basic console provider with word-wrap support.
 class ConsoleProvider with Loggable implements IOProvider {
-  final Queue<String> lineBuffer = Queue<String>();
-  final Queue<String> outputBuffer = Queue<String>();
+  final lineBuffer = Queue<String>();
+  final outputBuffer = Queue<String>();
   final int cols = 80;
 
   ConsoleProvider() {
     logName = "ConsoleProvider";
   }
 
-  // Stream textStream() =>
-  //     stdin.transform(const Utf8Decoder()).transform(const LineSplitter());
-
   @override
-  Future<Object> command(String jsonCommand) async {
-    var c = Completer();
+  Future<Object> command(Map<String, dynamic> command) async {
 
-    final msgSet = json.decode(jsonCommand);
-
-    final cmd = toIOCommand(msgSet[0]);
+    final cmd = command['command'];
 
     switch (cmd) {
       //print('msg received>>> $cmd');    switch(cmd){
       case IOCommands.PRINT:
-        output(int.parse(msgSet[1]), msgSet[2]);
-        c.complete(null);
-        break;
+        output(command['window'], command['buffer']);
+        return null;
       case IOCommands.STATUS:
-        print('($msgSet)\n');
-        c.complete(null);
-        break;
+        //TODO format for timed game type as well
+        print("${command['room_name'].toUpperCase()} Score: ${command['score_one']} / ${command['score_two']}\n");
+        return null;
       case IOCommands.READ:
         final line = await getLine();
-        c.complete(line);
-        break;
+        return line;
       case IOCommands.READ_CHAR:
         final char = await getChar();
-        c.complete(char);
-        break;
+        return char;
       case IOCommands.SAVE:
         final result =
-            await saveGame(msgSet.getRange(1, msgSet.length - 1).toList());
-        c.complete(result);
-        break;
+            await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
+        return result;
       case IOCommands.CLEAR_SCREEN:
         //no clear console api, so
         //we just print a bunch of lines
         for (int i = 0; i < 50; i++) {
           print('');
         }
-        c.complete(null);
-        break;
+        return null;
       case IOCommands.RESTORE:
         final result = await restore();
-        c.complete(result);
-        break;
+        return result;
       case IOCommands.PRINT_DEBUG:
-        print('${msgSet[1]}');
-        c.complete(null);
-        break;
+        debugOutput(command['message']);
+        return null;
       case IOCommands.QUIT:
         print('Zart: Game Over!');
-        c.complete(null);
-        exit(1);
-        break;
+        exit(0);
+        return null;
       default:
         log.warning("IO Command not recognized: $cmd");
         //print('Zart: ${cmd}');
-        c.complete(null);
+        return null;
     }
-    return c.future;
   }
 
   Future<bool> saveGame(List<int> saveBytes) {
@@ -226,48 +211,43 @@ class ConsoleProvider with Loggable implements IOProvider {
     }
   }
 
-  void DebugOutput(String text) => print(text);
+  void debugOutput(String text) => print(text);
 
-  Future<String> getChar() {
-    var c = Completer();
-
+  Future<String> getChar() async {
     if (!lineBuffer.isEmpty) {
-      c.complete(lineBuffer.removeLast());
+      return lineBuffer.removeLast();
     } else {
-      //flush?
+      //TODO flush here?
       final line = stdin.readLineSync();
+      
       if (line == null) {
-        c.complete('');
+        return '';
       } else {
         if (line == '') {
-          c.complete('\n');
+          return '\n';
         } else {
-          c.complete(line[0]);
+          return line[0];
         }
       }
     }
-
-    return c.future;
   }
 
-  Future<String> getLine() {
-    final c = Completer<String>();
-
+  Future<String> getLine() async {
     if (!lineBuffer.isEmpty) {
-      c.complete(lineBuffer.removeLast());
+      return lineBuffer.removeLast();
     } else {
+
       final line = stdin.readLineSync();
+      
       if (line == null) {
-        c.complete('');
+        return '';
       } else {
         if (line == '') {
-          c.complete('\n');
+          return '\n';
         } else {
-          c.complete(line);
+          return line;
         }
       }
     }
-
-    return c.future;
   }
 }

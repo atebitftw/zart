@@ -120,7 +120,7 @@ class ZSCII {
   /// the decoded version.
   static String readZStringAndPop(int fromAddress) {
     var result = readZString(fromAddress);
-    Z.machine.callStack.pop();
+    Z.engine.callStack.pop();
     return result;
   }
 
@@ -140,7 +140,7 @@ class ZSCII {
 
     //first load all the z chars into an array.
     while (!finished) {
-      ZChar nextz = ZChar(Z.machine.mem.loadw(fromAddress));
+      ZChar nextz = ZChar(Z.engine.mem.loadw(fromAddress));
 
       fromAddress += 2;
 
@@ -154,7 +154,7 @@ class ZSCII {
       }
     }
 
-    Z.machine.callStack.push(fromAddress);
+    Z.engine.callStack.push(fromAddress);
 
     int i = -1;
     while (i < charList.length - 1) {
@@ -167,10 +167,10 @@ class ZSCII {
         var abbrNum = (32 * (char - 1)) + charList[++i];
 
         var abbrAddress =
-            2 * Z.machine.mem.loadw(Z.machine.mem.abbrAddress + (abbrNum * 2));
+            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         String abbrString = readZString(abbrAddress);
-        Z.machine.callStack.pop();
+        Z.engine.callStack.pop();
 
         s.write(abbrString);
 
@@ -202,9 +202,9 @@ class ZSCII {
       } else if (char == 5) {
         currentAlphabet = ZSCII.A2;
       } else {
-        var alternateTable = Z.machine.mem.loadw(Header.ALPHABET_TABLE);
+        var alternateTable = Z.engine.mem.loadw(Header.ALPHABET_TABLE);
 
-        if (ZMachine.verToInt(Z.machine.version) >= 5 && alternateTable > 0) {
+        if (ZMachine.verToInt(Z.engine.version) >= 5 && alternateTable > 0) {
           throw "oops need to implement alternate ZSCII table lookup here";
           Debugger.todo('alternate ZSCII table lookup');
         } else {
