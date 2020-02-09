@@ -79,7 +79,7 @@ class ConsoleProvider with Loggable implements IOProvider {
   }
 
   @override
-  Future<Object> command(Map<String, dynamic> command) async {
+  Future<dynamic> command(Map<String, dynamic> command) async {
 
     final cmd = command['command'];
 

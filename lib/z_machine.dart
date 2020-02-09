@@ -9,17 +9,16 @@ import 'package:zart/engines/version_5.dart';
 import 'package:zart/engines/version_7.dart';
 import 'package:zart/engines/version_8.dart';
 import 'package:zart/memory_map.dart';
+import 'package:zart/mixins/loggable.dart';
 
 ZMachine get Z => ZMachine();
 
-/**
-* This is a partial-interpreter for the Z-Machine.  It handles most interpreter
-* activites except actual IO, which is deferred to the IOConfig provider.
-*
-* The IOConfig handles tasks for whatever presentation platform
-* is in use by the application.
-*/
-class ZMachine {
+/// This is a partial-interpreter for the Z-Machine.  It handles most interpreter
+/// activites except actual IO, which is deferred to the IOConfig provider.
+///
+/// The IOConfig handles tasks for whatever presentation platform
+/// is in use by the application.
+class ZMachine with Loggable {
   bool isLoaded = false;
   bool inBreak = false;
   bool inInterrupt = false;
@@ -47,8 +46,9 @@ class ZMachine {
 
   /// This field must be set so that the interpeter has a place to send
   /// commands and receive results from those commands (if any).
-  IOProvider io;
+  IOProvider io = DefaultProvider([]);
 
+  //singleton
   factory ZMachine() {
     if (_context != null) return _context;
 
@@ -57,7 +57,7 @@ class ZMachine {
   }
 
   ZMachine._internal() {
-    io = DefaultProvider([]);
+    logName = "ZMachine";
   }
 
   static int verToInt(ZVersion v) {
@@ -131,7 +131,7 @@ class ZMachine {
       engine = result[0];
     }
 
-    print('Zart: Using Z-Machine v${engine.version}.');
+    print('Zart: Using Z-Machine ${engine.version}.');
 
     engine.mem = MemoryMap(rawBytes);
 
@@ -141,7 +141,10 @@ class ZMachine {
   }
 
   // TODO Wtf??
-  callAsync(func()) => Timer(Duration(seconds: 0), () => func());
+  callAsync(func()) {
+    log.finest("in callAsync()");
+    Timer(Duration(seconds: 0), () => func());
+  }
 
   /**
   * Runs the Z-Machine using the detected machine version from the story
@@ -172,36 +175,38 @@ class ZMachine {
     if (inBreak) {
       callAsync(Debugger.startBreak);
     } else {
+      log.finest("run() callAsync(runIt)");
       callAsync(runIt);
     }
   }
 
-  void runIt() {
+  void runIt() async {
+    log.finest("runIt() called.");
 //    while(!inBreak && !inInterrupt && !quit){
     while (!inInterrupt && !quit) {
       engine.visitInstruction();
-//      Debugger.instructionsCounter++;
     }
 
     if (inBreak) {
-      Z.sendIO({
-        "command": IOCommands.PRINT_DEBUG,
-        "message": "<<< DEBUG MODE >>>"
-      }).then((_) {
-        callAsync(Debugger.startBreak);
-      });
+      await Z.sendIO(
+          {"command": IOCommands.PRINT_DEBUG, "message": "<<< DEBUG MODE >>>"});
+      callAsync(Debugger.startBreak);
     }
   }
 
-  Future<Object> sendIO(Map<String, dynamic> ioData) async {
-    return io.command(ioData);
+  Future<dynamic> sendIO(Map<String, dynamic> ioData) async {
+    return await io.command(ioData);
   }
 
   void printBuffer() async {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
     if (!engine.outputStream3) {
-      await sendIO({"command" : IOCommands.PRINT, "window" : engine.currentWindow, "buffer" : sbuff.toString()});
+      await sendIO({
+        "command": IOCommands.PRINT,
+        "window": engine.currentWindow,
+        "buffer": sbuff.toString()
+      });
       sbuff.clear();
     }
   }

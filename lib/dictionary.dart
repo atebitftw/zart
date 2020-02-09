@@ -111,11 +111,11 @@ class Dictionary {
 //      }else
       if (c == ' ' && s.length > 0) {
         tokens.add(s.toString().trim());
-        s = StringBuffer();
+        s.clear();
       } else if (Z.engine.mem.dictionary.separators.indexOf(c) != -1) {
         if (s.length > 0) {
           tokens.add(s.toString().trim());
-          s = StringBuffer();
+          s.clear();
         }
         tokens.add(c.trim());
       } else {

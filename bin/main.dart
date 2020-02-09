@@ -35,7 +35,7 @@ main([List<String> args]) {
     exit(1);
   }
 
-  Debugger.initializeMachine();
+  Debugger.initializeEngine();
 
   Z.io = MockUIProvider();
 

@@ -42,7 +42,7 @@ void main() {
       14297; // initial program counter address for minizork
   final machine = MockV3Machine();
 
-  Debugger.initializeMachine(machine);
+  Debugger.initializeEngine(machine);
   Z.io = MockUIProvider();
 
   print(Debugger.dumpHeader());

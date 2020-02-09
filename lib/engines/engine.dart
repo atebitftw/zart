@@ -8,6 +8,7 @@ import 'package:zart/game_exception.dart';
 import 'package:zart/game_object.dart';
 import 'package:zart/header.dart';
 import 'package:zart/memory_map.dart';
+import 'package:zart/mixins/loggable.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/stack.dart';
 import 'package:zart/z_machine.dart';
@@ -17,7 +18,7 @@ import 'package:zart/zscii.dart';
 * Base machine that is compatible with Z-Machine V1.
 *
 */
-class Engine {
+class Engine with Loggable {
   static const int STACK_MARKER = -0x10000;
 
   /// Z-Machine False = 0
@@ -156,8 +157,9 @@ class Engine {
     writeVariable(resultAddrByte, result);
   }
 
-  void visitInstruction() {
+  void visitInstruction() async {
     var i = readb();
+
     if (ops.containsKey('$i')) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
@@ -176,11 +178,14 @@ class Engine {
         }
       }
 
+      log.finest("visitInstruction() Calling Operation: $i");
       ops['$i']();
     } else {
       notFound();
     }
-    ops['${readb()}']();
+    final result = readb();
+    log.finest("visitInstruction() Calling Operation: $result");
+    ops['${result}']();
   }
 
   void notFound() {
@@ -294,22 +299,17 @@ class Engine {
     //Debugger.verbose('    (continuing to next instruction)');
   }
 
-  void sendStatus() async {
+  void sendStatus() {
     var oid = readVariable(0x10);
-
     var roomName = oid != 0 ? GameObject(oid).shortName : '';
 
-    Z.inInterrupt = true;
-
-    await Z.sendIO({
+    Z.sendIO({
       "command": IOCommands.STATUS,
       "game_type": Header.isScoreGame() ? 'SCORE' : 'TIME',
       "room_name": roomName,
       "score_one": readVariable(0x11).toString(),
       "score_two": readVariable(0x12).toString()
     });
-    Z.inInterrupt = false;
-    Z.callAsync(Z.runIt);
   }
 
   void callVS() {
@@ -345,7 +345,8 @@ class Engine {
     }
   }
 
-  void read() async {
+  void read() {
+    log.finest("read()");
     //Debugger.verbose('${pcHex(-1)} [read]');
 
     sendStatus();
@@ -354,13 +355,13 @@ class Engine {
 
     Z.printBuffer();
 
-    var operands = visitOperandsVar(4, true);
+    final operands = visitOperandsVar(4, true);
 
-    var maxBytes = mem.loadb(operands[0].value);
+    final maxBytes = mem.loadb(operands[0].value);
 
     var textBuffer = operands[0].value + 1;
 
-    var maxWords = mem.loadb(operands[1].value);
+    final maxWords = mem.loadb(operands[1].value);
 
     var parseBuffer = operands[1].value + 1;
 
@@ -401,17 +402,20 @@ class Engine {
       }
     }
 
-    final l = await Z.sendIO({"command": IOCommands.READ});
-
-    Z.inInterrupt = false;
-    if (l == '/!') {
-      Z.inBreak = true;
-      Debugger.debugStartAddr = PC - 1;
-      Z.callAsync(Debugger.startBreak);
-    } else {
-      processLine(l);
-      Z.callAsync(Z.runIt);
-    }
+    log.finest("sending read command");
+    Z.sendIO({"command": IOCommands.READ}).then((l) {
+      Z.inInterrupt = false;
+      if (l == '/!') {
+        Z.inBreak = true;
+        Debugger.debugStartAddr = PC - 1;
+        log.finest("read() callAsync(Debugger.startBreak)");
+        Z.callAsync(Debugger.startBreak);
+      } else {
+        log.finest("read() callAsync(Z.runIt)");
+        processLine(l);
+        Z.callAsync(Z.runIt);
+      }
+    });
   }
 
   void random() {
@@ -685,13 +689,17 @@ class Engine {
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
-    await Z.sendIO({"command" : IOCommands.PRINT, "window" : currentWindow, "buffer" : Z.sbuff.toString()});
+    await Z.sendIO({
+      "command": IOCommands.PRINT,
+      "window": currentWindow,
+      "buffer": Z.sbuff.toString()
+    });
 
-      Z.inInterrupt = false;
-      Z.sbuff.clear();
-      Z.quit = true;
+    Z.inInterrupt = false;
+    Z.sbuff.clear();
+    Z.quit = true;
 
-      await Z.sendIO({"command" : IOCommands.QUIT});
+    await Z.sendIO({"command": IOCommands.QUIT});
   }
 
   void restart() {
@@ -1398,6 +1406,7 @@ class Engine {
   Engine()
       : stack = Stack(),
         callStack = Stack.max(1024) {
+    logName = "Engine";
     r = DRandom.withSeed(DateTime.now().millisecond);
     ops = {
       /* 2OP, small, small */

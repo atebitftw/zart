@@ -1,5 +1,3 @@
-import 'dart:async';
-
 /// Represents a contract for IO (Presentation) providers.
 abstract class IOProvider {
   Future<dynamic> command(Map<String, dynamic> commandMessage);
