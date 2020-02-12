@@ -1,5 +1,6 @@
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/debugger.dart';
+import 'package:zart/engines/version_4.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/engines/engine.dart';
 import 'package:zart/engines/version_3.dart';
@@ -12,7 +13,7 @@ import 'package:zart/zscii.dart';
 /**
 * Implementation of Z-Machine v5
 */
-class Version5 extends Version3 {
+class Version5 extends Version4 {
   ZVersion get version => ZVersion.V5;
 
   //TODOs

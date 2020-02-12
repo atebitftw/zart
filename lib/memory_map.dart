@@ -47,15 +47,15 @@ class MemoryMap {
       storew(globalVarsAddress + ((which - 0x10) * 2), value);
   }
 
-  //static and dynamic memory (1.1.1, 1.1.2)
-  //get byte
+  // static and dynamic memory (1.1.1, 1.1.2)
+  /// Get byte from a given [address].
   int loadb(int address){
     assert(address != null);
     checkBounds(address);
     return memList[address] & 0xff;
   }
 
-  //get word
+  /// Get a 2-byte word from given [address]
   int loadw(int address){
     assert(address != null);
     checkBounds(address);

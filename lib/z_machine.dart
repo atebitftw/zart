@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:zart/IO/default_provider.dart';
 import 'package:zart/IO/io_provider.dart';
 import 'package:zart/debugger.dart';
+import 'package:zart/engines/version_4.dart';
 import 'package:zart/header.dart';
 import 'package:zart/engines/engine.dart';
 import 'package:zart/engines/version_3.dart';
@@ -35,6 +36,7 @@ class ZMachine with Loggable {
   //contains machine version which are supported by z-machine.
   final List<Engine> _supportedEngines = [
     Version3(),
+    Version4(),
     Version5(),
     Version7(),
     Version8()
