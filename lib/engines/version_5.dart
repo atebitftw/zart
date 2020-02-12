@@ -3,6 +3,7 @@ import 'package:zart/debugger.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/engines/engine.dart';
 import 'package:zart/engines/version_3.dart';
+import 'package:zart/header.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
@@ -44,30 +45,32 @@ class Version5 extends Version3 {
   // EXT check_unicode
 
   Version5() {
-    ops['136'] = call_1s;
-    ops['168'] = call_1s;
-    ops['143'] = call_1n;
-    ops['175'] = call_1n;
-    ops['190'] = extended;
-    ops['121'] = call_2s;
-    ops['217'] = call_2s;
-    ops['218'] = call_2n;
-    ops['234'] = split_window;
-    ops['235'] = set_window;
-    ops['236'] = call_vs2;
-    ops['237'] = erase_window;
-    ops['239'] = set_cursor;
-    ops['241'] = set_text_style;
-    ops['242'] = buffer_mode;
-    ops['243'] = output_stream;
-    ops['246'] = read_char;
-    ops['249'] = call_vn;
-    ops['250'] = call_vn2;
-    ops['251'] = tokenise;
-    ops['253'] = copy_table;
-    ops['255'] = check_arg_count;
-    ops['ext4'] = ext_set_font;
-    ops['ext9'] = ext_save_undo;
+    logName = "Machine.Version5";
+    ops[136] = call_1s;
+    ops[168] = call_1s;
+    ops[143] = call_1n;
+    ops[175] = call_1n;
+    ops[190] = visitExtendedInstruction;
+    ops[121] = call_2s;
+    ops[217] = call_2s;
+    ops[218] = call_2n;
+    ops[234] = split_window;
+    ops[235] = set_window;
+    ops[236] = call_vs2;
+    ops[237] = erase_window;
+    ops[239] = set_cursor;
+    ops[241] = set_text_style;
+    ops[242] = buffer_mode;
+    ops[243] = output_stream;
+    ops[246] = read_char;
+    ops[249] = call_vn;
+    ops[250] = call_vn2;
+    ops[251] = tokenise;
+    ops[253] = copy_table;
+    ops[255] = check_arg_count;
+    // the extended instruction visitExtendedInstruction() adds 300 to the value, so it's offset from the other op codes safely.
+    ops[304] = ext_set_font; //ext4
+    ops[309] = ext_save_undo; //ext5
   }
 
   // Kb
@@ -247,7 +250,7 @@ class Version5 extends Version3 {
           Z.memoryStreams.removeLast();
 
           var data = Z.sbuff.toString();
-          Z.sbuff = StringBuffer();
+          Z.sbuff.clear();
           //Debugger.debug('(streams: ${Z._memoryStreams.length}}>>> Writing "$data"');
           mem.storew(addr, data.length);
 
@@ -264,7 +267,7 @@ class Version5 extends Version3 {
         } else {
           //adding a buffer location to the output stream stack
           outputStream3 = true;
-          Z.sbuff = StringBuffer();
+          Z.sbuff.clear();
           Z.memoryStreams.add(operands[1].value);
           // Debugger.debug('>>>> Starting Memory Stream: ${Z.sbuff}');
           if (Z.memoryStreams.length > 16) {
@@ -288,14 +291,9 @@ class Version5 extends Version3 {
 
     await Z
         .sendIO({"command": IOCommands.SET_FONT, "style": operands[0].value});
+
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
-  }
-
-  void extended() {
-    //Debugger.verbose('${pcHex(-1)} [extended]');
-
-    visitExtendedInstruction();
   }
 
   void ext_save_undo() {
@@ -310,7 +308,9 @@ class Version5 extends Version3 {
   }
 
   void visitExtendedInstruction() {
-    var i = 'ext${readb()}';
+    // offset the extended instruction by 300 in order to offset it safely from other instructions
+    // i.e. extended 1 = 301, extended 2 = 302, etc...
+    var i = readb() + 300;
 
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
@@ -335,13 +335,74 @@ class Version5 extends Version3 {
     }
   }
 
+// read
+// VAR:228 4 1 sread text parse
+
+// 4 sread text parse time routine
+
+// 5 aread text parse time routine -> (result)
+
+// (Note that Inform internally names the read opcode as aread in Versions 5 and later and sread in Versions 3 and 4.)
+
+// This opcode reads a whole command from the keyboard (no prompt is automatically displayed). It is legal for this to be called with the cursor at any position on any window.
+
+// In Versions 1 to 3, the status line is automatically redisplayed first.
+
+// A sequence of characters is read in from the current input stream until a carriage return (or, in Versions 5 and later, any terminating character) is found.
+
+// In Versions 1 to 4, byte 0 of the text-buffer should initially contain the maximum number of letters which can be typed,
+// minus 1 (the interpreter should not accept more than this). The text typed is reduced to lower case (so that it can tidily
+// be printed back by the program if need be) and stored in bytes 1 onward, with a zero terminator (but without any other terminator,
+// such as a carriage return code). (This means that if byte 0 contains n then the buffer must contain n+1 bytes, which makes it a
+// string array of length n in Inform terminology.)
+
+// In Versions 5 and later, byte 0 of the text-buffer should initially contain the maximum number of letters which can be typed
+// (the interpreter should not accept more than this). The interpreter stores the number of characters actually typed in byte 1
+// (not counting the terminating character), and the characters themselves (reduced to lower case) in bytes 2 onward (not storing
+// the terminating character). (Some interpreters wrongly add a zero byte after the text anyway, so it is wise for the buffer to contain at least n+3 bytes.)
+
+// Moreover, if byte 1 contains a positive value at the start of the input, then read assumes that number of characters are left over
+// from an interrupted previous input, and writes the new characters after those already there. Note that the interpreter does not redisplay
+// the characters left over: the game does this, if it wants to. This is unfortunate for any interpreter wanting to give input text a
+// distinctive appearance on-screen, but 'Beyond Zork', 'Zork Zero' and 'Shogun' clearly require it. ("Just a tremendous pain in my butt"
+// -- Andrew Plotkin; "the most unfortunate feature of the Z-machine design" -- Stefan Jokisch.)
+
+// In Version 4 and later, if the operands time and routine are supplied (and non-zero) then the routine call routine() is made every
+// time/10 seconds during the keyboard-reading process. If this routine returns true, all input is erased (to zero) and the reading
+// process is terminated at once. (The terminating character code is 0.) The routine is permitted to print to the screen even if it returns
+// false to signal "carry on": the interpreter should notice and redraw the input line so far, before input continues. (Frotz notices by looking
+// to see if the cursor position is at the left-hand margin after the interrupt routine has returned.)
+
+// If input was terminated in the usual way, by the player typing a carriage return, then a carriage return is printed (so the cursor
+// moves to the next line). If it was interrupted, the cursor is left at the rightmost end of the text typed in so far.
+
+// Next, lexical analysis is performed on the text (except that in Versions 5 and later, if parse-buffer is zero then this is omitted).
+// Initially, byte 0 of the parse-buffer should hold the maximum number of textual words which can be parsed. (If this is n, the buffer 
+// must be at least 2 + 4*n bytes long to hold the results of the analysis.)
+
+// The interpreter divides the text into words and looks them up in the dictionary, as described in S 13. The number of words is written in byte 1
+// and one 4-byte block is written for each word, from byte 2 onwards (except that it should stop before going beyond the maximum number of words
+// specified). Each block consists of the byte address of the word in the dictionary, if it is in the dictionary, or 0 if it isn't; followed by a byte
+// giving the number of letters in the word; and finally a byte giving the position in the text-buffer of the first letter of the word.
+
+// In Version 5 and later, this is a store instruction: the return value is the terminating character (note that the user pressing his
+// "enter" key may cause either 10 or 13 to be returned; the interpreter must return 13). A timed-out input returns 0.
+
+// (Versions 1 and 2 and early Version 3 games mistakenly write the parse buffer length 240 into byte 0 of the parse buffer: 
+// later games fix this bug and write 59, because 2+4*59 = 238 so that 59 is the maximum number of textual words which can
+// be parsed into a buffer of length 240 bytes. Old versions of the Inform 5 library commit the same error. Neither mistake has very serious consequences.)
+
+// (Interpreters are asked to halt with a suitable error message if the text or parse buffers have length of less than 3 or 6 bytes,
+// respectively: this sometimes occurs due to a previous array being overrun, causing bugs which are very difficult to find.)
+
   @override
   void read() async {
     //Debugger.verbose('${pcHex(-1)} [aread]');
 
     Z.inInterrupt = true;
 
-//    sendStatus();
+    //only ver 1-3 does this
+    //sendStatus();
 
     Z.printBuffer();
 
@@ -350,7 +411,10 @@ class Version5 extends Version3 {
     var storeTo = readb();
 
     if (operands.length > 2) {
-      Debugger.todo('implement aread optional args');
+      //TODO implement aread optional args
+
+      log.warning('implement aread optional args');
+      throw GameException("Sorry :( This interpreter doesn't support a required feature of this game.");
     }
 
     var maxBytes = mem.loadb(operands[0].value);
@@ -360,11 +424,11 @@ class Version5 extends Version3 {
     var maxWords;
     num parseBuffer;
 
-    if (operands.length > 2) {
+    // if (operands.length > 2) {
       maxWords = mem.loadb(operands[1].value);
 
       parseBuffer = operands[1].value + 1;
-    }
+    // }
 
     void processLine(String line) async {
       line = line.trim().toLowerCase();
@@ -404,6 +468,7 @@ class Version5 extends Version3 {
       var tokens = Z.engine.mem.dictionary.tokenize(line);
 
       if (maxWords == null) {
+        log.warning("z5 read() maxWords == null");
         //second parameter was not passed, so
         // we are not going to write to the parse
         // buffer (etude.z5 does .. )
@@ -425,7 +490,8 @@ class Version5 extends Version3 {
         mem.storeb(parseBuffer++, p);
       }
 
-      writeVariable(storeTo, 10);
+      // must return 13 v5+
+      writeVariable(storeTo, 13);
     }
 
     final result = await Z.sendIO({"command": IOCommands.READ});
@@ -463,7 +529,7 @@ class Version5 extends Version3 {
     Z.inInterrupt = false;
 
     if (result != null) {
-      writeVariable(readb(), result);
+      writeVariable(readb(), int.tryParse(result) ?? 0);
     } else {
       writeVariable(readb(), 0);
     }
@@ -521,10 +587,10 @@ class Version5 extends Version3 {
       PC = operands[0].rawValue;
 
       //peel off the first operand
-      operands.removeRange(0, 1);
+      operands.removeAt(0);
 
       //setup the routine stack frame and locals
-      visitRoutine(operands.map((o) => o.value));
+      visitRoutine(operands.map<int>((o) => o.value).toList());
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -556,10 +622,11 @@ class Version5 extends Version3 {
       //move to the routine address
       PC = operands[0].rawValue;
 
-      operands.removeRange(0, 1);
+      // peel off the first operand
+      operands.removeAt(0);
 
       //setup the routine stack frame and locals
-      visitRoutine(operands.map((o) => o.value));
+      visitRoutine(operands.map<int>((o) => o.value).toList());
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -593,7 +660,7 @@ class Version5 extends Version3 {
       operands.removeRange(0, 1);
 
       //setup the routine stack frame and locals
-      visitRoutine(operands.map((o) => o.value));
+      visitRoutine(operands.map<int>((o) => o.value).toList());
 
       //push the result store address onto the call stack
       callStack.push(resultStore);

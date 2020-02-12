@@ -297,7 +297,7 @@ class Debugger with Loggable {
   static void debug(String debugString) async {
     await Z.sendIO({
       "command": IOCommands.PRINT_DEBUG,
-      "message": '(Zart Debug) $debugString'
+      "message": '$debugString'
     });
   }
 

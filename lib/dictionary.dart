@@ -1,10 +1,10 @@
-import 'package:zart/debugger.dart';
 import 'package:zart/header.dart';
+import 'package:zart/mixins/loggable.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 
-class Dictionary {
+class Dictionary with Loggable{
   final List<String> entries;
   final List<String> separators;
   int entryLength;
@@ -21,6 +21,7 @@ class Dictionary {
   Dictionary({int address})
       : entries = List<String>(),
         separators = List<String>() {
+          logName = "Dictionary";
     _address = Z.engine.mem.loadw(Header.DICTIONARY_ADDR);
 
     if (address != null) {
@@ -51,16 +52,18 @@ class Dictionary {
     }
   }
 
+  int _wordAddress(int index) {
+    var addr = _address + separators.length + 4 + (index * entryLength);
+    // BUG? popping here isn't correct right?
+    // Debugger.verbose('>>> ${ZSCII.readZStringAndPop(addr)}');
+    return addr;
+  }
+
   List<int> parse(List<String> tokenizedList, String line) {
+    log.fine("got line: $line");
     var parseTable = List<int>();
 
     parseTable.add(tokenizedList.length);
-
-    int wordAddress(int index) {
-      var addr = _address + separators.length + 4 + (index * entryLength);
-      Debugger.verbose('>>> ${ZSCII.readZStringAndPop(addr)}');
-      return addr;
-    }
 
     int lastIndex = 0;
 
@@ -68,21 +71,22 @@ class Dictionary {
       var word = t;
       if (word.length > entryLength - 1) {
         word = word.substring(0, entryLength - 1);
+        log.fine("Truncating word $t to $word.");
       }
 
       var idx = entries.indexOf(word);
 
       if (idx != -1) {
-        var addr = wordAddress(idx);
-        Debugger.verbose(
-            '    (found word: "${t}" in dictionary as "${entries[idx]}" at address 0x${addr.toRadixString(16)})');
+        var addr = _wordAddress(idx);
+        log.fine(
+            '(found word: "${t}" in dictionary as "${entries[idx]}" at address 0x${addr.toRadixString(16)})');
         parseTable.add((addr >> 8) & 0xff);
         parseTable.add(addr & 0xff);
 
         //word length
-        parseTable.add(t.length);
+        parseTable.add(word.length);
       } else {
-        Debugger.verbose('    (word: ${t} not found in dictionary)');
+        log.fine('(word: ${t} not found in dictionary)');
         parseTable.add(0);
         parseTable.add(0);
         parseTable.add(t.length);
@@ -126,6 +130,8 @@ class Dictionary {
     if (s.length > 0) {
       tokens.add(s.toString().trim());
     }
+
+    log.fine("got tokens: $tokens");
 
     return tokens;
   }

@@ -131,7 +131,7 @@ class ZMachine with Loggable {
       engine = result[0];
     }
 
-    print('Zart: Using Z-Machine ${engine.version}.');
+    log.info('Zart: Using Z-Machine ${engine.version}.');
 
     engine.mem = MemoryMap(rawBytes);
 
@@ -140,9 +140,7 @@ class ZMachine with Loggable {
     isLoaded = true;
   }
 
-  // TODO Wtf??
-  callAsync(func()) {
-    log.finest("in callAsync()");
+  void callAsync(func()) {
     Timer(Duration(seconds: 0), () => func());
   }
 
@@ -198,16 +196,17 @@ class ZMachine with Loggable {
     return await io.command(ioData);
   }
 
-  void printBuffer() async {
+  void printBuffer() {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
     if (!engine.outputStream3) {
-      await sendIO({
+      sendIO({
         "command": IOCommands.PRINT,
         "window": engine.currentWindow,
         "buffer": sbuff.toString()
+      }).then((_) {
+        sbuff.clear();
       });
-      sbuff.clear();
     }
   }
 

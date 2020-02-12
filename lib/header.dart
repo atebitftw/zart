@@ -111,6 +111,8 @@ class Header {
     if (!Z.isLoaded) throw GameException('A game must first be loaded.');
   }
 
+  
+
   static void setFlags1(int flags) {
     checkLoaded();
     Z.engine.mem.storeb(Header.FLAGS1, flags);

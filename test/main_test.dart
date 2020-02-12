@@ -84,8 +84,12 @@ void main() {
       expect(ZSCII.ZCharToChar(13), equals('\n'));
     });
 
-    test("ZSCII.ZCharToChar(33) returns 'a'.", () {
-      expect(ZSCII.ZCharToChar(33), equals('a'));
+    test("ZSCII.ZCharToChar(32-126) returns expected letter.", () {
+      final ascii = " !\"#\$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      for (var i = 0; i < 95; i++){
+
+        expect(ZSCII.ZCharToChar(i+32), equals(ascii[i]));
+      }
     });
 
     test('Unicode translations work as expected in ZSCII.ZCharToChar().', () {

@@ -247,22 +247,20 @@ class ZSCII {
     throw GameException('Could not convert from char to ZChar.');
   }
 
-  static final _s = StringBuffer();
   static String ZCharToChar(int c) {
+    final _s = StringBuffer();
     if (c == 0) {
       return '';
-    } else if (c == 9) {
+    } else if (c == 9 && Z.engine.version == ZVersion.V6) {
       return '\t';
-    } else if (c == 11) {
-      return ' ';
+    } else if (c == 11 && Z.engine.version == ZVersion.V6) {
+      return '  ';
     } else if (c == 13) {
       return '\n';
     } else if (c >= 32 && c <= 126) {
-      _s.clear();
       _s.writeCharCode(c);
       return _s.toString();
     } else if (c >= 155 && c <= 223) {
-      _s.clear();
       _s.writeCharCode(UNICODE_TRANSLATIONS['$c']);
       return _s.toString();
     }

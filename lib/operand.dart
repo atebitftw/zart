@@ -11,7 +11,7 @@ class Operand
   Operand(this.oType);
 
   /// Gets a read of the [rawValue].
-  /// If the type is VARIABLE, then performns an implicit
+  /// If the type is VARIABLE, then performs an implicit
   /// read of the variable's address, otherwise just
   /// returns the rawValue (SMALL or LARGE);
   int get value{

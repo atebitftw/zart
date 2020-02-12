@@ -54,7 +54,7 @@ class Engine with Loggable {
 
   MemoryMap mem;
 
-  Map<String, Function> ops;
+  Map<int, Function> ops;
 
   int get propertyDefaultsTableSize => 31;
 
@@ -157,10 +157,11 @@ class Engine with Loggable {
     writeVariable(resultAddrByte, result);
   }
 
+  /// Reads the next instruction at memory location [PC] and executes it.
   void visitInstruction() async {
     var i = readb();
 
-    if (ops.containsKey('$i')) {
+    if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
           Debugger.debug('>>> (0x${(PC - 1).toRadixString(16)}) ($i)');
@@ -177,15 +178,15 @@ class Engine with Loggable {
           Debugger.debugStartAddr = PC - 1;
         }
       }
-
-      log.finest("visitInstruction() Calling Operation: $i");
-      ops['$i']();
+      // call the instruction
+      ops[i]();
     } else {
       notFound();
     }
-    final result = readb();
-    log.finest("visitInstruction() Calling Operation: $result");
-    ops['${result}']();
+
+    // final result = readb();
+    // log.finest("visitInstruction() Calling Operation: $result");
+    // ops[result]();
   }
 
   void notFound() {
@@ -365,6 +366,8 @@ class Engine with Loggable {
 
     var parseBuffer = operands[1].value + 1;
 
+    log.fine("read() operands: $operands maxBytes: $maxBytes, textBuffer: $textBuffer, maxWords: $maxWords, parseBuffer: $parseBuffer");
+
     void processLine(String line) {
       line = line.trim().toLowerCase();
 
@@ -377,6 +380,10 @@ class Engine with Loggable {
 
       final zChars = ZSCII.toZCharList(line);
 
+      log.fine("zChars:  $zChars");
+
+      log.fine("textBuffer address: $textBuffer");
+
       //store the zscii chars in text buffer
       for (final c in zChars) {
         mem.storeb(textBuffer++, c);
@@ -387,10 +394,10 @@ class Engine with Loggable {
 
       final tokens = Z.engine.mem.dictionary.tokenize(line);
 
-      //Debugger.verbose('    (tokenized: $tokens)');
+      log.fine('(tokenized: $tokens)');
 
       final parsed = Z.engine.mem.dictionary.parse(tokens, line);
-      //Debugger.debug('$parsed');
+      log.fine('parsed: $parsed');
 
       final maxParseBufferBytes = (4 * maxWords) + 2;
 
@@ -413,6 +420,7 @@ class Engine with Loggable {
       } else {
         log.finest("read() callAsync(Z.runIt)");
         processLine(l);
+        log.fine("pc: ${this.PC}");
         Z.callAsync(Z.runIt);
       }
     });
@@ -1319,6 +1327,11 @@ class Engine with Loggable {
     mem.dictionaryAddress = mem.loadw(Header.DICTIONARY_ADDR);
     mem.highMemAddress = mem.loadw(Header.HIGHMEM_START_ADDR);
 
+    // Store a screen height (infinite = 255) and width.
+    // Some games want to know out this (Hitchhiker's, for example)
+    mem.storeb(Header.SCREEN_HEIGHT, 255);
+    mem.storeb(Header.SCREEN_WIDTH, 80);
+
     //initialize the game dictionary
     mem.dictionary = Dictionary();
 
@@ -1328,14 +1341,13 @@ class Engine with Loggable {
     //Debugger.verbose(Debugger.dumpHeader());
   }
 
-  /** Reads 1 byte from the current program counter
-  * address and advances the program counter to the next
-  * unread address.
-  */
+  /// Reads 1 byte from the current program counter
+  /// address and advances the program counter [PC] to the next
+  /// unread address.
   int readb() => mem.loadb(PC++);
 
   /** Reads 1 word from the current program counter
-  * address and advances the program counter to the next
+  * address and advances the program counter [PC] to the next
   * unread address.
   */
   int readw() {
@@ -1372,6 +1384,7 @@ class Engine with Loggable {
     return readLocal(varNum);
   }
 
+  /// Writes [value] to [varNum] either global or local.
   void writeVariable(int varNum, int value) {
     assert(varNum >= 0 && varNum <= 0xff);
 
@@ -1410,306 +1423,306 @@ class Engine with Loggable {
     r = DRandom.withSeed(DateTime.now().millisecond);
     ops = {
       /* 2OP, small, small */
-      '1': je,
-      '2': jl,
-      '3': jg,
-      '4': dec_chk,
-      '5': inc_chk,
-      '6': jin,
-      '7': test,
-      '8': or,
-      '9': and,
-      '10': test_attr,
-      '11': set_attr,
-      '12': clear_attr,
-      '13': store,
-      '14': insert_obj,
-      '15': loadw,
-      '16': loadb,
-      '17': get_prop,
-      '18': get_prop_addr,
-      '19': get_next_prop,
-      '20': add,
-      '21': sub,
-      '22': mul,
-      '23': div,
-      '24': mod,
+      1: je,
+      2: jl,
+      3: jg,
+      4: dec_chk,
+      5: inc_chk,
+      6: jin,
+      7: test,
+      8: or,
+      9: and,
+      10: test_attr,
+      11: set_attr,
+      12: clear_attr,
+      13: store,
+      14: insert_obj,
+      15: loadw,
+      16: loadb,
+      17: get_prop,
+      18: get_prop_addr,
+      19: get_next_prop,
+      20: add,
+      21: sub,
+      22: mul,
+      23: div,
+      24: mod,
       /* 25 : call_2s */
-      '25': notFound,
+      25: notFound,
       /* 26 : call_2n */
-      '26': notFound,
+      26: notFound,
       /* 27 : set_colour */
-      '27': notFound,
+      27: notFound,
       /* 28 : throw */
-      '28': notFound,
+      28: notFound,
 
       /* 2OP, small, variable */
-      '33': je,
-      '34': jg,
-      '35': jl,
-      '36': dec_chk,
-      '37': inc_chk,
-      '38': jin,
-      '39': test,
-      '40': or,
-      '41': and,
-      '42': test_attr,
-      '43': set_attr,
-      '44': clear_attr,
-      '45': store,
-      '46': insert_obj,
-      '47': loadw,
-      '48': loadb,
-      '49': get_prop,
-      '50': get_prop_addr,
-      '51': get_next_prop,
-      '52': add,
-      '53': sub,
-      '54': mul,
-      '55': div,
-      '56': mod,
+      33: je,
+      34: jg,
+      35: jl,
+      36: dec_chk,
+      37: inc_chk,
+      38: jin,
+      39: test,
+      40: or,
+      41: and,
+      42: test_attr,
+      43: set_attr,
+      44: clear_attr,
+      45: store,
+      46: insert_obj,
+      47: loadw,
+      48: loadb,
+      49: get_prop,
+      50: get_prop_addr,
+      51: get_next_prop,
+      52: add,
+      53: sub,
+      54: mul,
+      55: div,
+      56: mod,
       /* 57 : call_2s */
-      '57': notFound,
+      57: notFound,
       /* 58 : call_2n */
-      '58': notFound,
+      58: notFound,
       /* 59 : set_colour */
-      '59': notFound,
+      59: notFound,
       /* 60 : throw */
-      '60': notFound,
+      60: notFound,
 
       /* 2OP, variable, small */
-      '65': je,
-      '66': jl,
-      '67': jg,
-      '68': dec_chk,
-      '69': inc_chk,
-      '70': jin,
-      '71': test,
-      '72': or,
-      '73': and,
-      '74': test_attr,
-      '75': set_attr,
-      '76': clear_attr,
-      '77': store,
-      '78': insert_obj,
-      '79': loadw,
-      '80': loadb,
-      '81': get_prop,
-      '82': get_prop_addr,
-      '83': get_next_prop,
-      '84': add,
-      '85': sub,
-      '86': mul,
-      '87': div,
-      '88': mod,
+      65: je,
+      66: jl,
+      67: jg,
+      68: dec_chk,
+      69: inc_chk,
+      70: jin,
+      71: test,
+      72: or,
+      73: and,
+      74: test_attr,
+      75: set_attr,
+      76: clear_attr,
+      77: store,
+      78: insert_obj,
+      79: loadw,
+      80: loadb,
+      81: get_prop,
+      82: get_prop_addr,
+      83: get_next_prop,
+      84: add,
+      85: sub,
+      86: mul,
+      87: div,
+      88: mod,
       /* 89 : call_2s */
-      '89': notFound,
+      89: notFound,
       /* 90 : call_2n */
-      '90': notFound,
+      90: notFound,
       /* 91 : set_colour */
-      '91': notFound,
+      91: notFound,
       /* 92 : throw */
-      '92': notFound,
+      92: notFound,
 
       /* 2OP, variable, variable */
-      '97': je,
-      '98': jl,
-      '99': jg,
-      '100': dec_chk,
-      '101': inc_chk,
-      '102': jin,
-      '103': test,
-      '104': or,
-      '105': and,
-      '106': test_attr,
-      '107': set_attr,
-      '108': clear_attr,
-      '109': store,
-      '110': insert_obj,
-      '111': loadw,
-      '112': loadb,
-      '113': get_prop,
-      '114': get_prop_addr,
-      '115': get_next_prop,
-      '116': add,
-      '117': sub,
-      '118': mul,
-      '119': div,
-      '120': mod,
+      97: je,
+      98: jl,
+      99: jg,
+      100: dec_chk,
+      101: inc_chk,
+      102: jin,
+      103: test,
+      104: or,
+      105: and,
+      106: test_attr,
+      107: set_attr,
+      108: clear_attr,
+      109: store,
+      110: insert_obj,
+      111: loadw,
+      112: loadb,
+      113: get_prop,
+      114: get_prop_addr,
+      115: get_next_prop,
+      116: add,
+      117: sub,
+      118: mul,
+      119: div,
+      120: mod,
       /* 121 : call_2s */
-      '121': notFound,
+      121: notFound,
       /* 122 : call_2n */
-      '122': notFound,
+      122: notFound,
       /* 123 : set_colour */
-      '123': notFound,
+      123: notFound,
       /* 124 : throw */
-      '124': notFound,
+      124: notFound,
 
       /* 1OP, large */
-      '128': jz,
-      '129': get_sibling,
-      '130': get_child,
-      '131': get_parent,
-      '132': get_prop_len,
-      '133': inc,
-      '134': dec,
-      '135': print_addr,
+      128: jz,
+      129: get_sibling,
+      130: get_child,
+      131: get_parent,
+      132: get_prop_len,
+      133: inc,
+      134: dec,
+      135: print_addr,
       /* 136 : call_1s */
-      '136': notFound,
-      '137': remove_obj,
-      '138': print_obj,
-      '139': ret,
-      '140': jump,
-      '141': print_paddr,
-      '142': load,
-      '143': not,
+      136: notFound,
+      137: remove_obj,
+      138: print_obj,
+      139: ret,
+      140: jump,
+      141: print_paddr,
+      142: load,
+      143: not,
 
       /*** 1OP, small ***/
-      '144': jz,
-      '145': get_sibling,
-      '146': get_child,
-      '147': get_parent,
-      '148': get_prop_len,
-      '149': inc,
-      '150': dec,
-      '151': print_addr,
+      144: jz,
+      145: get_sibling,
+      146: get_child,
+      147: get_parent,
+      148: get_prop_len,
+      149: inc,
+      150: dec,
+      151: print_addr,
       /* 152 : call_1s */
-      '152': notFound,
-      '153': remove_obj,
-      '154': print_obj,
-      '155': ret,
-      '156': jump,
-      '157': print_paddr,
-      '158': load,
-      '159': not,
+      152: notFound,
+      153: remove_obj,
+      154: print_obj,
+      155: ret,
+      156: jump,
+      157: print_paddr,
+      158: load,
+      159: not,
 
       /*** 1OP, variable ***/
-      '160': jz,
-      '161': get_sibling,
-      '162': get_child,
-      '163': get_parent,
-      '164': get_prop_len,
-      '165': inc,
-      '166': dec,
-      '167': print_addr,
+      160: jz,
+      161: get_sibling,
+      162: get_child,
+      163: get_parent,
+      164: get_prop_len,
+      165: inc,
+      166: dec,
+      167: print_addr,
       /* 168 : call_1s */
-      '168': notFound,
-      '169': remove_obj,
-      '170': print_obj,
-      '171': ret,
-      '172': jump,
-      '173': print_paddr,
-      '174': load,
-      '175': not,
+      168: notFound,
+      169: remove_obj,
+      170: print_obj,
+      171: ret,
+      172: jump,
+      173: print_paddr,
+      174: load,
+      175: not,
 
       /* 0 OP */
-      '176': rtrue,
-      '177': rfalse,
-      '178': printf,
-      '179': print_ret,
-      '180': nop,
-      '181': save,
-      '182': restore,
-      '183': restart,
-      '184': ret_popped,
-      '185': pop,
-      '186': quit,
-      '187': newline,
-      '188': show_status,
-      '189': verify,
+      176: rtrue,
+      177: rfalse,
+      178: printf,
+      179: print_ret,
+      180: nop,
+      181: save,
+      182: restore,
+      183: restart,
+      184: ret_popped,
+      185: pop,
+      186: quit,
+      187: newline,
+      188: show_status,
+      189: verify,
       /* 190 : extended */
-      '190': notFound,
-      '191': piracy,
+      190: notFound,
+      191: piracy,
 
       /* 2OP, Variable of op codes 1-31 */
-      '193': jeV,
-      '194': jl,
-      '195': jg,
-      '196': dec_chk,
-      '197': inc_chk,
-      '198': jin,
-      '199': test,
-      '200': or,
-      '201': and,
-      '202': test_attr,
-      '203': set_attr,
-      '204': clear_attr,
-      '205': store,
-      '206': insert_obj,
-      '207': loadw,
-      '208': loadb,
-      '209': get_prop,
-      '210': get_prop_addr,
-      '211': get_next_prop,
-      '212': add,
-      '213': sub,
-      '214': mul,
-      '215': div,
-      '216': mod,
+      193: jeV,
+      194: jl,
+      195: jg,
+      196: dec_chk,
+      197: inc_chk,
+      198: jin,
+      199: test,
+      200: or,
+      201: and,
+      202: test_attr,
+      203: set_attr,
+      204: clear_attr,
+      205: store,
+      206: insert_obj,
+      207: loadw,
+      208: loadb,
+      209: get_prop,
+      210: get_prop_addr,
+      211: get_next_prop,
+      212: add,
+      213: sub,
+      214: mul,
+      215: div,
+      216: mod,
       /* 217 : call_2sV */
-      '217': notFound,
+      217: notFound,
       /* 218 : call_2nV */
-      '218': notFound,
+      218: notFound,
       /* 219 : set_colourV */
-      '219': notFound,
+      219: notFound,
       /* 220 : throwV */
-      '220': notFound,
+      220: notFound,
 
       /* xOP, Operands Vary */
-      '224': callVS,
-      '225': storewv,
-      '226': storebv,
-      '227': put_prop,
-      '228': read,
-      '229': print_char,
-      '230': print_num,
-      '231': random,
-      '232': push,
-      '233': pull,
+      224: callVS,
+      225: storewv,
+      226: storebv,
+      227: put_prop,
+      228: read,
+      229: print_char,
+      230: print_num,
+      231: random,
+      232: push,
+      233: pull,
       /* 234 : split_window */
-      '234': notFound,
+      234: notFound,
       /* 235 : set_window */
-      '235': notFound,
+      235: notFound,
       /* 236 : call_vs2 */
-      '236': notFound,
+      236: notFound,
       /* 237 : erase_window */
-      '237': notFound,
+      237: notFound,
       /* 238 : erase_line */
-      '238': notFound,
+      238: notFound,
       /* 239 : set_cursor */
-      '239': notFound,
+      239: notFound,
       /* 240 : get_cursor */
-      '240': notFound,
+      240: notFound,
       /* 241 : set_text_style */
-      '241': notFound,
+      241: notFound,
       /* 242 : buffer_mode_flag */
-      '242': notFound,
+      242: notFound,
       /* 243 : output_stream */
-      '243': notFound,
+      243: notFound,
       /* 244 : input_stream */
-      '244': notFound,
+      244: notFound,
       /* 245 : sound_effect */
-      '245': notFound,
+      245: notFound,
       /* 246 : read_char */
-      '246': notFound,
+      246: notFound,
       /* 247 : scan_table */
-      '247': notFound,
+      247: notFound,
       /* 248 : not */
-      '248': notFound,
+      248: notFound,
       /* 249 : call_vn */
-      '249': notFound,
+      249: notFound,
       /* 250 : call_vn2 */
-      '250': notFound,
+      250: notFound,
       /* 251 : tokenise */
-      '251': notFound,
+      251: notFound,
       /* 252 : encode_text */
-      '252': notFound,
+      252: notFound,
       /* 253 : copy_table */
-      '253': notFound,
+      253: notFound,
       /* 254 : print_table */
-      '254': notFound,
+      254: notFound,
       /* 255 : check_arg_count */
-      '255': notFound
+      255: notFound
     };
   }
 }

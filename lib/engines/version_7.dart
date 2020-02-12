@@ -1,4 +1,5 @@
 import 'package:zart/debugger.dart';
+import 'package:zart/game_exception.dart';
 import 'package:zart/header.dart';
 import 'package:zart/engines/version_5.dart';
 import 'package:zart/z_machine.dart';
@@ -17,7 +18,7 @@ class Version7 extends Version5
   }
 
   int pack(int unpackedAddr){
-    throw Exception();
+    throw GameException("Unsupported call to pack() in Version 7 engine.");
   }
 
   int unpack_paddr(int packed_print_addr){

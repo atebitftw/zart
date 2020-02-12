@@ -107,7 +107,7 @@ class MemoryMap {
     //   print("final: ${BinaryHelper.binaryOf(((memList[address] << 8) | memList[address + 1]) & 0xffff)}");
     // }
 
-    //no Dart-signed values should be present.
+    //no Dart negative values should be present.
     assert(word >= 0);
     return word;
   }
@@ -120,7 +120,7 @@ class MemoryMap {
     // Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
 
      throw GameException('Attempted access to memory address'
-       ' that is out of bounds: $address 0x${address.toRadixString(16)}');
+       ' that is out of bounds: $address (hex: 0x${address.toRadixString(16)}).  Max memory is: ${memList.length}');
    }
   }
 
