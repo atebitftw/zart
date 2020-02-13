@@ -810,7 +810,7 @@ class Engine with Loggable {
 
     final z = operands[0].value;
 
-    if (z < 0 || z > 1023) {
+    if (z < 0 || z > 255) {
       throw GameException('ZSCII char is out of bounds.');
     }
 
@@ -1333,7 +1333,7 @@ class Engine with Loggable {
     mem.storeb(Header.SCREEN_WIDTH, 80);
 
     //initialize the game dictionary
-    mem.dictionary = Dictionary();
+    mem.dictionary = Dictionary(address: mem.dictionaryAddress);
 
     mem.programStart = mem.loadw(Header.PC_INITIAL_VALUE_ADDR);
     PC = mem.programStart;

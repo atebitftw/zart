@@ -15,20 +15,17 @@ class Version4 extends Version3 {
     ops[247] = scan_table;
   }
 
-// VAR:247 17 4 scan_table x table len form -> (result)
+  // VAR:247 17 4 scan_table x table len form -> (result)
 
-// Is x one of the words in table, which is len words long? If so, return the address
-// where it first occurs and branch. If not, return 0 and don't.
+  // Is x one of the words in table, which is len words long? If so, return the address
+  // where it first occurs and branch. If not, return 0 and don't.
 
-// The form is optional (and only used in Version 5?): bit 7 is set for words, clear for bytes:
-// the rest contains the length of each field in the table. (The first word or byte in each field
-// being the one looked at.) Thus $82 is the default.
-
+  // The form is optional (and only used in Version 5?): bit 7 is set for words, clear for bytes:
+  // the rest contains the length of each field in the table. (The first word or byte in each field
+  // being the one looked at.) Thus $82 is the default.
   void scan_table() {
     //v4 expects only 3 operands, x table len
     final operands = visitOperandsVar(4, true);
-
-    final resultTo = readb();
 
     final searchWord = operands[0].value;
     final tableAddress = operands[1].value;
@@ -59,11 +56,12 @@ class Version4 extends Version3 {
         final value = mem.loadw(addr);
         if (value == searchWord) {
           log.fine("...found match");
+          final resultTo = readb();
           writeVariable(resultTo, addr);
           branch(true);
           return;
         }
-        addr += form & 0x7f;
+        addr += form & 0x7f; // little trick I picked up from Frotz...
       }
     } else {
       log.fine("..byte scan");
@@ -74,6 +72,7 @@ class Version4 extends Version3 {
           final value = mem.loadb(addr);
           if (value == searchWord) {
             log.fine("...found match");
+            final resultTo = readb();
             writeVariable(resultTo, addr);
             branch(true);
             return;

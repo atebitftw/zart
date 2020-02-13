@@ -4,7 +4,7 @@ import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 
-class Dictionary with Loggable{
+class Dictionary with Loggable {
   final List<String> entries;
   final List<String> separators;
   int entryLength;
@@ -21,12 +21,13 @@ class Dictionary with Loggable{
   Dictionary({int address})
       : entries = List<String>(),
         separators = List<String>() {
-          logName = "Dictionary";
-    _address = Z.engine.mem.loadw(Header.DICTIONARY_ADDR);
+    logName = "Dictionary";
 
     if (address != null) {
       //custom dictionary
       _address = address;
+    } else {
+      _address = Z.engine.mem.loadw(Header.DICTIONARY_ADDR);
     }
 
     assert(_address != null);
@@ -43,19 +44,17 @@ class Dictionary with Loggable{
 
     entryLength = Z.engine.mem.loadb(_address + separators.length + 1);
 
-    var numEntries = Z.engine.mem.loadw(_address + separators.length + 2);
+    final numEntries = Z.engine.mem.loadw(_address + separators.length + 2);
 
-    var start = _address + separators.length + 4;
+    final start = _address + separators.length + 4;
 
-    for (int i = 1; i <= numEntries; i++) {
-      entries.add(ZSCII.readZStringAndPop(start + ((i - 1) * entryLength)));
+    for (int i = 0; i < numEntries; i++) {
+      entries.add(ZSCII.readZStringAndPop(start + (i * entryLength)));
     }
   }
 
   int _wordAddress(int index) {
     var addr = _address + separators.length + 4 + (index * entryLength);
-    // BUG? popping here isn't correct right?
-    // Debugger.verbose('>>> ${ZSCII.readZStringAndPop(addr)}');
     return addr;
   }
 
@@ -69,8 +68,9 @@ class Dictionary with Loggable{
 
     for (final t in tokenizedList) {
       var word = t;
-      if (word.length > entryLength - 1) {
-        word = word.substring(0, entryLength - 1);
+
+      if (word.length > entryLength) {
+        word = word.substring(0, entryLength);
         log.fine("Truncating word $t to $word.");
       }
 
@@ -86,15 +86,19 @@ class Dictionary with Loggable{
         //word length
         parseTable.add(word.length);
       } else {
-        log.fine('(word: ${t} not found in dictionary)');
+        log.warning(
+            '(word: ${t} not found in dictionary ${entries.where((e) => e.startsWith(t[0])).toList()})');
+        log.warning("entryLength: $entryLength, word length: ${word.length}");
+        //log.warning('(word: ${t} not found in dictionary ${entries})');
         parseTable.add(0);
         parseTable.add(0);
-        parseTable.add(t.length);
+        parseTable.add(word.length);
       }
 
       //location in text buffer
       lastIndex = line.indexOf(t, lastIndex);
-      parseTable.add(lastIndex + 1);
+      parseTable.add(lastIndex + 2);
+      // parseTable.add(lastIndex + 1);
       lastIndex += t.length;
     }
 

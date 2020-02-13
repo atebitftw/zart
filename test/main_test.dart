@@ -7,6 +7,7 @@ import 'package:zart/debugger.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/header.dart';
 import 'package:zart/engines/engine.dart';
+import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 import 'mock_ui_provider.dart';
@@ -76,8 +77,9 @@ void main() {
       expect(ZSCII.ZCharToChar(9), equals('\t'));
     });
 
-    test("ZSCII.ZCharToChar(11) returns space ' '.", () {
-      expect(ZSCII.ZCharToChar(11), equals(' '));
+
+    test("ZSCII.ZCharToChar(11) returns double space '  '.", () {
+      expect(ZSCII.ZCharToChar(11), equals("  "));
     });
 
     test("ZSCII.ZCharToChar(13) returns newline \\n.", () {
@@ -95,7 +97,7 @@ void main() {
     test('Unicode translations work as expected in ZSCII.ZCharToChar().', () {
       var s = StringBuffer();
       for (int i = 155; i <= 223; i++) {
-        s.writeCharCode(ZSCII.UNICODE_TRANSLATIONS['$i']);
+        s.writeCharCode(UNICODE_TRANSLATIONS[i]);
         expect(ZSCII.ZCharToChar(i), equals(s.toString()));
         s.clear();
       }
