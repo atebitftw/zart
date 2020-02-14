@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:test/test.dart';
 import 'package:zart/debugger.dart';
 import 'package:zart/engines/engine.dart';
+import 'package:zart/math_helper.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/z_machine.dart';
 
@@ -309,10 +310,10 @@ instructionTests(){
         * RET SP
         */
         injectRoutine([0x0], [0xe8, 0xbf, 0x01, 0xab, 0x00]);
-        runRoutine(Engine.dartSignedIntTo16BitSigned(-42));
+        runRoutine(MathHelper.dartSignedIntTo16BitSigned(-42));
 
         final v = await pollUntilQuit();
-        expect(Engine.dartSignedIntTo16BitSigned(-42), equals(v));
+        expect(MathHelper.dartSignedIntTo16BitSigned(-42), equals(v));
       });
 
       test('push negative big', () async {
@@ -323,10 +324,10 @@ instructionTests(){
         */
         injectRoutine([0x0], [0xe8, 0xbf, 0x01, 0xab, 0x00]);
 
-        runRoutine(Engine.dartSignedIntTo16BitSigned(-30000));
+        runRoutine(MathHelper.dartSignedIntTo16BitSigned(-30000));
 
         final v = await pollUntilQuit();
-        expect(Engine.dartSignedIntTo16BitSigned(-30000), equals(v));
+        expect(MathHelper.dartSignedIntTo16BitSigned(-30000), equals(v));
       });
     });
   });

@@ -276,7 +276,7 @@ class Debugger with Loggable {
         'Checksum Of File: ${Z.engine.mem.loadw(Header.CHECKSUMOFFILE)}\n');
     //TODO v4+ header stuff here
     s.write(
-        'Standard Revision: ${Z.engine.mem.loadw(Header.REVISION_NUMBER)}\n');
+        'Standard Revision: ${Z.engine.mem.loadw(Header.REVISION_NUMBER_N)}\n');
     s.write('-------- END HEADER ---------\n');
 
     //s.write('main Routine: ${Z.machine.mem.getRange(Z.pc - 4, 10)}');

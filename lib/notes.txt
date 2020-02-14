@@ -1,3 +1,4 @@
+Zork I Script:
 s. e. open window. enter. take all. w. take all. move rug
 
 

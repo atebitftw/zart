@@ -1,6 +1,7 @@
 import 'package:zart/dictionary.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/engines/engine.dart';
+import 'package:zart/math_helper.dart';
 
 class MemoryMap {
 
@@ -63,12 +64,11 @@ class MemoryMap {
     return _getWord(address);
   }
 
-  //dynamic memory only (1.1.1)
-  //put byte
+  /// Stores a byte [value] into dynamic memory
+  /// at [address].  Reference 1.1.1
   void storeb(int address, int value){
     assert(address != null);
     checkBounds(address);
-    //TODO validate
 
     assert(value != null && (value <= 0xff && value >= 0));
 
@@ -86,8 +86,8 @@ class MemoryMap {
     }
 
     if (value < 0){
-      //convert to 16-bit signed neg
-      value = Engine.dartSignedIntTo16BitSigned(value);
+      //convert to zmachine 16-bit signed neg
+      value = MathHelper.dartSignedIntTo16BitSigned(value);
     }
 
     assert(value >= 0);

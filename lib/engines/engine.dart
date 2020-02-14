@@ -7,6 +7,7 @@ import 'package:zart/dictionary.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/game_object.dart';
 import 'package:zart/header.dart';
+import 'package:zart/math_helper.dart';
 import 'package:zart/memory_map.dart';
 import 'package:zart/mixins/loggable.dart';
 import 'package:zart/operand.dart';
@@ -58,36 +59,7 @@ class Engine with Loggable {
 
   int get propertyDefaultsTableSize => 31;
 
-  /**
-  * Takes any Dart int between -32768 & 32767 and makes a machine-readable
-  * 16-bit signed 'word' from it.
-  *
-  * ref(2.2)
-  */
-  static int dartSignedIntTo16BitSigned(int val) {
-    if (val < -32768 || val > 32767) {
-      throw GameException("Signed 16-bit int is out of range: $val");
-    }
 
-    if (val > -1) return val;
-
-    return 65536 - val.abs();
-  }
-
-  /**
-  * Converts a game 16-bit 'word' into a signed Dart int.
-  *
-  * ref(2.2)
-  */
-  static int toSigned(int val) {
-    //if (val == 0) return val;
-
-    // game 16-bit word is always positive number to Dart
-    assert(val >= 0);
-
-    // convert to signed if 16-bit MSB is set
-    return (val & 0x8000) == 0x8000 ? -(65536 - val) : val;
-  }
 
   ZVersion get version => ZVersion.V1;
 
@@ -576,7 +548,7 @@ class Engine with Loggable {
 
     final operand = visitOperandsShortForm();
 
-    final value = toSigned(readVariable(operand.rawValue)) + 1;
+    final value = MathHelper.toSigned(readVariable(operand.rawValue)) + 1;
 
     writeVariable(operand.rawValue, value);
   }
@@ -586,7 +558,7 @@ class Engine with Loggable {
 
     final operand = visitOperandsShortForm();
 
-    final value = toSigned(readVariable(operand.rawValue)) - 1;
+    final value = MathHelper.toSigned(readVariable(operand.rawValue)) - 1;
 
     writeVariable(operand.rawValue, value);
   }
@@ -617,12 +589,12 @@ class Engine with Loggable {
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    final value = toSigned(readVariable(operands[0].rawValue)) - 1;
+    final value = MathHelper.toSigned(readVariable(operands[0].rawValue)) - 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     writeVariable(operands[0].rawValue, value);
 
-    branch(value < toSigned(operands[1].value));
+    branch(value < MathHelper.toSigned(operands[1].value));
   }
 
   void inc_chk() {
@@ -635,12 +607,12 @@ class Engine with Loggable {
     //   final value = toSigned(readVariable(operands[0].rawValue)) + 1;
     // final varValue = readVariable(operands[0].rawValue);
 
-    final value = toSigned(readVariable(operands[0].rawValue)) + 1;
+    final value = MathHelper.toSigned(readVariable(operands[0].rawValue)) + 1;
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect14.html notes #5)
     writeVariable(operands[0].rawValue, value);
 
-    branch(value > toSigned(operands[1].value));
+    branch(value > MathHelper.toSigned(operands[1].value));
   }
 
   void test_attr() {
@@ -679,11 +651,11 @@ class Engine with Loggable {
 
     var foundMatch = false;
 
-    final testVal = toSigned(operands[0].value);
+    final testVal = MathHelper.toSigned(operands[0].value);
 
     for (int i = 1; i < operands.length; i++) {
       if (foundMatch == true) break;
-      final against = toSigned(operands[i].value);
+      final against = MathHelper.toSigned(operands[i].value);
 
       if (testVal == against) {
         foundMatch = true;
@@ -738,7 +710,7 @@ class Engine with Loggable {
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    branch(toSigned(operands[0].value) < toSigned(operands[1].value));
+    branch(MathHelper.toSigned(operands[0].value) < MathHelper.toSigned(operands[1].value));
   }
 
   void jg() {
@@ -748,7 +720,7 @@ class Engine with Loggable {
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    branch(toSigned(operands[0].value) > toSigned(operands[1].value));
+    branch(MathHelper.toSigned(operands[0].value) > MathHelper.toSigned(operands[1].value));
   }
 
   void je() {
@@ -758,7 +730,7 @@ class Engine with Loggable {
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    branch(toSigned(operands[0].value) == toSigned(operands[1].value));
+    branch(MathHelper.toSigned(operands[0].value) == MathHelper.toSigned(operands[1].value));
   }
 
   void newline() {
@@ -822,7 +794,7 @@ class Engine with Loggable {
 
     final operands = visitOperandsVar(1, false);
 
-    Z.sbuff.write('${toSigned(operands[0].value)}');
+    Z.sbuff.write('${MathHelper.toSigned(operands[0].value)}');
   }
 
   void print_ret() {
@@ -912,7 +884,7 @@ class Engine with Loggable {
 
     final operand = visitOperandsShortForm();
 
-    final offset = toSigned(operand.value) - 2;
+    final offset = MathHelper.toSigned(operand.value) - 2;
 
     PC += offset;
 
@@ -1000,7 +972,7 @@ class Engine with Loggable {
 
     final resultTo = readb();
 
-    final result = toSigned(operands[0].value) - toSigned(operands[1].value);
+    final result = MathHelper.toSigned(operands[0].value) - MathHelper.toSigned(operands[1].value);
     //Debugger.verbose('    >>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
     writeVariable(resultTo, result);
   }
@@ -1014,7 +986,7 @@ class Engine with Loggable {
 
     final resultTo = readb();
 
-    final result = toSigned(operands[0].value) + toSigned(operands[1].value);
+    final result = MathHelper.toSigned(operands[0].value) + MathHelper.toSigned(operands[1].value);
 
     //Debugger.verbose('    >>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1030,7 +1002,7 @@ class Engine with Loggable {
 
     final resultTo = readb();
 
-    final result = toSigned(operands[0].value) * toSigned(operands[1].value);
+    final result = MathHelper.toSigned(operands[0].value) * MathHelper.toSigned(operands[1].value);
 
     //Debugger.verbose('    >>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1049,7 +1021,7 @@ class Engine with Loggable {
     assert(operands[1].value != 0);
 
     // final result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
-    final result = toSigned(operands[0].value) ~/ toSigned(operands[1].value);
+    final result = MathHelper.toSigned(operands[0].value) ~/ MathHelper.toSigned(operands[1].value);
 
     //Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1078,8 +1050,8 @@ class Engine with Loggable {
 
     assert(operands[1].peekValue != 0);
 
-    final x = toSigned(operands[0].value);
-    final y = toSigned(operands[1].value);
+    final x = MathHelper.toSigned(operands[0].value);
+    final y = MathHelper.toSigned(operands[1].value);
 
     final result = doMod(x, y);
 
@@ -1183,7 +1155,7 @@ class Engine with Loggable {
 
     final resultTo = readb();
 
-    final addr = operands[0].value + Engine.toSigned(operands[1].value);
+    final addr = operands[0].value + MathHelper.toSigned(operands[1].value);
 
     //Debugger.todo();
     writeVariable(resultTo, mem.loadb(addr));
@@ -1200,7 +1172,7 @@ class Engine with Loggable {
 
     final resultTo = readb();
 
-    final addr = operands[0].value + 2 * Engine.toSigned(operands[1].value);
+    final addr = operands[0].value + 2 * MathHelper.toSigned(operands[1].value);
 
 //    assert(addr <= mem.highMemAddress);
 
@@ -1215,7 +1187,7 @@ class Engine with Loggable {
 
     assert(operands.length == 3);
 
-    final addr = operands[0].value + Engine.toSigned(operands[1].value);
+    final addr = operands[0].value + MathHelper.toSigned(operands[1].value);
 //
 //    assert(operands[2].value <= 0xff);
 
@@ -1231,7 +1203,7 @@ class Engine with Loggable {
     final operands = visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    final addr = operands[0].value + 2 * Engine.toSigned(operands[1].value);
+    final addr = operands[0].value + 2 * MathHelper.toSigned(operands[1].value);
 
     assert(addr <= mem.highMemAddress);
 
@@ -1332,6 +1304,10 @@ class Engine with Loggable {
     mem.storeb(Header.SCREEN_HEIGHT, 255);
     mem.storeb(Header.SCREEN_WIDTH, 80);
 
+    // Using interpreter standard version 1.1
+    mem.storeb(Header.REVISION_NUMBER_N, 1);
+    mem.storeb(Header.REVISION_NUMBER_M, 1);
+
     //initialize the game dictionary
     mem.dictionary = Dictionary(address: mem.dictionaryAddress);
 
@@ -1344,12 +1320,23 @@ class Engine with Loggable {
   /// Reads 1 byte from the current program counter
   /// address and advances the program counter [PC] to the next
   /// unread address.
+  /// 
+  /// ### Equivalancy:
+  /// ```
+  /// final result = this.mem.loadb(PC);
+  /// PC++;
+  /// ```
   int readb() => mem.loadb(PC++);
 
-  /** Reads 1 word from the current program counter
-  * address and advances the program counter [PC] to the next
-  * unread address.
-  */
+  /// Reads 1 word from the current program counter
+  /// address and advances the program counter [PC] to the next
+  /// unread address.
+  /// 
+  /// ### Equivalency:
+  /// ```
+  /// final result = this.mem.loadw(PC);
+  /// PC += 2;
+  /// ```
   int readw() {
     final word = mem.loadw(PC);
     PC += 2;
@@ -1387,6 +1374,8 @@ class Engine with Loggable {
   /// Writes [value] to [varNum] either global or local.
   void writeVariable(int varNum, int value) {
     assert(varNum >= 0 && varNum <= 0xff);
+    if (varNum < 0 || varNum > 0xff)
+      log.warning("writeVariable expected range >= 0 and <=${0xff}, but got $varNum");
 
     if (varNum > 0x0f) {
       mem.writeGlobal(varNum, value);
@@ -1418,7 +1407,10 @@ class Engine with Loggable {
 
   Engine()
       : stack = Stack(),
-        callStack = Stack.max(1024) {
+        // stack max  used to be 1024 for older games.
+        // newer games required much larger sometimes.
+        // 6.3.3.
+        callStack = Stack.max(61440) {
     logName = "Engine";
     r = DRandom.withSeed(DateTime.now().millisecond);
     ops = {

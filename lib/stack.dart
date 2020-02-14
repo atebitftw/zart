@@ -1,5 +1,6 @@
 import 'package:zart/engines/engine.dart';
 import 'package:zart/game_exception.dart';
+import 'package:zart/math_helper.dart';
 
 /// Z-Machine Stack
 class Stack {
@@ -18,8 +19,8 @@ class Stack {
     stack = List<int>();
 
   int pop() {
-    var v = stack[0];
-    stack.removeRange(0, 1);
+    final v = stack[0];
+    stack.removeAt(0);
 
     //no Dart negative values should exist here
     //except the special stack-end flag 0x-10000
@@ -29,7 +30,7 @@ class Stack {
   }
 
   int operator [](int index){
-    var v = stack[index];
+    final v = stack[index];
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
@@ -41,7 +42,7 @@ class Stack {
   void operator []=(int index, int value){
 
     if (value < 0 && value != Engine.STACK_MARKER){
-      value = Engine.dartSignedIntTo16BitSigned(value);
+      value = MathHelper.dartSignedIntTo16BitSigned(value);
     }
 
     stack[index] = value;
@@ -60,15 +61,14 @@ class Stack {
 
     //excluding the stack boundary flag
     if (value < 0 && value != Engine.STACK_MARKER){
-      value = Engine.dartSignedIntTo16BitSigned(value);
+      value = MathHelper.dartSignedIntTo16BitSigned(value);
     }
 
-    // stack.insertRange(0, 1, value);
     stack.insert(0, value);
   }
 
   int peek(){
-    var v = stack[0];
+    final v = stack[0];
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
@@ -87,7 +87,7 @@ class Stack {
   }
 
   String toString(){
-    var mapped = stack.map((s) => '0x${s.toRadixString(16)}');
+    final mapped = stack.map((s) => '0x${s.toRadixString(16)}');
     return '$mapped';
   }
 

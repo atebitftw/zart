@@ -72,7 +72,9 @@ class Header {
 
   static final int TOTAL_PIXEL_WIDTH = 0x30;
 
-  static final int REVISION_NUMBER = 0x32;
+  static final int REVISION_NUMBER_N = 0x32;
+
+  static final int REVISION_NUMBER_M = 0x33;
 
   static final int ALPHABET_TABLE = 0x34;
 

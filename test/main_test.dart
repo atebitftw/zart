@@ -7,6 +7,7 @@ import 'package:zart/debugger.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/header.dart';
 import 'package:zart/engines/engine.dart';
+import 'package:zart/math_helper.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';

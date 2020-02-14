@@ -43,7 +43,11 @@ Here are some links to some popular games:
 * Infidel: https://www.myabandonware.com/game/infidel-2d
 
 ## How Do I Play Games With This Library
-You would have to write your own client which would manage the i/o between the player and the interpreter.  I will be publishing a web app soon that will use this library to play games.
+You would have to write your own client which would manage the i/o between the player and the interpreter.
+
+I have started working on a web based player, which is still in very early stages: https://prujohn.github.io/zart/#/
+
+I will be open-sourcing the code for it soon.
 
 ## Next Steps ##
 * Bug fixes, optimization, enhancements to some op codes.

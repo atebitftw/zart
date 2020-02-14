@@ -5,6 +5,7 @@ import 'package:zart/game_exception.dart';
 import 'package:zart/engines/engine.dart';
 import 'package:zart/engines/version_3.dart';
 import 'package:zart/header.dart';
+import 'package:zart/math_helper.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
@@ -167,7 +168,8 @@ class Version5 extends Version4 {
     var operands = visitOperandsVar(4, true);
 
     if (operands.length > 2) {
-      Debugger.todo('implement tokenise');
+      throw GameException(
+          "tokenise dictionary argument is not yet support in v5+");
     }
 
     var maxBytes = mem.loadb(operands[0].value);
@@ -233,14 +235,14 @@ class Version5 extends Version4 {
 
     var operands = visitOperandsVar(2, true);
 
-    var stream = Engine.toSigned(operands[0].value);
+    var stream = MathHelper.toSigned(operands[0].value);
 
     switch (stream.abs()) {
       case 1:
-        outputStream1 = stream < 0 ? false : true;
+        outputStream1 = !(stream < 0);
         break;
       case 2:
-        outputStream2 = stream < 0 ? false : true;
+        outputStream2 = !(stream < 0);
         break;
       case 3:
         if (stream < 0) {
@@ -278,7 +280,7 @@ class Version5 extends Version4 {
         }
         break;
       case 4:
-        outputStream3 = stream < 0 ? false : true;
+        outputStream3 = !(stream < 0);
         break;
     }
   }
@@ -378,7 +380,7 @@ class Version5 extends Version4 {
 // moves to the next line). If it was interrupted, the cursor is left at the rightmost end of the text typed in so far.
 
 // Next, lexical analysis is performed on the text (except that in Versions 5 and later, if parse-buffer is zero then this is omitted).
-// Initially, byte 0 of the parse-buffer should hold the maximum number of textual words which can be parsed. (If this is n, the buffer 
+// Initially, byte 0 of the parse-buffer should hold the maximum number of textual words which can be parsed. (If this is n, the buffer
 // must be at least 2 + 4*n bytes long to hold the results of the analysis.)
 
 // The interpreter divides the text into words and looks them up in the dictionary, as described in S 13. The number of words is written in byte 1
@@ -389,7 +391,7 @@ class Version5 extends Version4 {
 // In Version 5 and later, this is a store instruction: the return value is the terminating character (note that the user pressing his
 // "enter" key may cause either 10 or 13 to be returned; the interpreter must return 13). A timed-out input returns 0.
 
-// (Versions 1 and 2 and early Version 3 games mistakenly write the parse buffer length 240 into byte 0 of the parse buffer: 
+// (Versions 1 and 2 and early Version 3 games mistakenly write the parse buffer length 240 into byte 0 of the parse buffer:
 // later games fix this bug and write 59, because 2+4*59 = 238 so that 59 is the maximum number of textual words which can
 // be parsed into a buffer of length 240 bytes. Old versions of the Inform 5 library commit the same error. Neither mistake has very serious consequences.)
 
@@ -402,33 +404,31 @@ class Version5 extends Version4 {
 
     Z.inInterrupt = true;
 
-    //only ver 1-3 does this
-    //sendStatus();
-
     Z.printBuffer();
 
-    var operands = visitOperandsVar(4, true);
+    final operands = visitOperandsVar(4, true);
 
-    var storeTo = readb();
+    final storeTo = readb();
 
     if (operands.length > 2) {
       //TODO implement aread optional args
 
       log.warning('implement aread optional args');
-      throw GameException("Sorry :( This interpreter doesn't support a required feature of this game.");
+      throw GameException(
+          "Sorry :( This interpreter doesn't support a required feature of this game.");
     }
 
-    var maxBytes = mem.loadb(operands[0].value);
+    int maxBytes = mem.loadb(operands[0].value);
 
-    var textBuffer = operands[0].value + 2;
+    int textBuffer = operands[0].value + 2;
 
-    var maxWords;
-    num parseBuffer;
+    int maxWords;
+    int parseBuffer;
 
     // if (operands.length > 2) {
-      maxWords = mem.loadb(operands[1].value);
+    maxWords = mem.loadb(operands[1].value);
 
-      parseBuffer = operands[1].value + 1;
+    parseBuffer = operands[1].value + 1;
     // }
 
     void processLine(String line) async {
@@ -606,7 +606,7 @@ class Version5 extends Version4 {
 
     var operands = visitOperandsVar(8, true);
 
-    var resultStore = Engine.STACK_MARKER;
+    // var resultStore = Engine.STACK_MARKER;
 
     var returnAddr = PC;
 
@@ -614,8 +614,8 @@ class Version5 extends Version4 {
 
     if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
-
-      writeVariable(resultStore, Engine.FALSE);
+      log.fine("call_vn got a zero address but is skipping store");
+      //writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
@@ -630,27 +630,29 @@ class Version5 extends Version4 {
       visitRoutine(operands.map<int>((o) => o.value).toList());
 
       //push the result store address onto the call stack
-      callStack.push(resultStore);
+      callStack.push(Engine.STACK_MARKER);
 
       //push the return address onto the call stack
       callStack.push(returnAddr);
     }
   }
 
+  // like callVS, but throws away results
   void call_vn() {
     //Debugger.verbose('${pcHex(-1)} [call_vn]');
 
     var operands = visitOperandsVar(4, true);
 
-    var resultStore = Engine.STACK_MARKER;
+    //
+    // var resultStore = Engine.STACK_MARKER;
     var returnAddr = PC;
 
     assert(operands.length > 0);
 
     if (operands[0].value == 0) {
-      //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
+      log.fine("call_vn got a zero address but is skipping store");
 
-      writeVariable(resultStore, Engine.FALSE);
+      //writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
       operands[0].rawValue = unpack(operands[0].value);
@@ -663,8 +665,8 @@ class Version5 extends Version4 {
       //setup the routine stack frame and locals
       visitRoutine(operands.map<int>((o) => o.value).toList());
 
-      //push the result store address onto the call stack
-      callStack.push(resultStore);
+      // "Lick call but throws away the result"
+      callStack.push(Engine.STACK_MARKER);
 
       //push the return address onto the call stack
       callStack.push(returnAddr);
@@ -802,9 +804,10 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
-  //Version 5+ supports call routines that throw
-  //away return results.  Machine.STACK_MARKER is used
-  //in the resultTo byte in order to mark this case.
+  // Version 5+ supports call routines that throw
+  // away return results.  Machine.STACK_MARKER is used
+  // in the resultTo byte in order to mark this case.
+  @override
   void doReturn(var result) {
     // return address
     PC = callStack.pop();
@@ -828,6 +831,7 @@ class Version5 extends Version4 {
     writeVariable(resultAddrByte, result);
   }
 
+  @override
   List<Operand> visitOperandsVar(int howMany, bool isVariable) {
     var operands = List<Operand>();
 
