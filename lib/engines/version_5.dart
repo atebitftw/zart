@@ -180,7 +180,7 @@ class Version5 extends Version4 {
 
     var parseBuffer = operands[1].value + 1;
 
-    var line = Z.mostRecentInput;
+    var line = Z.mostRecentInput.toLowerCase();
 
     //Debugger.verbose('    (processing: "$line")');
 
@@ -193,7 +193,9 @@ class Version5 extends Version4 {
     }
 
     if (line.length > maxBytes - 1) {
-      line = line.substring(0, maxBytes - 2);
+      final newLine = line.substring(0, maxBytes - 2);
+      log.warning("text buffer truncated:  $line to $newLine");
+      line = newLine;
       //Debugger.verbose('    (text buffer truncated to "$line")');
     }
 
@@ -217,8 +219,6 @@ class Version5 extends Version4 {
     //Debugger.verbose('    (tokenized: $tokens)');
 
     var parsed = Z.engine.mem.dictionary.parse(tokens, line);
-    //Debugger.debug('$tokens $charCount');
-    //Debugger.debug('$parsed');
 
     var maxParseBufferBytes = (4 * maxWords) + 2;
 
@@ -445,6 +445,7 @@ class Version5 extends Version4 {
 
       if (line.length > maxBytes - 1) {
         line = line.substring(0, maxBytes - 2);
+        log.warning("Truncated line in v5 read(): $line");
         //Debugger.verbose('    (text buffer truncated to "$line")');
       }
 
@@ -467,6 +468,8 @@ class Version5 extends Version4 {
       //Debugger.debug('${Z.machine.mem.dump(tbTotalAddr - 1, line.length + 2)}');
 
       var tokens = Z.engine.mem.dictionary.tokenize(line);
+
+      log.warning("got tokens $tokens in v5 read()");
 
       if (maxWords == null) {
         log.warning("z5 read() maxWords == null");

@@ -1,28 +1,14 @@
 import 'package:zart/binary_helper.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/header.dart';
+import 'package:zart/z_char.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/mixins/loggable.dart';
 
 typedef String ZStringReader(int fromAddress, [bool abbreviationLookup]);
 
-class ZChar {
-  final bool terminatorSet;
-  final int z1;
-  final int z2;
-  final int z3;
 
-  ZChar(int word)
-      : terminatorSet = ((word >> 15) & 1) == 1,
-        z3 = BinaryHelper.bottomBits(word, 5),
-        z2 = BinaryHelper.bottomBits(word >> 5, 5),
-        z1 = BinaryHelper.bottomBits(word >> 10, 5) {
-    // print('${word.toRadixString(2)}');
-  }
-
-  List<int> toCollection() => [z1, z2, z3];
-}
 
 //ref 3.2.2
 const Char2AlphabetShift = const <int, int>{
@@ -387,7 +373,7 @@ class ZSCII with Loggable {
       } else {
         var alternateTable = Z.engine.mem.loadw(Header.ALPHABET_TABLE);
 
-        if (ZMachine.verToInt(Z.engine.version) >= 5 && alternateTable > 0) {
+        if (alternateTable > 0) {
           throw GameException(
               "oops need to implement alternate ZSCII table lookup here");
         } else {

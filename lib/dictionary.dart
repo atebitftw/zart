@@ -71,7 +71,7 @@ class Dictionary with Loggable {
 
       if (word.length > entryLength) {
         word = word.substring(0, entryLength);
-        log.fine("Truncating word $t to $word.");
+        log.warning("parse() is truncating word $t to $word.");
       }
 
       var idx = entries.indexOf(word);
@@ -83,8 +83,7 @@ class Dictionary with Loggable {
         parseTable.add((addr >> 8) & 0xff);
         parseTable.add(addr & 0xff);
 
-        //word length
-        parseTable.add(word.length);
+        parseTable.add(t.length);
       } else {
         log.warning(
             '(word: ${t} not found in dictionary ${entries.where((e) => e.startsWith(t[0])).toList()})');
@@ -92,7 +91,7 @@ class Dictionary with Loggable {
         //log.warning('(word: ${t} not found in dictionary ${entries})');
         parseTable.add(0);
         parseTable.add(0);
-        parseTable.add(word.length);
+        parseTable.add(t.length);
       }
 
       //location in text buffer
