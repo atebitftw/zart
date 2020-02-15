@@ -400,7 +400,6 @@ class Version5 extends Version4 {
 
   @override
   void read() async {
-    //Debugger.verbose('${pcHex(-1)} [aread]');
 
     Z.inInterrupt = true;
 
@@ -412,10 +411,9 @@ class Version5 extends Version4 {
 
     if (operands.length > 2) {
       //TODO implement aread optional args
-
       log.warning('implement aread optional args');
       throw GameException(
-          "Sorry :( This interpreter doesn't support a required feature of this game.");
+          "Sorry :( This interpreter doesn't yet support a required feature of this game.");
     }
 
     int maxBytes = mem.loadb(operands[0].value);
@@ -435,8 +433,6 @@ class Version5 extends Version4 {
       line = line.trim().toLowerCase();
       Z.mostRecentInput = line;
 
-      //Debugger.verbose('    (processing: "$line")');
-
       var charCount = mem.loadb(textBuffer - 1);
       if (charCount > 0) {
         //continuation of previous input
@@ -446,7 +442,6 @@ class Version5 extends Version4 {
       if (line.length > maxBytes - 1) {
         line = line.substring(0, maxBytes - 2);
         log.warning("Truncated line in v5 read(): $line");
-        //Debugger.verbose('    (text buffer truncated to "$line")');
       }
 
       var tbTotalAddr = textBuffer - 1;
@@ -465,14 +460,12 @@ class Version5 extends Version4 {
         mem.storeb(textBuffer++, c);
       }
 
-      //Debugger.debug('${Z.machine.mem.dump(tbTotalAddr - 1, line.length + 2)}');
-
       var tokens = Z.engine.mem.dictionary.tokenize(line);
 
-      log.warning("got tokens $tokens in v5 read()");
+      log.fine("got tokens $tokens in v5 read()");
 
       if (maxWords == null) {
-        log.warning("z5 read() maxWords == null");
+        log.fine("z5 read() maxWords == null");
         //second parameter was not passed, so
         // we are not going to write to the parse
         // buffer (etude.z5 does .. )

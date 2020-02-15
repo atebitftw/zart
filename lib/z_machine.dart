@@ -219,8 +219,6 @@ class ZMachine with Loggable {
     engine.stack.clear();
     engine.callStack.clear();
     memoryStreams.clear();
-    engine.mem = null;
-
     engine.mem = MemoryMap(rawBytes);
     engine.visitHeader();
   }

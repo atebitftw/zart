@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:zart/IO/iff.dart';
 
 /// Detects and loads Z game file component, if present.
@@ -21,7 +23,7 @@ class Blorb {
   /// Attempts to extract the Z-Machine game file data from the Blorb
   /// file bytes in [fileBytes].  If the file is not a Blorb type, then the 
   /// original bytes are returned (assumes it's a valid compiled ZIL file.)
-  static List<int> getZData(List fileBytes){
+  static Uint8List getZData(Uint8List fileBytes){
     var rawBytes = fileBytes;
 
     if (!isBlorb(List.from(fileBytes.getRange(0, 12)))) return fileBytes;

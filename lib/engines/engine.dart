@@ -687,9 +687,8 @@ class Engine with Loggable {
 
     Z.softReset();
 
-    final obj = GameObject(4);
-
-    assert(obj.child == 0);
+    // main routine only
+    PC--;
 
     // visit the main 'routine'
     visitRoutine([]);
@@ -699,8 +698,13 @@ class Engine with Loggable {
 
     //push dummy return address onto the call stack
     callStack.push(0);
-
-    Z.callAsync(Z.runIt);
+    
+    if (Z.inBreak) {
+      Z.callAsync(Debugger.startBreak);
+    } else {
+      log.finest("run() callAsync(runIt)");
+      Z.callAsync(Z.runIt);
+    }
   }
 
   void jl() {

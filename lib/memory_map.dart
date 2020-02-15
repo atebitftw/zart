@@ -4,11 +4,15 @@ import 'package:zart/engines/engine.dart';
 import 'package:zart/math_helper.dart';
 
 class MemoryMap {
+  
+  MemoryMap(List<int> bytes){
+    memList.addAll(bytes);
+  }
 
   // A word address specifies an even address in the bottom 128K of memory
   // (by giving the address divided by 2). (Word addresses are used only in the abbreviations table.)
 
-  final List<int> memList; //each element in the array represents a byte of z-machine memory.
+  final List<int> memList = List<int>(); //each element in the array represents a byte of z-machine memory.
 
   // memory map address offsets
   int abbrAddress;
@@ -20,21 +24,20 @@ class MemoryMap {
   int programStart;
   Dictionary dictionary;
 
-  MemoryMap(List bytes)
-    : memList = List.from(bytes);
 
 
-  // Reads a global variable (word)
-  int readGlobal(int which){
+
+  /// Reads a global variable as a 2-byte word at [globalVarAddress] and returns it.
+  int readGlobal(int globalVarAddress){
 
    //if (which == 0) return Z.stack.pop();
 
-   if (which < 0x10 || which > 0xff) {
+   if (globalVarAddress < 0x10 || globalVarAddress > 0xff) {
      throw GameException('Global lookup register out of range.');
    }
 
    //global 0x00 means pop from stack
-   return loadw(globalVarsAddress + ((which - 0x10) * 2));
+   return loadw(globalVarsAddress + ((globalVarAddress - 0x10) * 2));
   }
 
   // Writes a global variable (word)
@@ -115,13 +118,13 @@ class MemoryMap {
   void checkBounds(int address){
    assert(address != null);
 
-   if ((address == null) || (address < 0) || (address > memList.length - 1)){
+  //  if ((address == null) || (address < 0) || (address > memList.length - 1)){
 
-    // Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
+  //   // Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
 
-     throw GameException('Attempted access to memory address'
-       ' that is out of bounds: $address (hex: 0x${address.toRadixString(16)}).  Max memory is: ${memList.length}');
-   }
+  //    throw GameException('Attempted access to memory address'
+  //      ' that is out of bounds: $address (hex: 0x${address.toRadixString(16)}).  Max memory is: ${memList.length}');
+  //  }
   }
 
   String dump(int address, int howMany){
