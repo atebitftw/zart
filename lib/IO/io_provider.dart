@@ -3,43 +3,40 @@ abstract class IOProvider {
   Future<dynamic> command(Map<String, dynamic> commandMessage);
 }
 
-IOCommands toIOCommand(String cmd){
-  switch(cmd){
-    case "IOCommands.PRINT": return IOCommands.PRINT;
-    case "IOCommands.STATUS": return IOCommands.STATUS;
-    case "IOCommands.CLEAR_SCREEN": return IOCommands.CLEAR_SCREEN;
-    case "IOCommands.SPLIT_SCREEN": return IOCommands.SPLIT_SCREEN;
-    case "IOCommands.SET_WINDOW": return IOCommands.SET_WINDOW;
-    case "IOCommands.SET_FONT": return IOCommands.SET_FONT;
-    case "IOCommands.SAVE": return IOCommands.SAVE;
-    case "IOCommands.RESTORE": return IOCommands.RESTORE;
-    case "IOCommands.READ": return IOCommands.READ;
-    case "IOCommands.READ_CHAR": return IOCommands.READ_CHAR;
-    case "IOCommands.QUIT": return IOCommands.QUIT;
-    case "IOCommands.PRINT_DEBUG": return IOCommands.PRINT_DEBUG;
-    case "IOCommands.ASYNC": return IOCommands.ASYNC;
-    case "IOCommands.SET_CURSOR": return IOCommands.SET_CURSOR;
+ioCommands toIOCommand(String cmd) {
+  switch (cmd) {
+    case "IOCommands.PRINT":
+      return ioCommands.print;
+    case "IOCommands.STATUS":
+      return ioCommands.status;
+    case "IOCommands.CLEAR_SCREEN":
+      return ioCommands.clearScreen;
+    case "IOCommands.SPLIT_SCREEN":
+      return ioCommands.splitScreen;
+    case "IOCommands.SET_WINDOW":
+      return ioCommands.setWindow;
+    case "IOCommands.SET_FONT":
+      return ioCommands.setFont;
+    case "IOCommands.SAVE":
+      return ioCommands.save;
+    case "IOCommands.RESTORE":
+      return ioCommands.restore;
+    case "IOCommands.READ":
+      return ioCommands.read;
+    case "IOCommands.READ_CHAR":
+      return ioCommands.readChar;
+    case "IOCommands.QUIT":
+      return ioCommands.quit;
+    case "IOCommands.PRINT_DEBUG":
+      return ioCommands.printDebug;
+    case "IOCommands.ASYNC":
+      return ioCommands.async;
+    case "IOCommands.SET_CURSOR":
+      return ioCommands.setCursor;
     default:
       throw Exception("IOCommand not recognized: $cmd");
   }
-
 }
 
 /// Enumerates IO Commands
-enum IOCommands{
-  PRINT,
-  STATUS,
-  CLEAR_SCREEN,
-  SPLIT_SCREEN,
-  SET_WINDOW,
-  SET_FONT,
-  SAVE,
-  RESTORE,
-  READ,
-  READ_CHAR,
-  QUIT,
-  PRINT_DEBUG,
-  ASYNC,
-  SET_CURSOR
-}
-
+enum ioCommands { print, status, clearScreen, splitScreen, setWindow, setFont, save, restore, read, readChar, quit, printDebug, async, setCursor }

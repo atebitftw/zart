@@ -8,7 +8,7 @@ void memoryTests(int version, int programCounterAddress){
     test(
         "Read word located at address Header.PC_INITIAL_VALUE_ADDR which should be the program counter starting address.",
         () {
-      expect(Z.engine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR),
+      expect(Z.engine.mem.loadw(Header.programCounterInitialValueAddr),
           equals(programCounterAddress));
     });
 
@@ -28,14 +28,14 @@ void memoryTests(int version, int programCounterAddress){
 
     test('Z.machine.mem.storew() correctly writes and reads an expected value.',
         () {
-      Z.engine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, 42420);
+      Z.engine.mem.storew(Header.programCounterInitialValueAddr, 42420);
 
-      expect(Z.engine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR), equals(42420));
+      expect(Z.engine.mem.loadw(Header.programCounterInitialValueAddr), equals(42420));
 
-      Z.engine.mem.storew(Header.PC_INITIAL_VALUE_ADDR, programCounterAddress);
+      Z.engine.mem.storew(Header.programCounterInitialValueAddr, programCounterAddress);
 
       // Restore address back to original state.
-      expect(Z.engine.mem.loadw(Header.PC_INITIAL_VALUE_ADDR),
+      expect(Z.engine.mem.loadw(Header.programCounterInitialValueAddr),
           equals(programCounterAddress));
     });
 

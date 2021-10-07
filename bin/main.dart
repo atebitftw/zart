@@ -1,6 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:zart/debugger.dart';
-import 'package:zart/utils.dart' as Utils;
+import 'package:zart/utils.dart' as utils;
 import 'package:zart/zart.dart';
 import 'dart:io';
 import 'dart:async';
@@ -9,18 +9,17 @@ import 'package:zart/IO/io_provider.dart';
 
 Logger log = Logger("main()");
 
-/**
-* Mock UI Provider for Unit Testing
-*/
+/// Mock UI Provider for Unit Testing
 class MockUIProvider implements IOProvider {
+  @override
   Future<dynamic> command(Map<String, dynamic> command) async {
     final cmd = command['command'];
-    print('Command received: $cmd ');
+    stdout.writeln('Command received: $cmd ');
     return;
   }
 }
 
-main([List<String> args]) {
+main([List<String>? args]) {
   initLogger(Level.WARNING);
 
   final s = Platform.pathSeparator;
@@ -39,14 +38,14 @@ main([List<String> args]) {
 
   Z.io = MockUIProvider();
 
-  print(Debugger.dumpHeader());
-  print(Utils.generateObjectTree());
+  stdout.writeln(Debugger.dumpHeader());
+  stdout.writeln(utils.generateObjectTree());
 }
 
 void initLogger(Level level) {
   Logger.root.level = level;
 
   Logger.root.onRecord.listen((LogRecord rec) {
-    print('(${rec.time}:)[${rec.loggerName}]${rec.level.name}: ${rec.message}');
+    stdout.writeln('(${rec.time}:)[${rec.loggerName}]${rec.level.name}: ${rec.message}');
   });
 }

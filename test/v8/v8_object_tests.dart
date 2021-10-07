@@ -7,20 +7,20 @@ import 'package:zart/game_object.dart';
 void objectTestsV8(){
   group('Objects>', (){
 
-    final SHIP = 63;
-    final DREAMBRIDGE = 60;
+    const ship = 63;
+    const dreamBridge = 60;
     //final PIRATES = 62;
-    final LADDER = 64;
+    const ladder = 64;
 
     test('remove', (){
 
-      var o1 = GameObject(SHIP);
+      var o1 = GameObject(ship);
 
       // check if we have the right object and
       // assumptions are correct.
       expect('ship', equals(o1.shortName));
-      expect(DREAMBRIDGE, equals(o1.parent));
-      expect(LADDER, equals(o1.sibling));
+      expect(dreamBridge, equals(o1.parent));
+      expect(ladder, equals(o1.sibling));
       expect(0, equals(o1.child));
 
       var ls = o1.leftSibling(); //PIRATES
@@ -29,26 +29,26 @@ void objectTestsV8(){
       o1.removeFromTree();
       //check that 2 is now the sibling of o1's
       //left sibling
-      expect(LADDER, equals(GameObject(ls).sibling));
+      expect(ladder, equals(GameObject(ls).sibling));
 
       expect(0, equals(o1.parent));
       expect(0, equals(o1.sibling));
     });
 
     test('insert', (){
-      var o1 = GameObject(SHIP); //ship
-      var p = GameObject(DREAMBRIDGE); //parent
+      var o1 = GameObject(ship); //ship
+      var p = GameObject(dreamBridge); //parent
       var oc = p.child;
 
       o1.insertTo(p.id);
       expect(p.id, equals(o1.parent));
 
-      expect(SHIP, equals(p.child));
+      expect(ship, equals(p.child));
       expect(oc, equals(o1.sibling));
     });
 
     test('get property length', (){
-      GameObject o1 = GameObject(SHIP); //ship
+      // GameObject o1 = GameObject(ship); //ship
 
       // Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(35) - 1));
       // Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(4) - 1));
@@ -57,7 +57,7 @@ void objectTestsV8(){
     });
 
     test('get property', (){
-      GameObject o1 = GameObject(SHIP);
+      GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
 
@@ -96,7 +96,7 @@ void objectTestsV8(){
 
 
     test('get next property', (){
-      GameObject o1 = GameObject(SHIP);
+      GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
 
@@ -115,7 +115,7 @@ void objectTestsV8(){
     });
 
     test('set property', (){
-      GameObject o1 = GameObject(SHIP);
+      GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
 
@@ -137,7 +137,7 @@ void objectTestsV8(){
     });
 
     test('attributes are set', (){
-      GameObject o1 = GameObject(SHIP);
+      //GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
 
@@ -156,7 +156,7 @@ void objectTestsV8(){
     });
 
     test ('unset attribute', (){
-      GameObject o1 = GameObject(SHIP);
+      GameObject o1 = GameObject(ship);
 
       // Expect.isTrue(o1.isFlagBitSet(17));
       // o1.unsetFlagBit(17);

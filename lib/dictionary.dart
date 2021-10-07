@@ -6,27 +6,27 @@ import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 
 class Dictionary with Loggable {
-  Dictionary({int address}) {
+  Dictionary({int? address}) {
     logName = "Dictionary";
 
     _initDictionary(address);
   }
 
   bool _isIntialized = false;
-  List<String> _entries;
+  List<String> _entries = <String>[];
 
   // List of input codes (or separators) found at
   // the header of the dictionary.
-  List<String> _separators;
+  List<String?> _separators = <String>[];
 
   // Contains the byte length of entries in the dictionary
-  int _entryLength;
+  late int _entryLength;
 
   // Starting address of this Dictionary in z memory.
-  int _address;
+  late int _address;
 
   // Starting address of the actual dictionary entries, after the header portion.
-  int _entriesStartAddress;
+  late int _entriesStartAddress;
 
   /// Gets a boolean indicated whether this Dictionary instance is initialized.
   /// Dictionary objects should never be initialized more than once.
@@ -45,9 +45,9 @@ class Dictionary with Loggable {
   /// ### Specification Reference
   /// 13.3
   int get entryBytes {
-    if (Z.engine.version == ZVersion.V1 ||
-        Z.engine.version == ZVersion.V2 ||
-        Z.engine.version == ZVersion.V3) {
+    if (Z.engine.version == zMachineVersions.v1 ||
+        Z.engine.version == zMachineVersions.v2 ||
+        Z.engine.version == zMachineVersions.v3) {
       return 4;
     } else {
       return 6;
@@ -59,10 +59,10 @@ class Dictionary with Loggable {
   // in V5+ the first two bytes of the text buffer are reserved
   // the actual text comes after the reserved bytes
   int get textBufferOffset {
-        if (Z.engine.version == ZVersion.V1 ||
-        Z.engine.version == ZVersion.V2 ||
-        Z.engine.version == ZVersion.V3 ||
-        Z.engine.version == ZVersion.V4) {
+        if (Z.engine.version == zMachineVersions.v1 ||
+        Z.engine.version == zMachineVersions.v2 ||
+        Z.engine.version == zMachineVersions.v3 ||
+        Z.engine.version == zMachineVersions.v4) {
       return 1;
     } else {
       return 2;
@@ -79,9 +79,9 @@ class Dictionary with Loggable {
   /// ### Specification Reference
   /// 13.3
   int get entryCharacterLimit {
-    if (Z.engine.version == ZVersion.V1 ||
-        Z.engine.version == ZVersion.V2 ||
-        Z.engine.version == ZVersion.V3) {
+    if (Z.engine.version == zMachineVersions.v1 ||
+        Z.engine.version == zMachineVersions.v2 ||
+        Z.engine.version == zMachineVersions.v3) {
       return 6;
     } else {
       return 9;
@@ -92,20 +92,20 @@ class Dictionary with Loggable {
   void _initSeparators() {
     // Ref 13.1 & 13.2
     final totalInputCodeBytes = Z.engine.mem.loadb(_address);
-    _separators = List<String>(totalInputCodeBytes);
+    _separators = List<String?>.filled(totalInputCodeBytes, null, growable: false);
 
     for (int i = 1; i <= totalInputCodeBytes; i++) {
-      _separators[i-1] = ZSCII.ZCharToChar(Z.engine.mem.loadb(_address + i));
+      _separators[i-1] = ZSCII.zCharToChar(Z.engine.mem.loadb(_address + i));
     }
   }
 
   // Initializes the offset address of the dictionary in z memory.
-  void _initDictionaryAddress(int address) {
+  void _initDictionaryAddress(int? address) {
     if (address != null) {
       //custom dictionary
       _address = address;
     } else {
-      _address = Z.engine.mem.loadw(Header.DICTIONARY_ADDR);
+      _address = Z.engine.mem.loadw(Header.dictionaryAddr);
     }
   }
 
@@ -118,7 +118,7 @@ class Dictionary with Loggable {
     }
 
     _entries =
-        List<String>(Z.engine.mem.loadw(_address + _separators.length + 2));
+        ["${Z.engine.mem.loadw(_address + _separators.length + 2)}"];
 
     _entriesStartAddress = _address + _separators.length + 4;
 
@@ -129,7 +129,7 @@ class Dictionary with Loggable {
   }
 
   // Initializes ths Dictionary
-  void _initDictionary(int address) {
+  void _initDictionary(int? address) {
     if (_isIntialized) {
       throw GameException("Dictionary already initialized for this game!");
     }
@@ -156,7 +156,7 @@ class Dictionary with Loggable {
   List<int> parse(List<String> tokenizedWords, String inputTextbuffer) {
     log.fine("parse() Got line: $inputTextbuffer with tokens: $tokenizedWords");
 
-    final parseTable = List<int>();
+    final parseTable = <int>[];
 
     // Total tokenized words is byte 1 of the parse table.
     parseTable.add(tokenizedWords.length);
@@ -186,7 +186,7 @@ class Dictionary with Loggable {
       if (wordMatchIndex != -1) {
         final addr = _wordAddress(wordMatchIndex);
         log.fine(
-            'parse() (found word: "${tokenizedWord} ($searchWord)" in dictionary as "${_entries[wordMatchIndex]}"'
+            'parse() (found word: "$tokenizedWord ($searchWord)" in dictionary as "${_entries[wordMatchIndex]}"'
             ' at address 0x${addr.toRadixString(16)}) ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()}');
         
         // byte address of the word in the dictionary
@@ -197,7 +197,7 @@ class Dictionary with Loggable {
         parseTable.add(tokenizedWord.length);
       } else {
         log.fine(
-            'parse() (word: ${tokenizedWord} ($searchWord) not found in dictionary'
+            'parse() (word: $tokenizedWord ($searchWord) not found in dictionary'
             ' ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()})');
         log.fine(
             "parse() entryLength: $_entryLength, word length: ${searchWord.length}");
@@ -230,7 +230,7 @@ class Dictionary with Loggable {
 
   /// Returns a list of words from [line] that is separated by space or game defined separators.
   List<String> tokenize(String line) {
-    final tokens = List<String>();
+    final tokens = <String>[];
     final s = StringBuffer();
 
     for (int i = 0; i < line.length; i++) {
@@ -243,7 +243,7 @@ class Dictionary with Loggable {
       if (c == ' ' && s.length > 0) {
         tokens.add(s.toString().trim());
         s.clear();
-      } else if (Z.engine.mem.dictionary._separators.indexOf(c) != -1) {
+      } else if (Z.engine.mem.dictionary._separators.contains(c)) {
         if (s.length > 0) {
           tokens.add(s.toString().trim());
           s.clear();
@@ -267,7 +267,7 @@ class Dictionary with Loggable {
     var s = StringBuffer();
 
     s.write('entries: ${_entries.length}\n');
-    s.write('separators: ${_separators}\n');
+    s.write('separators: $_separators\n');
     s.write('word size: $_entryLength \n');
     s.write('$_entries \n');
     return s.toString();

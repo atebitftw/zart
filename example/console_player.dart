@@ -21,8 +21,7 @@ void main(List<String> args) {
   initializeLogger(Level.INFO);
   final log = Logger("main()");
 
-  var defaultGameFile =
-      'assets${Platform.pathSeparator}games${Platform.pathSeparator}minizork.z3';
+  var defaultGameFile = 'assets${Platform.pathSeparator}games${Platform.pathSeparator}minizork.z3';
 
   final f = (args.isEmpty) ? File(defaultGameFile) : File(args.first);
 
@@ -79,45 +78,42 @@ class ConsoleProvider with Loggable implements IOProvider {
 
   @override
   Future<dynamic> command(Map<String, dynamic> command) async {
-
     final cmd = command['command'];
 
     switch (cmd) {
       //print('msg received>>> $cmd');    switch(cmd){
-      case IOCommands.PRINT:
+      case ioCommands.print:
         output(command['window'], command['buffer']);
         return null;
-      case IOCommands.STATUS:
+      case ioCommands.status:
         //TODO format for timed game type as well
-        print("${command['room_name'].toUpperCase()} Score: ${command['score_one']} / ${command['score_two']}\n");
+        stdout.writeln("${command['room_name'].toUpperCase()} Score: ${command['score_one']} / ${command['score_two']}\n");
         return null;
-      case IOCommands.READ:
+      case ioCommands.read:
         final line = await getLine();
         return line;
-      case IOCommands.READ_CHAR:
+      case ioCommands.readChar:
         final char = await getChar();
         return char;
-      case IOCommands.SAVE:
-        final result =
-            await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
+      case ioCommands.save:
+        final result = await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
         return result;
-      case IOCommands.CLEAR_SCREEN:
+      case ioCommands.clearScreen:
         //no clear console api, so
         //we just print a bunch of lines
         for (int i = 0; i < 50; i++) {
-          print('');
+          stdout.writeln('');
         }
         return null;
-      case IOCommands.RESTORE:
+      case ioCommands.restore:
         final result = await restore();
         return result;
-      case IOCommands.PRINT_DEBUG:
+      case ioCommands.printDebug:
         debugOutput(command['message']);
         return null;
-      case IOCommands.QUIT:
-        print('Zart: Game Over!');
+      case ioCommands.quit:
+        stdout.writeln('Zart: Game Over!');
         exit(0);
-        return null;
       default:
         log.warning("IO Command not recognized: $cmd");
         //print('Zart: ${cmd}');
@@ -125,54 +121,54 @@ class ConsoleProvider with Loggable implements IOProvider {
     }
   }
 
-  Future<bool> saveGame(List<int> saveBytes) {
+  Future<bool> saveGame(List<int>? saveBytes) {
     var c = Completer();
-    print('(Caution: will overwrite existing file!)');
-    print('Enter file name to save to (no extension):');
+    stdout.writeln('(Caution: will overwrite existing file!)');
+    stdout.writeln('Enter file name to save to (no extension):');
 
-    String fn = stdin.readLineSync();
+    String? fn = stdin.readLineSync();
     if (fn == null || fn.isEmpty) {
-      print('Invalid file name given.');
+      stdout.writeln('Invalid file name given.');
       c.complete(false);
     } else {
       try {
-        print('Saving game "${fn}.sav".  Use "restore" to restore it.');
-        File f2 = File('games${Platform.pathSeparator}${fn}.sav');
-        f2.writeAsBytesSync(saveBytes);
+        stdout.writeln('Saving game "$fn.sav".  Use "restore" to restore it.');
+        File f2 = File('games${Platform.pathSeparator}$fn.sav');
+        f2.writeAsBytesSync(saveBytes!);
         c.complete(true);
       } on Exception catch (_) {
-        print('File IO error.');
+        stderr.writeln('File IO error.');
         c.complete(false);
       }
     }
 
-    return c.future;
+    return c.future.then((value) => value as bool);
   }
 
   Future<List<int>> restore() {
     var c = Completer();
-    print('Enter game file name to load (no extension):');
+    stdout.writeln('Enter game file name to load (no extension):');
 
-    String fn = stdin.readLineSync();
+    String? fn = stdin.readLineSync();
 
     if (fn == null || fn.isEmpty) {
-      print('Invalid file name given.');
+      stdout.writeln('Invalid file name given.');
       c.complete(null);
     } else {
       try {
-        print('Restoring game "${fn}.sav"...');
-        File f2 = File('games${Platform.pathSeparator}${fn}.sav');
+        stdout.writeln('Restoring game "$fn.sav"...');
+        File f2 = File('games${Platform.pathSeparator}$fn.sav');
         c.complete(f2.readAsBytesSync());
       } on Exception catch (_) {
-        print('File IO error.');
+        stderr.writeln('File IO error.');
         c.complete(null);
       }
     }
 
-    return c.future;
+    return c.future.then((value) => value as List<int>);
   }
 
-  void output(int windowID, String text) {
+  void output(int? windowID, String text) {
     if (text.startsWith('["STATUS",') && text.endsWith(']')) {
       //ignore status line for simple console games
       return;
@@ -182,19 +178,19 @@ class ConsoleProvider with Loggable implements IOProvider {
       var words = Queue<String>.from(l.split(' '));
 
       var s = StringBuffer();
-      while (!words.isEmpty) {
+      while (words.isNotEmpty) {
         var nextWord = words.removeFirst();
 
         if (s.length > cols) {
           outputBuffer.addFirst('$s');
-          print('$s');
+          stdout.writeln('$s');
           s = StringBuffer();
           s.write('$nextWord ');
         } else {
           if (words.isEmpty) {
             s.write('$nextWord ');
             outputBuffer.addFirst('$s');
-            print('$s');
+            stdout.writeln('$s');
             s = StringBuffer();
           } else {
             s.write('$nextWord ');
@@ -204,21 +200,21 @@ class ConsoleProvider with Loggable implements IOProvider {
 
       if (s.length > 0) {
         outputBuffer.addFirst('$s');
-        print('$s');
+        stdout.writeln('$s');
         s = StringBuffer();
       }
     }
   }
 
-  void debugOutput(String text) => print(text);
+  void debugOutput(String? text) => stdout.writeln(text);
 
   Future<String> getChar() async {
-    if (!lineBuffer.isEmpty) {
+    if (lineBuffer.isNotEmpty) {
       return lineBuffer.removeLast();
     } else {
       //TODO flush here?
       final line = stdin.readLineSync();
-      
+
       if (line == null) {
         return '';
       } else {
@@ -232,12 +228,11 @@ class ConsoleProvider with Loggable implements IOProvider {
   }
 
   Future<String> getLine() async {
-    if (!lineBuffer.isEmpty) {
+    if (lineBuffer.isNotEmpty) {
       return lineBuffer.removeLast();
     } else {
-
       final line = stdin.readLineSync();
-      
+
       if (line == null) {
         return '';
       } else {

@@ -1,6 +1,5 @@
 import 'package:zart/dictionary.dart';
 import 'package:zart/game_exception.dart';
-import 'package:zart/engines/engine.dart';
 import 'package:zart/math_helper.dart';
 
 class MemoryMap {
@@ -12,17 +11,17 @@ class MemoryMap {
   // A word address specifies an even address in the bottom 128K of memory
   // (by giving the address divided by 2). (Word addresses are used only in the abbreviations table.)
 
-  final List<int> memList = List<int>(); //each element in the array represents a byte of z-machine memory.
+  final List<int> memList = <int>[]; //each element in the array represents a byte of z-machine memory.
 
   // memory map address offsets
-  int abbrAddress;
-  int objectsAddress;
-  int globalVarsAddress;
-  int staticMemAddress;
-  int dictionaryAddress;
-  int highMemAddress;
-  int programStart;
-  Dictionary dictionary;
+  late int abbrAddress;
+  late int objectsAddress;
+  late int globalVarsAddress;
+  late int staticMemAddress;
+  int? dictionaryAddress;
+  late int highMemAddress;
+  int? programStart;
+  late Dictionary dictionary;
 
 
 
@@ -54,14 +53,12 @@ class MemoryMap {
   // static and dynamic memory (1.1.1, 1.1.2)
   /// Get byte from a given [address].
   int loadb(int address){
-    assert(address != null);
     checkBounds(address);
-    return memList[address] & 0xff;
+    return memList[address]& 0xff;
   }
 
   /// Get a 2-byte word from given [address]
   int loadw(int address){
-    assert(address != null);
     checkBounds(address);
     checkBounds(address + 1);
     return _getWord(address);
@@ -70,17 +67,15 @@ class MemoryMap {
   /// Stores a byte [value] into dynamic memory
   /// at [address].  Reference 1.1.1
   void storeb(int address, int value){
-    assert(address != null);
     checkBounds(address);
 
-    assert(value != null && (value <= 0xff && value >= 0));
+    assert(value <= 0xff && value >= 0);
 
     memList[address] = value;
   }
 
   //put word
   void storew(int address, int value){
-    assert(address != null);
     checkBounds(address);
     checkBounds(address + 1);
 
@@ -102,7 +97,7 @@ class MemoryMap {
   }
 
   int _getWord(int address) {
-    var word = ((memList[address] << 8) | memList[address + 1]) & 0xffff;
+    var word = ((memList[address]<< 8) | memList[address + 1]) & 0xffff;
     // if (address == 6){
     //   print("address index: ${address}, word: $word");
     //   print("address: ${BinaryHelper.binaryOf(memList[address])}, address << 8: ${BinaryHelper.binaryOf(memList[address] << 8)}, address + 1: ${BinaryHelper.binaryOf(memList[address+1])} ");
@@ -116,7 +111,6 @@ class MemoryMap {
   }
 
   void checkBounds(int address){
-   assert(address != null);
 
   //  if ((address == null) || (address < 0) || (address > memList.length - 1)){
 
@@ -134,7 +128,7 @@ class MemoryMap {
   List getRange(int address, int howMany){
     checkBounds(address);
     checkBounds(address + howMany);
-    return memList.getRange(address, howMany) as List<int>;
+    return memList.getRange(address, howMany) as List<int?>;
   }
 
   int get size => memList.length;

@@ -13,7 +13,7 @@ import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
-import 'package:zart/utils.dart' as Utils;
+import 'package:zart/utils.dart' as utils;
 
 import 'object_test.dart';
 
@@ -35,7 +35,7 @@ void main() {
     Z.load(data);
   } on Exception catch (fe) {
     //TODO log then print friendly
-    print('$fe');
+    stdout.writeln('$fe');
     exit(1);
   }
 
@@ -48,7 +48,7 @@ void main() {
   Z.io = MockUIProvider();
 
   print(Debugger.dumpHeader());
-  print(Utils.generateObjectTree(1));
+  stdout.writeln(utils.generateObjectTree(1));
 
   group("All>", () {
     group('Maths>', () {
@@ -71,35 +71,35 @@ void main() {
   group('ZSCII Tests>', () {
 
     test("ZSCII.ZCharToChar(0) returns empty string''.", () {
-      expect(ZSCII.ZCharToChar(0), equals(""));
+      expect(ZSCII.zCharToChar(0), equals(""));
     });
 
     test("ZSCII.ZCharToChar(9) returns tab \\t.", () {
-      expect(ZSCII.ZCharToChar(9), equals('\t'));
+      expect(ZSCII.zCharToChar(9), equals('\t'));
     });
 
 
     test("ZSCII.ZCharToChar(11) returns double space '  '.", () {
-      expect(ZSCII.ZCharToChar(11), equals("  "));
+      expect(ZSCII.zCharToChar(11), equals("  "));
     });
 
     test("ZSCII.ZCharToChar(13) returns newline \\n.", () {
-      expect(ZSCII.ZCharToChar(13), equals('\n'));
+      expect(ZSCII.zCharToChar(13), equals('\n'));
     });
 
     test("ZSCII.ZCharToChar(32-126) returns expected letter.", () {
       final ascii = " !\"#\$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
       for (var i = 0; i < 95; i++){
 
-        expect(ZSCII.ZCharToChar(i+32), equals(ascii[i]));
+        expect(ZSCII.zCharToChar(i+32), equals(ascii[i]));
       }
     });
 
     test('Unicode translations work as expected in ZSCII.ZCharToChar().', () {
       var s = StringBuffer();
       for (int i = 155; i <= 223; i++) {
-        s.writeCharCode(UNICODE_TRANSLATIONS[i]);
-        expect(ZSCII.ZCharToChar(i), equals(s.toString()));
+        s.writeCharCode(unicodeTranslations[i]!);
+        expect(ZSCII.zCharToChar(i), equals(s.toString()));
         s.clear();
       }
     });

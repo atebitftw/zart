@@ -16,11 +16,11 @@ int snd(int word) => word & 0xff;
 //this is a testing facility to run simulated instructions against the machine
 instructionTests(){
 
-  final callAddr = 0x4f04;
-  final testRoutineAddr = 0xae60;
-  final testRoutineEndAddr = 0xafa5;
-  final maxTestRoutineLength = (testRoutineEndAddr + 1) - testRoutineAddr;
-  final SP = 0;
+  const callAddr = 0x4f04;
+  const testRoutineAddr = 0xae60;
+  const testRoutineEndAddr = 0xafa5;
+  const maxTestRoutineLength = (testRoutineEndAddr + 1) - testRoutineAddr;
+  const stackPointer = 0;
 
   final testRoutineRestoreBytes = Z.engine.mem.getRange(testRoutineAddr, maxTestRoutineLength);
 
@@ -48,15 +48,15 @@ instructionTests(){
     var paramList = [];
 
     int getKind(item){
-      if (item == null) { return OperandType.OMITTED;
+      if (item == null) { return OperandType.omitted;
       }
 
       if (item is String){
-        return OperandType.VARIABLE;
+        return OperandType.variable;
       }else{
-        if (item <= 0xFF) { return OperandType.SMALL;
+        if (item <= 0xFF) { return OperandType.small;
         }
-        return OperandType.LARGE;
+        return OperandType.large;
       }
     }
 
@@ -75,7 +75,6 @@ instructionTests(){
           return int.parse(item.substring(1, item.length-1)) + 0x01;
         default:
           throw Exception('variable type not recognized: $varType');
-          break;
       }
     }
 
@@ -85,8 +84,8 @@ instructionTests(){
     kindList.add(getKind(item3));
     kindList.add(getKind(item4));
 
-    var operandByte = Operand(OperandType.OMITTED);
-    operandByte.rawValue = Operand.createVarOperandByte(kindList);
+    var operandByte = Operand(OperandType.omitted);
+    operandByte.rawValue = Operand.createVarOperandByte(kindList as List<int>);
     paramList.add(operandByte);
 
     //convert any variable types to literals
@@ -95,12 +94,12 @@ instructionTests(){
     paramList.add(Operand(kindList[2]));
     paramList.add(Operand(kindList[3]));
 
-    paramList[1].rawValue = (kindList[0] == OperandType.VARIABLE) ? convertToVariableLiteral(item1) : item1;
-    paramList[2].rawValue = (kindList[1] == OperandType.VARIABLE) ? convertToVariableLiteral(item2) : item2;
-    paramList[3].rawValue = (kindList[2] == OperandType.VARIABLE) ? convertToVariableLiteral(item3) : item3;
-    paramList[4].rawValue = (kindList[3] == OperandType.VARIABLE) ? convertToVariableLiteral(item4) : item4;
+    paramList[1].rawValue = (kindList[0] == OperandType.variable) ? convertToVariableLiteral(item1) : item1;
+    paramList[2].rawValue = (kindList[1] == OperandType.variable) ? convertToVariableLiteral(item2) : item2;
+    paramList[3].rawValue = (kindList[2] == OperandType.variable) ? convertToVariableLiteral(item3) : item3;
+    paramList[4].rawValue = (kindList[3] == OperandType.variable) ? convertToVariableLiteral(item4) : item4;
 
-    return paramList;
+    return paramList as List<Operand>;
   }
 
   runRoutine([param1, param2, param3]){
@@ -112,24 +111,24 @@ instructionTests(){
     var callInstruction = [224];
 
     // var operand types byte
-    callInstruction.add((operandList[0]).rawValue);
+    callInstruction.add((operandList[0]).rawValue!);
 
     // write the operands
     for(final operand in operandList.getRange(1, 4)){
-      if (operand.oType == OperandType.OMITTED) { break;
+      if (operand.oType == OperandType.omitted) { break;
       }
-      if (operand.oType == OperandType.LARGE){
-        callInstruction.add(fst(operand.rawValue));
-        callInstruction.add(snd(operand.rawValue));
+      if (operand.oType == OperandType.large){
+        callInstruction.add(fst(operand.rawValue!));
+        callInstruction.add(snd(operand.rawValue!));
       }else{
-        callInstruction.add(operand.rawValue);
+        callInstruction.add(operand.rawValue!);
       }
     }
 
     //Debugger.debug(callInstruction);
 
     // return value to the stack
-    callInstruction.add(SP);
+    callInstruction.add(stackPointer);
     //QUIT opcode
     callInstruction.add(186);
 
@@ -144,7 +143,7 @@ instructionTests(){
     //clear stacks and reset program counter
     Z.engine.stack.clear();
     Z.engine.callStack.clear();
-    Z.engine.PC = callAddr + 1;
+    Z.engine.programCounter = callAddr + 1;
 
     // visit the main 'routine'
     Z.engine.visitRoutine([]);
@@ -226,13 +225,13 @@ instructionTests(){
         if (Z.quit){
           c.complete(Z.engine.stack.pop());
         }else{
-          Timer(Duration(seconds:0), doIt);
+          Timer(const Duration(seconds:0), doIt);
         }
       }
 
-      Timer(Duration(seconds:0), doIt);
+      Timer(const Duration(seconds:0), doIt);
 
-      return c.future;
+      return c.future.then((value) => value as int);
     }
 
     group("tests>",(){
@@ -267,7 +266,7 @@ instructionTests(){
         runRoutine();
 
         var v = await pollUntilQuit();
-        expect(Engine.TRUE, equals(v));
+        expect(Engine.gameTrue, equals(v));
       });
 
       test('simple return false', () async {
@@ -275,7 +274,7 @@ instructionTests(){
         runRoutine();
 
         var v = await pollUntilQuit();
-        expect(Engine.FALSE, equals(v));
+        expect(Engine.gameFalse, equals(v));
       });
 
       test('push non-negative small', () async {

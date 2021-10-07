@@ -2,7 +2,7 @@ part of 'main_test.dart';
 
 void integerTests() {
   test("Machine.toSigned(0xFFFF) should return -1.", () {
-    print("${0xFFFF}");
+    stdout.writeln("${0xFFFF}");
     expect(MathHelper.toSigned(0xFFFF), equals(-1));
   });
 
@@ -40,8 +40,8 @@ void integerTests() {
     expect(
         () => MathHelper.dartSignedIntTo16BitSigned(-32769),
         throwsA(allOf(
-            TypeMatcher<GameException>(),
-            predicate((e) =>
+            const TypeMatcher<GameException>(),
+            predicate((dynamic e) =>
                 e.msg.startsWith("Signed 16-bit int is out of range")))));
   });
 
@@ -49,8 +49,8 @@ void integerTests() {
     expect(
         () => MathHelper.dartSignedIntTo16BitSigned(32768),
         throwsA(allOf(
-            TypeMatcher<GameException>(),
-            predicate((e) =>
+            const TypeMatcher<GameException>(),
+            predicate((dynamic e) =>
                 e.msg.startsWith("Signed 16-bit int is out of range")))));
   });
 }

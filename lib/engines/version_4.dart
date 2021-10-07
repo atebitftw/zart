@@ -4,15 +4,15 @@ import 'package:zart/game_exception.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/z_machine.dart';
 
-/**
-* Implementation of Z-Machine v3
-*/
+
+/// Implementation of Z-Machine v4
 class Version4 extends Version3 {
-  ZVersion get version => ZVersion.V4;
+  @override
+  zMachineVersions get version => zMachineVersions.v4;
 
   Version4() {
     logName = "Version4";
-    ops[247] = scan_table;
+    ops[247] = scanTable;
   }
 
   // VAR:247 17 4 scan_table x table len form -> (result)
@@ -23,7 +23,7 @@ class Version4 extends Version3 {
   // The form is optional (and only used in Version 5?): bit 7 is set for words, clear for bytes:
   // the rest contains the length of each field in the table. (The first word or byte in each field
   // being the one looked at.) Thus $82 is the default.
-  void scan_table() {
+  void scanTable() {
     //v4 expects only 3 operands, x table len
     final operands = visitOperandsVar(4, true);
 
@@ -32,7 +32,7 @@ class Version4 extends Version3 {
     final tableLength = operands[2].value;
 
     if (operands.length == 3) {
-      operands.add(Operand(OperandType.SMALL)..rawValue = 0x82);
+      operands.add(Operand(OperandType.small)..rawValue = 0x82);
     }
 
     if (operands.length != 4) {
@@ -40,7 +40,7 @@ class Version4 extends Version3 {
           "scan_table() expected 4 operands.  Found: ${operands.length}");
     }
 
-    final form = operands[3].value;
+    final form = operands[3].value!;
 
     log.fine(
         "scan_table operands: search: $searchWord, table: $tableAddress, table-length: $tableLength, form: $form");
@@ -52,8 +52,8 @@ class Version4 extends Version3 {
     if (BinaryHelper.isSet(form, 7)) {
       log.fine("..word scan");
       var addr = tableAddress;
-      for (var i = 0; i < tableLength; i++) {
-        final value = mem.loadw(addr);
+      for (var i = 0; i < tableLength!; i++) {
+        final value = mem.loadw(addr!);
         if (value == searchWord) {
           log.fine("...found match");
           final resultTo = readb();
@@ -66,10 +66,10 @@ class Version4 extends Version3 {
     } else {
       log.fine("..byte scan");
       //byte scan
-      for (var i = 0; i < tableLength; i++) {
+      for (var i = 0; i < tableLength!; i++) {
         var addr = tableAddress;
         for (var i = 0; i < tableLength; i++) {
-          final value = mem.loadb(addr);
+          final value = mem.loadb(addr!);
           if (value == searchWord) {
             log.fine("...found match");
             final resultTo = readb();

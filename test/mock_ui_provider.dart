@@ -1,17 +1,15 @@
 import 'dart:async';
-import 'dart:convert' as JSON;
+import 'dart:io';
 
 import 'package:zart/IO/io_provider.dart';
 
-/**
-* Mock UI Provider for Unit Testing
-*/
+/// Mock UI Provider for Unit Testing
 class MockUIProvider implements IOProvider
 {
 
   @override
-  Future<Object> command(Map<String, dynamic> command) async {
-    print('Command received: ${command['command']} ');
+  Future<Object?> command(Map<String, dynamic> command) async {
+    stdout.writeln('Command received: ${command['command']} ');
     return null;
   }
 }

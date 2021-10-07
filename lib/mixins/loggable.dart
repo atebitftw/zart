@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:logging/logging.dart';
 export 'package:logging/logging.dart';
 
@@ -40,7 +42,7 @@ void initializeLogger(Level level) {
   logLevel = level;
 
   Logger.root.onRecord.listen((LogRecord rec) {
-    print('(${rec.time}:)[${rec.loggerName}]${rec.level.name}: ${rec.message}');
+    stdout.writeln('(${rec.time}:)[${rec.loggerName}]${rec.level.name}: ${rec.message}');
   });
 
   _loggerInitialized = true;

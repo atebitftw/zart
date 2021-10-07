@@ -14,7 +14,7 @@ main() {
     Z.load(f.readAsBytesSync());
   } on Exception catch (e) {
     //TODO log then print friendly
-    print('$e');
+    stdout.writeln('$e');
     exit(1);
   }
 

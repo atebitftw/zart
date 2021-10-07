@@ -4,48 +4,49 @@ import 'package:zart/game_exception.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zscii.dart';
 
-/** Helper class for working with v3 game objects. */
+/// Helper class for working with v3 game objects.
 class GameObject {
-  final int id;
-  int get PARENT_ADDR =>
-      _address + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 4 : 6));
-  int get SIBLING_ADDR =>
-      _address + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 5 : 8));
-  int get CHILD_ADDR =>
-      _address + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 6 : 10));
+  int? id;
 
-  int _address;
+  int get parentAddr =>
+      _address! + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 4 : 6));
+  int get siblingAddr =>
+      _address! + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 5 : 8));
+  int get childAddr =>
+      _address! + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 6 : 10));
+
+  int? _address;
 
   int get parent => (ZMachine.verToInt(Z.engine.version) <= 3)
-      ? Z.engine.mem.loadb(PARENT_ADDR)
-      : Z.engine.mem.loadw(PARENT_ADDR);
-  set parent(int oid) => ZMachine.verToInt(Z.engine.version) <= 3
-      ? Z.engine.mem.storeb(PARENT_ADDR, oid)
-      : Z.engine.mem.storew(PARENT_ADDR, oid);
+      ? Z.engine.mem.loadb(parentAddr)
+      : Z.engine.mem.loadw(parentAddr);
+  set parent(int? oid) => ZMachine.verToInt(Z.engine.version) <= 3
+      ? Z.engine.mem.storeb(parentAddr, oid!)
+      : Z.engine.mem.storew(parentAddr, oid!);
 
   int get child => ZMachine.verToInt(Z.engine.version) <= 3
-      ? Z.engine.mem.loadb(CHILD_ADDR)
-      : Z.engine.mem.loadw(CHILD_ADDR);
-  set child(int oid) => ZMachine.verToInt(Z.engine.version) <= 3
-      ? Z.engine.mem.storeb(CHILD_ADDR, oid)
-      : Z.engine.mem.storew(CHILD_ADDR, oid);
+      ? Z.engine.mem.loadb(childAddr)
+      : Z.engine.mem.loadw(childAddr);
+  set child(int? oid) => ZMachine.verToInt(Z.engine.version) <= 3
+      ? Z.engine.mem.storeb(childAddr, oid!)
+      : Z.engine.mem.storew(childAddr, oid!);
 
   int get sibling => ZMachine.verToInt(Z.engine.version) <= 3
-      ? Z.engine.mem.loadb(SIBLING_ADDR)
-      : Z.engine.mem.loadw(SIBLING_ADDR);
+      ? Z.engine.mem.loadb(siblingAddr)
+      : Z.engine.mem.loadw(siblingAddr);
   set sibling(int oid) => ZMachine.verToInt(Z.engine.version) <= 3
-      ? Z.engine.mem.storeb(SIBLING_ADDR, oid)
-      : Z.engine.mem.storew(SIBLING_ADDR, oid);
+      ? Z.engine.mem.storeb(siblingAddr, oid)
+      : Z.engine.mem.storew(siblingAddr, oid);
 
-  int flags;
+  late int flags;
 
   int get properties => Z.engine.mem
-      .loadw(_address + (ZMachine.verToInt(Z.engine.version) <= 3 ? 7 : 12));
+      .loadw(_address! + (ZMachine.verToInt(Z.engine.version) <= 3 ? 7 : 12));
 
   int get propertyTableStart =>
       properties + (Z.engine.mem.loadb(properties) * 2) + 1;
 
-  String shortName;
+  String? shortName;
 
   GameObject(this.id) {
     _address = _getObjectAddress();
@@ -56,7 +57,7 @@ class GameObject {
     _readFlags();
   }
 
-  int getNextProperty(int pnum) {
+  int getNextProperty(int? pnum) {
     if (pnum == 0) {
       //get first property
       return propertyNumber(propertyTableStart);
@@ -81,13 +82,13 @@ class GameObject {
     return len == 0 ? len : propertyNumber(addr);
   }
 
-  int getPropertyAddress(int pnum) {
+  int getPropertyAddress(int? pnum) {
     if (pnum == 0) return 0;
 
     var propNum = 999999;
     int addr = propertyTableStart;
 
-    while (propNum > pnum) {
+    while (propNum > pnum!) {
       var len = ZMachine.verToInt(Z.engine.version) <= 3 ||
               !BinaryHelper.isSet(Z.engine.mem.loadb(addr), 7)
           ? propertyLength(addr)
@@ -122,7 +123,7 @@ class GameObject {
     return 0;
   }
 
-  void setPropertyValue(int pnum, int value) {
+  void setPropertyValue(int? pnum, int? value) {
     var addr = getPropertyAddress(pnum);
     var len = propertyLength(addr - 1);
 
@@ -135,13 +136,13 @@ class GameObject {
     }
 
     if (len == 1) {
-      if (value < 0) {
+      if (value! < 0) {
         Debugger.todo('length is 1 & value < 0');
       }
       value &= 0xff;
       Z.engine.mem.storeb(addr, value);
     } else if (len == 2) {
-      Z.engine.mem.storew(addr, value);
+      Z.engine.mem.storew(addr, value!);
     }
   }
 
@@ -259,7 +260,7 @@ class GameObject {
     sibling = 0;
   }
 
-  int leftSibling() {
+  int? leftSibling() {
     var pgo = GameObject(parent);
     var theChild = GameObject(pgo.child);
 
@@ -274,7 +275,7 @@ class GameObject {
     return theChild.id;
   }
 
-  void insertTo(int obj) {
+  void insertTo(int? obj) {
     if (parent != 0) {
       removeFromTree();
     }
@@ -322,12 +323,12 @@ class GameObject {
     }
 
     final ret = '''
-Object #:$id, "${shortName}" (Address: 0x${this._address.toRadixString(16)})
-parent: ${parent} "${GameObject(parent).shortName}"
-sibling: ${sibling} "${GameObject(sibling).shortName}"
-child: ${child} "${GameObject(child).shortName}"
+Object #:$id, "$shortName" (Address: 0x${_address!.toRadixString(16)})
+parent: $parent "${GameObject(parent).shortName}"
+sibling: $sibling "${GameObject(sibling).shortName}"
+child: $child "${GameObject(child).shortName}"
 Property Address 0x${propertyTableStart.toRadixString(16)}
-flags: ${s}
+flags: $s
 ''';
 
     return ret;
@@ -339,7 +340,7 @@ flags: ${s}
         (ZMachine.verToInt(Z.engine.version) <= 3 ? 62 : 126);
 
     // 9 or 14 bytes per object (ref 12.3.1)
-    objStart += (id - 1) * (ZMachine.verToInt(Z.engine.version) <= 3 ? 9 : 14);
+    objStart += (id! - 1) * (ZMachine.verToInt(Z.engine.version) <= 3 ? 9 : 14);
 
     //TODO find a better check (this doesn't work in minizork)
     //if (objStart > Z.machine.mem.loadw(Header.GLOBAL_VARS_TABLE_ADDR)) return 0;
@@ -349,39 +350,39 @@ flags: ${s}
 
   void _readFlags() {
     if (ZMachine.verToInt(Z.engine.version) <= 3) {
-      flags = (Z.engine.mem.loadb(_address) << 24) |
-          (Z.engine.mem.loadb(_address + 1) << 16) |
-          (Z.engine.mem.loadb(_address + 2) << 8) |
-          Z.engine.mem.loadb(_address + 3);
+      flags = (Z.engine.mem.loadb(_address!) << 24) |
+          (Z.engine.mem.loadb(_address! + 1) << 16) |
+          (Z.engine.mem.loadb(_address! + 2) << 8) |
+          Z.engine.mem.loadb(_address! + 3);
     } else {
-      flags = (Z.engine.mem.loadb(_address) << 40) |
-          (Z.engine.mem.loadb(_address + 1) << 32) |
-          (Z.engine.mem.loadb(_address + 2) << 24) |
-          (Z.engine.mem.loadb(_address + 3) << 16) |
-          (Z.engine.mem.loadb(_address + 4) << 8) |
-          Z.engine.mem.loadb(_address + 5);
+      flags = (Z.engine.mem.loadb(_address!) << 40) |
+          (Z.engine.mem.loadb(_address! + 1) << 32) |
+          (Z.engine.mem.loadb(_address! + 2) << 24) |
+          (Z.engine.mem.loadb(_address! + 3) << 16) |
+          (Z.engine.mem.loadb(_address! + 4) << 8) |
+          Z.engine.mem.loadb(_address! + 5);
     }
   }
 
   void _writeFlags() {
     if (ZMachine.verToInt(Z.engine.version) <= 3) {
-      Z.engine.mem.storeb(_address + 3, BinaryHelper.bottomBits(flags, 8));
+      Z.engine.mem.storeb(_address! + 3, BinaryHelper.bottomBits(flags, 8));
       Z.engine.mem
-          .storeb(_address + 2, BinaryHelper.bottomBits(flags >> 8, 8));
+          .storeb(_address! + 2, BinaryHelper.bottomBits(flags >> 8, 8));
       Z.engine.mem
-          .storeb(_address + 1, BinaryHelper.bottomBits(flags >> 16, 8));
-      Z.engine.mem.storeb(_address, BinaryHelper.bottomBits(flags >> 24, 8));
+          .storeb(_address! + 1, BinaryHelper.bottomBits(flags >> 16, 8));
+      Z.engine.mem.storeb(_address!, BinaryHelper.bottomBits(flags >> 24, 8));
     } else {
-      Z.engine.mem.storeb(_address + 5, BinaryHelper.bottomBits(flags, 8));
+      Z.engine.mem.storeb(_address! + 5, BinaryHelper.bottomBits(flags, 8));
       Z.engine.mem
-          .storeb(_address + 4, BinaryHelper.bottomBits(flags >> 8, 8));
+          .storeb(_address! + 4, BinaryHelper.bottomBits(flags >> 8, 8));
       Z.engine.mem
-          .storeb(_address + 3, BinaryHelper.bottomBits(flags >> 16, 8));
+          .storeb(_address! + 3, BinaryHelper.bottomBits(flags >> 16, 8));
       Z.engine.mem
-          .storeb(_address + 2, BinaryHelper.bottomBits(flags >> 24, 8));
+          .storeb(_address! + 2, BinaryHelper.bottomBits(flags >> 24, 8));
       Z.engine.mem
-          .storeb(_address + 1, BinaryHelper.bottomBits(flags >> 32, 8));
-      Z.engine.mem.storeb(_address, BinaryHelper.bottomBits(flags >> 40, 8));
+          .storeb(_address! + 1, BinaryHelper.bottomBits(flags >> 32, 8));
+      Z.engine.mem.storeb(_address!, BinaryHelper.bottomBits(flags >> 40, 8));
     }
   }
 

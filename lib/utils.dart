@@ -73,7 +73,7 @@ String generateObjectTree([int objectNum = 1]) {
   return sb.toString();
 }
 
-Set<int> _objects = Set<int>();
+Set<int> _objects = <int>{};
 var _highestObject = 0;
 
 void _resetObjectState(){

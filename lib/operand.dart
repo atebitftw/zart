@@ -4,9 +4,9 @@ import 'package:zart/z_machine.dart';
 class Operand
 {
   final int oType;
-  int rawValue;
+  int? rawValue;
 
-  int _cachedValue;
+  int? _cachedValue;
 
   Operand(this.oType);
 
@@ -14,39 +14,38 @@ class Operand
   /// If the type is VARIABLE, then performs an implicit
   /// read of the variable's address, otherwise just
   /// returns the rawValue (SMALL or LARGE);
-  int get value{
+  int? get value{
     switch(oType){
-      case OperandType.LARGE:
-      case OperandType.SMALL:
+      case OperandType.large:
+      case OperandType.small:
         return rawValue;
-      case OperandType.VARIABLE:
+      case OperandType.variable:
         //prevents popping the stack more than once for
         //value inspection.
-        if (_cachedValue == null){
-          _cachedValue = Z.engine.readVariable(rawValue);
-        }
+        _cachedValue ??= Z.engine.readVariable(rawValue!);
         return _cachedValue;
       default:
         throw GameException('Invalid Operand Type: $oType');
     }
   }
 
-  int get peekValue{
+  int? get peekValue{
     switch(oType){
-      case OperandType.LARGE:
-      case OperandType.SMALL:
+      case OperandType.large:
+      case OperandType.small:
         return rawValue;
-      case OperandType.VARIABLE:
+      case OperandType.variable:
         return Z.engine.peekVariable(rawValue);
       default:
         return 0;
     }
   }
 
-  String toString() => '[${OperandType.asString(oType)}, 0x${peekValue.toRadixString(16)}]';
+  @override
+  String toString() => '[${OperandType.asString(oType)}, 0x${peekValue!.toRadixString(16)}]';
 
   /// Used primarily for unit testing
-  static int createVarOperandByte(List<int> types){
+  static int? createVarOperandByte(List<int> types){
     if (types.length != 4) return null;
 
     return (types[0] << 6) | (types[1] << 4) | (types[2] << 2) | types[3];
@@ -56,24 +55,24 @@ class Operand
 /// Declares the 4 different operand types
 class OperandType {
 
-  /** 2 byte large constant (0-65535) */
-  static const int LARGE = 0x00;
+  /// 2 byte large constant (0-65535) */
+  static const int large = 0x00;
 
-  /** 1 byte small constant (0-255) */
-  static const int SMALL = 0x01;
+  /// 1 byte small constant (0-255) */
+  static const int small = 0x01;
 
-  /** Variable lookup */
-  static const int VARIABLE = 0x02;
+  /// Variable lookup */
+  static const int variable = 0x02;
 
-  /** Omitted Flag, terminates Operand Type list */
-  static const int OMITTED = 0x03;
+  /// Omitted Flag, terminates Operand Type list */
+  static const int omitted = 0x03;
 
   static int intToOperandType(int value){
     switch(value){
-      case 0x00: return OperandType.LARGE;
-      case 0x01: return OperandType.SMALL;
-      case 0x02: return OperandType.VARIABLE;
-      case 0x03: return OperandType.OMITTED;
+      case 0x00: return OperandType.large;
+      case 0x01: return OperandType.small;
+      case 0x02: return OperandType.variable;
+      case 0x03: return OperandType.omitted;
       default:
         throw Exception("Unrecognized int when attempting to convert to OperandType");
     }
@@ -81,13 +80,13 @@ class OperandType {
 
   static String asString(int type){
     switch(type){
-      case LARGE:
+      case large:
         return 'Large';
-      case SMALL:
+      case small:
         return 'Small';
-      case VARIABLE:
+      case variable:
         return 'Var';
-      case OMITTED:
+      case omitted:
         return 'Omitted';
       default:
         return '*INVALID* $type';

@@ -1,4 +1,3 @@
-import 'package:zart/binary_helper.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/header.dart';
 import 'package:zart/z_char.dart';
@@ -6,78 +5,77 @@ import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/mixins/loggable.dart';
 
-typedef String ZStringReader(int fromAddress, [bool abbreviationLookup]);
-
-
+typedef ZStringReader = String Function(int fromAddress, [bool abbreviationLookup]);
 
 //ref 3.2.2
-const Char2AlphabetShift = const <int, int>{
-  ZSCII.A0: ZSCII.A1,
-  ZSCII.A1: ZSCII.A2,
-  ZSCII.A2: ZSCII.A0,
+const char2AlphabetShift = <int, int>{
+  ZSCII.a0: ZSCII.a1,
+  ZSCII.a1: ZSCII.a2,
+  ZSCII.a2: ZSCII.a0,
 };
 
 //ref 3.2.2
-const Char3AlphabetShift = const <int, int>{
-  ZSCII.A0: ZSCII.A2,
-  ZSCII.A1: ZSCII.A0,
-  ZSCII.A2: ZSCII.A1,
+const char3AlphabetShift = <int, int>{
+  ZSCII.a0: ZSCII.a2,
+  ZSCII.a1: ZSCII.a0,
+  ZSCII.a2: ZSCII.a1,
 };
 
-/** ZSCII Handler */
+/// ZSCII Handler */
 class ZSCII with Loggable {
   ZSCII() {
     logName = "ZSCII";
   }
 
-  static const int A0 = 0;
-  static const int A1 = 1;
-  static const int A2 = 2;
+  static const int a0 = 0;
+  static const int a1 = 1;
+  static const int a2 = 2;
 
-  static const List<String> DEFAULT_TABLE = const [
+  static const List<String> defaultTable = [
     'abcdefghijklmnopqrstuvwxyz',
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
     // The first space in A2 (below): Z-character 6 from A2 means that the two subsequent Z-characters specify a ten-bit
     // ZSCII character code: the next Z-character gives the top 5 bits and the one after the bottom 5.
     //
     // The second space represents a newline character and is handled in .readZString() below.
+    // ignore: unnecessary_string_escapes
     '  0123456789.,!?_#\'\"/\\-:()',
   ];
 
-  static const List<String> V1_TABLE = const [
+  static const List<String> v1Table = [
     'abcdefghijklmnopqrstuvwxyz',
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
     // In V1 of engine, the newline is not used and instead "<" is available in A2 (below)
+    // ignore: unnecessary_string_escapes
     ' 0123456789.,!?_#\'\"/\\<-:()',
   ];
 
   /// Represents the padding value for ZString encoding/decoding.
-  static const int PAD = 5;
+  static const int padding = 5;
 
-  static const _stringReaderMap = const <ZVersion, ZStringReader>{
-    ZVersion.V1: _readZStringVersion1And2,
-    ZVersion.V2: _readZStringVersion1And2,
-    ZVersion.V3: _readZStringVersion3and4,
-    ZVersion.V4: _readZStringVersion3and4,
-    ZVersion.V5: _readZStringVersion5AndUp,
-    ZVersion.V6: _readZStringVersion5AndUp,
-    ZVersion.V7: _readZStringVersion5AndUp,
-    ZVersion.V8: _readZStringVersion5AndUp,
+  static const Map<zMachineVersions, String Function(int, [bool])> _stringReaderMap = <zMachineVersions, ZStringReader>{
+    zMachineVersions.v1: _readZStringVersion1And2,
+    zMachineVersions.v2: _readZStringVersion1And2,
+    zMachineVersions.v3: _readZStringVersion3and4,
+    zMachineVersions.v4: _readZStringVersion3and4,
+    zMachineVersions.v5: _readZStringVersion5AndUp,
+    zMachineVersions.v6: _readZStringVersion5AndUp,
+    zMachineVersions.v7: _readZStringVersion5AndUp,
+    zMachineVersions.v8: _readZStringVersion5AndUp,
   };
 
-  static String _readZStringVersion1And2(int fromAddress,
-      [bool abbreviationLookup = false]) {
+  static String _readZStringVersion1And2(int? fromAddress, [bool? abbreviationLookup = false]) {
     bool finished = false;
     bool shiftLock = false;
     final s = StringBuffer();
-    int previousAlphabet = ZSCII.A0;
-    int currentAlphabet = ZSCII.A0;
+    int? previousAlphabet = ZSCII.a0;
+    int? currentAlphabet = ZSCII.a0;
 
     List<int> charList = [];
 
     //first load all the z chars into an array.
     while (!finished) {
-      ZChar nextz = ZChar(Z.engine.mem.loadw(fromAddress));
+      ZChar nextz = ZChar(Z.engine.mem.loadw(fromAddress!));
 
       fromAddress += 2;
 
@@ -91,7 +89,7 @@ class ZSCII with Loggable {
       }
     }
 
-    Z.engine.callStack.push(fromAddress);
+    Z.engine.callStack.push(fromAddress!);
 
     int i = -1;
     while (i < charList.length - 1) {
@@ -99,16 +97,14 @@ class ZSCII with Loggable {
       var char = charList[i];
 
       // (ref 3.3)
-      if (Z.engine.version == ZVersion.V2 && char == 1) {
-        if (abbreviationLookup) {
-          throw GameException(
-              "Abbreviation lookup cannot occur inside an abbreviation lookup.");
+      if (Z.engine.version == zMachineVersions.v2 && char == 1) {
+        if (abbreviationLookup!) {
+          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
         }
         //abbreviation lookup, v2 only ref 3.3
         final abbrNum = (32 * (char - 1)) + charList[++i];
 
-        final abbrAddress =
-            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        final abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         final abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -127,7 +123,7 @@ class ZSCII with Loggable {
 
         if (char == 2 || char == 4) {
           previousAlphabet = currentAlphabet;
-          currentAlphabet = Char2AlphabetShift[currentAlphabet];
+          currentAlphabet = char2AlphabetShift[currentAlphabet!];
           shiftLock = char == 4;
 
           if (shiftLock) {
@@ -139,7 +135,7 @@ class ZSCII with Loggable {
 
         if (char == 3 || char == 5) {
           previousAlphabet = currentAlphabet;
-          currentAlphabet = Char3AlphabetShift[currentAlphabet];
+          currentAlphabet = char3AlphabetShift[currentAlphabet!];
           shiftLock = char == 5;
 
           if (shiftLock) {
@@ -149,35 +145,32 @@ class ZSCII with Loggable {
           continue;
         }
 
-        throw GameException(
-            "readZString() Expected char between 2 and 5 (inclusive), but found $char");
+        throw GameException("readZString() Expected char between 2 and 5 (inclusive), but found $char");
       }
 
       // Z-character 6 from A2 means that the two subsequent Z-characters specify a ten-bit
       // ZSCII character code: the next Z-character gives the top 5 bits and the one after the bottom 5.
-      if (currentAlphabet == ZSCII.A2 && char == 6) {
+      if (currentAlphabet == ZSCII.a2 && char == 6) {
         // (ref 3.4)
-        s.write(ZCharToChar((charList[i + 1] << 5) | charList[i + 2]));
+        s.write(zCharToChar((charList[i + 1] << 5) | charList[i + 2]));
         i += 2;
         if (!shiftLock) currentAlphabet = previousAlphabet;
         continue;
       }
 
       // Z-char 1 in Version 1 is a newline.  ref 3.5.2
-      if (Z.engine.version == ZVersion.V1 && char == 1) {
+      if (Z.engine.version == zMachineVersions.v1 && char == 1) {
         s.write('\n');
         if (!shiftLock) currentAlphabet = previousAlphabet;
         continue;
       }
 
       // Z-char 7 from A2 means newline (except for engine version 1)
-      if (Z.engine.version != ZVersion.V1 &&
-          currentAlphabet == ZSCII.A2 &&
-          char == 7) {
+      if (Z.engine.version != zMachineVersions.v1 && currentAlphabet == ZSCII.a2 && char == 7) {
         // (ref 3.5.3)
         //newline
         s.write('\n');
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
         continue;
       }
 
@@ -186,10 +179,10 @@ class ZSCII with Loggable {
         s.write(' ');
         if (!shiftLock) currentAlphabet = previousAlphabet;
       } else {
-        if (Z.engine.version == ZVersion.V1 && currentAlphabet == A2) {
-          s.write(V1_TABLE[currentAlphabet][char - 6]);
+        if (Z.engine.version == zMachineVersions.v1 && currentAlphabet == a2) {
+          s.write(v1Table[currentAlphabet!][char - 6]);
         } else {
-          s.write(DEFAULT_TABLE[currentAlphabet][char - 6]);
+          s.write(defaultTable[currentAlphabet!][char - 6]);
         }
         if (!shiftLock) currentAlphabet = previousAlphabet;
       }
@@ -198,17 +191,16 @@ class ZSCII with Loggable {
     return s.toString();
   }
 
-  static String _readZStringVersion3and4(int fromAddress,
-      [bool abbreviationLookup = false]) {
+  static String _readZStringVersion3and4(int? fromAddress, [bool? abbreviationLookup = false]) {
     bool finished = false;
     final s = StringBuffer();
-    int currentAlphabet = ZSCII.A0;
+    int currentAlphabet = ZSCII.a0;
 
     List<int> charList = [];
 
     //first load all the z chars into an array.
     while (!finished) {
-      ZChar nextz = ZChar(Z.engine.mem.loadw(fromAddress));
+      ZChar nextz = ZChar(Z.engine.mem.loadw(fromAddress!));
 
       fromAddress += 2;
 
@@ -222,7 +214,7 @@ class ZSCII with Loggable {
       }
     }
 
-    Z.engine.callStack.push(fromAddress);
+    Z.engine.callStack.push(fromAddress!);
 
     int i = -1;
     while (i < charList.length - 1) {
@@ -231,15 +223,13 @@ class ZSCII with Loggable {
 
       // (ref 3.3)
       if (char >= 1 && char <= 3) {
-        if (abbreviationLookup) {
-          throw GameException(
-              "Abbreviation lookup cannot occur inside an abbreviation lookup.");
+        if (abbreviationLookup!) {
+          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
         }
         //abbreviation lookup
         final abbrNum = (32 * (char - 1)) + charList[++i];
 
-        final abbrAddress =
-            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        final abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         final abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -247,59 +237,58 @@ class ZSCII with Loggable {
         s.write(abbrString);
 
         // ref 3.2.3
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
 
         continue;
       }
 
       // Z-character 6 from A2 means that the two subsequent Z-characters specify a ten-bit
       // ZSCII character code: the next Z-character gives the top 5 bits and the one after the bottom 5.
-      if (currentAlphabet == ZSCII.A2 && char == 6) {
+      if (currentAlphabet == ZSCII.a2 && char == 6) {
         // (ref 3.4)
-        s.write(ZCharToChar((charList[i + 1] << 5) | charList[i + 2]));
+        s.write(zCharToChar((charList[i + 1] << 5) | charList[i + 2]));
         i += 2;
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
         continue;
       }
 
       // Z-char 7 from A2 means newline (except for engine version 1)
-      if (currentAlphabet == ZSCII.A2 && char == 7) {
+      if (currentAlphabet == ZSCII.a2 && char == 7) {
         // (ref 3.5.3)
         //newline
         s.write('\n');
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
         continue;
       }
 
       if (char == 0) {
         // (ref 3.5.1)
         s.write(' ');
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
       } else if (char == 4) {
-        currentAlphabet = ZSCII.A1;
+        currentAlphabet = ZSCII.a1;
       } else if (char == 5) {
-        currentAlphabet = ZSCII.A2;
+        currentAlphabet = ZSCII.a2;
       } else {
-        s.write(DEFAULT_TABLE[currentAlphabet][char - 6]);
-        currentAlphabet = ZSCII.A0;
+        s.write(defaultTable[currentAlphabet][char - 6]);
+        currentAlphabet = ZSCII.a0;
       }
     }
     return s.toString();
   }
 
-  static String _readZStringVersion5AndUp(int fromAddress,
-      [bool abbreviationLookup = false]) {
+  static String _readZStringVersion5AndUp(int? fromAddress, [bool? abbreviationLookup = false]) {
     //TODO support custom alphabet table
     //TODO support custom unicode table
     bool finished = false;
     final s = StringBuffer();
-    int currentAlphabet = ZSCII.A0;
+    int currentAlphabet = ZSCII.a0;
 
     List<int> charList = [];
 
     //first load all the z chars into an array.
     while (!finished) {
-      final nextz = ZChar(Z.engine.mem.loadw(fromAddress));
+      final nextz = ZChar(Z.engine.mem.loadw(fromAddress!));
 
       fromAddress += 2;
 
@@ -313,7 +302,7 @@ class ZSCII with Loggable {
       }
     }
 
-    Z.engine.callStack.push(fromAddress);
+    Z.engine.callStack.push(fromAddress!);
 
     int i = -1;
     while (i < charList.length - 1) {
@@ -322,15 +311,13 @@ class ZSCII with Loggable {
 
       // (ref 3.3)
       if (char >= 1 && char <= 3) {
-        if (abbreviationLookup) {
-          throw GameException(
-              "Abbreviation lookup cannot occur inside an abbreviation lookup.");
+        if (abbreviationLookup!) {
+          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
         }
         //abbreviation lookup
         var abbrNum = (32 * (char - 1)) + charList[++i];
 
-        var abbrAddress =
-            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        var abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         String abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -338,58 +325,56 @@ class ZSCII with Loggable {
         s.write(abbrString);
 
         // ref 3.2.3
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
 
         continue;
       }
 
       // Z-character 6 from A2 means that the two subsequent Z-characters specify a ten-bit
       // ZSCII character code: the next Z-character gives the top 5 bits and the one after the bottom 5.
-      if (currentAlphabet == ZSCII.A2 && char == 6) {
+      if (currentAlphabet == ZSCII.a2 && char == 6) {
         // (ref 3.4)
-        s.write(ZCharToChar((charList[i + 1] << 5) | charList[i + 2]));
+        s.write(zCharToChar((charList[i + 1] << 5) | charList[i + 2]));
         i += 2;
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
         continue;
       }
 
       // Z-char 7 from A2 means newline (except for engine version 1)
-      if (currentAlphabet == ZSCII.A2 && char == 7) {
+      if (currentAlphabet == ZSCII.a2 && char == 7) {
         // (ref 3.5.3)
         //newline
         s.write('\n');
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
         continue;
       }
 
       if (char == 0) {
         // (ref 3.5.1)
         s.write(' ');
-        currentAlphabet = ZSCII.A0;
+        currentAlphabet = ZSCII.a0;
       } else if (char == 4) {
-        currentAlphabet = ZSCII.A1;
+        currentAlphabet = ZSCII.a1;
       } else if (char == 5) {
-        currentAlphabet = ZSCII.A2;
+        currentAlphabet = ZSCII.a2;
       } else {
-        var alternateTable = Z.engine.mem.loadw(Header.ALPHABET_TABLE);
+        var alternateTable = Z.engine.mem.loadw(Header.alphabetTable);
 
         if (alternateTable > 0) {
-          throw GameException(
-              "oops need to implement alternate ZSCII table lookup here");
+          throw GameException("oops need to implement alternate ZSCII table lookup here");
         } else {
-          if (Z.engine.version == ZVersion.V1 && currentAlphabet == A2) {
-            s.write(V1_TABLE[currentAlphabet][char - 6]);
+          if (Z.engine.version == zMachineVersions.v1 && currentAlphabet == a2) {
+            s.write(v1Table[currentAlphabet][char - 6]);
             continue;
           }
-          s.write(DEFAULT_TABLE[currentAlphabet][char - 6]);
-          currentAlphabet = ZSCII.A0;
+          s.write(defaultTable[currentAlphabet][char - 6]);
+          currentAlphabet = ZSCII.a0;
         }
       }
     }
 
     return s.toString();
   }
-
 
   /// Reads a string of Z characters and returns
   /// the decoded version.
@@ -421,29 +406,26 @@ class ZSCII with Loggable {
   ///
   /// Call [ZSCII.readZStringAndPop(...)] if you want the pop
   /// to happen automatically after the read.
-  static String readZString(int fromAddress,
-      [bool abbreviationLookup = false]) {
-    final str =
-        _stringReaderMap[Z.engine.version](fromAddress, abbreviationLookup);
+  static String readZString(int fromAddress, [bool abbreviationLookup = false]) {
+    final str = _stringReaderMap[Z.engine.version]!(fromAddress, abbreviationLookup);
     //print("Read string (abbreviation lookup? $abbreviationLookup): $str");
     return str;
   }
 
   /// Converts [line] to a equivalent array of Z-Characters.
   static List<int> toZCharList(String line) {
-    var list = List<int>();
+    var list = <int>[];
 
     for (int i = 0; i < line.length; i++) {
-      list.add(CharToZChar(line[i]));
+      list.add(charToZChar(line[i]));
     }
     return list;
   }
 
   /// Converts char [c] into an equivalent Z-Character.
-  static int CharToZChar(String c) {
+  static int charToZChar(String c) {
     if (c.isEmpty || c.length != 1) {
-      throw GameException(
-          'String must be length of 1.  Found ${c.length} in $c.');
+      throw GameException('String must be length of 1.  Found ${c.length} in $c.');
     }
 
     if (c == '\t') {
@@ -462,7 +444,7 @@ class ZSCII with Loggable {
     throw GameException('Could not convert from char to ZChar.');
   }
 
-  static String ZCharToChar(int c) {
+  static String zCharToChar(int c) {
     final s = StringBuffer();
     if (c == 0) {
       return '';
@@ -478,17 +460,15 @@ class ZSCII with Loggable {
       s.writeCharCode(c);
       return s.toString();
     } else if (c >= 155 && c <= 223) {
-      s.writeCharCode(UNICODE_TRANSLATIONS[c]);
+      s.writeCharCode(unicodeTranslations[c]!);
       return s.toString();
     }
 
     return '';
-
-    throw GameException('Could not convert from ZChar to char.  Value: $c.');
   }
 }
 
-const Map<int, int> UNICODE_TRANSLATIONS = const {
+const Map<int, int> unicodeTranslations = {
   155: 0xe4,
   156: 0xf6,
   157: 0xfc,

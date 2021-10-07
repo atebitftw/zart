@@ -3,19 +3,17 @@ import 'package:zart/debugger.dart';
 import 'package:zart/engines/version_4.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/engines/engine.dart';
-import 'package:zart/engines/version_3.dart';
-import 'package:zart/header.dart';
 import 'package:zart/math_helper.dart';
 import 'package:zart/operand.dart';
 import 'package:zart/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/zscii.dart';
 
-/**
-* Implementation of Z-Machine v5
-*/
+
+/// Implementation of Z-Machine v5
 class Version5 extends Version4 {
-  ZVersion get version => ZVersion.V5;
+  @override
+  zMachineVersions get version => zMachineVersions.v5;
 
   //TODOs
   // check_arg_count (add arg count to stack frame)
@@ -56,23 +54,23 @@ class Version5 extends Version4 {
     ops[121] = call_2s;
     ops[217] = call_2s;
     ops[218] = call_2n;
-    ops[234] = split_window;
-    ops[235] = set_window;
-    ops[236] = call_vs2;
-    ops[237] = erase_window;
-    ops[239] = set_cursor;
-    ops[241] = set_text_style;
-    ops[242] = buffer_mode;
-    ops[243] = output_stream;
-    ops[246] = read_char;
-    ops[249] = call_vn;
-    ops[250] = call_vn2;
+    ops[234] = splitWindow;
+    ops[235] = setWindow;
+    ops[236] = callVS2;
+    ops[237] = eraseWindow;
+    ops[239] = setCursor;
+    ops[241] = setTextStyle;
+    ops[242] = bufferMode;
+    ops[243] = outputStream;
+    ops[246] = readChar;
+    ops[249] = callVN;
+    ops[250] = callVN2;
     ops[251] = tokenise;
-    ops[253] = copy_table;
-    ops[255] = check_arg_count;
+    ops[253] = copyTable;
+    ops[255] = checkArgCount;
     // the extended instruction visitExtendedInstruction() adds 300 to the value, so it's offset from the other op codes safely.
-    ops[304] = ext_set_font; //ext4
-    ops[309] = ext_save_undo; //ext5
+    ops[304] = extSetFont; //ext4
+    ops[309] = extSaveUndo; //ext5
   }
 
   // Kb
@@ -89,7 +87,7 @@ class Version5 extends Version4 {
   int fileLengthMultiplier() => 2;
 
   @override
-  void visitRoutine(List<int> params) {
+  void visitRoutine(List<int?> params) {
     assert(params.length < 9);
 
     //Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
@@ -97,7 +95,7 @@ class Version5 extends Version4 {
     // assign any params passed to locals and push locals onto the call stack
     var locals = readb();
 
-    stack.push(Engine.STACK_MARKER);
+    stack.push(Engine.stackMarker);
 
     ////Debugger.verbose('    # Locals: ${locals}');
 
@@ -110,18 +108,18 @@ class Version5 extends Version4 {
     for (int i = 0; i < locals; i++) {
       //in V5, we don't need to read locals from memory, they are all set to 0
 
-      callStack.push(i < params.length ? params[i] : 0x0);
+      callStack.push(i < params.length ? params[i]! : 0x0);
     }
     //push total locals onto the call stack
     callStack.push(locals);
   }
 
-  void copy_table() {
+  void copyTable() {
     //Debugger.verbose('${pcHex(-1)} [copy_table]');
 
     var operands = visitOperandsVar(3, false);
 
-    var t1Addr = operands[0].value;
+    int t1Addr = operands[0].value!;
 
     var t2Addr = operands[1].value;
 
@@ -129,15 +127,15 @@ class Version5 extends Version4 {
 
     if (t2Addr == 0) {
       //write size of 0's into t1
-      mem.storew(t1Addr, size >> 1);
+      mem.storew(t1Addr, size! >> 1);
       t1Addr += 2;
       for (int i = 0; i < size; i++) {
         mem.storeb(t1Addr++, 0);
       }
     } else {
-      var absSize = size.abs();
-      var t1End = t1Addr + mem.loadw(t1Addr);
-      if (t2Addr >= t1Addr && t2Addr <= t1End) {
+      var absSize = size!.abs();
+      var t1End = t1Addr+ mem.loadw(t1Addr);
+      if (t2Addr! >= t1Addr && t2Addr <= t1End) {
         //overlap copy...
 
         Debugger.todo(
@@ -154,7 +152,7 @@ class Version5 extends Version4 {
     }
   }
 
-  void buffer_mode() {
+  void bufferMode() {
     //Debugger.verbose('${pcHex(-1)} [buffer_mode]');
 
     visitOperandsVar(1, false);
@@ -172,13 +170,13 @@ class Version5 extends Version4 {
           "tokenise dictionary argument is not yet support in v5+");
     }
 
-    var maxBytes = mem.loadb(operands[0].value);
+    var maxBytes = mem.loadb(operands[0].value!);
 
-    var textBuffer = operands[0].value + 2;
+    var textBuffer = operands[0].value! + 2;
 
-    var maxWords = mem.loadb(operands[1].value);
+    var maxWords = mem.loadb(operands[1].value!);
 
-    var parseBuffer = operands[1].value + 1;
+    var parseBuffer = operands[1].value! + 1;
 
     var line = Z.mostRecentInput.toLowerCase();
 
@@ -230,12 +228,12 @@ class Version5 extends Version4 {
     }
   }
 
-  void output_stream() {
+  void outputStream() {
     //Debugger.verbose('${pcHex(-1)} [output_stream]');
 
     var operands = visitOperandsVar(2, true);
 
-    var stream = MathHelper.toSigned(operands[0].value);
+    var stream = MathHelper.toSigned(operands[0].value!);
 
     switch (stream.abs()) {
       case 1:
@@ -249,7 +247,7 @@ class Version5 extends Version4 {
           if (Z.memoryStreams.isEmpty) return;
 
           //write out to memory
-          var addr = Z.memoryStreams.last;
+          var addr = Z.memoryStreams.last!;
           Z.memoryStreams.removeLast();
 
           var data = Z.sbuff.toString();
@@ -260,7 +258,7 @@ class Version5 extends Version4 {
           addr += 2;
 
           for (int i = 0; i < data.length; i++) {
-            mem.storeb(addr++, ZSCII.CharToZChar(data[i]));
+            mem.storeb(addr++, ZSCII.charToZChar(data[i]));
           }
 
           //if the output stream queue is empty then
@@ -285,7 +283,7 @@ class Version5 extends Version4 {
     }
   }
 
-  void set_text_style() async {
+  void setTextStyle() async {
     //Debugger.verbose('${pcHex(-1)} [set_text_style]');
 
     var operands = visitOperandsVar(1, false);
@@ -293,13 +291,13 @@ class Version5 extends Version4 {
     Z.inInterrupt = true;
 
     await Z
-        .sendIO({"command": IOCommands.SET_FONT, "style": operands[0].value});
+        .sendIO({"command": ioCommands.setFont, "style": operands[0].value});
 
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
 
-  void ext_save_undo() {
+  void extSaveUndo() {
     //Debugger.verbose('${pcHex(-1)} [ext_save_undo]');
 
     readb(); //throw away byte
@@ -318,8 +316,8 @@ class Version5 extends Version4 {
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
-          Debugger.debug('>>> (0x${(PC - 1).toRadixString(16)}) ($i)');
-          Debugger.debug('${Debugger.dumpLocals()}');
+          Debugger.debug('>>> (0x${(programCounter- 1).toRadixString(16)}) ($i)');
+          Debugger.debug(Debugger.dumpLocals());
         }
 
         if (Debugger.enableStackTrace) {
@@ -327,12 +325,12 @@ class Version5 extends Version4 {
           Debugger.debug('Game Stack: $stack');
         }
 
-        if (Debugger.isBreakPoint(PC - 1)) {
+        if (Debugger.isBreakPoint(programCounter- 1)) {
           Z.inBreak = true;
-          Debugger.debugStartAddr = PC - 1;
+          Debugger.debugStartAddr = programCounter- 1;
         }
       }
-      ops[i]();
+      ops[i]!();
     } else {
       throw GameException('Unsupported EXT Op Code: $i');
     }
@@ -416,17 +414,17 @@ class Version5 extends Version4 {
           "Sorry :( This interpreter doesn't yet support a required feature of this game.");
     }
 
-    int maxBytes = mem.loadb(operands[0].value);
+    int maxBytes = mem.loadb(operands[0].value!);
 
-    int textBuffer = operands[0].value + 2;
+    int textBuffer = operands[0].value! + 2;
 
-    int maxWords;
+    int? maxWords;
     int parseBuffer;
 
     // if (operands.length > 2) {
-    maxWords = mem.loadb(operands[1].value);
+    maxWords = mem.loadb(operands[1].value!);
 
-    parseBuffer = operands[1].value + 1;
+    parseBuffer = operands[1].value! + 1;
     // }
 
     void processLine(String line) async {
@@ -491,12 +489,12 @@ class Version5 extends Version4 {
       writeVariable(storeTo, 13);
     }
 
-    final result = await Z.sendIO({"command": IOCommands.READ});
+    final result = await Z.sendIO({"command": ioCommands.read});
 
     Z.inInterrupt = false;
     if (result == '/!') {
       Z.inBreak = true;
-      Debugger.debugStartAddr = PC - 1;
+      Debugger.debugStartAddr = programCounter- 1;
       Z.callAsync(Debugger.startBreak);
     } else {
       processLine(result);
@@ -504,7 +502,7 @@ class Version5 extends Version4 {
     }
   }
 
-  void check_arg_count() {
+  void checkArgCount() {
     //Debugger.verbose('${pcHex(-1)} [check_arg_count]');
 
     var operands = visitOperandsVar(1, false);
@@ -515,14 +513,14 @@ class Version5 extends Version4 {
     branch(argCount == operands[0].value);
   }
 
-  void ext_set_font() async {
+  void extSetFont() async {
     //Debugger.verbose('${pcHex(-1)} [ext_set_font]');
     Z.inInterrupt = true;
 
     var operands = visitOperandsVar(1, false);
 
     final result = await Z
-        .sendIO({"command": IOCommands.SET_FONT, "font_id": operands[0].value});
+        .sendIO({"command": ioCommands.setFont, "font_id": operands[0].value});
     Z.inInterrupt = false;
 
     if (result != null) {
@@ -534,7 +532,7 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
-  void set_cursor() async {
+  void setCursor() async {
     //Debugger.verbose('${pcHex(-1)} [set_cursor]');
 
     final operands = visitOperandsVar(2, false);
@@ -542,7 +540,7 @@ class Version5 extends Version4 {
     Z.inInterrupt = true;
 
     await Z.sendIO({
-      "command": IOCommands.SET_CURSOR,
+      "command": ioCommands.setCursor,
       "x": operands[0].value,
       "y": operands[1].value
     });
@@ -552,42 +550,42 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
-  void set_window() {
+  void setWindow() {
     //Debugger.verbose('${pcHex(-1)} [set_window]');
     var operands = visitOperandsVar(1, false);
 
     Z.printBuffer();
 
-    currentWindow = operands[0].value;
+    currentWindow = operands[0].value!;
   }
 
-  void call_vs2() {
+  void callVS2() {
     //Debugger.verbose('${pcHex(-1)} [call_vn2]');
 
     var operands = visitOperandsVar(8, true);
 
     var resultStore = readb();
 
-    var returnAddr = PC;
+    var returnAddr = programCounter;
 
-    assert(operands.length > 0);
+    assert(operands.isNotEmpty);
 
     if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
 
-      writeVariable(resultStore, Engine.FALSE);
+      writeVariable(resultStore, Engine.gameFalse);
     } else {
       //unpack function address
-      operands[0].rawValue = unpack(operands[0].value);
+      operands[0].rawValue = unpack(operands[0].value!);
 
       //move to the routine address
-      PC = operands[0].rawValue;
+      programCounter = operands[0].rawValue!;
 
       //peel off the first operand
       operands.removeAt(0);
 
       //setup the routine stack frame and locals
-      visitRoutine(operands.map<int>((o) => o.value).toList());
+      visitRoutine(operands.map<int?>((o) => o.value).toList());
 
       //push the result store address onto the call stack
       callStack.push(resultStore);
@@ -597,16 +595,16 @@ class Version5 extends Version4 {
     }
   }
 
-  void call_vn2() {
+  void callVN2() {
     //Debugger.verbose('${pcHex(-1)} [call_vn2]');
 
     var operands = visitOperandsVar(8, true);
 
     // var resultStore = Engine.STACK_MARKER;
 
-    var returnAddr = PC;
+    var returnAddr = programCounter;
 
-    assert(operands.length > 0);
+    assert(operands.isNotEmpty);
 
     if (operands[0].value == 0) {
       //calling routine at address 0x00 automatically returns FALSE (ref 6.4.3)
@@ -614,19 +612,19 @@ class Version5 extends Version4 {
       //writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
-      operands[0].rawValue = unpack(operands[0].value);
+      operands[0].rawValue = unpack(operands[0].value!);
 
       //move to the routine address
-      PC = operands[0].rawValue;
+      programCounter = operands[0].rawValue!;
 
       // peel off the first operand
       operands.removeAt(0);
 
       //setup the routine stack frame and locals
-      visitRoutine(operands.map<int>((o) => o.value).toList());
+      visitRoutine(operands.map<int?>((o) => o.value).toList());
 
       //push the result store address onto the call stack
-      callStack.push(Engine.STACK_MARKER);
+      callStack.push(Engine.stackMarker);
 
       //push the return address onto the call stack
       callStack.push(returnAddr);
@@ -634,16 +632,16 @@ class Version5 extends Version4 {
   }
 
   // like callVS, but throws away results
-  void call_vn() {
+  void callVN() {
     //Debugger.verbose('${pcHex(-1)} [call_vn]');
 
     var operands = visitOperandsVar(4, true);
 
     //
     // var resultStore = Engine.STACK_MARKER;
-    var returnAddr = PC;
+    var returnAddr = programCounter;
 
-    assert(operands.length > 0);
+    assert(operands.isNotEmpty);
 
     if (operands[0].value == 0) {
       log.fine("call_vn got a zero address but is skipping store");
@@ -651,18 +649,18 @@ class Version5 extends Version4 {
       //writeVariable(resultStore, Engine.FALSE);
     } else {
       //unpack function address
-      operands[0].rawValue = unpack(operands[0].value);
+      operands[0].rawValue = unpack(operands[0].value!);
 
       //move to the routine address
-      PC = operands[0].rawValue;
+      programCounter = operands[0].rawValue!;
 
       operands.removeRange(0, 1);
 
       //setup the routine stack frame and locals
-      visitRoutine(operands.map<int>((o) => o.value).toList());
+      visitRoutine(operands.map<int?>((o) => o.value).toList());
 
       // "Lick call but throws away the result"
-      callStack.push(Engine.STACK_MARKER);
+      callStack.push(Engine.stackMarker);
 
       //push the return address onto the call stack
       callStack.push(returnAddr);
@@ -676,9 +674,9 @@ class Version5 extends Version4 {
 
     var storeTo = readb();
 
-    var returnAddr = PC;
+    var returnAddr = programCounter;
 
-    PC = unpack(operand.value);
+    programCounter = unpack(operand.value!);
 
     visitRoutine([]);
 
@@ -692,15 +690,15 @@ class Version5 extends Version4 {
   void call_2s() {
     //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
-    var operands = mem.loadb(PC - 1) < 193
+    var operands = mem.loadb(programCounter- 1) < 193
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
     var storeTo = readb();
 
-    var returnAddr = PC;
+    var returnAddr = programCounter;
 
-    PC = unpack(operands[0].value);
+    programCounter = unpack(operands[0].value!);
 
     visitRoutine([operands[1].value]);
 
@@ -716,14 +714,14 @@ class Version5 extends Version4 {
 
     var operand = visitOperandsShortForm();
 
-    var returnAddr = PC;
+    var returnAddr = programCounter;
 
-    PC = unpack(operand.value);
+    programCounter = unpack(operand.value!);
 
     visitRoutine([]);
 
     //push the result store address onto the call stack
-    callStack.push(Engine.STACK_MARKER);
+    callStack.push(Engine.stackMarker);
 
     //push the return address onto the call stack
     callStack.push(returnAddr);
@@ -732,18 +730,18 @@ class Version5 extends Version4 {
   void call_2n() {
     //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
-    var operands = mem.loadb(PC - 1) < 193
+    var operands = mem.loadb(programCounter- 1) < 193
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
-    var resultStore = Engine.STACK_MARKER;
+    var resultStore = Engine.stackMarker;
 
-    var returnAddr = PC;
+    var returnAddr = programCounter;
 
     // var addr = unpack(operands[0].value);
 
     //move to the routine address
-    PC = unpack(operands[0].value);
+    programCounter = unpack(operands[0].value!);
 
     //setup the routine stack frame and locals
     visitRoutine([operands[1].value]);
@@ -755,19 +753,19 @@ class Version5 extends Version4 {
     callStack.push(returnAddr);
   }
 
-  void erase_window() async {
+  void eraseWindow() async {
     //Debugger.verbose('${pcHex(-1)} [erase_window]');
 
     var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
     await Z.sendIO(
-        {"command": IOCommands.CLEAR_SCREEN, "window_id": operands[0].value});
+        {"command": ioCommands.clearScreen, "window_id": operands[0].value});
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
 
-  void split_window() async {
+  void splitWindow() async {
     //Debugger.verbose('${pcHex(-1)} [split_window]');
 
     var operands = visitOperandsVar(1, false);
@@ -775,12 +773,12 @@ class Version5 extends Version4 {
     Z.inInterrupt = true;
 
     await Z.sendIO(
-        {"command": IOCommands.SPLIT_SCREEN, "window_id": operands[0].value});
+        {"command": ioCommands.splitScreen, "window_id": operands[0].value});
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
 
-  void read_char() async {
+  void readChar() async {
     //Debugger.verbose('${pcHex(-1)} [read_char]');
     Z.inInterrupt = true;
 
@@ -794,8 +792,8 @@ class Version5 extends Version4 {
 
     var resultTo = readb();
 
-    final char = await Z.sendIO({"command": IOCommands.READ_CHAR});
-    writeVariable(resultTo, ZSCII.CharToZChar(char));
+    final char = await Z.sendIO({"command": ioCommands.readChar});
+    writeVariable(resultTo, ZSCII.charToZChar(char));
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
@@ -806,8 +804,8 @@ class Version5 extends Version4 {
   @override
   void doReturn(var result) {
     // return address
-    PC = callStack.pop();
-    assert(PC > 0);
+    programCounter = callStack.pop();
+    assert(programCounter> 0);
 
     // result store address byte
     // this may not be a byte if the Machine.STACK_MARKER
@@ -818,28 +816,28 @@ class Version5 extends Version4 {
     callStack.stack.removeRange(0, callStack.peek() + 2);
 
     //unwind game stack
-    while (stack.pop() != Engine.STACK_MARKER) {}
+    while (stack.pop() != Engine.stackMarker) {}
 
     //stack marker is used in the result byte to
     //mark call routines that want to throw away the result
-    if (resultAddrByte == Engine.STACK_MARKER) return;
+    if (resultAddrByte == Engine.stackMarker) return;
 
     writeVariable(resultAddrByte, result);
   }
 
   @override
   List<Operand> visitOperandsVar(int howMany, bool isVariable) {
-    var operands = List<Operand>();
+    final operands = <Operand>[];
 
     //load operand types
-    var shiftStart = howMany > 4 ? 14 : 6;
-    var os = howMany > 4 ? readw() : readb();
+    int shiftStart = howMany > 4 ? 14 : 6;
+    final os = howMany > 4 ? readw() : readb();
 
-    var to;
+    int to;
     while (shiftStart > -2) {
       to = (os >> shiftStart) & 3; //shift and mask bottom 2 bits
 
-      if (to == OperandType.OMITTED) {
+      if (to == OperandType.omitted) {
         break;
       } else {
         operands.add(Operand(to));
@@ -849,9 +847,9 @@ class Version5 extends Version4 {
     }
 
     //load values
-    operands.forEach((Operand o) {
-      o.rawValue = o.oType == OperandType.LARGE ? readw() : readb();
-    });
+    for (var o in operands) {
+      o.rawValue = o.oType == OperandType.large ? readw() : readb();
+    }
 
 //    if (!isVariable && (operands.length != howMany)){
 //      throw Exception('Operand count mismatch.  Expected ${howMany}, found ${operands.length}');

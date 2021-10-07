@@ -8,29 +8,34 @@ import 'package:zart/zscii.dart';
 
 class Version7 extends Version5
 {
-  ZVersion get version => ZVersion.V7;
+  @override
+  zMachineVersions get version => zMachineVersions.v7;
 
   // Kb
+  @override
   int get maxFileLength => 320;
 
+  @override
   int unpack(int packedAddr){
-    return (packedAddr << 2) + (mem.loadw(Header.ROUTINES_OFFSET) << 3);
+    return (packedAddr << 2) + (mem.loadw(Header.routinesOffset) << 3);
   }
 
+  @override
   int pack(int unpackedAddr){
     throw GameException("Unsupported call to pack() in Version 7 engine.");
   }
 
-  int unpack_paddr(int packed_print_addr){
-    return (packed_print_addr << 2) + (mem.loadw(Header.STRINGS_OFFSET) << 3);
+  int unpackPAddr(int packedPrintAddr){
+    return (packedPrintAddr << 2) + (mem.loadw(Header.stringsOffset) << 3);
   }
 
-  void print_paddr(){
+  @override
+  void printPAddr(){
     //Debugger.verbose('${pcHex(-1)} [print_paddr]');
 
-    var operand = this.visitOperandsShortForm();
+    var operand = visitOperandsShortForm();
 
-    var addr = this.unpack_paddr(operand.value);
+    var addr = unpackPAddr(operand.value!);
 
     var str = ZSCII.readZStringAndPop(addr);
 

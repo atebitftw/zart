@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:zart/engines/engine.dart';
 import 'package:zart/game_exception.dart';
 import 'package:zart/math_helper.dart';
@@ -10,13 +12,10 @@ class Stack {
   int sp = 0;
 
   Stack()
-  :
-    stack = List<int>(),
-    _max = 0;
+      : stack = <int>[],
+        _max = 0;
 
-  Stack.max(this._max)
-  :
-    stack = List<int>();
+  Stack.max(this._max) : stack = <int>[];
 
   int pop() {
     final v = stack[0];
@@ -24,24 +23,23 @@ class Stack {
 
     //no Dart negative values should exist here
     //except the special stack-end flag 0x-10000
-    assert(v == Engine.STACK_MARKER || v >= 0);
+    assert(v == Engine.stackMarker || v >= 0);
 
     return v;
   }
 
-  int operator [](int index){
+  int operator [](int index) {
     final v = stack[index];
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
-    assert(v == Engine.STACK_MARKER || v >= 0);
+    assert(v == Engine.stackMarker || v >= 0);
 
     return v;
   }
 
-  void operator []=(int index, int value){
-
-    if (value < 0 && value != Engine.STACK_MARKER){
+  void operator []=(int index, int value) {
+    if (value < 0 && value != Engine.stackMarker) {
       value = MathHelper.dartSignedIntTo16BitSigned(value);
     }
 
@@ -60,36 +58,34 @@ class Stack {
 //    }
 
     //excluding the stack boundary flag
-    if (value < 0 && value != Engine.STACK_MARKER){
+    if (value < 0 && value != Engine.stackMarker) {
       value = MathHelper.dartSignedIntTo16BitSigned(value);
     }
 
     stack.insert(0, value);
   }
 
-  int peek(){
+  int peek() {
     final v = stack[0];
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
-    assert(v == Engine.STACK_MARKER || v >= 0);
+    assert(v == Engine.stackMarker || v >= 0);
 
     return v;
   }
 
   void clear() => stack.clear();
 
-  void dump(){
+  void dump() {
     int p = 0;
-    stack.forEach((i){
-      print("${p++}: 0x${i.toRadixString(16)}");
-    });
+    for (var i in stack) {
+      stdout.writeln("${p++}: 0x${i.toRadixString(16)}");
+    }
   }
 
-  String toString(){
-    final mapped = stack.map((s) => '0x${s.toRadixString(16)}');
-    return '$mapped';
-  }
+  @override
+  String toString() => stack.map((s) => '0x${s.toRadixString(16)}').toString();
 
 //  void inc(int amount){
 //    sp += amount;
