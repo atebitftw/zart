@@ -47,7 +47,7 @@ void main() {
   Debugger.initializeEngine(machine);
   Z.io = MockUIProvider();
 
-  print(Debugger.dumpHeader());
+  stdout.writeln(Debugger.dumpHeader());
   stdout.writeln(utils.generateObjectTree(1));
 
   group("All>", () {
@@ -88,7 +88,8 @@ void main() {
     });
 
     test("ZSCII.ZCharToChar(32-126) returns expected letter.", () {
-      final ascii = " !\"#\$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+      // ignore: unnecessary_string_escapes
+      const ascii = " !\"#\$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
       for (var i = 0; i < 95; i++){
 
         expect(ZSCII.zCharToChar(i+32), equals(ascii[i]));

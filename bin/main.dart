@@ -23,7 +23,7 @@ main([List<String>? args]) {
   initLogger(Level.WARNING);
 
   final s = Platform.pathSeparator;
-  final pathToFile = 'assets${s}games${s}hitchhik.z5';
+  final pathToFile = 'assets${s}games${s}minizork.z3';
 
   final f = File(pathToFile);
 
