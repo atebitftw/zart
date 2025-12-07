@@ -79,10 +79,7 @@ class IFF {
   }
 
   static int read16BitValue(List stream) {
-    return (nextByte(stream)! << 24) |
-        (nextByte(stream)! << 16) |
-        (nextByte(stream)! << 8) |
-        nextByte(stream)!;
+    return (nextByte(stream)! << 24) | (nextByte(stream)! << 16) | (nextByte(stream)! << 8) | nextByte(stream)!;
   }
 }
 

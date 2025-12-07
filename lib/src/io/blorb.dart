@@ -49,9 +49,7 @@ class Blorb {
 
         var start = IFF.read16BitValue(fileBytes);
 
-        fileBytes =
-            List.from(rawBytes.getRange(start, rawBytes.length - start))
-                as Uint8List;
+        fileBytes = List.from(rawBytes.getRange(start, rawBytes.length - start)) as Uint8List;
 
         if (IFF.readChunk(fileBytes) != Chunk.zcod) return null;
 
