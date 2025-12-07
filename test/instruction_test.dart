@@ -1,20 +1,22 @@
-
 //first (most significant) byte
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:zart/debugger.dart';
-import 'package:zart/engines/engine.dart';
-import 'package:zart/math_helper.dart';
-import 'package:zart/operand.dart';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/debugger.dart';
+import 'package:zart/src/engines/engine.dart';
+import 'package:zart/src/math_helper.dart';
+import 'package:zart/src/operand.dart';
+import 'package:zart/src/z_machine.dart';
+import 'package:zart/zart.dart'; // Added for Z
+import 'test_utils.dart';
 
 int fst(int word) => word >> 8;
 //second (least significant) byte
 int snd(int word) => word & 0xff;
 
 //this is a testing facility to run simulated instructions against the machine
-instructionTests(){
+void main() {
+  setupZMachine();
 
   const callAddr = 0x4f04;
   const testRoutineAddr = 0xae60;
@@ -24,55 +26,57 @@ instructionTests(){
 
   final testRoutineRestoreBytes = Z.engine.mem.getRange(testRoutineAddr, maxTestRoutineLength);
 
-  void injectRoutine(List<int> locals, List<int> instructionBytes){
-
+  void injectRoutine(List<int> locals, List<int> instructionBytes) {
     Z.engine.mem.storeb(testRoutineAddr, locals.length);
 
     //write the locals
     var start = testRoutineAddr + 1;
 
-    for(final l in locals){
+    for (final l in locals) {
       Z.engine.mem.storew(start, l);
       start += 2;
     }
 
     //write the instructions
-    for(final b in instructionBytes){
+    for (final b in instructionBytes) {
       Z.engine.mem.storeb(start, b);
       start++;
     }
   }
 
-  List<Operand> createVarParamList(item1, [item2, item3, item4]){
-    var kindList = [];
-    var paramList = [];
+  List<Operand> createVarParamList(item1, [item2, item3, item4]) {
+    List<int> kindList = [];
+    List<Operand> paramList = [];
 
-    int getKind(item){
-      if (item == null) { return OperandType.omitted;
+    int getKind(item) {
+      if (item == null) {
+        return OperandType.omitted;
       }
 
-      if (item is String){
+      if (item is String) {
         return OperandType.variable;
-      }else{
-        if (item <= 0xFF) { return OperandType.small;
+      } else {
+        if (item <= 0xFF) {
+          return OperandType.small;
         }
         return OperandType.large;
       }
     }
 
-    int convertToVariableLiteral(String item){
+    int convertToVariableLiteral(String item) {
       //convert to variable literal
-      if (item.toLowerCase() == 'sp') { return 0;
+      if (item.toLowerCase() == 'sp') {
+        return 0;
       }
 
       var varType = item.substring(0, 1);
-      switch(varType.toLowerCase()){
+      switch (varType.toLowerCase()) {
         case 'g':
           // G0 = 16, G1 = 17, etc
-          return int.parse(item.substring(1, item.length-1)) + 0x10;
+          return int.parse(item.substring(1, item.length - 1)) + 0x10;
         case 'l':
           // L0 = 1, L1 = 2, etc
-          return int.parse(item.substring(1, item.length-1)) + 0x01;
+          return int.parse(item.substring(1, item.length - 1)) + 0x01;
         default:
           throw Exception('variable type not recognized: $varType');
       }
@@ -85,7 +89,7 @@ instructionTests(){
     kindList.add(getKind(item4));
 
     var operandByte = Operand(OperandType.omitted);
-    operandByte.rawValue = Operand.createVarOperandByte(kindList as List<int>);
+    operandByte.rawValue = Operand.createVarOperandByte(kindList);
     paramList.add(operandByte);
 
     //convert any variable types to literals
@@ -99,11 +103,10 @@ instructionTests(){
     paramList[3].rawValue = (kindList[2] == OperandType.variable) ? convertToVariableLiteral(item3) : item3;
     paramList[4].rawValue = (kindList[3] == OperandType.variable) ? convertToVariableLiteral(item4) : item4;
 
-    return paramList as List<Operand>;
+    return paramList;
   }
 
-  runRoutine([param1, param2, param3]){
-
+  runRoutine([param1, param2, param3]) {
     var operandList = createVarParamList(Z.engine.pack(testRoutineAddr), param1, param2, param3);
     Debugger.isUnitTestRun = true;
     Z.quit = false;
@@ -114,13 +117,14 @@ instructionTests(){
     callInstruction.add((operandList[0]).rawValue!);
 
     // write the operands
-    for(final operand in operandList.getRange(1, 4)){
-      if (operand.oType == OperandType.omitted) { break;
+    for (final operand in operandList.getRange(1, 4)) {
+      if (operand.oType == OperandType.omitted) {
+        break;
       }
-      if (operand.oType == OperandType.large){
+      if (operand.oType == OperandType.large) {
         callInstruction.add(fst(operand.rawValue!));
         callInstruction.add(snd(operand.rawValue!));
-      }else{
+      } else {
         callInstruction.add(operand.rawValue!);
       }
     }
@@ -135,7 +139,7 @@ instructionTests(){
     //write out the routine
     var addr = callAddr + 1;
 
-    for(final inst in callInstruction){
+    for (final inst in callInstruction) {
       Z.engine.mem.storeb(addr, inst);
       addr++;
     }
@@ -143,7 +147,10 @@ instructionTests(){
     //clear stacks and reset program counter
     Z.engine.stack.clear();
     Z.engine.callStack.clear();
-    Z.engine.programCounter = callAddr + 1;
+
+    // Set up a dummy routine header with 0 locals at callAddr
+    Z.engine.mem.storeb(callAddr, 0);
+    Z.engine.programCounter = callAddr;
 
     // visit the main 'routine'
     Z.engine.visitRoutine([]);
@@ -154,7 +161,7 @@ instructionTests(){
     //push dummy return address onto the call stack
     Z.engine.callStack.push(0);
 
-//    Debugger.debug('${Z.machine.mem.dump(callAddr, 20)}');
+    //    Debugger.debug('${Z.machine.mem.dump(callAddr, 20)}');
 
     Z.callAsync(Z.runIt);
 
@@ -162,35 +169,33 @@ instructionTests(){
     //callbackDone();
   }
 
-  void restoreRoutine(){
+  void restoreRoutine() {
     var start = testRoutineAddr;
 
-    for (final b in testRoutineRestoreBytes){
+    for (final b in testRoutineRestoreBytes) {
       Z.engine.mem.storeb(start++, b);
     }
   }
 
-  group('instructions>', (){
-
-    group('setup>', (){
-
-      test('test routine check', (){
+  group('instructions>', () {
+    group('setup>', () {
+      test('test routine check', () {
         //first/last byte of testRoutineRestore is correct
         expect(Z.engine.mem.loadb(testRoutineAddr), equals(testRoutineRestoreBytes[0]));
         expect(Z.engine.mem.loadb(testRoutineEndAddr), equals(testRoutineRestoreBytes.last));
       });
 
-      test('routine restore check', (){
+      test('routine restore check', () {
         var start = testRoutineAddr;
 
         //zero out the routine memory
-        for (final _ in testRoutineRestoreBytes){
+        for (final _ in testRoutineRestoreBytes) {
           Z.engine.mem.storeb(start++, 0);
         }
 
         start = testRoutineAddr;
         //validate 0's
-        for (final _ in testRoutineRestoreBytes){
+        for (final _ in testRoutineRestoreBytes) {
           expect(0, equals(Z.engine.mem.loadb(start++)));
         }
 
@@ -199,18 +204,18 @@ instructionTests(){
         start = testRoutineAddr;
 
         //validate restore
-        for (final b in testRoutineRestoreBytes){
+        for (final b in testRoutineRestoreBytes) {
           expect(b, equals(Z.engine.mem.loadb(start++)));
         }
       });
 
-      test('inject routine', (){
+      test('inject routine', () {
         injectRoutine([0xffff, 0xeeee, 0x0, 0x0, 0x0, 0x0], []);
         var testBytes = [0x6, 0xff, 0xff, 0xee, 0xee, 0, 0, 0, 0];
         var routine = Z.engine.mem.getRange(testRoutineAddr, testBytes.length);
 
         int i = 0;
-        for(final b in routine){
+        for (final b in routine) {
           expect(testBytes[i++], equals(b));
         }
 
@@ -218,24 +223,24 @@ instructionTests(){
       });
     });
 
-    Future<int> pollUntilQuit(){
+    Future<int> pollUntilQuit() {
       Completer c = Completer();
 
-      doIt(){
-        if (Z.quit){
+      doIt() {
+        if (Z.quit) {
           c.complete(Z.engine.stack.pop());
-        }else{
-          Timer(const Duration(seconds:0), doIt);
+        } else {
+          Timer(const Duration(seconds: 0), doIt);
         }
       }
 
-      Timer(const Duration(seconds:0), doIt);
+      Timer(const Duration(seconds: 0), doIt);
 
       return c.future.then((value) => value as int);
     }
 
-    group("tests>",(){
-/*
+    group("tests>", () {
+      /*
 * Tests in this group generally follow the following pattern:
 * 1.  inject a routine (with locals defined if needed):
 *    //injects a routine with 2 locals and opcode 0xb0 (rtrue)
@@ -258,8 +263,7 @@ instructionTests(){
 *
 */
 
-
-      test('simple return true', () async{
+      test('simple return true', () async {
         injectRoutine([], [0xb0]); //RTRUE
         //Debugger.enableAll();
 
@@ -290,7 +294,6 @@ instructionTests(){
       });
 
       test('push non-negative big', () async {
-
         /*
         * PUSH L00 (0xFFFF)
         * RET SP
@@ -303,7 +306,6 @@ instructionTests(){
       });
 
       test('push negative small', () async {
-
         /*
         * PUSH L00
         * RET SP
@@ -316,7 +318,6 @@ instructionTests(){
       });
 
       test('push negative big', () async {
-
         /*
         * PUSH L00
         * RET SP
@@ -330,5 +331,4 @@ instructionTests(){
       });
     });
   });
-
 }

@@ -1,15 +1,11 @@
-import 'package:zart/IO/io_provider.dart';
-import 'package:zart/game_exception.dart';
-import 'package:zart/game_object.dart';
-import 'package:zart/header.dart';
-import 'package:zart/engines/engine.dart';
-import 'package:zart/engines/version_3.dart';
-import 'package:zart/engines/version_5.dart';
-import 'package:zart/engines/version_7.dart';
-import 'package:zart/engines/version_8.dart';
-import 'package:zart/memory_map.dart';
-import 'package:zart/mixins/loggable.dart';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/game_object.dart';
+import 'package:zart/src/engines/engine.dart';
+import 'package:zart/src/engines/version_3.dart';
+import 'package:zart/src/engines/version_5.dart';
+import 'package:zart/src/engines/version_7.dart';
+import 'package:zart/src/engines/version_8.dart';
+import 'package:zart/src/memory_map.dart';
+import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
 
 /// A runtime debugger for Z-Machine.
@@ -22,6 +18,7 @@ class Debugger with Loggable {
   static bool enableTrace = false;
   static bool enableDebug = false;
   static bool enableStackTrace = false;
+
   /// This flag is meant to alert the game engine that it is being
   /// run for unit testing purposes, but is currently not supported.
   static bool isUnitTestRun = false;
@@ -29,21 +26,20 @@ class Debugger with Loggable {
   static List<int>? _breakPoints;
   static int instructionCounter = 0;
 
-  static Engine _getEngineByVersion(zMachineVersions? version) {
+  static Engine _getEngineByVersion(ZMachineVersions? version) {
     switch (version) {
-      case zMachineVersions.v1:
+      case ZMachineVersions.v1:
         return Engine();
-      case zMachineVersions.v3:
+      case ZMachineVersions.v3:
         return Version3();
-      case zMachineVersions.v5:
+      case ZMachineVersions.v5:
         return Version5();
-      case zMachineVersions.v7:
+      case ZMachineVersions.v7:
         return Version7();
-      case zMachineVersions.v8:
+      case ZMachineVersions.v8:
         return Version8();
       default:
-        throw GameException(
-            "Unsupported gamefile version.  This interpreter does not support $version");
+        throw GameException("Unsupported gamefile version.  This interpreter does not support $version");
     }
   }
 
@@ -54,13 +50,11 @@ class Debugger with Loggable {
   static void initializeEngine([Engine? newEngine]) {
     Z.inInterrupt = true;
     if (!Z.isLoaded) {
-      throw GameException(
-          "Unable to initialize Z-Machine.  No game file is loaded.");
+      throw GameException("Unable to initialize Z-Machine.  No game file is loaded.");
     }
 
     if (newEngine != null && newEngine.version != Z.ver) {
-      throw GameException(
-          'Machine/Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}');
+      throw GameException('Machine/Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}');
     }
 
     Z.engine = newEngine ?? _getEngineByVersion(Z.ver);
@@ -72,11 +66,12 @@ class Debugger with Loggable {
 
   static Future<void> startBreak() async {
     await Z.sendIO({
-      "command": ioCommands.printDebug,
-      "message": '(break)>>> 0x${debugStartAddr!.toRadixString(16)}:'
+      "command": IoCommands.printDebug,
+      "message":
+          '(break)>>> 0x${debugStartAddr!.toRadixString(16)}:'
           ' opCode: ${Z.engine.mem.loadb(debugStartAddr!)}'
           '\n'
-          '    Locals ${dumpLocals()}\n'
+          '    Locals ${dumpLocals()}\n',
     });
 
     Z.callAsync(_repl);
@@ -154,8 +149,10 @@ class Debugger with Loggable {
           if (col < 1) col = 1;
 
           for (int i = 0x10; i < 0xff; i++) {
-            s.write('g${i - 16 < 10 ? "0" : ""}${i - 16}:'
-                ' 0x${Z.engine.mem.readGlobal(i).toRadixString(16)}');
+            s.write(
+              'g${i - 16 < 10 ? "0" : ""}${i - 16}:'
+              ' 0x${Z.engine.mem.readGlobal(i).toRadixString(16)}',
+            );
 
             if ((i - 15) % col != 0) {
               s.write('\t');
@@ -191,7 +188,7 @@ class Debugger with Loggable {
       }
     }
 
-    final line = await Z.sendIO({"command": ioCommands.read});
+    final line = await Z.sendIO({"command": IoCommands.read});
     parse(line);
   }
 
@@ -214,7 +211,7 @@ class Debugger with Loggable {
     return _breakPoints!.contains(addr);
   }
 
-  static void setBreaks(breakPoints) {
+  static void setBreaks(List<int> breakPoints) {
     if (_breakPoints == null) {
       _breakPoints = <int>[];
     } else {
@@ -251,32 +248,20 @@ class Debugger with Loggable {
     s.write('\n');
     s.write('------- START HEADER -------\n');
     s.write('Z-Machine Version: ${Z.engine.version}\n');
-    s.write(
-        'Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n');
+    s.write('Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n');
     // word after flags1 is used by Inform
-    s.write(
-        'Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n');
-    s.write(
-        'Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n');
-    s.write(
-        'Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n');
-    s.write(
-        'Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n');
-    s.write(
-        'Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n');
-    s.write(
-        'High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n');
-    s.write(
-        'Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n');
-    s.write(
-        'Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n');
-    s.write(
-        'Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n');
-    s.write(
-        'Checksum Of File: ${Z.engine.mem.loadw(Header.checkSumOfFile)}\n');
+    s.write('Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n');
+    s.write('Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n');
+    s.write('Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n');
+    s.write('Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n');
+    s.write('Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n');
+    s.write('High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n');
+    s.write('Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n');
+    s.write('Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n');
+    s.write('Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n');
+    s.write('Checksum Of File: ${Z.engine.mem.loadw(Header.checkSumOfFile)}\n');
     //TODO v4+ header stuff here
-    s.write(
-        'Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n');
+    s.write('Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n');
     s.write('-------- END HEADER ---------\n');
 
     //s.write('main Routine: ${Z.machine.mem.getRange(Z.pc - 4, 10)}');
@@ -295,19 +280,17 @@ class Debugger with Loggable {
 
   /// Debug Channel
   static void debug(String debugString) async {
-    await Z.sendIO({
-      "command": ioCommands.printDebug,
-      "message": debugString
-    });
+    await Z.sendIO({"command": IoCommands.printDebug, "message": debugString});
   }
 
   static void todo([String? message]) async {
     await Z.sendIO({
-      "command": ioCommands.printDebug,
-      "message": 'Stopped At: 0x${Z.engine.programCounter.toRadixString(16)}\n\n'
+      "command": IoCommands.printDebug,
+      "message":
+          'Stopped At: 0x${Z.engine.programCounter.toRadixString(16)}\n\n'
           'Text Buffer:\n'
           '${Z.sbuff}\n'
-          '${message != null ? "TODO: $message" : ""}\n'
+          '${message != null ? "TODO: $message" : ""}\n',
     });
 
     throw Exception("Not Implemented");

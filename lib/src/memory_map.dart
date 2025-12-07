@@ -1,10 +1,9 @@
-import 'package:zart/dictionary.dart';
-import 'package:zart/game_exception.dart';
-import 'package:zart/math_helper.dart';
+import 'package:zart/src/dictionary.dart';
+import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/math_helper.dart';
 
 class MemoryMap {
-  
-  MemoryMap(List<int> bytes){
+  MemoryMap(List<int> bytes) {
     memList.addAll(bytes);
   }
 
@@ -23,42 +22,38 @@ class MemoryMap {
   int? programStart;
   late Dictionary dictionary;
 
-
-
-
   /// Reads a global variable as a 2-byte word at [globalVarAddress] and returns it.
-  int readGlobal(int globalVarAddress){
+  int readGlobal(int globalVarAddress) {
+    //if (which == 0) return Z.stack.pop();
 
-   //if (which == 0) return Z.stack.pop();
+    if (globalVarAddress < 0x10 || globalVarAddress > 0xff) {
+      throw GameException('Global lookup register out of range.');
+    }
 
-   if (globalVarAddress < 0x10 || globalVarAddress > 0xff) {
-     throw GameException('Global lookup register out of range.');
-   }
-
-   //global 0x00 means pop from stack
-   return loadw(globalVarsAddress + ((globalVarAddress - 0x10) * 2));
+    //global 0x00 means pop from stack
+    return loadw(globalVarsAddress + ((globalVarAddress - 0x10) * 2));
   }
 
   // Writes a global variable (word)
-  void writeGlobal(int which, int value){
-   // if (which == 0) return Z.stack.push(value);
+  void writeGlobal(int which, int value) {
+    // if (which == 0) return Z.stack.push(value);
 
     if (which < 0x10 || which > 0xff) {
       throw GameException('Global lookup register out of range.');
     }
 
-      storew(globalVarsAddress + ((which - 0x10) * 2), value);
+    storew(globalVarsAddress + ((which - 0x10) * 2), value);
   }
 
   // static and dynamic memory (1.1.1, 1.1.2)
   /// Get byte from a given [address].
-  int loadb(int address){
+  int loadb(int address) {
     checkBounds(address);
-    return memList[address]& 0xff;
+    return memList[address] & 0xff;
   }
 
   /// Get a 2-byte word from given [address]
-  int loadw(int address){
+  int loadw(int address) {
     checkBounds(address);
     checkBounds(address + 1);
     return _getWord(address);
@@ -66,7 +61,7 @@ class MemoryMap {
 
   /// Stores a byte [value] into dynamic memory
   /// at [address].  Reference 1.1.1
-  void storeb(int address, int value){
+  void storeb(int address, int value) {
     checkBounds(address);
 
     assert(value <= 0xff && value >= 0);
@@ -75,7 +70,7 @@ class MemoryMap {
   }
 
   //put word
-  void storew(int address, int value){
+  void storew(int address, int value) {
     checkBounds(address);
     checkBounds(address + 1);
 
@@ -83,7 +78,7 @@ class MemoryMap {
       throw GameException('word out of range');
     }
 
-    if (value < 0){
+    if (value < 0) {
       //convert to zmachine 16-bit signed neg
       value = MathHelper.dartSignedIntTo16BitSigned(value);
     }
@@ -97,7 +92,7 @@ class MemoryMap {
   }
 
   int _getWord(int address) {
-    var word = ((memList[address]<< 8) | memList[address + 1]) & 0xffff;
+    var word = ((memList[address] << 8) | memList[address + 1]) & 0xffff;
     // if (address == 6){
     //   print("address index: ${address}, word: $word");
     //   print("address: ${BinaryHelper.binaryOf(memList[address])}, address << 8: ${BinaryHelper.binaryOf(memList[address] << 8)}, address + 1: ${BinaryHelper.binaryOf(memList[address+1])} ");
@@ -110,27 +105,25 @@ class MemoryMap {
     return word;
   }
 
-  void checkBounds(int address){
+  void checkBounds(int address) {
+    //  if ((address == null) || (address < 0) || (address > memList.length - 1)){
 
-  //  if ((address == null) || (address < 0) || (address > memList.length - 1)){
+    //   // Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
 
-  //   // Debugger.debug('out of bounds memory. upper: ${_mem.length}, address: $address');
-
-  //    throw GameException('Attempted access to memory address'
-  //      ' that is out of bounds: $address (hex: 0x${address.toRadixString(16)}).  Max memory is: ${memList.length}');
-  //  }
+    //    throw GameException('Attempted access to memory address'
+    //      ' that is out of bounds: $address (hex: 0x${address.toRadixString(16)}).  Max memory is: ${memList.length}');
+    //  }
   }
 
-  String dump(int address, int howMany){
-    return getRange(address, howMany).map((o)=> '0x${o.toRadixString(16)}').toString();
+  String dump(int address, int howMany) {
+    return getRange(address, howMany).map((o) => '0x${o.toRadixString(16)}').toString();
   }
 
-  List getRange(int address, int howMany){
+  List getRange(int address, int howMany) {
     checkBounds(address);
     checkBounds(address + howMany);
-    return memList.getRange(address, howMany) as List<int?>;
+    return memList.getRange(address, address + howMany).toList();
   }
 
   int get size => memList.length;
-
 }

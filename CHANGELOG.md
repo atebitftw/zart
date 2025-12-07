@@ -13,3 +13,8 @@
 ## 1.0.0
 
 - Initial publish of the library to pub.dev on Oct 5, 2012.
+
+## 1.5.0
+- Major overhaul of the library to support Dart >3 and above.
+- More unit tests.
+- Fixed some dictionary and object addressing issues.

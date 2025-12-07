@@ -1,19 +1,15 @@
-
 import 'package:test/test.dart';
-import 'package:zart/game_exception.dart';
-import 'package:zart/game_object.dart';
+import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/game_object.dart';
 
-
-void objectTestsV8(){
-  group('Objects>', (){
-
+void objectTestsV8() {
+  group('Objects>', () {
     const ship = 63;
     const dreamBridge = 60;
     //final PIRATES = 62;
     const ladder = 64;
 
-    test('remove', (){
-
+    test('remove', () {
       var o1 = GameObject(ship);
 
       // check if we have the right object and
@@ -35,7 +31,7 @@ void objectTestsV8(){
       expect(0, equals(o1.sibling));
     });
 
-    test('insert', (){
+    test('insert', () {
       var o1 = GameObject(ship); //ship
       var p = GameObject(dreamBridge); //parent
       var oc = p.child;
@@ -47,7 +43,7 @@ void objectTestsV8(){
       expect(oc, equals(o1.sibling));
     });
 
-    test('get property length', (){
+    test('get property length', () {
       // GameObject o1 = GameObject(ship); //ship
 
       // Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(35) - 1));
@@ -56,7 +52,7 @@ void objectTestsV8(){
       // Expect.equals(20, GameObject.propertyLength(o1.getPropertyAddress(1) - 1));
     });
 
-    test('get property', (){
+    test('get property', () {
       GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
@@ -70,7 +66,7 @@ void objectTestsV8(){
       expect(() => o1.getPropertyValue(1), throwsA(GameException));
     });
 
-    test('get property address', (){
+    test('get property address', () {
       // GameObject o1 = GameObject(SHIP); //"west of house"
 
       // var addr = o1.getPropertyAddress(4);
@@ -91,11 +87,9 @@ void objectTestsV8(){
 
       // addr = o1.getPropertyAddress(0);
       // Expect.equals(0, addr);
-
     });
 
-
-    test('get next property', (){
+    test('get next property', () {
       GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
@@ -111,10 +105,9 @@ void objectTestsV8(){
       //   );
 
       expect(() => o1.getNextProperty(19), throwsA(GameException));
-
     });
 
-    test('set property', (){
+    test('set property', () {
       GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
@@ -136,7 +129,7 @@ void objectTestsV8(){
       expect(() => o1.setPropertyValue(1, 0xffff), throwsA(GameException));
     });
 
-    test('attributes are set', (){
+    test('attributes are set', () {
       //GameObject o1 = GameObject(ship);
 
       // Expect.equals('ship', o1.shortName);
@@ -155,7 +148,7 @@ void objectTestsV8(){
       // Expect.isFalse(o1.isFlagBitSet(40));
     });
 
-    test ('unset attribute', (){
+    test('unset attribute', () {
       GameObject o1 = GameObject(ship);
 
       // Expect.isTrue(o1.isFlagBitSet(17));
@@ -170,8 +163,8 @@ void objectTestsV8(){
       o1.setFlagBit(17);
     });
 
-    test('set attribute', (){
-      GameObject o1 = GameObject(58);// "the door";
+    test('set attribute', () {
+      GameObject o1 = GameObject(58); // "the door";
       // Expect.isFalse(o1.isFlagBitSet(1), '1');
       // o1.setFlagBit(1);
       // Expect.isTrue(o1.isFlagBitSet(1));
@@ -189,5 +182,4 @@ void objectTestsV8(){
       o1.unsetFlagBit(47);
     });
   });
-
 }

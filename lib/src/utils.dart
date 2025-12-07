@@ -1,10 +1,9 @@
 import 'dart:math';
 
-import 'package:zart/game_object.dart';
+import 'package:zart/src/game_object.dart';
 import 'package:zart/zart.dart';
 
-
-void loadStoryFile(String pathToFile){
+void loadStoryFile(String pathToFile) {
   throw "Not implemented.";
 }
 
@@ -13,19 +12,19 @@ void loadStoryFile(String pathToFile){
 /// although there is the possibility that some orphaned objects may not be
 /// found if they are above the highest "found" object number and are not
 /// referenced as a sibling/child/parent of any other object.
-/// 
+///
 /// This function requires that a story file is alread loaded into the [Z] machine
 /// and will throw an exception if no file is loaded.
-/// 
+///
 /// Provide an optional [objectNum] to begin the tree construction at a known point.
 /// **Override the default value at your own risk**, as the function does not check
 /// if the provided [objectNum] is valid.
 String generateObjectTree([int objectNum = 1]) {
-  if (!Z.isLoaded){
+  if (!Z.isLoaded) {
     throw "Z-machine must be loaded with a story file before calling this function (use Z.load(storybytes)).";
   }
 
-  if (objectNum < 1){
+  if (objectNum < 1) {
     throw "objectNum argument must be greater than 0.  Found: $objectNum.";
   }
 
@@ -68,15 +67,14 @@ String generateObjectTree([int objectNum = 1]) {
 
   sb.writeln("");
   sb.writeln("Total Objects Found: ${_objects.length}");
-  sb.writeln(
-      "Highest Object: ${GameObject(_highestObject).shortName}($_highestObject)");
+  sb.writeln("Highest Object: ${GameObject(_highestObject).shortName}($_highestObject)");
   return sb.toString();
 }
 
 Set<int> _objects = <int>{};
 var _highestObject = 0;
 
-void _resetObjectState(){
+void _resetObjectState() {
   _highestObject = 0;
   _objects.clear();
 }
@@ -130,5 +128,3 @@ int _getNextAvailableObject() {
 
   return -1;
 }
-
-

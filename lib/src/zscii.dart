@@ -1,25 +1,14 @@
-import 'package:zart/game_exception.dart';
-import 'package:zart/header.dart';
-import 'package:zart/z_char.dart';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/z_char.dart';
+import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/mixins/loggable.dart';
 
 typedef ZStringReader = String Function(int fromAddress, [bool abbreviationLookup]);
 
 //ref 3.2.2
-const char2AlphabetShift = <int, int>{
-  ZSCII.a0: ZSCII.a1,
-  ZSCII.a1: ZSCII.a2,
-  ZSCII.a2: ZSCII.a0,
-};
+const char2AlphabetShift = <int, int>{ZSCII.a0: ZSCII.a1, ZSCII.a1: ZSCII.a2, ZSCII.a2: ZSCII.a0};
 
 //ref 3.2.2
-const char3AlphabetShift = <int, int>{
-  ZSCII.a0: ZSCII.a2,
-  ZSCII.a1: ZSCII.a0,
-  ZSCII.a2: ZSCII.a1,
-};
+const char3AlphabetShift = <int, int>{ZSCII.a0: ZSCII.a2, ZSCII.a1: ZSCII.a0, ZSCII.a2: ZSCII.a1};
 
 /// ZSCII Handler */
 class ZSCII with Loggable {
@@ -53,20 +42,20 @@ class ZSCII with Loggable {
   /// Represents the padding value for ZString encoding/decoding.
   static const int padding = 5;
 
-  static const Map<zMachineVersions, String Function(int, [bool])> _stringReaderMap = <zMachineVersions, ZStringReader>{
-    zMachineVersions.v1: _readZStringVersion1And2,
-    zMachineVersions.v2: _readZStringVersion1And2,
-    zMachineVersions.v3: _readZStringVersion3and4,
-    zMachineVersions.v4: _readZStringVersion3and4,
-    zMachineVersions.v5: _readZStringVersion5AndUp,
-    zMachineVersions.v6: _readZStringVersion5AndUp,
-    zMachineVersions.v7: _readZStringVersion5AndUp,
-    zMachineVersions.v8: _readZStringVersion5AndUp,
+  static const Map<ZMachineVersions, String Function(int, [bool])> _stringReaderMap = <ZMachineVersions, ZStringReader>{
+    ZMachineVersions.v1: _readZStringVersion1And2,
+    ZMachineVersions.v2: _readZStringVersion1And2,
+    ZMachineVersions.v3: _readZStringVersion3and4,
+    ZMachineVersions.v4: _readZStringVersion3and4,
+    ZMachineVersions.v5: _readZStringVersion5AndUp,
+    ZMachineVersions.v6: _readZStringVersion5AndUp,
+    ZMachineVersions.v7: _readZStringVersion5AndUp,
+    ZMachineVersions.v8: _readZStringVersion5AndUp,
   };
 
   static String _readZStringVersion1And2(int? fromAddress, [bool? abbreviationLookup = false]) {
     bool finished = false;
-    bool shiftLock = false;
+    // bool shiftLock = false; // Shift lock not supported in V1/V2
     final s = StringBuffer();
     int? previousAlphabet = ZSCII.a0;
     int? currentAlphabet = ZSCII.a0;
@@ -97,7 +86,7 @@ class ZSCII with Loggable {
       var char = charList[i];
 
       // (ref 3.3)
-      if (Z.engine.version == zMachineVersions.v2 && char == 1) {
+      if (Z.engine.version == ZMachineVersions.v2 && char == 1) {
         if (abbreviationLookup!) {
           throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
         }
@@ -112,7 +101,7 @@ class ZSCII with Loggable {
         s.write(abbrString);
 
         // ref 3.2.3
-        if (!shiftLock) currentAlphabet = currentAlphabet;
+        currentAlphabet = previousAlphabet;
 
         continue;
       }
@@ -124,11 +113,7 @@ class ZSCII with Loggable {
         if (char == 2 || char == 4) {
           previousAlphabet = currentAlphabet;
           currentAlphabet = char2AlphabetShift[currentAlphabet!];
-          shiftLock = char == 4;
-
-          if (shiftLock) {
-            previousAlphabet = currentAlphabet;
-          }
+          // shiftLock = char == 4; // Shift lock not supported in V1/V2 (Standard 3.2.3)
 
           continue;
         }
@@ -136,11 +121,7 @@ class ZSCII with Loggable {
         if (char == 3 || char == 5) {
           previousAlphabet = currentAlphabet;
           currentAlphabet = char3AlphabetShift[currentAlphabet!];
-          shiftLock = char == 5;
-
-          if (shiftLock) {
-            previousAlphabet = currentAlphabet;
-          }
+          // shiftLock = char == 5; // Shift lock not supported in V1/V2 (Standard 3.2.3)
 
           continue;
         }
@@ -154,19 +135,19 @@ class ZSCII with Loggable {
         // (ref 3.4)
         s.write(zCharToChar((charList[i + 1] << 5) | charList[i + 2]));
         i += 2;
-        if (!shiftLock) currentAlphabet = previousAlphabet;
+        currentAlphabet = previousAlphabet;
         continue;
       }
 
       // Z-char 1 in Version 1 is a newline.  ref 3.5.2
-      if (Z.engine.version == zMachineVersions.v1 && char == 1) {
+      if (Z.engine.version == ZMachineVersions.v1 && char == 1) {
         s.write('\n');
-        if (!shiftLock) currentAlphabet = previousAlphabet;
+        currentAlphabet = previousAlphabet;
         continue;
       }
 
       // Z-char 7 from A2 means newline (except for engine version 1)
-      if (Z.engine.version != zMachineVersions.v1 && currentAlphabet == ZSCII.a2 && char == 7) {
+      if (Z.engine.version != ZMachineVersions.v1 && currentAlphabet == ZSCII.a2 && char == 7) {
         // (ref 3.5.3)
         //newline
         s.write('\n');
@@ -177,14 +158,14 @@ class ZSCII with Loggable {
       if (char == 0) {
         // (ref 3.5.1)
         s.write(' ');
-        if (!shiftLock) currentAlphabet = previousAlphabet;
+        currentAlphabet = previousAlphabet;
       } else {
-        if (Z.engine.version == zMachineVersions.v1 && currentAlphabet == a2) {
+        if (Z.engine.version == ZMachineVersions.v1 && currentAlphabet == a2) {
           s.write(v1Table[currentAlphabet!][char - 6]);
         } else {
           s.write(defaultTable[currentAlphabet!][char - 6]);
         }
-        if (!shiftLock) currentAlphabet = previousAlphabet;
+        currentAlphabet = previousAlphabet;
       }
     }
 
@@ -363,7 +344,7 @@ class ZSCII with Loggable {
         if (alternateTable > 0) {
           throw GameException("oops need to implement alternate ZSCII table lookup here");
         } else {
-          if (Z.engine.version == zMachineVersions.v1 && currentAlphabet == a2) {
+          if (Z.engine.version == ZMachineVersions.v1 && currentAlphabet == a2) {
             s.write(v1Table[currentAlphabet][char - 6]);
             continue;
           }
@@ -537,5 +518,5 @@ const Map<int, int> unicodeTranslations = {
   220: 0x153,
   221: 0x152,
   222: 0xa1,
-  223: 0xbf
+  223: 0xbf,
 };

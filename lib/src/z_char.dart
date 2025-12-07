@@ -1,4 +1,4 @@
-import 'package:zart/binary_helper.dart';
+import 'package:zart/src/binary_helper.dart';
 
 class ZChar {
   final int _word;
@@ -6,7 +6,8 @@ class ZChar {
   final int z2;
   final int z3;
 
-  ZChar(this._word) :// ((word >> 15) & 1) == 1,
+  ZChar(this._word)
+      : // ((word >> 15) & 1) == 1,
         z3 = BinaryHelper.bottomBits(_word, 5),
         z2 = BinaryHelper.bottomBits(_word >> 5, 5),
         z1 = BinaryHelper.bottomBits(_word >> 10, 5) {

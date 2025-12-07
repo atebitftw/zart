@@ -1,13 +1,12 @@
 //V5 Object Tests
 
 import 'package:test/test.dart';
-import 'package:zart/game_exception.dart';
-import 'package:zart/game_object.dart';
+import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/game_object.dart';
 
-void objectTestsV5(){
-  group('Objects>', (){
-    test('remove', (){
-
+void objectTestsV5() {
+  group('Objects>', () {
+    test('remove', () {
       var o1 = GameObject(18); //golden fish
 
       // check if we have the right object and
@@ -29,7 +28,7 @@ void objectTestsV5(){
       expect(0, equals(o1.sibling));
     });
 
-    test('insert', (){
+    test('insert', () {
       var o1 = GameObject(18); //golden fish
       var p = GameObject(16); //lakeside
       var oc = p.child;
@@ -41,7 +40,7 @@ void objectTestsV5(){
       expect(oc, equals(o1.sibling));
     });
 
-    test('get property length', (){
+    test('get property length', () {
       GameObject o1 = GameObject(18); //"golden fish"
 
       expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(27) - 1)));
@@ -49,21 +48,20 @@ void objectTestsV5(){
       expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)));
       expect(6, equals(GameObject.propertyLength(o1.getPropertyAddress(1) - 1)));
     });
-    
-    test('get property', (){
+
+    test('get property', () {
       GameObject o1 = GameObject(18); //"golden fish";      Expect.equals('*GOLDEN FISH*', o1.shortName);
 
       expect(0x22da, equals(o1.getPropertyValue(4)));
       expect(0x0007, equals(o1.getPropertyValue(2)));
-      
+
       //throw on property len > 2
       expect(() => o1.getPropertyValue(1), throwsA(GameException));
       // Expect.throws(() => o1.getPropertyValue(1),
       //     (e) =>GameException);
-
     });
 
-    test('get property address', (){
+    test('get property address', () {
       GameObject o1 = GameObject(18); //"west of house"
 
       var addr = o1.getPropertyAddress(4);
@@ -84,11 +82,9 @@ void objectTestsV5(){
 
       addr = o1.getPropertyAddress(0);
       expect(0, equals(addr));
-
     });
-    
-    
-    test('get next property', (){
+
+    test('get next property', () {
       GameObject o1 = GameObject(18); //"golden fish";
 
       expect('*GOLDEN FISH*', equals(o1.shortName));
@@ -103,10 +99,9 @@ void objectTestsV5(){
       //   (e) => e is GameException
       //   );
       expect(() => o1.getNextProperty(19), throwsA(GameException));
-
     });
 
-    test('set property', (){
+    test('set property', () {
       GameObject o1 = GameObject(18); //"golden fish";
 
       expect('*GOLDEN FISH*', equals(o1.shortName));
@@ -126,11 +121,10 @@ void objectTestsV5(){
       //   () => o1.setPropertyValue(1, 0xffff),
       //     (e) => e is GameException);
       expect(() => o1.setPropertyValue(1, 0xffff), throwsA(GameException));
-
     });
 
-    test('attributes are set', (){
-      GameObject o1 = GameObject(58);// "the door";
+    test('attributes are set', () {
+      GameObject o1 = GameObject(58); // "the door";
 
       expect('the door', equals(o1.shortName));
 
@@ -151,8 +145,8 @@ void objectTestsV5(){
       expect(o1.isFlagBitSet(40), equals(false));
     });
 
-    test ('unset attribute', (){
-      GameObject o1 = GameObject(58);// "the door";
+    test('unset attribute', () {
+      GameObject o1 = GameObject(58); // "the door";
       expect(o1.isFlagBitSet(6), equals(true));
       o1.unsetFlagBit(6);
       expect(o1.isFlagBitSet(6), equals(false));
@@ -170,8 +164,8 @@ void objectTestsV5(){
       o1.setFlagBit(17);
     });
 
-    test('set attribute', (){
-      GameObject o1 = GameObject(58);// "the door";
+    test('set attribute', () {
+      GameObject o1 = GameObject(58); // "the door";
       expect(o1.isFlagBitSet(1), equals(false));
       o1.setFlagBit(1);
       expect(o1.isFlagBitSet(1), equals(true));

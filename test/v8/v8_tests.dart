@@ -1,10 +1,8 @@
-library v8_tests;
-
 import 'dart:io';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/z_machine.dart';
 import 'v8_object_tests.dart';
 
-main() {
+void main() {
   // Tests depend on using this file.  Tests will fail if changed.
   var defaultGameFile = 'games${Platform.pathSeparator}across.z8';
 

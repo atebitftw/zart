@@ -16,10 +16,12 @@ void main(List<String> args) {
   initializeLogger(Level.INFO);
   final log = Logger.root;
 
-  var defaultGameFile =
-      '..${Platform.pathSeparator}assets${Platform.pathSeparator}games${Platform.pathSeparator}minizork.z3';
+  if (args.isEmpty) {
+    stdout.writeln('Usage: zart <game.z3>');
+    exit(1);
+  }
 
-  final f = (args.isEmpty) ? File(defaultGameFile) : File(args.first);
+  final f = File(args.first);
 
   try {
     final bytes = f.readAsBytesSync();
@@ -27,13 +29,13 @@ void main(List<String> args) {
     final gameData = Blorb.getZData(bytes);
 
     if (gameData == null) {
-      log.severe('Unable to load game.');
+      stdout.writeln('Unable to load game.');
       exit(1);
     }
 
     Z.load(gameData);
   } catch (fe) {
-    log.severe("Exception occurred while trying to load game: $fe");
+    stdout.writeln("Exception occurred while trying to load game: $fe");
     exit(1);
   }
 

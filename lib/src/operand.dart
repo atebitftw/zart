@@ -1,8 +1,7 @@
-import 'package:zart/game_exception.dart';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/z_machine.dart';
 
-class Operand
-{
+class Operand {
   final int oType;
   int? rawValue;
 
@@ -14,8 +13,8 @@ class Operand
   /// If the type is VARIABLE, then performs an implicit
   /// read of the variable's address, otherwise just
   /// returns the rawValue (SMALL or LARGE);
-  int? get value{
-    switch(oType){
+  int? get value {
+    switch (oType) {
       case OperandType.large:
       case OperandType.small:
         return rawValue;
@@ -29,8 +28,8 @@ class Operand
     }
   }
 
-  int? get peekValue{
-    switch(oType){
+  int? get peekValue {
+    switch (oType) {
       case OperandType.large:
       case OperandType.small:
         return rawValue;
@@ -45,7 +44,7 @@ class Operand
   String toString() => '[${OperandType.asString(oType)}, 0x${peekValue!.toRadixString(16)}]';
 
   /// Used primarily for unit testing
-  static int? createVarOperandByte(List<int> types){
+  static int? createVarOperandByte(List<int> types) {
     if (types.length != 4) return null;
 
     return (types[0] << 6) | (types[1] << 4) | (types[2] << 2) | types[3];
@@ -54,7 +53,6 @@ class Operand
 
 /// Declares the 4 different operand types
 class OperandType {
-
   /// 2 byte large constant (0-65535) */
   static const int large = 0x00;
 
@@ -67,19 +65,23 @@ class OperandType {
   /// Omitted Flag, terminates Operand Type list */
   static const int omitted = 0x03;
 
-  static int intToOperandType(int value){
-    switch(value){
-      case 0x00: return OperandType.large;
-      case 0x01: return OperandType.small;
-      case 0x02: return OperandType.variable;
-      case 0x03: return OperandType.omitted;
+  static int intToOperandType(int value) {
+    switch (value) {
+      case 0x00:
+        return OperandType.large;
+      case 0x01:
+        return OperandType.small;
+      case 0x02:
+        return OperandType.variable;
+      case 0x03:
+        return OperandType.omitted;
       default:
         throw Exception("Unrecognized int when attempting to convert to OperandType");
     }
   }
 
-  static String asString(int type){
-    switch(type){
+  static String asString(int type) {
+    switch (type) {
       case large:
         return 'Large';
       case small:

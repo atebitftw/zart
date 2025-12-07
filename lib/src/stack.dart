@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:zart/engines/engine.dart';
-import 'package:zart/game_exception.dart';
-import 'package:zart/math_helper.dart';
+import 'package:zart/src/engines/engine.dart';
+import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/math_helper.dart';
 
 /// Z-Machine Stack
 class Stack {

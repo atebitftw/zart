@@ -1,11 +1,10 @@
 import 'dart:io';
 
 import 'package:logging/logging.dart';
-export 'package:logging/logging.dart';
 
 /// Mixin class for adding logging functionality to other classes.
-abstract class Loggable {
-  Logger _logger = Logger("Loggable");
+mixin Loggable {
+  Logger _logger = Logger.root;
 
   /// Sets the logger and name for this [Loggable] mixin instance.
   set logName(String name) => _logger = Logger(name);
@@ -34,8 +33,7 @@ abstract class Loggable {
 /// ```
 void initializeLogger(Level level) {
   if (_loggerInitialized) {
-    Logger("initializeLogger()").warning(
-        "Attempted to initialize the logger after it was already initialized.");
+    Logger("initializeLogger()").warning("Attempted to initialize the logger after it was already initialized.");
     return;
   }
 

@@ -1,19 +1,19 @@
-import 'package:zart/d_random.dart';
-import 'package:zart/IO/io_provider.dart';
-import 'package:zart/IO/quetzal.dart';
-import 'package:zart/binary_helper.dart';
-import 'package:zart/debugger.dart';
-import 'package:zart/dictionary.dart';
-import 'package:zart/game_exception.dart';
-import 'package:zart/game_object.dart';
-import 'package:zart/header.dart';
-import 'package:zart/math_helper.dart';
-import 'package:zart/memory_map.dart';
-import 'package:zart/mixins/loggable.dart';
-import 'package:zart/operand.dart';
-import 'package:zart/stack.dart';
-import 'package:zart/z_machine.dart';
-import 'package:zart/zscii.dart';
+import 'package:zart/src/d_random.dart';
+import 'package:zart/src/io/io_provider.dart';
+import 'package:zart/src/io/quetzal.dart';
+import 'package:zart/src/binary_helper.dart';
+import 'package:zart/src/debugger.dart';
+import 'package:zart/src/dictionary.dart';
+import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/game_object.dart';
+import 'package:zart/src/header.dart';
+import 'package:zart/src/math_helper.dart';
+import 'package:zart/src/memory_map.dart';
+import 'package:zart/src/mixins/loggable.dart';
+import 'package:zart/src/operand.dart';
+import 'package:zart/src/stack.dart';
+import 'package:zart/src/z_machine.dart';
+import 'package:zart/src/zscii.dart';
 
 /// Base machine that is compatible with Z-Machine V1.
 class Engine with Loggable {
@@ -48,7 +48,7 @@ class Engine with Loggable {
 
   late DRandom r;
 
-  String pcHex({int offset = 0}) => '[0x${(programCounter+ offset).toRadixString(16)}]';
+  String pcHex({int offset = 0}) => '[0x${(programCounter + offset).toRadixString(16)}]';
 
   late MemoryMap mem;
 
@@ -56,9 +56,7 @@ class Engine with Loggable {
 
   int get propertyDefaultsTableSize => 31;
 
-
-
-  zMachineVersions get version => zMachineVersions.v1;
+  ZMachineVersions get version => ZMachineVersions.v1;
 
   // Kb
   int get maxFileLength => 128;
@@ -109,10 +107,10 @@ class Engine with Loggable {
     callStack.push(locals);
   }
 
-  void doReturn(final result) {
+  void doReturn(int result) {
     // return address
     programCounter = callStack.pop();
-    assert(programCounter> 0);
+    assert(programCounter > 0);
 
     // result store address byte
     final resultAddrByte = callStack.pop();
@@ -133,7 +131,7 @@ class Engine with Loggable {
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
-          Debugger.debug('>>> (0x${(programCounter- 1).toRadixString(16)}) ($i)');
+          Debugger.debug('>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)');
           Debugger.debug(Debugger.dumpLocals());
         }
 
@@ -142,9 +140,9 @@ class Engine with Loggable {
           Debugger.debug('Game Stack: $stack');
         }
 
-        if (Debugger.isBreakPoint(programCounter- 1)) {
+        if (Debugger.isBreakPoint(programCounter - 1)) {
           Z.inBreak = true;
-          Debugger.debugStartAddr = programCounter- 1;
+          Debugger.debugStartAddr = programCounter - 1;
         }
       }
       // call the instruction
@@ -159,7 +157,7 @@ class Engine with Loggable {
   }
 
   void notFound() {
-    throw GameException('Unsupported Op Code: ${mem.loadb(programCounter- 1)}');
+    throw GameException('Unsupported Op Code: ${mem.loadb(programCounter - 1)}');
   }
 
   void restore() async {
@@ -169,7 +167,7 @@ class Engine with Loggable {
 
     Z.inInterrupt = true;
 
-    final result = await Z.sendIO({"command": ioCommands.restore});
+    final result = await Z.sendIO({"command": IoCommands.restore});
 
     Z.inInterrupt = false;
 
@@ -215,15 +213,14 @@ class Engine with Loggable {
 
     if (branchOn) {
       final result = await Z.sendIO({
-        "command": ioCommands.save,
-        "file_data": Quetzal.save(programCounter+ (offset - 2))
+        "command": IoCommands.save,
+        "file_data": Quetzal.save(programCounter + (offset - 2)),
       });
       Z.inInterrupt = false;
       if (result) programCounter += offset - 2;
       Z.callAsync(Z.runIt);
     } else {
-      final result = await Z
-          .sendIO({"command": ioCommands.save, "file_data": Quetzal.save(programCounter)});
+      final result = await Z.sendIO({"command": IoCommands.save, "file_data": Quetzal.save(programCounter)});
       Z.inInterrupt = false;
       if (!result) programCounter += offset - 2;
       Z.callAsync(Z.runIt);
@@ -231,8 +228,6 @@ class Engine with Loggable {
   }
 
   void branch(bool testResult) {
-    assert(testResult is bool);
-
     //calculates the local jump offset (ref 4.7)
 
     final jumpByte = readb();
@@ -274,11 +269,11 @@ class Engine with Loggable {
     final roomName = oid != 0 ? GameObject(oid).shortName : "";
 
     Z.sendIO({
-      "command": ioCommands.status,
+      "command": IoCommands.status,
       "game_type": Header.isScoreGame() ? 'SCORE' : 'TIME',
       "room_name": roomName,
       "score_one": readVariable(0x11).toString(),
-      "score_two": readVariable(0x12).toString()
+      "score_two": readVariable(0x12).toString(),
     });
   }
 
@@ -335,7 +330,9 @@ class Engine with Loggable {
 
     var parseBuffer = operands[1].value! + 1;
 
-    log.fine("read() operands: $operands maxBytes: $maxBytes, textBuffer: $textBuffer, maxWords: $maxWords, parseBuffer: $parseBuffer");
+    log.fine(
+      "read() operands: $operands maxBytes: $maxBytes, textBuffer: $textBuffer, maxWords: $maxWords, parseBuffer: $parseBuffer",
+    );
 
     void processLine(String line) {
       line = line.trim().toLowerCase();
@@ -379,11 +376,11 @@ class Engine with Loggable {
     }
 
     log.finest("sending read command");
-    Z.sendIO({"command": ioCommands.read}).then((l) {
+    Z.sendIO({"command": IoCommands.read}).then((l) {
       Z.inInterrupt = false;
       if (l == '/!') {
         Z.inBreak = true;
-        Debugger.debugStartAddr = programCounter- 1;
+        Debugger.debugStartAddr = programCounter - 1;
         log.finest("read() callAsync(Debugger.startBreak)");
         Z.callAsync(Debugger.startBreak);
       } else {
@@ -440,12 +437,12 @@ class Engine with Loggable {
 
     stack.push(operand[0].value!);
 
-//    if (operand[0].rawValue == 0){
-//      //pushing SP into SP would be counterintuitive...
-//      stack.push(0);
-//    }else{
-//      stack.push(readVariable(operand[0].value));
-//    }
+    //    if (operand[0].rawValue == 0){
+    //      //pushing SP into SP would be counterintuitive...
+    //      stack.push(0);
+    //    }else{
+    //      stack.push(readVariable(operand[0].value));
+    //    }
   }
 
   void retPopped() {
@@ -458,7 +455,7 @@ class Engine with Loggable {
     doReturn(v);
   }
 
-  assertNotMarker(m) {
+  void assertNotMarker(int m) {
     if (m == Engine.stackMarker) {
       throw GameException('Stack Underflow.');
     }
@@ -564,9 +561,7 @@ class Engine with Loggable {
     //Debugger.verbose('${pcHex(-1)} [test]');
     //final pp = PC - 1;
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     // final jumpByte = mem.loadb(PC);
 
@@ -582,9 +577,7 @@ class Engine with Loggable {
   void decChk() {
     //Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final value = MathHelper.toSigned(readVariable(operands[0].rawValue!)) - 1;
 
@@ -597,9 +590,7 @@ class Engine with Loggable {
   void incChk() {
     //Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     //   final value = toSigned(readVariable(operands[0].rawValue)) + 1;
     // final varValue = readVariable(operands[0].rawValue);
@@ -615,9 +606,7 @@ class Engine with Loggable {
   void testAttr() {
     //Debugger.verbose('${pcHex(-1)} [test_attr]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -628,9 +617,7 @@ class Engine with Loggable {
   void jin() {
     //Debugger.verbose('${pcHex(-1)} [jin]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final child = GameObject(operands[0].value);
     final parent = GameObject(operands[1].value);
@@ -666,17 +653,13 @@ class Engine with Loggable {
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
-    await Z.sendIO({
-      "command": ioCommands.print,
-      "window": currentWindow,
-      "buffer": Z.sbuff.toString()
-    });
+    await Z.sendIO({"command": IoCommands.print, "window": currentWindow, "buffer": Z.sbuff.toString()});
 
     Z.inInterrupt = false;
     Z.sbuff.clear();
     Z.quit = true;
 
-    await Z.sendIO({"command": ioCommands.quit});
+    await Z.sendIO({"command": IoCommands.quit});
   }
 
   void restart() {
@@ -695,7 +678,7 @@ class Engine with Loggable {
 
     //push dummy return address onto the call stack
     callStack.push(0);
-    
+
     if (Z.inBreak) {
       Z.callAsync(Debugger.startBreak);
     } else {
@@ -707,9 +690,7 @@ class Engine with Loggable {
   void jl() {
     //Debugger.verbose('${pcHex(-1)} [jl]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     branch(MathHelper.toSigned(operands[0].value!) < MathHelper.toSigned(operands[1].value!));
   }
@@ -717,9 +698,7 @@ class Engine with Loggable {
   void jg() {
     //Debugger.verbose('${pcHex(-1)} [jg]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     branch(MathHelper.toSigned(operands[0].value!) > MathHelper.toSigned(operands[1].value!));
   }
@@ -727,9 +706,7 @@ class Engine with Loggable {
   void je() {
     //Debugger.verbose('${pcHex(-1)} [je]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     branch(MathHelper.toSigned(operands[0].value!) == MathHelper.toSigned(operands[1].value!));
   }
@@ -824,9 +801,7 @@ class Engine with Loggable {
   void insertObj() {
     //Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject from = GameObject(operands[0].value);
 
@@ -851,9 +826,7 @@ class Engine with Loggable {
   void store() {
     //Debugger.verbose('${pcHex(-1)} [store]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     assert(operands[0].rawValue! <= 0xff);
 
@@ -899,7 +872,7 @@ class Engine with Loggable {
 
     //Debugger.verbose('    returning 0x${operand.peekValue.toRadixString(16)}');
 
-    doReturn(operand.value);
+    doReturn(operand.value!);
   }
 
   void getParent() {
@@ -917,9 +890,7 @@ class Engine with Loggable {
   void clearAttr() {
     //Debugger.verbose('${pcHex(-1)} [clear_attr]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -930,9 +901,7 @@ class Engine with Loggable {
   void setAttr() {
     //Debugger.verbose('${pcHex(-1)} [set_attr]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -943,9 +912,7 @@ class Engine with Loggable {
   void or() {
     //Debugger.verbose('${pcHex(-1)} [or]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -955,9 +922,7 @@ class Engine with Loggable {
   void and() {
     //Debugger.verbose('${pcHex(-1)} [and]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -967,9 +932,7 @@ class Engine with Loggable {
   void sub() {
     //Debugger.verbose('${pcHex(-1)} [sub]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -981,9 +944,7 @@ class Engine with Loggable {
   void add() {
     //Debugger.verbose('${pcHex(-1)} [add]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -997,9 +958,7 @@ class Engine with Loggable {
   void mul() {
     //Debugger.verbose('${pcHex(-1)} [mul]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1013,9 +972,7 @@ class Engine with Loggable {
   void div() {
     //Debugger.verbose('${pcHex(-1)} [div]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1032,7 +989,7 @@ class Engine with Loggable {
   // This patch is required when the first term is negative,
   // otherwise dart calculates it incorrectly according to
   // the z-machine's expectations. 2.4.3
-  static int doMod(a, b) {
+  static int doMod(int a, int b) {
     var result = a.abs() % b.abs();
     if (a < 0) {
       result = -result;
@@ -1043,9 +1000,7 @@ class Engine with Loggable {
   void mod() {
     //Debugger.verbose('${pcHex(-1)} [mod]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1086,9 +1041,7 @@ class Engine with Loggable {
   void getNextProp() {
     //Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1102,9 +1055,7 @@ class Engine with Loggable {
   void getPropAddr() {
     //Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1120,9 +1071,7 @@ class Engine with Loggable {
   void getProp() {
     //Debugger.verbose('${pcHex(-1)} [get_prop]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1150,9 +1099,7 @@ class Engine with Loggable {
   void loadByte() {
     //Debugger.verbose('${pcHex(-1)} [loadb]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1167,15 +1114,13 @@ class Engine with Loggable {
   void loadWord() {
     //Debugger.verbose('${pcHex(-1)} [loadw]');
 
-    final operands = mem.loadb(programCounter- 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
     final addr = operands[0].value! + 2 * MathHelper.toSigned(operands[1].value!);
 
-//    assert(addr <= mem.highMemAddress);
+    //    assert(addr <= mem.highMemAddress);
 
     writeVariable(resultTo, mem.loadw(addr));
     //Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
@@ -1189,8 +1134,8 @@ class Engine with Loggable {
     assert(operands.length == 3);
 
     final addr = operands[0].value! + MathHelper.toSigned(operands[1].value!);
-//
-//    assert(operands[2].value <= 0xff);
+    //
+    //    assert(operands[2].value <= 0xff);
 
     mem.storeb(addr, operands[2].value! & 0xFF);
 
@@ -1214,7 +1159,7 @@ class Engine with Loggable {
   }
 
   Operand visitOperandsShortForm() {
-    final oc = mem.loadb(programCounter- 1);
+    final oc = mem.loadb(programCounter - 1);
 
     //(ref 4.4.1)
     final operand = Operand((oc & 48) >> 4);
@@ -1226,15 +1171,11 @@ class Engine with Loggable {
   }
 
   List<Operand> visitOperandsLongForm() {
-    final oc = mem.loadb(programCounter- 1);
+    final oc = mem.loadb(programCounter - 1);
 
-    final o1 = BinaryHelper.isSet(oc, 6)
-        ? Operand(OperandType.variable)
-        : Operand(OperandType.small);
+    final o1 = BinaryHelper.isSet(oc, 6) ? Operand(OperandType.variable) : Operand(OperandType.small);
 
-    final o2 = BinaryHelper.isSet(oc, 5)
-        ? Operand(OperandType.variable)
-        : Operand(OperandType.small);
+    final o2 = BinaryHelper.isSet(oc, 5) ? Operand(OperandType.variable) : Operand(OperandType.small);
 
     o1.rawValue = readb();
     o2.rawValue = readb();
@@ -1269,24 +1210,23 @@ class Engine with Loggable {
       o.rawValue = o.oType == OperandType.large ? readw() : readb();
     }
 
-//    //Debugger.verbose('    ${operands.length} operands:');
+    //    //Debugger.verbose('    ${operands.length} operands:');
 
-//    operands.forEach((Operand o) {
-//      if (o.type == OperandType.VARIABLE){
-//        if (o.rawValue == 0){
-//          //Debugger.verbose('      ${OperandType.asString(o.type)}: SP (0x${o.peekValue.toRadixString(16)})');
-//        }else{
-//          //Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.rawValue.toRadixString(16)} (0x${o.peekValue.toRadixString(16)})');
-//        }
-//
-//      }else{
-//        //Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}');
-//      }
-//    });
+    //    operands.forEach((Operand o) {
+    //      if (o.type == OperandType.VARIABLE){
+    //        if (o.rawValue == 0){
+    //          //Debugger.verbose('      ${OperandType.asString(o.type)}: SP (0x${o.peekValue.toRadixString(16)})');
+    //        }else{
+    //          //Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.rawValue.toRadixString(16)} (0x${o.peekValue.toRadixString(16)})');
+    //        }
+    //
+    //      }else{
+    //        //Debugger.verbose('      ${OperandType.asString(o.type)}: 0x${o.peekValue.toRadixString(16)}');
+    //      }
+    //    });
 
     if (!isVariable && (operands.length != howMany)) {
-      throw Exception(
-          'Operand count mismatch.  Expected $howMany, found ${operands.length}');
+      throw Exception('Operand count mismatch.  Expected $howMany, found ${operands.length}');
     }
 
     return operands;
@@ -1321,7 +1261,7 @@ class Engine with Loggable {
   /// Reads 1 byte from the current program counter
   /// address and advances the program counter [programCounter] to the next
   /// unread address.
-  /// 
+  ///
   /// ### Equivalancy:
   /// ```
   /// final result = this.mem.loadb(PC);
@@ -1332,7 +1272,7 @@ class Engine with Loggable {
   /// Reads 1 word from the current program counter
   /// address and advances the program counter [programCounter] to the next
   /// unread address.
-  /// 
+  ///
   /// ### Equivalency:
   /// ```
   /// final result = this.mem.loadw(PC);
@@ -1408,11 +1348,11 @@ class Engine with Loggable {
   }
 
   Engine()
-      : stack = Stack(),
-        // stack max  used to be 1024 for older games.
-        // newer games required much larger sometimes.
-        // 6.3.3.
-        callStack = Stack.max(61440) {
+    : stack = Stack(),
+      // stack max  used to be 1024 for older games.
+      // newer games required much larger sometimes.
+      // 6.3.3.
+      callStack = Stack.max(61440) {
     logName = "Engine";
     r = DRandom.withSeed(DateTime.now().millisecond);
     ops = {
@@ -1716,7 +1656,7 @@ class Engine with Loggable {
       /* 254 : print_table */
       254: notFound,
       /* 255 : check_arg_count */
-      255: notFound
+      255: notFound,
     };
   }
 }

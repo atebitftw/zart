@@ -1,4 +1,4 @@
-import 'package:zart/game_exception.dart';
+import 'package:zart/src/game_exception.dart';
 
 /// Static helper functions for common number/math needs.
 class MathHelper {

@@ -1,0 +1,25 @@
+import 'dart:io';
+import 'package:zart/zart.dart';
+import 'mock_ui_provider.dart';
+import 'mock_v3_machine.dart';
+
+void setupZMachine() {
+  final s = Platform.pathSeparator;
+  var defaultGameFile = 'assets${s}games${s}minizork.z3';
+
+  final f = File(defaultGameFile);
+
+  try {
+    final rawBytes = f.readAsBytesSync();
+    final data = Blorb.getZData(rawBytes);
+    Z.load(data);
+  } on Exception catch (fe) {
+    stdout.writeln('$fe');
+    exit(1);
+  }
+
+  final machine = MockV3Machine();
+
+  Debugger.initializeEngine(machine);
+  Z.io = MockUIProvider();
+}

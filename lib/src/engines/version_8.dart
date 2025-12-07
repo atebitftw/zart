@@ -1,13 +1,11 @@
-import 'package:zart/engines/version_5.dart';
-import 'package:zart/z_machine.dart';
-
+import 'package:zart/src/engines/version_5.dart';
+import 'package:zart/src/z_machine.dart';
 
 /// Version 8 is basically version 5 with different memory addressing
 /// offsets.
-class Version8 extends Version5
-{
+class Version8 extends Version5 {
   @override
-  zMachineVersions get version => zMachineVersions.v8;
+  ZMachineVersions get version => ZMachineVersions.v8;
 
   // Kb
   @override

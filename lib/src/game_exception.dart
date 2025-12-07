@@ -1,11 +1,16 @@
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/z_machine.dart';
 import 'dart:io';
 
 class GameException implements Exception {
-  final int addr;
+  int addr = 0;
   final String msg;
 
-  GameException(this.msg) : addr = Z.engine.programCounter- 1 {
+  GameException(this.msg) {
+    try {
+      addr = Z.engine.programCounter - 1;
+    } catch (_) {
+      addr = 0;
+    }
     stdout.writeln(this);
   }
 

@@ -1,9 +1,6 @@
-import 'package:zart/game_exception.dart';
-import 'package:zart/header.dart';
-import 'package:zart/mixins/loggable.dart';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/zscii.dart';
+import 'package:zart/src/zscii.dart';
 
 class Dictionary with Loggable {
   Dictionary({int? address}) {
@@ -45,9 +42,9 @@ class Dictionary with Loggable {
   /// ### Specification Reference
   /// 13.3
   int get entryBytes {
-    if (Z.engine.version == zMachineVersions.v1 ||
-        Z.engine.version == zMachineVersions.v2 ||
-        Z.engine.version == zMachineVersions.v3) {
+    if (Z.engine.version == ZMachineVersions.v1 ||
+        Z.engine.version == ZMachineVersions.v2 ||
+        Z.engine.version == ZMachineVersions.v3) {
       return 4;
     } else {
       return 6;
@@ -59,10 +56,10 @@ class Dictionary with Loggable {
   // in V5+ the first two bytes of the text buffer are reserved
   // the actual text comes after the reserved bytes
   int get textBufferOffset {
-        if (Z.engine.version == zMachineVersions.v1 ||
-        Z.engine.version == zMachineVersions.v2 ||
-        Z.engine.version == zMachineVersions.v3 ||
-        Z.engine.version == zMachineVersions.v4) {
+    if (Z.engine.version == ZMachineVersions.v1 ||
+        Z.engine.version == ZMachineVersions.v2 ||
+        Z.engine.version == ZMachineVersions.v3 ||
+        Z.engine.version == ZMachineVersions.v4) {
       return 1;
     } else {
       return 2;
@@ -79,9 +76,9 @@ class Dictionary with Loggable {
   /// ### Specification Reference
   /// 13.3
   int get entryCharacterLimit {
-    if (Z.engine.version == zMachineVersions.v1 ||
-        Z.engine.version == zMachineVersions.v2 ||
-        Z.engine.version == zMachineVersions.v3) {
+    if (Z.engine.version == ZMachineVersions.v1 ||
+        Z.engine.version == ZMachineVersions.v2 ||
+        Z.engine.version == ZMachineVersions.v3) {
       return 6;
     } else {
       return 9;
@@ -95,7 +92,7 @@ class Dictionary with Loggable {
     _separators = List<String?>.filled(totalInputCodeBytes, null, growable: false);
 
     for (int i = 1; i <= totalInputCodeBytes; i++) {
-      _separators[i-1] = ZSCII.zCharToChar(Z.engine.mem.loadb(_address + i));
+      _separators[i - 1] = ZSCII.zCharToChar(Z.engine.mem.loadb(_address + i));
     }
   }
 
@@ -113,18 +110,24 @@ class Dictionary with Loggable {
   void _initEntries() {
     _entryLength = Z.engine.mem.loadb(_address + _separators.length + 1);
 
-    if (_entryLength < entryBytes){
-      throw GameException("Entry length found is less than minimum entry bytes required for this game version.  Minimum bytes for this version: $entryBytes.  Found: $_entryLength");
+    if (_entryLength < entryBytes) {
+      throw GameException(
+        "Entry length found is less than minimum entry bytes required for this game version.  Minimum bytes for this version: $entryBytes.  Found: $_entryLength",
+      );
     }
 
-    _entries =
-        ["${Z.engine.mem.loadw(_address + _separators.length + 2)}"];
+    // Read the 2-byte count of entries
+    final entryCount = Z.engine.mem.loadw(_address + _separators.length + 2);
+
+    // Initialize the list with the correct size
+    _entries = List<String>.filled(entryCount, "");
+
+    //_entries = ["${Z.engine.mem.loadw(_address + _separators.length + 2)}"];
 
     _entriesStartAddress = _address + _separators.length + 4;
 
-    for (int i = 0; i < totalEntries; i++) {
-      _entries[i] =
-          (ZSCII.readZStringAndPop(_entriesStartAddress + (i * _entryLength)));
+    for (int i = 0; i < entryCount; i++) {
+      _entries[i] = (ZSCII.readZStringAndPop(_entriesStartAddress + (i * _entryLength)));
     }
   }
 
@@ -147,12 +150,12 @@ class Dictionary with Loggable {
   int _wordAddress(int index) => _entriesStartAddress + (index * _entryLength);
 
   /// Parses the [tokenizedWords] and looks for matches in this [Dictionary].
-  /// [inputTextBuffer] is supplied by op codes that receive 
+  /// [inputTextBuffer] is supplied by op codes that receive
   ///
   /// ### Specification Reference
   /// Section 13.6 - 13.6.3
-  /// 
-  /// The parse table format is specified (buried) in op code 228 definition ("read" op code) 
+  ///
+  /// The parse table format is specified (buried) in op code 228 definition ("read" op code)
   List<int> parse(List<String> tokenizedWords, String inputTextbuffer) {
     log.fine("parse() Got line: $inputTextbuffer with tokens: $tokenizedWords");
 
@@ -186,9 +189,10 @@ class Dictionary with Loggable {
       if (wordMatchIndex != -1) {
         final addr = _wordAddress(wordMatchIndex);
         log.fine(
-            'parse() (found word: "$tokenizedWord ($searchWord)" in dictionary as "${_entries[wordMatchIndex]}"'
-            ' at address 0x${addr.toRadixString(16)}) ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()}');
-        
+          'parse() (found word: "$tokenizedWord ($searchWord)" in dictionary as "${_entries[wordMatchIndex]}"'
+          ' at address 0x${addr.toRadixString(16)}) ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()}',
+        );
+
         // byte address of the word in the dictionary
         parseTable.add((addr >> 8) & 0xff);
 
@@ -197,12 +201,12 @@ class Dictionary with Loggable {
         parseTable.add(tokenizedWord.length);
       } else {
         log.fine(
-            'parse() (word: $tokenizedWord ($searchWord) not found in dictionary'
-            ' ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()})');
-        log.fine(
-            "parse() entryLength: $_entryLength, word length: ${searchWord.length}");
+          'parse() (word: $tokenizedWord ($searchWord) not found in dictionary'
+          ' ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()})',
+        );
+        log.fine("parse() entryLength: $_entryLength, word length: ${searchWord.length}");
         //log.warning('(word: ${t} not found in dictionary ${entries})');
-        
+
         // byte address of the word in the dictionary (0 if not found)
         parseTable.add(0);
 
@@ -235,11 +239,11 @@ class Dictionary with Loggable {
 
     for (int i = 0; i < line.length; i++) {
       final c = line.substring(i, i + 1);
-//      if (i == line.length - 1){
-//        s.add(c);
-//        tokens.add(s.toString().trim());
-//        s = StringBuffer();
-//      }else
+      //      if (i == line.length - 1){
+      //        s.add(c);
+      //        tokens.add(s.toString().trim());
+      //        s = StringBuffer();
+      //      }else
       if (c == ' ' && s.length > 0) {
         tokens.add(s.toString().trim());
         s.clear();

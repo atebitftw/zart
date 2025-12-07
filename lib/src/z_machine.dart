@@ -1,16 +1,12 @@
 import 'dart:async';
-import 'package:zart/IO/default_provider.dart';
-import 'package:zart/IO/io_provider.dart';
-import 'package:zart/debugger.dart';
-import 'package:zart/engines/version_4.dart';
-import 'package:zart/header.dart';
-import 'package:zart/engines/engine.dart';
-import 'package:zart/engines/version_3.dart';
-import 'package:zart/engines/version_5.dart';
-import 'package:zart/engines/version_7.dart';
-import 'package:zart/engines/version_8.dart';
-import 'package:zart/memory_map.dart';
-import 'package:zart/mixins/loggable.dart';
+import 'package:zart/src/engines/engine.dart' show Engine;
+import 'package:zart/src/memory_map.dart' show MemoryMap;
+import 'package:zart/zart.dart';
+import 'engines/version_3.dart' show Version3;
+import 'engines/version_4.dart' show Version4;
+import 'engines/version_5.dart' show Version5;
+import 'engines/version_7.dart' show Version7;
+import 'engines/version_8.dart' show Version8;
 
 ZMachine get Z => ZMachine();
 
@@ -24,7 +20,7 @@ class ZMachine with Loggable {
   bool inBreak = false;
   bool inInterrupt = false;
   bool quit = false;
-  zMachineVersions? ver;
+  ZMachineVersions? ver;
   late String mostRecentInput;
 
   StringBuffer sbuff = StringBuffer();
@@ -34,13 +30,7 @@ class ZMachine with Loggable {
   static ZMachine? _context;
 
   //contains machine version which are supported by z-machine.
-  final List<Engine> _supportedEngines = [
-    Version3(),
-    Version4(),
-    Version5(),
-    Version7(),
-    Version8()
-  ];
+  final List<Engine> _supportedEngines = [Version3(), Version4(), Version5(), Version7(), Version8()];
 
   /// Represents the underlying interpreter engine used to run the
   /// game (different versions require different engines).
@@ -48,7 +38,7 @@ class ZMachine with Loggable {
 
   /// This field must be set so that the interpeter has a place to send
   /// commands and receive results from those commands (if any).
-  IOProvider io = DefaultProvider([]);
+  IoProvider io = DefaultProvider([]) as IoProvider;
 
   //singleton
   factory ZMachine() {
@@ -62,50 +52,50 @@ class ZMachine with Loggable {
     logName = "ZMachine";
   }
 
-  static int verToInt(zMachineVersions v) {
+  static int verToInt(ZMachineVersions v) {
     switch (v) {
-      case zMachineVersions.s:
+      case ZMachineVersions.s:
         return -1;
-      case zMachineVersions.v1:
+      case ZMachineVersions.v1:
         return 1;
-      case zMachineVersions.v2:
+      case ZMachineVersions.v2:
         return 2;
-      case zMachineVersions.v3:
+      case ZMachineVersions.v3:
         return 3;
-      case zMachineVersions.v4:
+      case ZMachineVersions.v4:
         return 4;
-      case zMachineVersions.v5:
+      case ZMachineVersions.v5:
         return 5;
-      case zMachineVersions.v6:
+      case ZMachineVersions.v6:
         return 6;
-      case zMachineVersions.v7:
+      case ZMachineVersions.v7:
         return 7;
-      case zMachineVersions.v8:
+      case ZMachineVersions.v8:
         return 8;
     }
   }
 
-  /// Converts given [int] to a [zMachineVersions]
-  static zMachineVersions intToVer(int ver) {
+  /// Converts given [int] to a [ZMachineVersions]
+  static ZMachineVersions intToVer(int ver) {
     switch (ver) {
       case -1:
-        return zMachineVersions.s;
+        return ZMachineVersions.s;
       case 1:
-        return zMachineVersions.v1;
+        return ZMachineVersions.v1;
       case 2:
-        return zMachineVersions.v2;
+        return ZMachineVersions.v2;
       case 3:
-        return zMachineVersions.v3;
+        return ZMachineVersions.v3;
       case 4:
-        return zMachineVersions.v4;
+        return ZMachineVersions.v4;
       case 5:
-        return zMachineVersions.v5;
+        return ZMachineVersions.v5;
       case 6:
-        return zMachineVersions.v6;
+        return ZMachineVersions.v6;
       case 7:
-        return zMachineVersions.v7;
+        return ZMachineVersions.v7;
       case 8:
-        return zMachineVersions.v8;
+        return ZMachineVersions.v8;
       default:
         throw Exception("Version number not recognized.");
     }
@@ -123,8 +113,7 @@ class ZMachine with Loggable {
 
     ver = ZMachine.intToVer(rawBytes[Header.version]);
 
-    var result =
-        _supportedEngines.where(((Engine m) => m.version == ver)).toList();
+    var result = _supportedEngines.where(((Engine m) => m.version == ver)).toList();
 
     if (result.length != 1) {
       throw Exception('Z-Machine version $ver not supported.');
@@ -179,14 +168,13 @@ class ZMachine with Loggable {
 
   void runIt() async {
     log.finest("runIt() called.");
-//    while(!inBreak && !inInterrupt && !quit){
+    //    while(!inBreak && !inInterrupt && !quit){
     while (!inInterrupt && !quit) {
       engine.visitInstruction();
     }
 
     if (inBreak) {
-      await Z.sendIO(
-          {"command": ioCommands.printDebug, "message": "<<< DEBUG MODE >>>"});
+      await Z.sendIO({"command": IoCommands.printDebug, "message": "<<< DEBUG MODE >>>"});
       callAsync(Debugger.startBreak);
     }
   }
@@ -199,11 +187,7 @@ class ZMachine with Loggable {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
     if (!engine.outputStream3) {
-      sendIO({
-        "command": ioCommands.print,
-        "window": engine.currentWindow,
-        "buffer": sbuff.toString()
-      }).then((_) {
+      sendIO({"command": IoCommands.print, "window": engine.currentWindow, "buffer": sbuff.toString()}).then((_) {
         sbuff.clear();
       });
     }
@@ -227,4 +211,4 @@ class ZMachine with Loggable {
   }
 }
 
-enum zMachineVersions { s, v1, v2, v3, v4, v5, v6, v7, v8 }
+enum ZMachineVersions { s, v1, v2, v3, v4, v5, v6, v7, v8 }

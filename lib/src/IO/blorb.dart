@@ -1,13 +1,12 @@
 import 'dart:typed_data';
 
-import 'package:zart/IO/iff.dart';
+import 'package:zart/src/io/iff.dart';
 
 /// Detects and loads Z game file component, if present.
 class Blorb {
-
   /// This function only needs the first 8 bytes of
   /// the file data in order to return a result.
-  static bool isBlorb(List fileBytes){
+  static bool isBlorb(List fileBytes) {
     if (fileBytes.length < 12) return false;
 
     if (IFF.readChunk(fileBytes) != Chunk.form) return false;
@@ -19,11 +18,10 @@ class Blorb {
     return true;
   }
 
-
   /// Attempts to extract the Z-Machine game file data from the Blorb
-  /// file bytes in [fileBytes].  If the file is not a Blorb type, then the 
+  /// file bytes in [fileBytes].  If the file is not a Blorb type, then the
   /// original bytes are returned (assumes it's a valid compiled ZIL file.)
-  static Uint8List? getZData(Uint8List fileBytes){
+  static Uint8List? getZData(Uint8List fileBytes) {
     var rawBytes = fileBytes;
 
     if (!isBlorb(List.from(fileBytes.getRange(0, 12)))) return fileBytes;
@@ -43,10 +41,10 @@ class Blorb {
 
     int i = 0;
 
-    while (i < numResources){
+    while (i < numResources) {
       var resourceChunk = IFF.readChunk(fileBytes);
 
-      if (resourceChunk != null && resourceChunk == Chunk.exec){
+      if (resourceChunk != null && resourceChunk == Chunk.exec) {
         IFF.read16BitValue(fileBytes); //number of resource, should be 0
 
         var start = IFF.read16BitValue(fileBytes);
@@ -59,7 +57,6 @@ class Blorb {
 
         return fileBytes.getRange(0, len) as Uint8List?;
       }
-
 
       i++;
     }

@@ -1,13 +1,11 @@
-library v5_tests;
-
 import 'dart:io';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/z_machine.dart';
 import 'object_tests.dart';
 
 //#import('dart:unittest');
 //^^ not working
 
-main() {
+void main() {
   // Tests depend on using this file.  Tests will fail if changed.
   var defaultGameFile = 'games${Platform.pathSeparator}ADVLAND.Z5';
 

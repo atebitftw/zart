@@ -1,6 +1,6 @@
-import 'package:zart/binary_helper.dart';
-import 'package:zart/game_exception.dart';
-import 'package:zart/z_machine.dart';
+import 'package:zart/src/binary_helper.dart';
+import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/z_machine.dart';
 
 /// Header address lookups (all z-machine versions).
 class Header {
@@ -112,8 +112,6 @@ class Header {
     // Who know that this old code would predict Game Of Thrones!
     if (!Z.isLoaded) throw GameException('A game must first be loaded.');
   }
-
-  
 
   static void setFlags1(int flags) {
     checkLoaded();
