@@ -18,3 +18,6 @@
 - Major overhaul of the library to support Dart >3 and above.
 - More unit tests.
 - Fixed some dictionary and object addressing issues.
+
+# 1.3.1
+- Updated bin/zart.dart to improve file handling.

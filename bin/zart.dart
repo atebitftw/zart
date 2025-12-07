@@ -5,23 +5,23 @@ import 'package:logging/logging.dart';
 import 'package:zart/zart.dart';
 
 /// A basic Console player for Z-Machine
-/// Assumes first command line arguement is path to story file,
-/// otherwise attempts to load default file (specified in main()).
-///
-/// Works in the Dart console.
-///
-/// VM:
-/// dart ZConsole.dart path/to/minizork.z3
 void main(List<String> args) {
   initializeLogger(Level.INFO);
   final log = Logger.root;
 
   if (args.isEmpty) {
-    stdout.writeln('Usage: zart <game.z3>');
+    stdout.writeln('Usage: zart <game>');
     exit(1);
   }
 
-  final f = File(args.first);
+  final filename = args.first;
+  final f = File(filename);
+
+  if (!f.existsSync()) {
+    stdout.writeln('Error: Game file not found at "$filename"');
+    stdout.writeln('Current Directory: ${Directory.current.path}');
+    exit(1);
+  }
 
   try {
     final bytes = f.readAsBytesSync();
