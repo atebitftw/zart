@@ -7,7 +7,7 @@
 
 	> open the mailbox
 
-Some of my most memorable early gaming experiences were playing Infocom interactive fiction games.  I also love programming and so decided to write my own interpreter in Dart.
+Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.
 
 This project is a labor of love.
 	
@@ -20,7 +20,7 @@ Enjoy!
 * Separates the UI implementation from the core interpreter functions, providing extensibility to virtually any platform that Dart runs on (currently Mac, Linux, Windows, and Web).
 
 ## Want to author your own IF games? 
-<http://inform7.com/>
+[Inform 7](https://ganelson.github.io/inform-website/)
 
 ## Where can I find games to play? 
 There are Interactive Fiction communities online that can get you started.  Minizork is included in this library for unit testing purposes, but you can also play it if you wish.

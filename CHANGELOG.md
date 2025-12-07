@@ -33,3 +33,6 @@
 
 # 1.3.4
 - Updated pubspec.yaml to use ^3.10.3 for SDK version.
+
+# 1.3.5
+- Fixed an issue with directory names that made pub unhappy.
