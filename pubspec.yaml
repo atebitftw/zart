@@ -1,5 +1,5 @@
 name: zart
-version: 1.3.1
+version: 1.3.2
 description: This is a Dart implementation of the Infocom Z-Machine.
 homepage: https://atebitftw.github.io/site/
 repository: https://github.com/atebitftw/zart

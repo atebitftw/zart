@@ -5,21 +5,23 @@ import 'package:logging/logging.dart';
 import 'package:zart/zart.dart';
 
 /// A basic Console player for Z-Machine
-/// Assumes first command line arguement is path to story file,
-/// otherwise attempts to load default file (specified in main()).
-///
-/// Works in the Dart console.
-///
-/// VM:
-/// dart ZConsole.dart path/to/minizork.z3
 void main(List<String> args) {
   initializeLogger(Level.INFO);
   final log = Logger.root;
 
-  var defaultGameFile =
-      '..${Platform.pathSeparator}assets${Platform.pathSeparator}games${Platform.pathSeparator}minizork.z3';
+  if (args.isEmpty) {
+    stdout.writeln('Usage: zart <game>');
+    exit(1);
+  }
 
-  final f = (args.isEmpty) ? File(defaultGameFile) : File(args.first);
+  final filename = args.first;
+  final f = File(filename);
+
+  if (!f.existsSync()) {
+    stdout.writeln('Error: Game file not found at "$filename"');
+    stdout.writeln('Current Directory: ${Directory.current.path}');
+    exit(1);
+  }
 
   try {
     final bytes = f.readAsBytesSync();
@@ -27,13 +29,13 @@ void main(List<String> args) {
     final gameData = Blorb.getZData(bytes);
 
     if (gameData == null) {
-      log.severe('Unable to load game.');
+      stdout.writeln('Unable to load game.');
       exit(1);
     }
 
     Z.load(gameData);
   } catch (fe) {
-    log.severe("Exception occurred while trying to load game: $fe");
+    stdout.writeln("Exception occurred while trying to load game: $fe");
     exit(1);
   }
 

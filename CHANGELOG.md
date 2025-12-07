@@ -21,3 +21,8 @@
 
 # 1.3.1
 - Updated bin/zart.dart to improve file handling.
+
+# 1.3.2
+- Updated the example to conform to pub guidelines.
+- Updated license to MIT.
+- Updated README.md to remove old info and add new info.

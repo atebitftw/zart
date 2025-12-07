@@ -14,19 +14,10 @@ This project is a labor of love.
 Enjoy!
 
 ## Features
-* Plays V3, V5, V7, and V8 games (see "Limitations" below).
+* Plays V3, V5, V7, and V8 games.
 * Supports loading raw game files (.z3, .z5, .z8, .dat, etc).
 * Supports loading .zblorb files, but only uses the game file from the package at this time.
 * Separates the UI implementation from the core interpreter functions, providing extensibility to virtually any platform that Dart runs on (currently Mac, Linux, Windows, and Web).
-
-## Limitations
-
-**Older Games May Not Work**
-Some games, especially ones compiled with older versions of Inform, may not work properly.  Trial and error is the only way to know.  Please report any bugs while playing games with this interpreter here: https://github.com/prujohn/zart/issues.
-
-The older Infocom games (V3 & V5) appear to work fine.
-
-Games compiled with the latest Inform 7 appear to work fine.
 
 ## Want to author your own IF games? 
 <http://inform7.com/>
@@ -38,7 +29,7 @@ Here are some links to some popular games:
 
 **I make NO warranty as to the safety or usability of these links/files.  Proceed with caution.**
 
-* Zork Series: http://infocom-if.org/downloads/downloads.html  (you will need to download the .zip file and then find the ".dat" file, which is the actual game file needed by this interpreter).
+* Zork Series: You can find these online.  Unfortunately, I can't put the link here because it's http instead of https.  Contact me if you need help.
 * Hitchiker's Guide To The Galaxy: https://www.myabandonware.com/game/the-hitchhikers-guide-to-the-galaxy-42
 * Infidel: https://www.myabandonware.com/game/infidel-2d
 
@@ -52,21 +43,11 @@ dart pub global activate zart
 zart path/to/minizork.z3
 ```
 
-## Next Steps
-* Bug fixes, optimization, enhancements to some op codes.
-* Add in some detection to warn if the game file may not be playable.
-* Improve unit test coverage.
-
 ## How To Contribute
 Clone.  Code.  Submit pull request.  I'm open to any reasonable submissions.
     
 ## Reference Material
 * Z-Machine spec used to develop this library: https://www.inform-fiction.org/zmachine/standards/
-
-## License
-Source Code: Apache 2.0 (see LICENSE file)
-
-Any game files include are covered under their own applicable copyrights and licensing.
 
 ## Fun Fact
 This was the first package ever published to https://pub.dev back in the day.
