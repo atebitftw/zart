@@ -1,18 +1,24 @@
-## From the console ##
-To run a game of MiniZork, run the ZConsole.dart app, either from the VM in shell,
-or from the Dart Editor (user-input works in the Dart Editor console too).
+## From the console
+To run a game of MiniZork in CLI, first activate the zart package:
 
-You can change the game file within ZConsole.dart or you can run it from the 
-command line with an arguement:
+```bash
+dart pub global activate zart
+```
 
-    dart z_console.dart path/to/minizork.z3
-    
-    
-## Debugging ##
+Then run:
+
+```bash
+zart path/to/minizork.z3
+```
+
+You should be able to run any Z-machine game file up to version 8.
+
+
+## Debugging
 There is a VERY basic runtime debugger included.  To enter it, type **/!** at any prompt.
 Doing so will drop you into a simple REPL.
 
-### Debug Commands ###
+### Debug Commands
 * **locals** - dumps out locals for the current routine.
 * **globals** - dumps out globals.
 * **dictionary** - dumps out the game dictionary.
