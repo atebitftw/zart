@@ -61,7 +61,12 @@ class Quetzal {
     stackData.addFirst(StackFrame(0, 0));
 
     while (stackData.first.nextCallStackIndex != null) {
-      stackData.addFirst(StackFrame(stackData.first.nextCallStackIndex!, stackData.first.nextEvalStackIndex));
+      stackData.addFirst(
+        StackFrame(
+          stackData.first.nextCallStackIndex!,
+          stackData.first.nextEvalStackIndex,
+        ),
+      );
     }
 
     var totalStackBytes = 0;
@@ -143,16 +148,20 @@ class Quetzal {
           if (Z.engine.mem.loadw(Header.release) != IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.serialNumber) != IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.serialNumber) !=
+              IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.serialNumber + 2) != IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.serialNumber + 2) !=
+              IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.serialNumber + 4) != IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.serialNumber + 4) !=
+              IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.checkSumOfFile) != IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.checkSumOfFile) !=
+              IFF.read2Byte(fileBytes)) {
             return false;
           }
           pc = IFF.read3Byte(fileBytes); //PC
@@ -171,7 +180,9 @@ class Quetzal {
 
             var returnVar = IFF.nextByte(fileBytes);
 
-            sf.returnVar = BinaryHelper.isSet(flagByte, 4) ? Engine.stackMarker : returnVar!;
+            sf.returnVar = BinaryHelper.isSet(flagByte, 4)
+                ? Engine.stackMarker
+                : returnVar!;
 
             var numLocals = BinaryHelper.bottomBits(flagByte, 4);
 
@@ -302,7 +313,9 @@ class StackFrame {
 
   StackFrame.empty() : locals = Queue<int>(), evals = Queue<int>();
 
-  StackFrame(int callIndex, evalIndex) : locals = Queue<int>(), evals = Queue<int>() {
+  StackFrame(int callIndex, evalIndex)
+    : locals = Queue<int>(),
+      evals = Queue<int>() {
     returnAddr = Z.engine.callStack[callIndex];
     returnVar = Z.engine.callStack[++callIndex];
 

@@ -42,7 +42,8 @@ String generateObjectTree([int objectNum = 1]) {
     }
 
     sb.writeln(
-        "${currentObject.shortName}(${currentObject.id}) child: ${currentObject.child}, sib: ${currentObject.sibling}");
+      "${currentObject.shortName}(${currentObject.id}) child: ${currentObject.child}, sib: ${currentObject.sibling}",
+    );
 
     if (currentObject.child != 0) {
       _updateObjectState(currentObject.child);
@@ -67,7 +68,9 @@ String generateObjectTree([int objectNum = 1]) {
 
   sb.writeln("");
   sb.writeln("Total Objects Found: ${_objects.length}");
-  sb.writeln("Highest Object: ${GameObject(_highestObject).shortName}($_highestObject)");
+  sb.writeln(
+    "Highest Object: ${GameObject(_highestObject).shortName}($_highestObject)",
+  );
   return sb.toString();
 }
 
@@ -94,7 +97,8 @@ String _writeChildren(int objectNum, int indent) {
   final child = obj.child != 0 ? GameObject(obj.child).shortName : "";
   final sibling = obj.sibling != 0 ? GameObject(obj.sibling).shortName : "";
   sb.writeln(
-      "${_whitespace(indent, '.')}${obj.shortName}(${obj.id}), child: $child(${obj.child}), sib: $sibling(${obj.sibling})");
+    "${_whitespace(indent, '.')}${obj.shortName}(${obj.id}), child: $child(${obj.child}), sib: $sibling(${obj.sibling})",
+  );
 
   if (obj.child != 0) {
     _updateObjectState(obj.child);

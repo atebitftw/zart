@@ -53,5 +53,5 @@ enum IoCommands {
   quit,
   printDebug,
   async,
-  setCursor
+  setCursor,
 }

@@ -7,10 +7,10 @@ class ZChar {
   final int z3;
 
   ZChar(this._word)
-      : // ((word >> 15) & 1) == 1,
-        z3 = BinaryHelper.bottomBits(_word, 5),
-        z2 = BinaryHelper.bottomBits(_word >> 5, 5),
-        z1 = BinaryHelper.bottomBits(_word >> 10, 5) {
+    : // ((word >> 15) & 1) == 1,
+      z3 = BinaryHelper.bottomBits(_word, 5),
+      z2 = BinaryHelper.bottomBits(_word >> 5, 5),
+      z1 = BinaryHelper.bottomBits(_word >> 10, 5) {
     // print('${word.toRadixString(2)}');
   }
 

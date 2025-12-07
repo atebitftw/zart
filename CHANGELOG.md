@@ -26,3 +26,6 @@
 - Updated the example to conform to pub guidelines.
 - Updated license to MIT.
 - Updated README.md to remove old info and add new info.
+
+# 1.3.3
+- `dart format` run on all files.

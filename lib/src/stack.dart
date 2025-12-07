@@ -11,9 +11,7 @@ class Stack {
 
   int sp = 0;
 
-  Stack()
-      : stack = <int>[],
-        _max = 0;
+  Stack() : stack = <int>[], _max = 0;
 
   Stack.max(this._max) : stack = <int>[];
 
@@ -51,11 +49,11 @@ class Stack {
     if (_max > 0 && length == (_max - 1)) {
       throw GameException('Stack Overflow. $_max');
     }
-//
-//    if (length % 1024 == 0){
-//      Debugger.debug('stack at $length');
-//      Debugger.debug('text buffer: ${Z.sbuff}');
-//    }
+    //
+    //    if (length % 1024 == 0){
+    //      Debugger.debug('stack at $length');
+    //      Debugger.debug('text buffer: ${Z.sbuff}');
+    //    }
 
     //excluding the stack boundary flag
     if (value < 0 && value != Engine.stackMarker) {
@@ -87,13 +85,13 @@ class Stack {
   @override
   String toString() => stack.map((s) => '0x${s.toRadixString(16)}').toString();
 
-//  void inc(int amount){
-//    sp += amount;
-//  }
-//
-//  void dec(int amount){
-//    sp -= amount;
-//  }
+  //  void inc(int amount){
+  //    sp += amount;
+  //  }
+  //
+  //  void dec(int amount){
+  //    sp -= amount;
+  //  }
 
   int get length => stack.length;
 }

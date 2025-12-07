@@ -33,14 +33,18 @@ mixin Loggable {
 /// ```
 void initializeLogger(Level level) {
   if (_loggerInitialized) {
-    Logger("initializeLogger()").warning("Attempted to initialize the logger after it was already initialized.");
+    Logger("initializeLogger()").warning(
+      "Attempted to initialize the logger after it was already initialized.",
+    );
     return;
   }
 
   logLevel = level;
 
   Logger.root.onRecord.listen((LogRecord rec) {
-    stdout.writeln('(${rec.time}:)[${rec.loggerName}]${rec.level.name}: ${rec.message}');
+    stdout.writeln(
+      '(${rec.time}:)[${rec.loggerName}]${rec.level.name}: ${rec.message}',
+    );
   });
 
   _loggerInitialized = true;

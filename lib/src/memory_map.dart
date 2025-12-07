@@ -10,7 +10,10 @@ class MemoryMap {
   // A word address specifies an even address in the bottom 128K of memory
   // (by giving the address divided by 2). (Word addresses are used only in the abbreviations table.)
 
-  final List<int> memList = <int>[]; //each element in the array represents a byte of z-machine memory.
+  final List<int> memList =
+      <
+        int
+      >[]; //each element in the array represents a byte of z-machine memory.
 
   // memory map address offsets
   late int abbrAddress;
@@ -116,7 +119,10 @@ class MemoryMap {
   }
 
   String dump(int address, int howMany) {
-    return getRange(address, howMany).map((o) => '0x${o.toRadixString(16)}').toString();
+    return getRange(
+      address,
+      howMany,
+    ).map((o) => '0x${o.toRadixString(16)}').toString();
   }
 
   List getRange(int address, int howMany) {

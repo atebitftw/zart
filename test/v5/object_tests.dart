@@ -43,14 +43,28 @@ void objectTestsV5() {
     test('get property length', () {
       GameObject o1 = GameObject(18); //"golden fish"
 
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(27) - 1)));
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(4) - 1)));
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)));
-      expect(6, equals(GameObject.propertyLength(o1.getPropertyAddress(1) - 1)));
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(27) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(4) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)),
+      );
+      expect(
+        6,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(1) - 1)),
+      );
     });
 
     test('get property', () {
-      GameObject o1 = GameObject(18); //"golden fish";      Expect.equals('*GOLDEN FISH*', o1.shortName);
+      GameObject o1 = GameObject(
+        18,
+      ); //"golden fish";      Expect.equals('*GOLDEN FISH*', o1.shortName);
 
       expect(0x22da, equals(o1.getPropertyValue(4)));
       expect(0x0007, equals(o1.getPropertyValue(2)));

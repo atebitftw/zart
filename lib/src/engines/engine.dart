@@ -48,7 +48,8 @@ class Engine with Loggable {
 
   late DRandom r;
 
-  String pcHex({int offset = 0}) => '[0x${(programCounter + offset).toRadixString(16)}]';
+  String pcHex({int offset = 0}) =>
+      '[0x${(programCounter + offset).toRadixString(16)}]';
 
   late MemoryMap mem;
 
@@ -131,7 +132,9 @@ class Engine with Loggable {
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
-          Debugger.debug('>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)');
+          Debugger.debug(
+            '>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)',
+          );
           Debugger.debug(Debugger.dumpLocals());
         }
 
@@ -157,7 +160,9 @@ class Engine with Loggable {
   }
 
   void notFound() {
-    throw GameException('Unsupported Op Code: ${mem.loadb(programCounter - 1)}');
+    throw GameException(
+      'Unsupported Op Code: ${mem.loadb(programCounter - 1)}',
+    );
   }
 
   void restore() async {
@@ -220,7 +225,10 @@ class Engine with Loggable {
       if (result) programCounter += offset - 2;
       Z.callAsync(Z.runIt);
     } else {
-      final result = await Z.sendIO({"command": IoCommands.save, "file_data": Quetzal.save(programCounter)});
+      final result = await Z.sendIO({
+        "command": IoCommands.save,
+        "file_data": Quetzal.save(programCounter),
+      });
       Z.inInterrupt = false;
       if (!result) programCounter += offset - 2;
       Z.callAsync(Z.runIt);
@@ -561,7 +569,9 @@ class Engine with Loggable {
     //Debugger.verbose('${pcHex(-1)} [test]');
     //final pp = PC - 1;
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     // final jumpByte = mem.loadb(PC);
 
@@ -577,7 +587,9 @@ class Engine with Loggable {
   void decChk() {
     //Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final value = MathHelper.toSigned(readVariable(operands[0].rawValue!)) - 1;
 
@@ -590,7 +602,9 @@ class Engine with Loggable {
   void incChk() {
     //Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     //   final value = toSigned(readVariable(operands[0].rawValue)) + 1;
     // final varValue = readVariable(operands[0].rawValue);
@@ -606,7 +620,9 @@ class Engine with Loggable {
   void testAttr() {
     //Debugger.verbose('${pcHex(-1)} [test_attr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -617,7 +633,9 @@ class Engine with Loggable {
   void jin() {
     //Debugger.verbose('${pcHex(-1)} [jin]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final child = GameObject(operands[0].value);
     final parent = GameObject(operands[1].value);
@@ -653,7 +671,11 @@ class Engine with Loggable {
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
-    await Z.sendIO({"command": IoCommands.print, "window": currentWindow, "buffer": Z.sbuff.toString()});
+    await Z.sendIO({
+      "command": IoCommands.print,
+      "window": currentWindow,
+      "buffer": Z.sbuff.toString(),
+    });
 
     Z.inInterrupt = false;
     Z.sbuff.clear();
@@ -690,25 +712,40 @@ class Engine with Loggable {
   void jl() {
     //Debugger.verbose('${pcHex(-1)} [jl]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
-    branch(MathHelper.toSigned(operands[0].value!) < MathHelper.toSigned(operands[1].value!));
+    branch(
+      MathHelper.toSigned(operands[0].value!) <
+          MathHelper.toSigned(operands[1].value!),
+    );
   }
 
   void jg() {
     //Debugger.verbose('${pcHex(-1)} [jg]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
-    branch(MathHelper.toSigned(operands[0].value!) > MathHelper.toSigned(operands[1].value!));
+    branch(
+      MathHelper.toSigned(operands[0].value!) >
+          MathHelper.toSigned(operands[1].value!),
+    );
   }
 
   void je() {
     //Debugger.verbose('${pcHex(-1)} [je]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
-    branch(MathHelper.toSigned(operands[0].value!) == MathHelper.toSigned(operands[1].value!));
+    branch(
+      MathHelper.toSigned(operands[0].value!) ==
+          MathHelper.toSigned(operands[1].value!),
+    );
   }
 
   void newline() {
@@ -801,7 +838,9 @@ class Engine with Loggable {
   void insertObj() {
     //Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject from = GameObject(operands[0].value);
 
@@ -826,7 +865,9 @@ class Engine with Loggable {
   void store() {
     //Debugger.verbose('${pcHex(-1)} [store]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     assert(operands[0].rawValue! <= 0xff);
 
@@ -890,7 +931,9 @@ class Engine with Loggable {
   void clearAttr() {
     //Debugger.verbose('${pcHex(-1)} [clear_attr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -901,7 +944,9 @@ class Engine with Loggable {
   void setAttr() {
     //Debugger.verbose('${pcHex(-1)} [set_attr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -912,7 +957,9 @@ class Engine with Loggable {
   void or() {
     //Debugger.verbose('${pcHex(-1)} [or]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -922,7 +969,9 @@ class Engine with Loggable {
   void and() {
     //Debugger.verbose('${pcHex(-1)} [and]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -932,11 +981,15 @@ class Engine with Loggable {
   void sub() {
     //Debugger.verbose('${pcHex(-1)} [sub]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
-    final result = MathHelper.toSigned(operands[0].value!) - MathHelper.toSigned(operands[1].value!);
+    final result =
+        MathHelper.toSigned(operands[0].value!) -
+        MathHelper.toSigned(operands[1].value!);
     //Debugger.verbose('    >>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
     writeVariable(resultTo, result);
   }
@@ -944,11 +997,15 @@ class Engine with Loggable {
   void add() {
     //Debugger.verbose('${pcHex(-1)} [add]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
-    final result = MathHelper.toSigned(operands[0].value!) + MathHelper.toSigned(operands[1].value!);
+    final result =
+        MathHelper.toSigned(operands[0].value!) +
+        MathHelper.toSigned(operands[1].value!);
 
     //Debugger.verbose('    >>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -958,11 +1015,15 @@ class Engine with Loggable {
   void mul() {
     //Debugger.verbose('${pcHex(-1)} [mul]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
-    final result = MathHelper.toSigned(operands[0].value!) * MathHelper.toSigned(operands[1].value!);
+    final result =
+        MathHelper.toSigned(operands[0].value!) *
+        MathHelper.toSigned(operands[1].value!);
 
     //Debugger.verbose('    >>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -972,14 +1033,18 @@ class Engine with Loggable {
   void div() {
     //Debugger.verbose('${pcHex(-1)} [div]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
     assert(operands[1].value != 0);
 
     // final result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
-    final result = MathHelper.toSigned(operands[0].value!) ~/ MathHelper.toSigned(operands[1].value!);
+    final result =
+        MathHelper.toSigned(operands[0].value!) ~/
+        MathHelper.toSigned(operands[1].value!);
 
     //Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1000,7 +1065,9 @@ class Engine with Loggable {
   void mod() {
     //Debugger.verbose('${pcHex(-1)} [mod]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1041,7 +1108,9 @@ class Engine with Loggable {
   void getNextProp() {
     //Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1055,7 +1124,9 @@ class Engine with Loggable {
   void getPropAddr() {
     //Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1071,7 +1142,9 @@ class Engine with Loggable {
   void getProp() {
     //Debugger.verbose('${pcHex(-1)} [get_prop]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1099,7 +1172,9 @@ class Engine with Loggable {
   void loadByte() {
     //Debugger.verbose('${pcHex(-1)} [loadb]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1114,11 +1189,14 @@ class Engine with Loggable {
   void loadWord() {
     //Debugger.verbose('${pcHex(-1)} [loadw]');
 
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
-    final addr = operands[0].value! + 2 * MathHelper.toSigned(operands[1].value!);
+    final addr =
+        operands[0].value! + 2 * MathHelper.toSigned(operands[1].value!);
 
     //    assert(addr <= mem.highMemAddress);
 
@@ -1149,7 +1227,8 @@ class Engine with Loggable {
     final operands = visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    final addr = operands[0].value! + 2 * MathHelper.toSigned(operands[1].value!);
+    final addr =
+        operands[0].value! + 2 * MathHelper.toSigned(operands[1].value!);
 
     assert(addr <= mem.highMemAddress);
 
@@ -1173,9 +1252,13 @@ class Engine with Loggable {
   List<Operand> visitOperandsLongForm() {
     final oc = mem.loadb(programCounter - 1);
 
-    final o1 = BinaryHelper.isSet(oc, 6) ? Operand(OperandType.variable) : Operand(OperandType.small);
+    final o1 = BinaryHelper.isSet(oc, 6)
+        ? Operand(OperandType.variable)
+        : Operand(OperandType.small);
 
-    final o2 = BinaryHelper.isSet(oc, 5) ? Operand(OperandType.variable) : Operand(OperandType.small);
+    final o2 = BinaryHelper.isSet(oc, 5)
+        ? Operand(OperandType.variable)
+        : Operand(OperandType.small);
 
     o1.rawValue = readb();
     o2.rawValue = readb();
@@ -1226,7 +1309,9 @@ class Engine with Loggable {
     //    });
 
     if (!isVariable && (operands.length != howMany)) {
-      throw Exception('Operand count mismatch.  Expected $howMany, found ${operands.length}');
+      throw Exception(
+        'Operand count mismatch.  Expected $howMany, found ${operands.length}',
+      );
     }
 
     return operands;
@@ -1316,7 +1401,9 @@ class Engine with Loggable {
   void writeVariable(int varNum, int? value) {
     assert(varNum >= 0 && varNum <= 0xff);
     if (varNum < 0 || varNum > 0xff) {
-      log.warning("writeVariable expected range >= 0 and <=${0xff}, but got $varNum");
+      log.warning(
+        "writeVariable expected range >= 0 and <=${0xff}, but got $varNum",
+      );
     }
 
     if (varNum > 0x0f) {

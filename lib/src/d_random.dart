@@ -93,7 +93,7 @@ class DRandom {
     for (int k = 1; k < 5; k++) {
       for (int i = 1; i < 56; i++) {
         seedArray[i] -= seedArray[1 + (i + 30) % 55];
-        if (seedArray[i]< 0) {
+        if (seedArray[i] < 0) {
           seedArray[i] += mBig;
         }
       }
@@ -120,7 +120,7 @@ class DRandom {
       inextp = 1;
     }
 
-    retVal = seedArray[inext]- seedArray[inextp];
+    retVal = seedArray[inext] - seedArray[inextp];
 
     if (retVal < 0) {
       retVal += mBig;

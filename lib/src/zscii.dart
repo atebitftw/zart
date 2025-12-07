@@ -2,13 +2,22 @@ import 'package:zart/src/z_char.dart';
 import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
 
-typedef ZStringReader = String Function(int fromAddress, [bool abbreviationLookup]);
+typedef ZStringReader =
+    String Function(int fromAddress, [bool abbreviationLookup]);
 
 //ref 3.2.2
-const char2AlphabetShift = <int, int>{ZSCII.a0: ZSCII.a1, ZSCII.a1: ZSCII.a2, ZSCII.a2: ZSCII.a0};
+const char2AlphabetShift = <int, int>{
+  ZSCII.a0: ZSCII.a1,
+  ZSCII.a1: ZSCII.a2,
+  ZSCII.a2: ZSCII.a0,
+};
 
 //ref 3.2.2
-const char3AlphabetShift = <int, int>{ZSCII.a0: ZSCII.a2, ZSCII.a1: ZSCII.a0, ZSCII.a2: ZSCII.a1};
+const char3AlphabetShift = <int, int>{
+  ZSCII.a0: ZSCII.a2,
+  ZSCII.a1: ZSCII.a0,
+  ZSCII.a2: ZSCII.a1,
+};
 
 /// ZSCII Handler */
 class ZSCII with Loggable {
@@ -42,7 +51,8 @@ class ZSCII with Loggable {
   /// Represents the padding value for ZString encoding/decoding.
   static const int padding = 5;
 
-  static const Map<ZMachineVersions, String Function(int, [bool])> _stringReaderMap = <ZMachineVersions, ZStringReader>{
+  static const Map<ZMachineVersions, String Function(int, [bool])>
+  _stringReaderMap = <ZMachineVersions, ZStringReader>{
     ZMachineVersions.v1: _readZStringVersion1And2,
     ZMachineVersions.v2: _readZStringVersion1And2,
     ZMachineVersions.v3: _readZStringVersion3and4,
@@ -53,7 +63,10 @@ class ZSCII with Loggable {
     ZMachineVersions.v8: _readZStringVersion5AndUp,
   };
 
-  static String _readZStringVersion1And2(int? fromAddress, [bool? abbreviationLookup = false]) {
+  static String _readZStringVersion1And2(
+    int? fromAddress, [
+    bool? abbreviationLookup = false,
+  ]) {
     bool finished = false;
     // bool shiftLock = false; // Shift lock not supported in V1/V2
     final s = StringBuffer();
@@ -88,12 +101,15 @@ class ZSCII with Loggable {
       // (ref 3.3)
       if (Z.engine.version == ZMachineVersions.v2 && char == 1) {
         if (abbreviationLookup!) {
-          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
+          throw GameException(
+            "Abbreviation lookup cannot occur inside an abbreviation lookup.",
+          );
         }
         //abbreviation lookup, v2 only ref 3.3
         final abbrNum = (32 * (char - 1)) + charList[++i];
 
-        final abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        final abbrAddress =
+            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         final abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -126,7 +142,9 @@ class ZSCII with Loggable {
           continue;
         }
 
-        throw GameException("readZString() Expected char between 2 and 5 (inclusive), but found $char");
+        throw GameException(
+          "readZString() Expected char between 2 and 5 (inclusive), but found $char",
+        );
       }
 
       // Z-character 6 from A2 means that the two subsequent Z-characters specify a ten-bit
@@ -147,7 +165,9 @@ class ZSCII with Loggable {
       }
 
       // Z-char 7 from A2 means newline (except for engine version 1)
-      if (Z.engine.version != ZMachineVersions.v1 && currentAlphabet == ZSCII.a2 && char == 7) {
+      if (Z.engine.version != ZMachineVersions.v1 &&
+          currentAlphabet == ZSCII.a2 &&
+          char == 7) {
         // (ref 3.5.3)
         //newline
         s.write('\n');
@@ -172,7 +192,10 @@ class ZSCII with Loggable {
     return s.toString();
   }
 
-  static String _readZStringVersion3and4(int? fromAddress, [bool? abbreviationLookup = false]) {
+  static String _readZStringVersion3and4(
+    int? fromAddress, [
+    bool? abbreviationLookup = false,
+  ]) {
     bool finished = false;
     final s = StringBuffer();
     int currentAlphabet = ZSCII.a0;
@@ -205,12 +228,15 @@ class ZSCII with Loggable {
       // (ref 3.3)
       if (char >= 1 && char <= 3) {
         if (abbreviationLookup!) {
-          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
+          throw GameException(
+            "Abbreviation lookup cannot occur inside an abbreviation lookup.",
+          );
         }
         //abbreviation lookup
         final abbrNum = (32 * (char - 1)) + charList[++i];
 
-        final abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        final abbrAddress =
+            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         final abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -258,7 +284,10 @@ class ZSCII with Loggable {
     return s.toString();
   }
 
-  static String _readZStringVersion5AndUp(int? fromAddress, [bool? abbreviationLookup = false]) {
+  static String _readZStringVersion5AndUp(
+    int? fromAddress, [
+    bool? abbreviationLookup = false,
+  ]) {
     //TODO support custom alphabet table
     //TODO support custom unicode table
     bool finished = false;
@@ -293,12 +322,15 @@ class ZSCII with Loggable {
       // (ref 3.3)
       if (char >= 1 && char <= 3) {
         if (abbreviationLookup!) {
-          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
+          throw GameException(
+            "Abbreviation lookup cannot occur inside an abbreviation lookup.",
+          );
         }
         //abbreviation lookup
         var abbrNum = (32 * (char - 1)) + charList[++i];
 
-        var abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        var abbrAddress =
+            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         String abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -342,9 +374,12 @@ class ZSCII with Loggable {
         var alternateTable = Z.engine.mem.loadw(Header.alphabetTable);
 
         if (alternateTable > 0) {
-          throw GameException("oops need to implement alternate ZSCII table lookup here");
+          throw GameException(
+            "oops need to implement alternate ZSCII table lookup here",
+          );
         } else {
-          if (Z.engine.version == ZMachineVersions.v1 && currentAlphabet == a2) {
+          if (Z.engine.version == ZMachineVersions.v1 &&
+              currentAlphabet == a2) {
             s.write(v1Table[currentAlphabet][char - 6]);
             continue;
           }
@@ -387,8 +422,14 @@ class ZSCII with Loggable {
   ///
   /// Call [ZSCII.readZStringAndPop(...)] if you want the pop
   /// to happen automatically after the read.
-  static String readZString(int fromAddress, [bool abbreviationLookup = false]) {
-    final str = _stringReaderMap[Z.engine.version]!(fromAddress, abbreviationLookup);
+  static String readZString(
+    int fromAddress, [
+    bool abbreviationLookup = false,
+  ]) {
+    final str = _stringReaderMap[Z.engine.version]!(
+      fromAddress,
+      abbreviationLookup,
+    );
     //print("Read string (abbreviation lookup? $abbreviationLookup): $str");
     return str;
   }
@@ -406,7 +447,9 @@ class ZSCII with Loggable {
   /// Converts char [c] into an equivalent Z-Character.
   static int charToZChar(String c) {
     if (c.isEmpty || c.length != 1) {
-      throw GameException('String must be length of 1.  Found ${c.length} in $c.');
+      throw GameException(
+        'String must be length of 1.  Found ${c.length} in $c.',
+      );
     }
 
     if (c == '\t') {

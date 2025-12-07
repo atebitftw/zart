@@ -14,9 +14,12 @@ void main() {
       expect(MathHelper.toSigned(32767), equals(32767));
     });
 
-    test("Machine.toSigned(32768) (0x10000 - 32768) should yield signed int -32768.", () {
-      expect(MathHelper.toSigned(32768), equals(-32768));
-    });
+    test(
+      "Machine.toSigned(32768) (0x10000 - 32768) should yield signed int -32768.",
+      () {
+        expect(MathHelper.toSigned(32768), equals(-32768));
+      },
+    );
 
     test("Machine.dartSignedIntTo16BitSigned(-1) should return 65535.", () {
       expect(MathHelper.dartSignedIntTo16BitSigned(-1), equals(65535));
@@ -44,7 +47,10 @@ void main() {
         throwsA(
           allOf(
             const TypeMatcher<GameException>(),
-            predicate((dynamic e) => e.msg.startsWith("Signed 16-bit int is out of range")),
+            predicate(
+              (dynamic e) =>
+                  e.msg.startsWith("Signed 16-bit int is out of range"),
+            ),
           ),
         ),
       );
@@ -56,7 +62,10 @@ void main() {
         throwsA(
           allOf(
             const TypeMatcher<GameException>(),
-            predicate((dynamic e) => e.msg.startsWith("Signed 16-bit int is out of range")),
+            predicate(
+              (dynamic e) =>
+                  e.msg.startsWith("Signed 16-bit int is out of range"),
+            ),
           ),
         ),
       );

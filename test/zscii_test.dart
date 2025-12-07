@@ -40,14 +40,17 @@ void main() {
       }
     });
 
-    test('ZSCII.readZString() returns the expected string from the address.', () {
-      var addrStart = 0xb0a0;
-      var addrEnd = 0xb0be;
-      var testString = 'An old leather bag, bulging with coins, is here.';
-      expect(ZSCII.readZString(addrStart), equals(testString));
+    test(
+      'ZSCII.readZString() returns the expected string from the address.',
+      () {
+        var addrStart = 0xb0a0;
+        var addrEnd = 0xb0be;
+        var testString = 'An old leather bag, bulging with coins, is here.';
+        expect(ZSCII.readZString(addrStart), equals(testString));
 
-      // address after string end should be at 0xb0be
-      expect(Z.engine.callStack.pop(), equals(addrEnd));
-    });
+        // address after string end should be at 0xb0be
+        expect(Z.engine.callStack.pop(), equals(addrEnd));
+      },
+    );
   });
 }

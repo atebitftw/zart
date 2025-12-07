@@ -39,7 +39,9 @@ class Debugger with Loggable {
       case ZMachineVersions.v8:
         return Version8();
       default:
-        throw GameException("Unsupported gamefile version.  This interpreter does not support $version");
+        throw GameException(
+          "Unsupported gamefile version.  This interpreter does not support $version",
+        );
     }
   }
 
@@ -50,11 +52,15 @@ class Debugger with Loggable {
   static void initializeEngine([Engine? newEngine]) {
     Z.inInterrupt = true;
     if (!Z.isLoaded) {
-      throw GameException("Unable to initialize Z-Machine.  No game file is loaded.");
+      throw GameException(
+        "Unable to initialize Z-Machine.  No game file is loaded.",
+      );
     }
 
     if (newEngine != null && newEngine.version != Z.ver) {
-      throw GameException('Machine/Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}');
+      throw GameException(
+        'Machine/Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}',
+      );
     }
 
     Z.engine = newEngine ?? _getEngineByVersion(Z.ver);
@@ -248,20 +254,42 @@ class Debugger with Loggable {
     s.write('\n');
     s.write('------- START HEADER -------\n');
     s.write('Z-Machine Version: ${Z.engine.version}\n');
-    s.write('Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n');
+    s.write(
+      'Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n',
+    );
     // word after flags1 is used by Inform
-    s.write('Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n');
-    s.write('Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n');
-    s.write('Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n');
-    s.write('Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n');
-    s.write('Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n');
-    s.write('High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n');
-    s.write('Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n');
-    s.write('Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n');
-    s.write('Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n');
+    s.write(
+      'Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n',
+    );
+    s.write(
+      'Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n',
+    );
+    s.write(
+      'Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n',
+    );
+    s.write(
+      'Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n',
+    );
+    s.write(
+      'Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n',
+    );
+    s.write(
+      'High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n',
+    );
+    s.write(
+      'Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n',
+    );
+    s.write(
+      'Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n',
+    );
+    s.write(
+      'Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n',
+    );
     s.write('Checksum Of File: ${Z.engine.mem.loadw(Header.checkSumOfFile)}\n');
     //TODO v4+ header stuff here
-    s.write('Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n');
+    s.write(
+      'Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n',
+    );
     s.write('-------- END HEADER ---------\n');
 
     //s.write('main Routine: ${Z.machine.mem.getRange(Z.pc - 4, 10)}');

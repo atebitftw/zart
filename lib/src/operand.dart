@@ -41,7 +41,8 @@ class Operand {
   }
 
   @override
-  String toString() => '[${OperandType.asString(oType)}, 0x${peekValue!.toRadixString(16)}]';
+  String toString() =>
+      '[${OperandType.asString(oType)}, 0x${peekValue!.toRadixString(16)}]';
 
   /// Used primarily for unit testing
   static int? createVarOperandByte(List<int> types) {
@@ -76,7 +77,9 @@ class OperandType {
       case 0x03:
         return OperandType.omitted;
       default:
-        throw Exception("Unrecognized int when attempting to convert to OperandType");
+        throw Exception(
+          "Unrecognized int when attempting to convert to OperandType",
+        );
     }
   }
 

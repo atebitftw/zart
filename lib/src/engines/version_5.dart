@@ -163,7 +163,9 @@ class Version5 extends Version4 {
     var operands = visitOperandsVar(4, true);
 
     if (operands.length > 2) {
-      throw GameException("tokenise dictionary argument is not yet support in v5+");
+      throw GameException(
+        "tokenise dictionary argument is not yet support in v5+",
+      );
     }
 
     var maxBytes = mem.loadb(operands[0].value!);
@@ -311,7 +313,9 @@ class Version5 extends Version4 {
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
-          Debugger.debug('>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)');
+          Debugger.debug(
+            '>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)',
+          );
           Debugger.debug(Debugger.dumpLocals());
         }
 
@@ -404,7 +408,9 @@ class Version5 extends Version4 {
     if (operands.length > 2) {
       //TODO implement aread optional args
       log.warning('implement aread optional args');
-      throw GameException("Sorry :( This interpreter doesn't yet support a required feature of this game.");
+      throw GameException(
+        "Sorry :( This interpreter doesn't yet support a required feature of this game.",
+      );
     }
 
     int maxBytes = mem.loadb(operands[0].value!);
@@ -438,7 +444,10 @@ class Version5 extends Version4 {
       var tbTotalAddr = textBuffer - 1;
 
       //write the total to the textBuffer (adjust if continuation)
-      mem.storeb(tbTotalAddr, line.length + charCount > 0 ? line.length + charCount : 0);
+      mem.storeb(
+        tbTotalAddr,
+        line.length + charCount > 0 ? line.length + charCount : 0,
+      );
 
       var zChars = ZSCII.toZCharList(line);
 
@@ -511,7 +520,10 @@ class Version5 extends Version4 {
 
     var operands = visitOperandsVar(1, false);
 
-    final result = await Z.sendIO({"command": IoCommands.setFont, "font_id": operands[0].value});
+    final result = await Z.sendIO({
+      "command": IoCommands.setFont,
+      "font_id": operands[0].value,
+    });
     Z.inInterrupt = false;
 
     if (result != null) {
@@ -530,7 +542,11 @@ class Version5 extends Version4 {
 
     Z.inInterrupt = true;
 
-    await Z.sendIO({"command": IoCommands.setCursor, "x": operands[0].value, "y": operands[1].value});
+    await Z.sendIO({
+      "command": IoCommands.setCursor,
+      "x": operands[0].value,
+      "y": operands[1].value,
+    });
 
     Z.inInterrupt = false;
 
@@ -677,7 +693,9 @@ class Version5 extends Version4 {
   void call_2s() {
     //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
-    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var storeTo = readb();
 
@@ -715,7 +733,9 @@ class Version5 extends Version4 {
   void call_2n() {
     //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
-    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var resultStore = Engine.stackMarker;
 
@@ -742,7 +762,10 @@ class Version5 extends Version4 {
     var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
-    await Z.sendIO({"command": IoCommands.clearScreen, "window_id": operands[0].value});
+    await Z.sendIO({
+      "command": IoCommands.clearScreen,
+      "window_id": operands[0].value,
+    });
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
@@ -754,7 +777,10 @@ class Version5 extends Version4 {
 
     Z.inInterrupt = true;
 
-    await Z.sendIO({"command": IoCommands.splitScreen, "window_id": operands[0].value});
+    await Z.sendIO({
+      "command": IoCommands.splitScreen,
+      "window_id": operands[0].value,
+    });
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
