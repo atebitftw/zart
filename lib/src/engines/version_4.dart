@@ -1,6 +1,7 @@
 import 'package:zart/src/binary_helper.dart';
 import 'package:zart/src/engines/version_3.dart';
 import 'package:zart/src/game_exception.dart';
+import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/operand.dart';
 import 'package:zart/src/z_machine.dart';
 
@@ -10,7 +11,6 @@ class Version4 extends Version3 {
   ZMachineVersions get version => ZMachineVersions.v4;
 
   Version4() {
-    logName = "Version4";
     ops[247] = scanTable;
   }
 
@@ -35,22 +35,14 @@ class Version4 extends Version3 {
     }
 
     if (operands.length != 4) {
-      throw GameException(
-        "scan_table() expected 4 operands.  Found: ${operands.length}",
-      );
+      throw GameException("scan_table() expected 4 operands.  Found: ${operands.length}");
     }
 
     final form = operands[3].value!;
 
-    log.fine(
-      "scan_table operands: search: $searchWord, table: $tableAddress, table-length: $tableLength, form: $form",
-    );
+    log.fine("scan_table operands: search: $searchWord, table: $tableAddress, table-length: $tableLength, form: $form");
 
-    log.fine(
-      BinaryHelper.isSet(form, 7)
-          ? "form is set for word scanning"
-          : "form is set for byte scanning",
-    );
+    log.fine(BinaryHelper.isSet(form, 7) ? "form is set for word scanning" : "form is set for byte scanning");
 
     if (BinaryHelper.isSet(form, 7)) {
       log.fine("..word scan");

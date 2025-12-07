@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:zart/src/engines/engine.dart' show Engine;
+import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/memory_map.dart' show MemoryMap;
 import 'package:zart/zart.dart';
 import 'engines/version_3.dart' show Version3;
@@ -15,7 +16,7 @@ ZMachine get Z => ZMachine();
 ///
 /// The IOConfig handles tasks for whatever presentation platform
 /// is in use by the application.
-class ZMachine with Loggable {
+class ZMachine {
   bool isLoaded = false;
   bool inBreak = false;
   bool inInterrupt = false;
@@ -30,13 +31,7 @@ class ZMachine with Loggable {
   static ZMachine? _context;
 
   //contains machine version which are supported by z-machine.
-  final List<Engine> _supportedEngines = [
-    Version3(),
-    Version4(),
-    Version5(),
-    Version7(),
-    Version8(),
-  ];
+  final List<Engine> _supportedEngines = [Version3(), Version4(), Version5(), Version7(), Version8()];
 
   /// Represents the underlying interpreter engine used to run the
   /// game (different versions require different engines).
@@ -50,12 +45,11 @@ class ZMachine with Loggable {
   factory ZMachine() {
     if (_context != null) return _context!;
 
-    _context = ZMachine._internal();
-    return _context!;
+    return _context = ZMachine._internal();
   }
 
   ZMachine._internal() {
-    logName = "ZMachine";
+    _context = this;
   }
 
   static int verToInt(ZMachineVersions v) {
@@ -119,9 +113,7 @@ class ZMachine with Loggable {
 
     ver = ZMachine.intToVer(rawBytes[Header.version]);
 
-    var result = _supportedEngines
-        .where(((Engine m) => m.version == ver))
-        .toList();
+    var result = _supportedEngines.where(((Engine m) => m.version == ver)).toList();
 
     if (result.length != 1) {
       throw Exception('Z-Machine version $ver not supported.');
@@ -182,10 +174,7 @@ class ZMachine with Loggable {
     }
 
     if (inBreak) {
-      await Z.sendIO({
-        "command": IoCommands.printDebug,
-        "message": "<<< DEBUG MODE >>>",
-      });
+      await Z.sendIO({"command": IoCommands.printDebug, "message": "<<< DEBUG MODE >>>"});
       callAsync(Debugger.startBreak);
     }
   }
@@ -198,11 +187,7 @@ class ZMachine with Loggable {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
     if (!engine.outputStream3) {
-      sendIO({
-        "command": IoCommands.print,
-        "window": engine.currentWindow,
-        "buffer": sbuff.toString(),
-      }).then((_) {
+      sendIO({"command": IoCommands.print, "window": engine.currentWindow, "buffer": sbuff.toString()}).then((_) {
         sbuff.clear();
       });
     }

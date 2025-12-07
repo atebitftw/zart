@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'package:logging/logging.dart';
+import 'package:zart/src/logging.dart' show log;
 import 'package:zart/zart.dart';
 
 /// A basic Console player for Z-Machine
 void main(List<String> args) {
-  initializeLogger(Level.INFO);
-  final log = Logger.root;
-
   if (args.isEmpty) {
     stdout.writeln('Usage: zart <game>');
     exit(1);
@@ -65,14 +62,10 @@ void main(List<String> args) {
 }
 
 /// A basic console provider with word-wrap support.
-class ConsoleProvider with Loggable implements IoProvider {
+class ConsoleProvider extends IoProvider {
   final lineBuffer = Queue<String>();
   final outputBuffer = Queue<String>();
   final int cols = 80;
-
-  ConsoleProvider() {
-    logName = "ConsoleProvider";
-  }
 
   @override
   Future<dynamic> command(Map<String, dynamic> command) async {
@@ -96,11 +89,7 @@ class ConsoleProvider with Loggable implements IoProvider {
         final char = await getChar();
         return char;
       case IoCommands.save:
-        final result = await saveGame(
-          command['file_data']
-              .getRange(1, command['file_data'].length - 1)
-              .toList(),
-        );
+        final result = await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
         return result;
       case IoCommands.clearScreen:
         //no clear console api, so

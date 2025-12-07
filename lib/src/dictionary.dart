@@ -1,11 +1,10 @@
+import 'package:zart/src/logging.dart';
 import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/src/zscii.dart';
 
-class Dictionary with Loggable {
+class Dictionary {
   Dictionary({int? address}) {
-    logName = "Dictionary";
-
     _initDictionary(address);
   }
 
@@ -89,11 +88,7 @@ class Dictionary with Loggable {
   void _initSeparators() {
     // Ref 13.1 & 13.2
     final totalInputCodeBytes = Z.engine.mem.loadb(_address);
-    _separators = List<String?>.filled(
-      totalInputCodeBytes,
-      null,
-      growable: false,
-    );
+    _separators = List<String?>.filled(totalInputCodeBytes, null, growable: false);
 
     for (int i = 1; i <= totalInputCodeBytes; i++) {
       _separators[i - 1] = ZSCII.zCharToChar(Z.engine.mem.loadb(_address + i));
@@ -131,9 +126,7 @@ class Dictionary with Loggable {
     _entriesStartAddress = _address + _separators.length + 4;
 
     for (int i = 0; i < entryCount; i++) {
-      _entries[i] = (ZSCII.readZStringAndPop(
-        _entriesStartAddress + (i * _entryLength),
-      ));
+      _entries[i] = (ZSCII.readZStringAndPop(_entriesStartAddress + (i * _entryLength)));
     }
   }
 
@@ -210,9 +203,7 @@ class Dictionary with Loggable {
           'parse() (word: $tokenizedWord ($searchWord) not found in dictionary'
           ' ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()})',
         );
-        log.fine(
-          "parse() entryLength: $_entryLength, word length: ${searchWord.length}",
-        );
+        log.fine("parse() entryLength: $_entryLength, word length: ${searchWord.length}");
         //log.warning('(word: ${t} not found in dictionary ${entries})');
 
         // byte address of the word in the dictionary (0 if not found)

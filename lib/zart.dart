@@ -5,4 +5,3 @@ export 'package:zart/src/io/blorb.dart';
 export 'package:zart/src/game_exception.dart';
 export 'package:zart/src/debugger.dart';
 export 'package:zart/src/header.dart';
-export 'package:zart/src/mixins/loggable.dart';
