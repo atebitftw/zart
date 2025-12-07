@@ -30,3 +30,6 @@
 # 1.3.3
 - `dart format` run on all files.
 - Simplified internal logging.
+
+# 1.3.4
+- Updated pubspec.yaml to use ^3.10.3 for SDK version.
