@@ -29,7 +29,6 @@ void main() {
     });
 
     test("game object 4's bit flag should be set at 14", () {
-      final go = GameObject(4);
       //expect(go.isFlagBitSet(14), isTrue);
     });
 

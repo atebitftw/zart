@@ -16,10 +16,10 @@ void main() {
     print('Parent Child (Head of Sibling List): ${parent.child}');
 
     int current = parent.child;
-    print('Traversing siblings from ${current}...');
+    print('Traversing siblings from $current...');
     while (current != 0) {
       var obj = GameObject(current);
-      print(' - Found Sibling: ${current} ("${obj.shortName}"), Sibling -> ${obj.sibling}');
+      print(' - Found Sibling: $current ("${obj.shortName}"), Sibling -> ${obj.sibling}');
       if (current == 4) {
         print('   -> Found Object 4!');
       }

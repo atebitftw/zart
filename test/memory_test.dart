@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/src/header.dart';
 import 'test_utils.dart';
 
 void main() {
