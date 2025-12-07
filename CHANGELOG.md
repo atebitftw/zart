@@ -29,6 +29,4 @@
 
 # 1.3.3
 - `dart format` run on all files.
-
-# 1.3.4
 - Simplified internal logging.
