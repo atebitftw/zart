@@ -61,6 +61,9 @@
 
     </section>
     
+<section class="desc markdown">
+  <p>Return header information as a formatted string.</p>
+</section>
 
 
     
@@ -75,20 +78,42 @@
   s.write(&#39;\n&#39;);
   s.write(&#39;------- START HEADER -------\n&#39;);
   s.write(&#39;Z-Machine Version: ${Z.engine.version}\n&#39;);
-  s.write(&#39;Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n&#39;);
+  s.write(
+    &#39;Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n&#39;,
+  );
   &#47;&#47; word after flags1 is used by Inform
-  s.write(&#39;Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n&#39;);
-  s.write(&#39;Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n&#39;);
-  s.write(&#39;Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n&#39;);
-  s.write(&#39;Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n&#39;);
-  s.write(&#39;Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n&#39;);
-  s.write(&#39;High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n&#39;);
-  s.write(&#39;Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n&#39;);
-  s.write(&#39;Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n&#39;);
-  s.write(&#39;Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n&#39;);
+  s.write(
+    &#39;Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n&#39;,
+  );
+  s.write(
+    &#39;Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n&#39;,
+  );
+  s.write(
+    &#39;Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n&#39;,
+  );
+  s.write(
+    &#39;Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n&#39;,
+  );
+  s.write(
+    &#39;Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n&#39;,
+  );
+  s.write(
+    &#39;High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n&#39;,
+  );
+  s.write(
+    &#39;Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n&#39;,
+  );
+  s.write(
+    &#39;Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n&#39;,
+  );
+  s.write(
+    &#39;Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n&#39;,
+  );
   s.write(&#39;Checksum Of File: ${Z.engine.mem.loadw(Header.checkSumOfFile)}\n&#39;);
   &#47;&#47;TODO v4+ header stuff here
-  s.write(&#39;Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n&#39;);
+  s.write(
+    &#39;Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n&#39;,
+  );
   s.write(&#39;-------- END HEADER ---------\n&#39;);
 
   &#47;&#47;s.write(&#39;main Routine: ${Z.machine.mem.getRange(Z.pc - 4, 10)}&#39;);
@@ -123,7 +148,7 @@
 <footer>
   <span class="no-break">
     zart
-      1.3.6
+      1.4.0
   </span>
   
 </footer>

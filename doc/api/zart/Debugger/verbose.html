@@ -63,7 +63,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Verbose Channel (via Debug)</p>
+  <p>Displays a message on the verbose channel.</p>
 </section>
 
 
@@ -71,7 +71,6 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static void verbose(String outString) {
-  &#47;&#47;TODO support redirect to file.
   if (Debugger.enableDebug &amp;&amp; Debugger.enableVerbose) {
     debug(outString);
   }
@@ -103,7 +102,7 @@
 <footer>
   <span class="no-break">
     zart
-      1.3.6
+      1.4.0
   </span>
   
 </footer>
