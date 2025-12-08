@@ -70,7 +70,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;List&lt;int&gt;&gt; restore() {
-  stdout.writeln(&#39;Restore not supported with this provider.&#39;);
+  print(&#39;Restore not supported with this provider.&#39;);
   var c = Completer();
   c.complete(null);
   return c.future.then((value) =&gt; value as List&lt;int&gt;);
@@ -102,7 +102,7 @@
 <footer>
   <span class="no-break">
     zart
-      1.4.0
+      1.4.1
   </span>
   
 </footer>

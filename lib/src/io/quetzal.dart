@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'dart:io';
 import 'package:zart/src/io/iff.dart';
 import 'package:zart/src/binary_helper.dart';
 import 'package:zart/src/header.dart';
@@ -283,9 +282,6 @@ class Quetzal {
 
     //stacks
     for (StackFrame sf in stackList) {
-      //callstack first
-      stdout.writeln(sf);
-
       //locals
       Z.engine.callStack.push(sf.locals.length);
 

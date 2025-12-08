@@ -1,6 +1,5 @@
 import 'dart:collection';
 import 'dart:async';
-import 'dart:io';
 import 'package:zart/zart.dart';
 
 /// Default provider with word-wrap support.
@@ -25,7 +24,7 @@ class DefaultProvider extends IoProvider {
 
   /// Saves the game.
   Future<bool> saveGame(List<int> saveBytes) {
-    stdout.writeln('Save not supported with this provider.');
+    print('Save not supported with this provider.');
     var c = Completer();
     c.complete(false);
     return c.future.then((value) => value as bool);
@@ -33,7 +32,7 @@ class DefaultProvider extends IoProvider {
 
   /// Restores the game.
   Future<List<int>> restore() {
-    stdout.writeln('Restore not supported with this provider.');
+    print('Restore not supported with this provider.');
     var c = Completer();
     c.complete(null);
     return c.future.then((value) => value as List<int>);
@@ -50,13 +49,13 @@ class DefaultProvider extends IoProvider {
         var nextWord = words.removeFirst();
 
         if (s.length > cols) {
-          stdout.writeln('$s');
+          print('$s');
           s = StringBuffer();
           s.write('$nextWord ');
         } else {
           if (words.isEmpty) {
             s.write('$nextWord ');
-            stdout.writeln('$s');
+            print('$s');
             s = StringBuffer();
           } else {
             s.write('$nextWord ');
@@ -65,14 +64,14 @@ class DefaultProvider extends IoProvider {
       }
 
       if (s.length > 0) {
-        stdout.writeln('$s');
+        print('$s');
         s = StringBuffer();
       }
     }
   }
 
   /// Outputs debug text to the console.
-  void debugOutput(String text) => stdout.writeln(text);
+  void debugOutput(String text) => print(text);
 
   /// Gets a line of input from the console.
   Future<String> getLine() {

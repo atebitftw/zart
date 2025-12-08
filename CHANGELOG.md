@@ -48,3 +48,6 @@
 - ZSCII support for custom tables added.
 - Added more unit tests.
 - Added more documentation comments.
+
+# 1.4.1
+- Removed dart:io references for WASM support.

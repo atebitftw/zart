@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:test/test.dart';
 import 'package:zart/src/math_helper.dart';
 import 'package:zart/zart.dart';
@@ -6,7 +5,6 @@ import 'package:zart/zart.dart';
 void main() {
   group('Integers', () {
     test("Machine.toSigned(0xFFFF) should return -1.", () {
-      stdout.writeln("${0xFFFF}");
       expect(MathHelper.toSigned(0xFFFF), equals(-1));
     });
 

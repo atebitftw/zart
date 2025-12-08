@@ -80,13 +80,13 @@
       var nextWord = words.removeFirst();
 
       if (s.length &gt; cols) {
-        stdout.writeln(&#39;$s&#39;);
+        print(&#39;$s&#39;);
         s = StringBuffer();
         s.write(&#39;$nextWord &#39;);
       } else {
         if (words.isEmpty) {
           s.write(&#39;$nextWord &#39;);
-          stdout.writeln(&#39;$s&#39;);
+          print(&#39;$s&#39;);
           s = StringBuffer();
         } else {
           s.write(&#39;$nextWord &#39;);
@@ -95,7 +95,7 @@
     }
 
     if (s.length &gt; 0) {
-      stdout.writeln(&#39;$s&#39;);
+      print(&#39;$s&#39;);
       s = StringBuffer();
     }
   }
@@ -127,7 +127,7 @@
 <footer>
   <span class="no-break">
     zart
-      1.4.0
+      1.4.1
   </span>
   
 </footer>

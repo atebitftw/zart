@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:zart/src/engines/engine.dart';
 import 'package:zart/src/game_exception.dart';
 import 'package:zart/src/math_helper.dart';
@@ -91,7 +89,7 @@ class Stack {
   void dump() {
     int p = 0;
     for (var i in stack) {
-      stdout.writeln("${p++}: 0x${i.toRadixString(16)}");
+      print("${p++}: 0x${i.toRadixString(16)}");
     }
   }
 

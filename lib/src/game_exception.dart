@@ -1,5 +1,4 @@
 import 'package:zart/src/z_machine.dart';
-import 'dart:io';
 
 /// Exception class for game errors.
 class GameException implements Exception {
@@ -16,7 +15,7 @@ class GameException implements Exception {
     } catch (_) {
       addr = 0;
     }
-    stdout.writeln(this);
+    print(this);
   }
 
   /// Returns a string representation of the exception.
