@@ -6,15 +6,22 @@ import 'package:zart/src/math_helper.dart';
 
 /// Z-Machine Stack
 class Stack {
+  /// The stack.
   final List<int> stack;
+
+  /// The maximum size of the stack.
   final int _max;
 
+  /// The stack pointer.
   int sp = 0;
 
+  /// Instantiates an empty [Stack].
   Stack() : stack = <int>[], _max = 0;
 
+  /// Instantiates a [Stack] with a maximum size.
   Stack.max(this._max) : stack = <int>[];
 
+  /// Pops the top value from the stack.
   int pop() {
     final v = stack[0];
     stack.removeAt(0);
@@ -26,6 +33,7 @@ class Stack {
     return v;
   }
 
+  /// Gets the value at the specified index.
   int operator [](int index) {
     final v = stack[index];
 
@@ -36,6 +44,7 @@ class Stack {
     return v;
   }
 
+  /// Sets the value at the specified index.
   void operator []=(int index, int value) {
     if (value < 0 && value != Engine.stackMarker) {
       value = MathHelper.dartSignedIntTo16BitSigned(value);
@@ -44,6 +53,7 @@ class Stack {
     stack[index] = value;
   }
 
+  /// Pushes a value onto the stack.
   void push(int value) {
     //ref 6.3.3
     if (_max > 0 && length == (_max - 1)) {
@@ -63,6 +73,7 @@ class Stack {
     stack.insert(0, value);
   }
 
+  /// Peeks the top value from the stack.
   int peek() {
     final v = stack[0];
 
@@ -73,8 +84,10 @@ class Stack {
     return v;
   }
 
+  /// Clears the stack.
   void clear() => stack.clear();
 
+  /// Dumps the stack.
   void dump() {
     int p = 0;
     for (var i in stack) {
@@ -93,5 +106,6 @@ class Stack {
   //    sp -= amount;
   //  }
 
+  /// Gets the length of the stack.
   int get length => stack.length;
 }

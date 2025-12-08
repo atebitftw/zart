@@ -1,10 +1,15 @@
 import 'package:zart/src/z_machine.dart';
 import 'dart:io';
 
+/// Exception class for game errors.
 class GameException implements Exception {
-  int addr = 0;
+  /// The address of the exception.
+  late final int addr;
+
+  /// The message of the exception.
   final String msg;
 
+  /// Initializes a new instance of the [GameException] class.
   GameException(this.msg) {
     try {
       addr = Z.engine.programCounter - 1;
@@ -14,6 +19,7 @@ class GameException implements Exception {
     stdout.writeln(this);
   }
 
+  /// Returns a string representation of the exception.
   @override
   String toString() {
     try {

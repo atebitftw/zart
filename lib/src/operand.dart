@@ -1,12 +1,17 @@
 import 'package:zart/src/game_exception.dart';
 import 'package:zart/src/z_machine.dart';
 
+/// Represents an operand in a Z-machine instruction.
 class Operand {
+  /// The type of the operand.
   final int oType;
+
+  /// The raw value of the operand.
   int? rawValue;
 
   int? _cachedValue;
 
+  /// Instantiates an [Operand].
   Operand(this.oType);
 
   /// Gets a read of the [rawValue].
@@ -28,6 +33,10 @@ class Operand {
     }
   }
 
+  /// Gets a peek of the [rawValue].
+  /// If the type is VARIABLE, then performs an implicit
+  /// peek of the variable's address, otherwise just
+  /// returns the rawValue (SMALL or LARGE);
   int? get peekValue {
     switch (oType) {
       case OperandType.large:
@@ -66,6 +75,7 @@ class OperandType {
   /// Omitted Flag, terminates Operand Type list */
   static const int omitted = 0x03;
 
+  /// Converts an int to an [OperandType].
   static int intToOperandType(int value) {
     switch (value) {
       case 0x00:
@@ -83,6 +93,7 @@ class OperandType {
     }
   }
 
+  /// Converts an [OperandType] to a string.
   static String asString(int type) {
     switch (type) {
       case large:

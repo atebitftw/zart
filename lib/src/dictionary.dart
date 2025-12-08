@@ -3,7 +3,9 @@ import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/src/zscii.dart';
 
+/// Represents a dictionary of words used by the game.
 class Dictionary {
+  /// Initializes a new instance of the [Dictionary] class.
   Dictionary({int? address}) {
     _initDictionary(address);
   }
@@ -54,6 +56,7 @@ class Dictionary {
   // in V1-4 the first byte of the text buffer is reserved
   // in V5+ the first two bytes of the text buffer are reserved
   // the actual text comes after the reserved bytes
+  /// Gets the offset of the text buffer.
   int get textBufferOffset {
     if (Z.engine.version == ZMachineVersions.v1 ||
         Z.engine.version == ZMachineVersions.v2 ||
@@ -274,6 +277,7 @@ class Dictionary {
     return tokens;
   }
 
+  /// Returns a string representation of the dictionary.
   String dump() {
     var s = StringBuffer();
 

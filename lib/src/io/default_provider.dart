@@ -9,9 +9,13 @@ import 'package:zart/zart.dart';
 /// context.  Also cannot provide async facility
 /// so just runs sync.
 class DefaultProvider extends IoProvider {
+  /// The script to run.
   final Queue<String> script;
+
+  /// The number of columns.
   final int cols = 80;
 
+  /// Creates a new default provider.
   DefaultProvider(List<String> script) : script = Queue<String>.from(script);
 
   @override
@@ -19,6 +23,7 @@ class DefaultProvider extends IoProvider {
     return Future.value();
   }
 
+  /// Saves the game.
   Future<bool> saveGame(List<int> saveBytes) {
     stdout.writeln('Save not supported with this provider.');
     var c = Completer();
@@ -26,6 +31,7 @@ class DefaultProvider extends IoProvider {
     return c.future.then((value) => value as bool);
   }
 
+  /// Restores the game.
   Future<List<int>> restore() {
     stdout.writeln('Restore not supported with this provider.');
     var c = Completer();
@@ -33,6 +39,7 @@ class DefaultProvider extends IoProvider {
     return c.future.then((value) => value as List<int>);
   }
 
+  /// Outputs text to the console.
   void primaryOutput(String text) {
     var lines = text.split('\n');
     for (final l in lines) {
@@ -64,8 +71,10 @@ class DefaultProvider extends IoProvider {
     }
   }
 
+  /// Outputs debug text to the console.
   void debugOutput(String text) => stdout.writeln(text);
 
+  /// Gets a line of input from the console.
   Future<String> getLine() {
     Completer c = Completer();
 

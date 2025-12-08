@@ -17,6 +17,7 @@ import 'package:zart/src/zscii.dart';
 
 /// Base machine that is compatible with Z-Machine V1.
 class Engine {
+  /// Stack marker
   static const int stackMarker = -0x10000;
 
   /// Z-Machine False = 0
@@ -24,54 +25,69 @@ class Engine {
 
   /// Z-Machine True = 1
   static const int gameTrue = 1;
+
+  /// Stack pointer
   static const int stackPointer = 0;
 
+  /// Stack
   final Stack stack;
+
+  /// Call stack
   final Stack callStack;
 
   /// Z-Machine Program Counter
   int programCounter = 0;
 
+  /// Current window
   int currentWindow = 0;
 
-  // Screen
+  /// Screen
   bool outputStream1 = true;
 
-  // Printer lol
+  /// Printer lol
   bool outputStream2 = true;
 
-  // Memory Table
+  /// Memory Table
   bool outputStream3 = false;
 
-  // Player input script
+  /// Player input script
   bool outputStream4 = false;
 
-  late DRandom r;
+  late DRandom _r;
 
+  /// Gets the program counter in hex format.
   String pcHex({int offset = 0}) =>
       '[0x${(programCounter + offset).toRadixString(16)}]';
 
+  /// Memory map
   late MemoryMap mem;
 
+  /// Operations
   late Map<int, Function> ops;
 
+  /// Property defaults table size
   int get propertyDefaultsTableSize => 31;
 
+  /// Z-Machine Version
   ZMachineVersions get version => ZMachineVersions.v1;
 
-  // Kb
+  /// Maximum file length
   int get maxFileLength => 128;
 
+  /// Unpacks an address
   int unpack(int packedAddr) {
     return packedAddr << 1;
   }
 
+  /// Packs an address
   int pack(int unpackedAddr) {
     return unpackedAddr >> 1;
   }
 
+  /// File length multiplier
   int fileLengthMultiplier() => 2;
 
+  /// Visits a routine
   void visitRoutine(List<int?> params) {
     //Debugger.verbose('  Calling Routine at ${pc.toRadixString(16)}');
 
@@ -108,6 +124,7 @@ class Engine {
     callStack.push(locals);
   }
 
+  /// Returns from a routine
   void doReturn(int result) {
     // return address
     programCounter = callStack.pop();
@@ -159,12 +176,14 @@ class Engine {
     // ops[result]();
   }
 
+  /// Throws a [GameException] for an unsupported op code.
   void notFound() {
     throw GameException(
       'Unsupported Op Code: ${mem.loadb(programCounter - 1)}',
     );
   }
 
+  /// Restores the game state from a save file.
   void restore() async {
     if (Z.inInterrupt) {
       return;
@@ -189,6 +208,7 @@ class Engine {
     Z.callAsync(Z.runIt);
   }
 
+  /// Saves the game state to a save file.
   void save() async {
     if (Z.inInterrupt) {
       return;
@@ -235,6 +255,7 @@ class Engine {
     }
   }
 
+  /// Branches to a label based on a test result.
   void branch(bool testResult) {
     //calculates the local jump offset (ref 4.7)
 
@@ -272,6 +293,7 @@ class Engine {
     //Debugger.verbose('    (continuing to next instruction)');
   }
 
+  /// Sends the status of the game to the IO handler.
   void sendStatus() {
     final oid = readVariable(0x10);
     final roomName = oid != 0 ? GameObject(oid).shortName : "";
@@ -285,6 +307,7 @@ class Engine {
     });
   }
 
+  /// Calls a routine with variable arguments.
   void callVS() {
     //Debugger.verbose('${pcHex(-1)} [call_vs]');
     final operands = visitOperandsVar(4, true);
@@ -318,6 +341,7 @@ class Engine {
     }
   }
 
+  /// Reads input from the user and stores it in a buffer.
   void read() {
     log.finest("read()");
     //Debugger.verbose('${pcHex(-1)} [read]');
@@ -400,6 +424,7 @@ class Engine {
     });
   }
 
+  /// Generates a random number.
   void random() {
     //Debugger.verbose('${pcHex(-1)} [random]');
 
@@ -413,19 +438,20 @@ class Engine {
     var result = 0;
 
     if (range < 0) {
-      r = DRandom.withSeed(range);
+      _r = DRandom.withSeed(range);
       //Debugger.verbose('    (set RNG to seed: $range)');
     } else if (range == 0) {
-      r = DRandom.withSeed(DateTime.now().millisecondsSinceEpoch);
+      _r = DRandom.withSeed(DateTime.now().millisecondsSinceEpoch);
       //Debugger.verbose('    (set RNG to random seed)');
     } else {
-      result = r.nextFromMax(range) + 1;
+      result = _r.nextFromMax(range) + 1;
       //Debugger.verbose('    (Rolled [1 - $range] number: $result)');
     }
 
     writeVariable(resultTo, result);
   }
 
+  /// Pops a value from the stack and stores it in a variable.
   void pull() {
     //Debugger.verbose('${pcHex(-1)} [pull]');
     final operand = visitOperandsVar(1, false);
@@ -437,6 +463,7 @@ class Engine {
     writeVariable(operand[0].rawValue!, value);
   }
 
+  /// Pushes a value onto the stack.
   void push() {
     //Debugger.verbose('${pcHex(-1)} [push]');
     final operand = visitOperandsVar(1, false);
@@ -453,6 +480,7 @@ class Engine {
     //    }
   }
 
+  /// Pops a value from the stack and returns it.
   void retPopped() {
     //Debugger.verbose('${pcHex(-1)} [ret_popped]');
     final v = stack.pop();
@@ -463,38 +491,45 @@ class Engine {
     doReturn(v);
   }
 
+  /// Asserts that a value is not a stack marker.
   void assertNotMarker(int m) {
     if (m == Engine.stackMarker) {
       throw GameException('Stack Underflow.');
     }
   }
 
+  /// Returns with a true value.
   void rtrue() {
     //Debugger.verbose('${pcHex(-1)} [rtrue]');
     doReturn(Engine.gameTrue);
   }
 
+  /// Returns with a false value.
   void rfalse() {
     //Debugger.verbose('${pcHex(-1)} [rfalse]');
     doReturn(Engine.gameFalse);
   }
 
+  /// Does nothing.
   void nop() {
     //Debugger.verbose('${pcHex(-1)} [nop]');
   }
 
+  /// Pops a value from the stack.
   void pop() {
     //Debugger.verbose('${pcHex(-1)} [pop]');
 
     stack.pop();
   }
 
+  /// Treats the instruction as a NOP.
   void showStatus() {
     //Debugger.verbose('${pcHex(-1)} [show_status]');
 
     //treat as NOP
   }
 
+  /// Always verifies the game.
   void verify() {
     //Debugger.verbose('${pcHex(-1)} [verify]');
 
@@ -502,6 +537,7 @@ class Engine {
     branch(true);
   }
 
+  /// Always branches.
   void piracy() {
     //Debugger.verbose('${pcHex(-1)} [piracy]');
 
@@ -509,6 +545,7 @@ class Engine {
     branch(true);
   }
 
+  /// Jumps to a label if the operand is zero.
   void jz() {
     //Debugger.verbose('${pcHex(-1)} [jz]');
 
@@ -517,6 +554,7 @@ class Engine {
     branch(operand.value == 0);
   }
 
+  /// Gets the sibling of an object.
   void getSibling() {
     //Debugger.verbose('${pcHex(-1)} [get_sibling]');
 
@@ -531,6 +569,7 @@ class Engine {
     branch(obj.sibling != 0);
   }
 
+  /// Gets the child of an object.
   void getChild() {
     //Debugger.verbose('${pcHex(-1)} [get_child]');
 
@@ -545,6 +584,7 @@ class Engine {
     branch(obj.child != 0);
   }
 
+  /// Increments a variable.
   void inc() {
     //Debugger.verbose('${pcHex(-1)} [inc]');
 
@@ -555,6 +595,7 @@ class Engine {
     writeVariable(operand.rawValue!, value);
   }
 
+  /// Decrements a variable.
   void dec() {
     //Debugger.verbose('${pcHex(-1)} [dec]');
 
@@ -565,6 +606,7 @@ class Engine {
     writeVariable(operand.rawValue!, value);
   }
 
+  /// Tests a bitmap against a set of flags.
   void test() {
     //Debugger.verbose('${pcHex(-1)} [test]');
     //final pp = PC - 1;
@@ -584,6 +626,7 @@ class Engine {
     branch((bitmap & flags) == flags);
   }
 
+  /// Decrements a variable and branches if the result is less than a specified value.
   void decChk() {
     //Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
@@ -599,6 +642,7 @@ class Engine {
     branch(value < MathHelper.toSigned(operands[1].value!));
   }
 
+  /// Increments a variable and branches if the result is greater than a specified value.
   void incChk() {
     //Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
@@ -617,6 +661,7 @@ class Engine {
     branch(value > MathHelper.toSigned(operands[1].value!));
   }
 
+  /// Tests an object's attribute.
   void testAttr() {
     //Debugger.verbose('${pcHex(-1)} [test_attr]');
 
@@ -630,6 +675,7 @@ class Engine {
     branch(obj.isFlagBitSet(operands[1].value!));
   }
 
+  /// Tests if an object is a child of another object.
   void jin() {
     //Debugger.verbose('${pcHex(-1)} [jin]');
 
@@ -643,6 +689,7 @@ class Engine {
     branch(child.parent == parent.id);
   }
 
+  /// Tests if a value matches any of the given values.
   void jeV() {
     //Debugger.verbose('${pcHex(-1)} [jeV]');
     final operands = visitOperandsVar(4, true);
@@ -667,6 +714,7 @@ class Engine {
     branch(foundMatch);
   }
 
+  /// Quits the game.
   void quit() async {
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
@@ -684,6 +732,7 @@ class Engine {
     await Z.sendIO({"command": IoCommands.quit});
   }
 
+  /// Restarts the game.
   void restart() {
     //Debugger.verbose('${pcHex(-1)} [restart]');
 
@@ -709,6 +758,7 @@ class Engine {
     }
   }
 
+  /// Branches if the first operand is less than the second.
   void jl() {
     //Debugger.verbose('${pcHex(-1)} [jl]');
 
@@ -722,6 +772,7 @@ class Engine {
     );
   }
 
+  /// Branches if the first operand is greater than the second.
   void jg() {
     //Debugger.verbose('${pcHex(-1)} [jg]');
 
@@ -735,6 +786,7 @@ class Engine {
     );
   }
 
+  /// Branches if the first operand is equal to the second.
   void je() {
     //Debugger.verbose('${pcHex(-1)} [je]');
 
@@ -748,12 +800,14 @@ class Engine {
     );
   }
 
+  /// Adds a newline to the output buffer.
   void newline() {
     //Debugger.verbose('${pcHex(-1)} [newline]');
 
     Z.sbuff.write('\n');
   }
 
+  /// Prints the short name of an object.
   void printObj() {
     //Debugger.verbose('${pcHex(-1)} [print_obj]');
     final operand = visitOperandsShortForm();
@@ -763,6 +817,7 @@ class Engine {
     Z.sbuff.write(obj.shortName);
   }
 
+  /// Prints a string from memory.
   void printAddr() {
     //Debugger.verbose('${pcHex(-1)} [print_addr]');
     final operand = visitOperandsShortForm();
@@ -776,6 +831,7 @@ class Engine {
     Z.sbuff.write(str);
   }
 
+  /// Prints a string from memory with unpacked address.
   void printPAddr() {
     //Debugger.verbose('${pcHex(-1)} [print_paddr]');
 
@@ -790,6 +846,7 @@ class Engine {
     Z.sbuff.write(str);
   }
 
+  /// Prints a character from the ZSCII table.
   void printChar() {
     //Debugger.verbose('${pcHex(-1)} [print_char]');
 
@@ -804,6 +861,7 @@ class Engine {
     Z.sbuff.write(ZSCII.zCharToChar(z));
   }
 
+  /// Prints a number.
   void printNum() {
     //Debugger.verbose('${pcHex(-1)} [print_num]');
 
@@ -812,6 +870,7 @@ class Engine {
     Z.sbuff.write('${MathHelper.toSigned(operands[0].value!)}');
   }
 
+  /// Prints a string from memory and returns.
   void printRet() {
     //Debugger.verbose('${pcHex(-1)} [print_ret]');
 
@@ -824,6 +883,7 @@ class Engine {
     doReturn(Engine.gameTrue);
   }
 
+  /// Prints a string from memory and returns.
   void printf() {
     //Debugger.verbose('${pcHex(-1)} [print]');
 
@@ -835,6 +895,7 @@ class Engine {
     programCounter = callStack.pop();
   }
 
+  /// Inserts an object into another object.
   void insertObj() {
     //Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
@@ -851,6 +912,7 @@ class Engine {
     from.insertTo(to.id);
   }
 
+  /// Removes an object from the object tree.
   void removeObj() {
     //Debugger.verbose('${pcHex(-1)} [remove_obj]');
 
@@ -862,6 +924,7 @@ class Engine {
     o.removeFromTree();
   }
 
+  /// Stores a value in a variable.
   void store() {
     //Debugger.verbose('${pcHex(-1)} [store]');
 
@@ -878,6 +941,7 @@ class Engine {
     writeVariable(operands[0].rawValue!, operands[1].value);
   }
 
+  /// Loads a value from a variable.
   void load() {
     //Debugger.verbose('${pcHex(-1)} [load]');
 
@@ -894,6 +958,7 @@ class Engine {
     writeVariable(resultTo, v);
   }
 
+  /// Jumps to a specified offset.
   void jump() {
     //Debugger.verbose('${pcHex(-1)} [jump]');
 
@@ -906,6 +971,7 @@ class Engine {
     //Debugger.verbose('    (jumping to ${pcHex()})');
   }
 
+  /// Returns from a routine.
   void ret() {
     //Debugger.verbose('${pcHex(-1)} [ret]');
 
@@ -916,6 +982,7 @@ class Engine {
     doReturn(operand.value!);
   }
 
+  /// Gets the parent of an object.
   void getParent() {
     //Debugger.verbose('${pcHex(-1)} [get_parent]');
 
@@ -928,6 +995,7 @@ class Engine {
     writeVariable(resultTo, obj.parent);
   }
 
+  /// Clears an attribute of an object.
   void clearAttr() {
     //Debugger.verbose('${pcHex(-1)} [clear_attr]');
 
@@ -941,6 +1009,7 @@ class Engine {
     //Debugger.verbose('    (clear Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
+  /// Sets an attribute of an object.
   void setAttr() {
     //Debugger.verbose('${pcHex(-1)} [set_attr]');
 
@@ -954,6 +1023,7 @@ class Engine {
     //Debugger.verbose('    (set Attribute) >>> object: ${obj.shortName}(${obj.id}) ${operands[1].value}: ${obj.isFlagBitSet(operands[1].value)}');
   }
 
+  /// Performs a bitwise OR operation.
   void or() {
     //Debugger.verbose('${pcHex(-1)} [or]');
 
@@ -966,6 +1036,7 @@ class Engine {
     writeVariable(resultTo, (operands[0].value! | operands[1].value!));
   }
 
+  /// Performs a bitwise AND operation.
   void and() {
     //Debugger.verbose('${pcHex(-1)} [and]');
 
@@ -978,6 +1049,7 @@ class Engine {
     writeVariable(resultTo, (operands[0].value! & operands[1].value!));
   }
 
+  /// Performs a subtraction operation.
   void sub() {
     //Debugger.verbose('${pcHex(-1)} [sub]');
 
@@ -994,6 +1066,7 @@ class Engine {
     writeVariable(resultTo, result);
   }
 
+  /// Performs an addition operation.
   void add() {
     //Debugger.verbose('${pcHex(-1)} [add]');
 
@@ -1012,6 +1085,7 @@ class Engine {
     writeVariable(resultTo, result);
   }
 
+  /// Performs a multiplication operation.
   void mul() {
     //Debugger.verbose('${pcHex(-1)} [mul]');
 
@@ -1030,6 +1104,7 @@ class Engine {
     writeVariable(resultTo, result);
   }
 
+  /// Performs a division operation.
   void div() {
     //Debugger.verbose('${pcHex(-1)} [div]');
 
@@ -1054,6 +1129,8 @@ class Engine {
   // This patch is required when the first term is negative,
   // otherwise dart calculates it incorrectly according to
   // the z-machine's expectations. 2.4.3
+
+  /// Performs a modulo operation.
   static int doMod(int a, int b) {
     var result = a.abs() % b.abs();
     if (a < 0) {
@@ -1062,6 +1139,7 @@ class Engine {
     return result;
   }
 
+  /// Performs a modulo operation.
   void mod() {
     //Debugger.verbose('${pcHex(-1)} [mod]');
 
@@ -1083,6 +1161,7 @@ class Engine {
     writeVariable(resultTo, result);
   }
 
+  /// Gets the length of a property.
   void getPropLen() {
     //Debugger.verbose('${pcHex(-1)} [get_prop_len]');
 
@@ -1095,6 +1174,7 @@ class Engine {
     writeVariable(resultTo, propLen);
   }
 
+  /// Performs a bitwise NOT operation.
   void not() {
     //Debugger.verbose('${pcHex(-1)} [not]');
 
@@ -1105,6 +1185,7 @@ class Engine {
     writeVariable(resultTo, ~operand.value!);
   }
 
+  /// Gets the next property of an object.
   void getNextProp() {
     //Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
@@ -1121,6 +1202,7 @@ class Engine {
     writeVariable(resultTo, nextProp);
   }
 
+  /// Gets the address of a property of an object.
   void getPropAddr() {
     //Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
@@ -1139,6 +1221,7 @@ class Engine {
     writeVariable(resultTo, addr);
   }
 
+  /// Gets the value of a property of an object.
   void getProp() {
     //Debugger.verbose('${pcHex(-1)} [get_prop]');
 
@@ -1157,6 +1240,7 @@ class Engine {
     writeVariable(resultTo, value);
   }
 
+  /// Sets the value of a property of an object.
   void putProp() {
     //Debugger.verbose('${pcHex(-1)} [put_prop]');
 
@@ -1169,6 +1253,7 @@ class Engine {
     obj.setPropertyValue(operands[1].value, operands[2].value);
   }
 
+  /// Loads a byte from memory.
   void loadByte() {
     //Debugger.verbose('${pcHex(-1)} [loadb]');
 
@@ -1186,6 +1271,7 @@ class Engine {
     //Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
+  /// Loads a word from memory.
   void loadWord() {
     //Debugger.verbose('${pcHex(-1)} [loadw]');
 
@@ -1204,6 +1290,7 @@ class Engine {
     //Debugger.verbose('    loaded 0x${peekVariable(resultTo).toRadixString(16)} from 0x${addr.toRadixString(16)} into 0x${resultTo.toRadixString(16)}');
   }
 
+  /// Stores a byte in memory.
   void storebv() {
     //Debugger.verbose('${pcHex(-1)} [storebv]');
 
@@ -1220,7 +1307,7 @@ class Engine {
     //Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
-  //variable arguement version of storew
+  /// Variable arguement version of storew
   void storewv() {
     //Debugger.verbose('${pcHex(-1)} [storewv]');
 
@@ -1237,6 +1324,7 @@ class Engine {
     //Debugger.verbose('    stored 0x${operands[2].value.toRadixString(16)} at addr: 0x${addr.toRadixString(16)}');
   }
 
+  /// Visits operands in short form.
   Operand visitOperandsShortForm() {
     final oc = mem.loadb(programCounter - 1);
 
@@ -1249,6 +1337,7 @@ class Engine {
     return operand;
   }
 
+  /// Visits operands in long form.
   List<Operand> visitOperandsLongForm() {
     final oc = mem.loadb(programCounter - 1);
 
@@ -1268,6 +1357,7 @@ class Engine {
     return [o1, o2];
   }
 
+  /// Visits operands in variable form.
   List<Operand> visitOperandsVar(int howMany, bool isVariable) {
     final operands = <Operand>[];
 
@@ -1317,6 +1407,7 @@ class Engine {
     return operands;
   }
 
+  /// Visits the header.
   void visitHeader() {
     mem.abbrAddress = mem.loadw(Header.abbreviationsTableAddr);
     mem.objectsAddress = mem.loadw(Header.objectTableAddr);
@@ -1369,6 +1460,7 @@ class Engine {
     return word;
   }
 
+  /// Peeks at a variable.
   int? peekVariable(int? varNum) {
     if (varNum == 0x00) {
       //top of stack
@@ -1385,6 +1477,7 @@ class Engine {
     }
   }
 
+  /// Reads a variable.
   int readVariable(int varNum) {
     assert(varNum >= 0 && varNum <= 0xff);
 
@@ -1427,6 +1520,7 @@ class Engine {
     callStack[(callStack[2] - local) + 3] = value;
   }
 
+  /// Reads a local variable.
   int readLocal(int local) {
     // final locals = callStack[2]; //locals header
     assert(local <= callStack[2]);
@@ -1434,13 +1528,14 @@ class Engine {
     return callStack[(callStack[2] - local) + 3];
   }
 
+  /// Initializes the engine.
   Engine()
     : stack = Stack(),
       // stack max  used to be 1024 for older games.
       // newer games required much larger sometimes.
       // 6.3.3.
       callStack = Stack.max(61440) {
-    r = DRandom.withSeed(DateTime.now().millisecond);
+    _r = DRandom.withSeed(DateTime.now().millisecond);
     ops = {
       /* 2OP, small, small */
       1: je,

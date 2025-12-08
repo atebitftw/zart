@@ -6,17 +6,24 @@ import 'package:zart/src/zscii.dart';
 
 /// Helper class for working with v3 game objects.
 class GameObject {
+  /// The ID of the game object.
   int? id;
 
+  /// The address of the game object.
   int get parentAddr =>
       _address! + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 4 : 6));
+
+  /// The address of the game object's sibling.
   int get siblingAddr =>
       _address! + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 5 : 8));
+
+  /// The address of the game object's child.
   int get childAddr =>
       _address! + ((ZMachine.verToInt(Z.engine.version) <= 3 ? 6 : 10));
 
   int? _address;
 
+  /// The parent of the game object.
   int get parent => (ZMachine.verToInt(Z.engine.version) <= 3)
       ? Z.engine.mem.loadb(parentAddr)
       : Z.engine.mem.loadw(parentAddr);
@@ -24,6 +31,7 @@ class GameObject {
       ? Z.engine.mem.storeb(parentAddr, oid!)
       : Z.engine.mem.storew(parentAddr, oid!);
 
+  /// The child of the game object.
   int get child => ZMachine.verToInt(Z.engine.version) <= 3
       ? Z.engine.mem.loadb(childAddr)
       : Z.engine.mem.loadw(childAddr);
@@ -31,6 +39,7 @@ class GameObject {
       ? Z.engine.mem.storeb(childAddr, oid!)
       : Z.engine.mem.storew(childAddr, oid!);
 
+  /// The sibling of the game object.
   int get sibling => ZMachine.verToInt(Z.engine.version) <= 3
       ? Z.engine.mem.loadb(siblingAddr)
       : Z.engine.mem.loadw(siblingAddr);
@@ -38,17 +47,22 @@ class GameObject {
       ? Z.engine.mem.storeb(siblingAddr, oid)
       : Z.engine.mem.storew(siblingAddr, oid);
 
+  /// The flags of the game object.
   late int flags;
 
+  /// The properties of the game object.
   int get properties => Z.engine.mem.loadw(
     _address! + (ZMachine.verToInt(Z.engine.version) <= 3 ? 7 : 12),
   );
 
+  /// The start of the property table.
   int get propertyTableStart =>
       properties + (Z.engine.mem.loadb(properties) * 2) + 1;
 
+  /// The short name of the game object.
   String? shortName;
 
+  /// Initializes a new instance of the [GameObject] class.
   GameObject(this.id) {
     _address = _getObjectAddress();
 
@@ -58,6 +72,7 @@ class GameObject {
     _readFlags();
   }
 
+  /// Gets the next property of the game object.
   int getNextProperty(int? pnum) {
     if (pnum == 0) {
       //get first property
@@ -86,6 +101,7 @@ class GameObject {
     return len == 0 ? len : propertyNumber(addr);
   }
 
+  /// Gets the property address of the game object.
   int getPropertyAddress(int? pnum) {
     if (pnum == 0) return 0;
 
@@ -128,6 +144,7 @@ class GameObject {
     return 0;
   }
 
+  /// Sets the property value of the game object.
   void setPropertyValue(int? pnum, int? value) {
     var addr = getPropertyAddress(pnum);
 
@@ -152,7 +169,7 @@ class GameObject {
     }
   }
 
-  //gets a byte or word value from a given [propertyNumber].
+  /// Gets a byte or word value from a given [propertyNumber].
   int getPropertyValue(int pnum) {
     var propNum = 999999;
     int addr = propertyTableStart;
@@ -201,6 +218,7 @@ class GameObject {
     return GameObject.getPropertyDefault(pnum);
   }
 
+  /// Gets the property length of the game object.
   static int propertyLength(int address) {
     if (address == 0) return 0;
 
@@ -221,6 +239,7 @@ class GameObject {
     }
   }
 
+  /// Gets the property number of the game object.
   static int propertyNumber(int address) {
     if (address == 0) return 0;
 
@@ -232,6 +251,7 @@ class GameObject {
     }
   }
 
+  /// Gets the property default of the game object.
   static int getPropertyDefault(int propertyNum) {
     propertyNum -= 1;
     propertyNum %= 31;
@@ -242,6 +262,7 @@ class GameObject {
     return Z.engine.mem.loadw(Z.engine.mem.objectsAddress + (propertyNum * 2));
   }
 
+  /// Removes the game object from the tree.
   void removeFromTree() {
     //already an orphan
     if (parent == 0) return;
@@ -267,6 +288,7 @@ class GameObject {
     sibling = 0;
   }
 
+  /// Gets the left sibling of the game object.
   int? leftSibling() {
     var pgo = GameObject(parent);
 
@@ -285,6 +307,7 @@ class GameObject {
     return theChild.id;
   }
 
+  /// Inserts the game object into the tree.
   void insertTo(int? obj) {
     if (parent != 0) {
       removeFromTree();
@@ -301,6 +324,7 @@ class GameObject {
     parent = obj;
   }
 
+  /// Sets the flag bit of the game object.
   void setFlagBit(int bit) {
     flags = BinaryHelper.set(
       flags,
@@ -310,6 +334,7 @@ class GameObject {
     _writeFlags();
   }
 
+  /// Unsets the flag bit of the game object.
   void unsetFlagBit(int bit) {
     flags = BinaryHelper.unset(
       flags,
@@ -319,6 +344,7 @@ class GameObject {
     _writeFlags();
   }
 
+  /// Checks if the flag bit is set.
   bool isFlagBitSet(int bit) {
     return BinaryHelper.isSet(
       flags,

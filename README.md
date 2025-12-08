@@ -1,11 +1,16 @@
-## Zart - Dart Implementation of Infocom Z-Machine
-	West of House
-	You are standing in an open field west of a white house, with a boarded 
-	front door. You could circle the house to the north or south.
-	
-	There is a small mailbox here.
+# Zart
+[![Dart CI](https://github.com/atebitftw/zart/actions/workflows/dart.yaml/badge.svg)](https://github.com/atebitftw/zart/actions/workflows/dart.yaml)
 
-	> open the mailbox
+Dart Implementation of the Infocom Z-Machine.
+
+```
+West of House
+You are standing in an open field west of a white house, with a boarded front door. You could circle the house to the north or south.
+
+There is a small mailbox here.
+
+> open the mailbox
+```
 
 Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.
 

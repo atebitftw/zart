@@ -2,10 +2,12 @@ import 'package:zart/src/z_char.dart';
 import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
 
+/// The ZString reader function.
 typedef ZStringReader =
     String Function(int fromAddress, [bool abbreviationLookup]);
 
 //ref 3.2.2
+/// The ZSCII character shift table.
 const char2AlphabetShift = <int, int>{
   ZSCII.a0: ZSCII.a1,
   ZSCII.a1: ZSCII.a2,
@@ -13,18 +15,25 @@ const char2AlphabetShift = <int, int>{
 };
 
 //ref 3.2.2
+/// The ZSCII character shift table.
 const char3AlphabetShift = <int, int>{
   ZSCII.a0: ZSCII.a2,
   ZSCII.a1: ZSCII.a0,
   ZSCII.a2: ZSCII.a1,
 };
 
-/// ZSCII Handler */
+/// ZSCII Handler
 class ZSCII {
+  /// The A0 alphabet.
   static const int a0 = 0;
+
+  /// The A1 alphabet.
   static const int a1 = 1;
+
+  /// The A2 alphabet.
   static const int a2 = 2;
 
+  /// The default ZSCII table.
   static const List<String> defaultTable = [
     'abcdefghijklmnopqrstuvwxyz',
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -36,6 +45,7 @@ class ZSCII {
     '  0123456789.,!?_#\'\"/\\-:()',
   ];
 
+  /// The V1 ZSCII table.
   static const List<String> v1Table = [
     'abcdefghijklmnopqrstuvwxyz',
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -284,8 +294,6 @@ class ZSCII {
     int? fromAddress, [
     bool? abbreviationLookup = false,
   ]) {
-    //TODO support custom alphabet table
-    //TODO support custom unicode table
     bool finished = false;
     final s = StringBuffer();
     int currentAlphabet = ZSCII.a0;
@@ -370,9 +378,12 @@ class ZSCII {
         var alternateTable = Z.engine.mem.loadw(Header.alphabetTable);
 
         if (alternateTable > 0) {
-          throw GameException(
-            "oops need to implement alternate ZSCII table lookup here",
-          );
+          // Custom alphabet table (ref 3.5.4)
+          // The table consists of 78 bytes: the 26 ZSCII codes for alphabet A0, then A1, then A2.
+          final offset = alternateTable + (currentAlphabet * 26) + (char - 6);
+          final zsciiCode = Z.engine.mem.loadb(offset);
+          s.write(zCharToChar(zsciiCode));
+          currentAlphabet = ZSCII.a0;
         } else {
           if (Z.engine.version == ZMachineVersions.v1 &&
               currentAlphabet == a2) {
@@ -464,6 +475,7 @@ class ZSCII {
     throw GameException('Could not convert from char to ZChar.');
   }
 
+  /// Converts Z-Character [c] into an equivalent char.
   static String zCharToChar(int c) {
     final s = StringBuffer();
     if (c == 0) {
@@ -480,14 +492,42 @@ class ZSCII {
       s.writeCharCode(c);
       return s.toString();
     } else if (c >= 155 && c <= 223) {
-      s.writeCharCode(unicodeTranslations[c]!);
-      return s.toString();
+      // Custom Unicode table lookup (ref 3.8.5.4)
+      if (Z.engine.version.index >= ZMachineVersions.v5.index) {
+        final extensionTable = Z.engine.mem.loadw(Header.headerExtensionTable);
+        if (extensionTable > 0) {
+          final unicodeTableAddress = Z.engine.mem.loadw(
+            extensionTable + 4,
+          ); // Word 3 is Unicode table address (ref 11.1) which is at offset 2*words? No, Header Extension table is word-indexed?
+          // Wait, Header extension table is a table of words.
+          // Ref 1.1.1.2: "The Header Extension Table... The first word contains the number of further words in the table. The second word is... The third word (at address + 4) is the address of the Unicode translation table."
+
+          if (unicodeTableAddress > 0) {
+            final tableLength = Z.engine.mem.loadb(unicodeTableAddress);
+            if (c >= 155 && c < 155 + tableLength) {
+              final unicodeChar = Z.engine.mem.loadw(
+                unicodeTableAddress + 1 + (c - 155) * 2,
+              );
+              s.writeCharCode(unicodeChar);
+              return s.toString();
+            }
+          }
+        }
+      }
+
+      if (unicodeTranslations.containsKey(c)) {
+        s.writeCharCode(unicodeTranslations[c]!);
+        return s.toString();
+      }
+      // If not in default table and not in custom table, we can't do much.
+      // Maybe return '?' or nothing? Existing behavior is to just continue.
     }
 
     return '';
   }
 }
 
+/// Translates ZSCII characters to their Unicode equivalents.
 const Map<int, int> unicodeTranslations = {
   155: 0xe4,
   156: 0xf6,

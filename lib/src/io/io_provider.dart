@@ -1,8 +1,10 @@
 /// Represents a contract for IO (Presentation) providers.
 abstract class IoProvider {
+  /// Sends a command to the provider.
   Future<dynamic> command(Map<String, dynamic> commandMessage);
 }
 
+/// Converts a string to an IO command.
 IoCommands toIOCommand(String cmd) {
   switch (cmd) {
     case "IOCommands.PRINT":
@@ -40,18 +42,45 @@ IoCommands toIOCommand(String cmd) {
 
 /// Enumerates IO Commands
 enum IoCommands {
+  /// The print command.
   print,
+
+  /// The status command.
   status,
+
+  /// The clear screen command.
   clearScreen,
+
+  /// The split screen command.
   splitScreen,
+
+  /// The set window command.
   setWindow,
+
+  /// The set font command.
   setFont,
+
+  /// The save command.
   save,
+
+  /// The restore command.
   restore,
+
+  /// The read command.
   read,
+
+  /// The read char command.
   readChar,
+
+  /// The quit command.
   quit,
+
+  /// The print debug command.
   printDebug,
+
+  /// The async command.
   async,
+
+  /// The set cursor command.
   setCursor,
 }

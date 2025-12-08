@@ -10,16 +10,29 @@ import 'package:zart/zart.dart';
 
 /// A runtime debugger for Z-Machine.
 class Debugger {
+  /// Set a flag whether to enable verbose output.
   static bool enableVerbose = false;
+
+  /// Set a flag whether to enable trace output.
   static bool enableTrace = false;
+
+  /// Set a flag whether to enable debug output.
   static bool enableDebug = false;
+
+  /// Set a flag whether to enable stack trace output.
   static bool enableStackTrace = false;
 
   /// This flag is meant to alert the game engine that it is being
   /// run for unit testing purposes, but is currently not supported.
   static bool isUnitTestRun = false;
+
+  /// The address where the debugger will start.
   static int? debugStartAddr;
+
+  /// The list of break points.
   static List<int>? _breakPoints;
+
+  /// The instruction counter.
   static int instructionCounter = 0;
 
   static Engine _getEngineByVersion(ZMachineVersions? version) {
@@ -66,6 +79,7 @@ class Debugger {
     Z.inInterrupt = false;
   }
 
+  /// Start the debugger.
   static Future<void> startBreak() async {
     await Z.sendIO({
       "command": IoCommands.printDebug,
@@ -194,6 +208,7 @@ class Debugger {
     parse(line);
   }
 
+  /// Enable all debugging channels.
   static void enableAll() {
     Debugger.enableDebug = true;
     Debugger.enableStackTrace = true;
@@ -201,6 +216,7 @@ class Debugger {
     Debugger.enableTrace = true;
   }
 
+  /// Disable all debugging channels.
   static void disableAll() {
     Debugger.enableDebug = false;
     Debugger.enableStackTrace = false;
@@ -208,11 +224,13 @@ class Debugger {
     Debugger.enableTrace = false;
   }
 
+  /// Return true if the [addr] is a break point.
   static bool isBreakPoint(int addr) {
     if (_breakPoints == null) return false;
     return _breakPoints!.contains(addr);
   }
 
+  /// Set the break points with a list of [breakPoints] addresses.
   static void setBreaks(List<int> breakPoints) {
     if (_breakPoints == null) {
       _breakPoints = <int>[];
@@ -222,6 +240,7 @@ class Debugger {
     _breakPoints!.addAll(breakPoints);
   }
 
+  /// Return a crash report as a formatted string.
   static String crashReport() {
     var s = StringBuffer();
     s.write('Call Stack: ${Z.engine.callStack}\n');
@@ -230,6 +249,7 @@ class Debugger {
     return s.toString();
   }
 
+  /// Return local variables as a formatted string.
   static String dumpLocals() {
     var locals = Z.engine.callStack[2];
     StringBuffer s = StringBuffer();
@@ -241,6 +261,7 @@ class Debugger {
     return s.toString();
   }
 
+  /// Return header information as a formatted string.
   static String dumpHeader() {
     if (!Z.isLoaded) return '<<< Machine Not Loaded >>>\n';
 
@@ -294,19 +315,19 @@ class Debugger {
     return s.toString();
   }
 
-  /// Verbose Channel (via Debug)
+  /// Displays a message on the verbose channel.
   static void verbose(String outString) {
-    //TODO support redirect to file.
     if (Debugger.enableDebug && Debugger.enableVerbose) {
       debug(outString);
     }
   }
 
-  /// Debug Channel
+  /// Displays a message on the debug channel.
   static void debug(String debugString) async {
     await Z.sendIO({"command": IoCommands.printDebug, "message": debugString});
   }
 
+  /// Displays a message on the todo channel.
   static void todo([String? message]) async {
     await Z.sendIO({
       "command": IoCommands.printDebug,

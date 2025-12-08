@@ -1,5 +1,6 @@
 /// A utility class supporting common IFF operations.
 class IFF {
+  /// Returns the next byte from the stream.
   static int? nextByte(List stream) {
     if (stream.isEmpty) return null;
 
@@ -10,6 +11,7 @@ class IFF {
     return nb;
   }
 
+  /// Writes a chunk to the stream.
   static void writeChunk(List stream, Chunk chunk) {
     var bytes = chunk.charCodes();
 
@@ -18,6 +20,7 @@ class IFF {
     }
   }
 
+  /// Reads a chunk from the stream.
   static Chunk? readChunk(List stream) {
     if (stream.length < 4) return null;
 
@@ -30,6 +33,7 @@ class IFF {
     return Chunk.toChunk(s.toString());
   }
 
+  /// Reads a 4 byte value from the stream.
   static int read4Byte(List stream) {
     var bl = [];
 
@@ -40,6 +44,7 @@ class IFF {
     return (bl[0] << 24) | (bl[1] << 16) | (bl[2] << 8) | bl[3];
   }
 
+  /// Reads a 3 byte value from the stream.
   static int read3Byte(List stream) {
     var bl = [];
 
@@ -50,6 +55,7 @@ class IFF {
     return (bl[0] << 16) | (bl[1] << 8) | bl[2];
   }
 
+  /// Reads a 2 byte value from the stream.
   static int read2Byte(List stream) {
     var bl = [];
 
@@ -60,6 +66,7 @@ class IFF {
     return (bl[0] << 8) | bl[1];
   }
 
+  /// Writes a 4 byte value to the stream.
   static void write4Byte(List stream, int value) {
     stream.add((value >> 24) & 0xFF);
     stream.add((value >> 16) & 0xFF);
@@ -67,17 +74,20 @@ class IFF {
     stream.add(value & 0xFF);
   }
 
+  /// Writes a 3 byte value to the stream.
   static void write3Byte(List stream, int value) {
     stream.add((value >> 16) & 0xFF);
     stream.add((value >> 8) & 0xFF);
     stream.add(value & 0xFF);
   }
 
+  /// Writes a 2 byte value to the stream.
   static void write2Byte(List stream, int value) {
     stream.add((value >> 8) & 0xFF);
     stream.add(value & 0xFF);
   }
 
+  /// Reads a 16 bit value from the stream.
   static int read16BitValue(List stream) {
     return (nextByte(stream)! << 24) |
         (nextByte(stream)! << 16) |
@@ -90,34 +100,63 @@ class IFF {
 class Chunk {
   final String _str;
 
+  /// Creates a new chunk from a string.
   const Chunk(this._str);
 
   //Blorb chunks
+  /// The IFRS Blorb chunk.
   static const ifrs = Chunk('IFRS');
+
+  /// The RIdx Blorb chunk.
   static const ridx = Chunk('RIdx');
+
+  /// The ZCOD Blorb chunk.
   static const zcod = Chunk('ZCOD');
+
+  /// The Exec Blorb chunk.
   static const exec = Chunk('Exec');
 
   //Quetzal chunks
+  /// The IFZS Quetzal chunk.
   static const ifzs = Chunk('IFZS');
+
+  /// The IFhd Quetzal chunk.
   static const ifhd = Chunk('IFhd');
+
+  /// The CMem Quetzal chunk.
   static const cmem = Chunk('CMem');
+
+  /// The UMem Quetzal chunk.
   static const umem = Chunk('UMem');
+
+  /// The Stks Quetzal chunk.
   static const stks = Chunk('Stks');
+
+  /// The IntD Quetzal chunk.
   static const intd = Chunk('IntD');
 
   //IFF Chunks
+  /// The FORM IFF chunk.
   static const form = Chunk('FORM');
+
+  /// The AUTH IFF chunk.
   static const auth = Chunk('AUTH');
+
+  /// The (c)  IFF chunk.
   static const cpyr = Chunk('(c) ');
+
+  /// The ANNO IFF chunk.
   static const anno = Chunk('ANNO');
 
   @override
   String toString() => _str;
 
-  // List<int> charCodes() => _str.charCodes;
-  List<int> charCodes() => throw Exception("need to implement charCodes");
+  /// Returns the character codes for the chunk.
+  List<int> charCodes() {
+    return _str.codeUnits;
+  }
 
+  /// Converts a string to a chunk.
   static Chunk? toChunk(String chunk) {
     switch (chunk) {
       case "Exec":

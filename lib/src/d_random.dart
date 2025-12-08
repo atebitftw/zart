@@ -38,31 +38,32 @@
 
 import 'dart:math' as math;
 
-const int intMax = 2147483647;
-const int intMin = -2147483648;
+const int _intMax = 2147483647;
+const int _intMin = -2147483648;
 
-const int mSeed = 161803398;
+const int _mSeed = 161803398;
 
 /// Suppliment pseudorandom random number generator for dart based on
 /// similar implementations in mono C#
 class DRandom {
-  late int mBig;
+  late int _mBig;
 
-  late int inext;
-  late int inextp;
+  late int _inext;
+  late int _inextp;
 
-  late List<int> seedArray;
+  late List<int> _seedArray;
 
+  /// Create [DRandom] with a given [seed] value.
   DRandom.withSeed(int seed) {
     _init();
     _seed(seed);
   }
 
-  /// Create [DRandom]
+  /// Create [DRandom] with a random seed.
   DRandom() {
     _init();
     int i = math.Random().nextInt((1 << 32) - 1);
-    int seed = (i * mBig).floor().toInt();
+    int seed = (i * _mBig).floor().toInt();
     _seed(seed);
   }
 
@@ -71,69 +72,69 @@ class DRandom {
     int? mj;
     int mk;
 
-    if (seed == intMin) {
-      mj = mSeed - (intMax + 1).abs();
+    if (seed == _intMin) {
+      mj = _mSeed - (_intMax + 1).abs();
     } else {
-      mj = mSeed - seed.abs();
+      mj = _mSeed - seed.abs();
     }
 
-    seedArray[55] = mj;
+    _seedArray[55] = mj;
     mk = 1;
     for (int i = 1; i < 55; i++) {
       ii = (21 * i) % 55;
-      seedArray[ii] = mk;
+      _seedArray[ii] = mk;
       mk = mj! - mk;
       if (mk < 0) {
-        mk += mBig;
+        mk += _mBig;
       }
 
-      mj = seedArray[ii];
+      mj = _seedArray[ii];
     }
 
     for (int k = 1; k < 5; k++) {
       for (int i = 1; i < 56; i++) {
-        seedArray[i] -= seedArray[1 + (i + 30) % 55];
-        if (seedArray[i] < 0) {
-          seedArray[i] += mBig;
+        _seedArray[i] -= _seedArray[1 + (i + 30) % 55];
+        if (_seedArray[i] < 0) {
+          _seedArray[i] += _mBig;
         }
       }
     }
 
-    inext = 0;
-    inextp = 31;
+    _inext = 0;
+    _inextp = 31;
   }
 
   void _init() {
-    mBig = intMax;
-    seedArray = List<int>.filled(56, 0, growable: false);
+    _mBig = _intMax;
+    _seedArray = List<int>.filled(56, 0, growable: false);
   }
 
   /// Return sample from PRNG
   double sample() {
     int retVal;
 
-    if (++inext >= 56) {
-      inext = 1;
+    if (++_inext >= 56) {
+      _inext = 1;
     }
 
-    if (++inextp >= 56) {
-      inextp = 1;
+    if (++_inextp >= 56) {
+      _inextp = 1;
     }
 
-    retVal = seedArray[inext] - seedArray[inextp];
+    retVal = _seedArray[_inext] - _seedArray[_inextp];
 
     if (retVal < 0) {
-      retVal += mBig;
+      retVal += _mBig;
     }
 
-    seedArray[inext] = retVal;
+    _seedArray[_inext] = retVal;
 
-    return retVal * (1.0 / mBig);
+    return retVal * (1.0 / _mBig);
   }
 
   /// Return the next random integer.
   int next() {
-    int retVal = (sample() * mBig).floor().toInt();
+    int retVal = (sample() * _mBig).floor().toInt();
     return retVal;
   }
 
@@ -170,7 +171,7 @@ class DRandom {
 
     List<int> buff = List.filled(size, 0);
     for (int i = 0; i < size; i++) {
-      buff[i] = (sample() * (mBig + 1)).toInt();
+      buff[i] = (sample() * (_mBig + 1)).toInt();
     }
 
     return buff;

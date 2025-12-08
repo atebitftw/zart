@@ -9,6 +9,7 @@ import 'engines/version_5.dart' show Version5;
 import 'engines/version_7.dart' show Version7;
 import 'engines/version_8.dart' show Version8;
 
+/// The Z-Machine singleton.
 ZMachine get Z => ZMachine();
 
 /// This is a partial-interpreter for the Z-Machine.  It handles most interpreter
@@ -17,15 +18,31 @@ ZMachine get Z => ZMachine();
 /// The IOConfig handles tasks for whatever presentation platform
 /// is in use by the application.
 class ZMachine {
+  /// Whether the Z-Machine is loaded.
   bool isLoaded = false;
+
+  /// Whether the Z-Machine is in break mode.
   bool inBreak = false;
+
+  /// Whether the Z-Machine is in interrupt mode.
   bool inInterrupt = false;
+
+  /// Whether the Z-Machine is in quit mode.
   bool quit = false;
+
+  /// The version of the Z-Machine.
   ZMachineVersions? ver;
+
+  /// The most recent input.
   late String mostRecentInput;
 
+  /// The string buffer.
   StringBuffer sbuff = StringBuffer();
+
+  /// The memory streams.
   final List<int?> memoryStreams = <int>[];
+
+  /// The raw bytes.
   final List<int> rawBytes = <int>[];
 
   static ZMachine? _context;
@@ -47,7 +64,7 @@ class ZMachine {
   /// commands and receive results from those commands (if any).
   IoProvider io = DefaultProvider([]) as IoProvider;
 
-  //singleton
+  /// Instantiates the Z-Machine singleton.
   factory ZMachine() {
     if (_context != null) return _context!;
 
@@ -58,6 +75,7 @@ class ZMachine {
     _context = this;
   }
 
+  /// Converts a [ZMachineVersions] to an [int].
   static int verToInt(ZMachineVersions v) {
     switch (v) {
       case ZMachineVersions.s:
@@ -138,6 +156,7 @@ class ZMachine {
     isLoaded = true;
   }
 
+  /// Calls the given [func] asynchronously.
   void callAsync(Function() func) {
     Timer(const Duration(seconds: 0), () => func());
   }
@@ -174,6 +193,7 @@ class ZMachine {
     }
   }
 
+  /// Runs the Z-Machine.
   void runIt() async {
     log.finest("runIt() called.");
     //    while(!inBreak && !inInterrupt && !quit){
@@ -190,10 +210,12 @@ class ZMachine {
     }
   }
 
+  /// Sends IO to the [io] provider.
   Future<dynamic> sendIO(Map<String, dynamic> ioData) async {
     return await io.command(ioData);
   }
 
+  /// Prints the buffer.
   void printBuffer() {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
@@ -226,4 +248,32 @@ class ZMachine {
   }
 }
 
-enum ZMachineVersions { s, v1, v2, v3, v4, v5, v6, v7, v8 }
+/// The Z-Machine versions.
+enum ZMachineVersions {
+  /// Special version
+  s,
+
+  /// Version 1
+  v1,
+
+  /// Version 2
+  v2,
+
+  /// Version 3
+  v3,
+
+  /// Version 4
+  v4,
+
+  /// Version 5
+  v5,
+
+  /// Version 6
+  v6,
+
+  /// Version 7
+  v7,
+
+  /// Version 8
+  v8,
+}

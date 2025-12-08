@@ -41,3 +41,10 @@
 
 # 1.3.7
 - Fixed formatting issues.
+
+# 1.4.0
+- Added GitHub Actions CI and Badge.
+- Enhanced Quetzal save and restore support.
+- ZSCII support for custom tables added.
+- Added more unit tests.
+- Added more documentation comments.

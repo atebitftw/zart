@@ -10,6 +10,7 @@ class Version4 extends Version3 {
   @override
   ZMachineVersions get version => ZMachineVersions.v4;
 
+  /// Creates a new instance of [Version4].
   Version4() {
     ops[247] = scanTable;
   }
@@ -22,6 +23,7 @@ class Version4 extends Version3 {
   // The form is optional (and only used in Version 5?): bit 7 is set for words, clear for bytes:
   // the rest contains the length of each field in the table. (The first word or byte in each field
   // being the one looked at.) Thus $82 is the default.
+  /// Scans a table for a word.
   void scanTable() {
     //v4 expects only 3 operands, x table len
     final operands = visitOperandsVar(4, true);

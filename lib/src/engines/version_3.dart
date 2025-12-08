@@ -6,5 +6,6 @@ class Version3 extends Engine {
   @override
   ZMachineVersions get version => ZMachineVersions.v3;
 
+  /// Creates a new instance of [Version3].
   Version3();
 }

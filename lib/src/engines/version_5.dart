@@ -41,6 +41,7 @@ class Version5 extends Version4 {
   // EXT print_unicode
   // EXT check_unicode
 
+  /// Creates a new instance of [Version5].
   Version5() {
     ops[136] = call_1s;
     ops[168] = call_1s;
@@ -110,6 +111,7 @@ class Version5 extends Version4 {
     callStack.push(locals);
   }
 
+  /// Copies a table.
   void copyTable() {
     //Debugger.verbose('${pcHex(-1)} [copy_table]');
 
@@ -149,6 +151,7 @@ class Version5 extends Version4 {
     }
   }
 
+  /// Sets the buffer mode.
   void bufferMode() {
     //Debugger.verbose('${pcHex(-1)} [buffer_mode]');
 
@@ -157,6 +160,7 @@ class Version5 extends Version4 {
     //this is basically a no op
   }
 
+  /// Tokenizes a string.
   void tokenise() {
     //Debugger.verbose('${pcHex(-1)} [tokenise]');
 
@@ -226,6 +230,7 @@ class Version5 extends Version4 {
     }
   }
 
+  /// Sets the output stream.
   void outputStream() {
     //Debugger.verbose('${pcHex(-1)} [output_stream]');
 
@@ -281,6 +286,7 @@ class Version5 extends Version4 {
     }
   }
 
+  /// Sets the text style.
   void setTextStyle() async {
     //Debugger.verbose('${pcHex(-1)} [set_text_style]');
 
@@ -294,6 +300,7 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
+  /// Saves the undo stack.
   void extSaveUndo() {
     //Debugger.verbose('${pcHex(-1)} [ext_save_undo]');
 
@@ -305,6 +312,7 @@ class Version5 extends Version4 {
     writeVariable(resultTo, -1);
   }
 
+  /// Visits an extended instruction.
   void visitExtendedInstruction() {
     // offset the extended instruction by 300 in order to offset it safely from other instructions
     // i.e. extended 1 = 301, extended 2 = 302, etc...
@@ -503,6 +511,7 @@ class Version5 extends Version4 {
     }
   }
 
+  /// Checks the argument count.
   void checkArgCount() {
     //Debugger.verbose('${pcHex(-1)} [check_arg_count]');
 
@@ -514,6 +523,7 @@ class Version5 extends Version4 {
     branch(argCount == operands[0].value);
   }
 
+  /// Sets the font.
   void extSetFont() async {
     //Debugger.verbose('${pcHex(-1)} [ext_set_font]');
     Z.inInterrupt = true;
@@ -535,6 +545,7 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
+  /// Sets the cursor.
   void setCursor() async {
     //Debugger.verbose('${pcHex(-1)} [set_cursor]');
 
@@ -553,6 +564,7 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
+  /// Sets the window.
   void setWindow() {
     //Debugger.verbose('${pcHex(-1)} [set_window]');
     var operands = visitOperandsVar(1, false);
@@ -562,6 +574,7 @@ class Version5 extends Version4 {
     currentWindow = operands[0].value!;
   }
 
+  /// Calls a routine.
   void callVS2() {
     //Debugger.verbose('${pcHex(-1)} [call_vn2]');
 
@@ -598,6 +611,7 @@ class Version5 extends Version4 {
     }
   }
 
+  /// Calls a routine.
   void callVN2() {
     //Debugger.verbose('${pcHex(-1)} [call_vn2]');
 
@@ -634,7 +648,7 @@ class Version5 extends Version4 {
     }
   }
 
-  // like callVS, but throws away results
+  /// Calls a routine.
   void callVN() {
     //Debugger.verbose('${pcHex(-1)} [call_vn]');
 
@@ -670,6 +684,7 @@ class Version5 extends Version4 {
     }
   }
 
+  /// Calls a routine.
   void call_1s() {
     //Debugger.verbose('${pcHex(-1)} [call_1s]');
 
@@ -690,6 +705,7 @@ class Version5 extends Version4 {
     callStack.push(returnAddr);
   }
 
+  /// Calls a routine.
   void call_2s() {
     //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
@@ -712,6 +728,7 @@ class Version5 extends Version4 {
     callStack.push(returnAddr);
   }
 
+  /// Calls a routine.
   void call_1n() {
     //Debugger.verbose('${pcHex(-1)} [call_1n]');
 
@@ -730,6 +747,7 @@ class Version5 extends Version4 {
     callStack.push(returnAddr);
   }
 
+  /// Calls a routine.
   void call_2n() {
     //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
@@ -756,6 +774,7 @@ class Version5 extends Version4 {
     callStack.push(returnAddr);
   }
 
+  /// Erases a window.
   void eraseWindow() async {
     //Debugger.verbose('${pcHex(-1)} [erase_window]');
 
@@ -770,6 +789,7 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
+  /// Splits a window.
   void splitWindow() async {
     //Debugger.verbose('${pcHex(-1)} [split_window]');
 
@@ -785,6 +805,7 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
+  /// Reads a character.
   void readChar() async {
     //Debugger.verbose('${pcHex(-1)} [read_char]');
     Z.inInterrupt = true;

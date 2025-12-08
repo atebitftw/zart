@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:zart/src/game_object.dart';
 import 'package:zart/zart.dart';
 
+/// Loads a story file into the [Z] machine.
 void loadStoryFile(String pathToFile) {
   throw "Not implemented.";
 }

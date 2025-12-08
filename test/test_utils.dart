@@ -1,9 +1,10 @@
 import 'dart:io';
+import 'package:zart/src/engines/engine.dart';
 import 'package:zart/zart.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
 
-void setupZMachine() {
+void setupZMachine({Engine? engine}) {
   final s = Platform.pathSeparator;
   var defaultGameFile = 'assets${s}games${s}minizork.z3';
 
@@ -18,7 +19,7 @@ void setupZMachine() {
     exit(1);
   }
 
-  final machine = MockV3Machine();
+  final machine = engine ?? MockV3Machine();
 
   Debugger.initializeEngine(machine);
   Z.io = MockUIProvider();
