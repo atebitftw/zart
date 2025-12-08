@@ -38,3 +38,6 @@
 - Fixed an issue with directory names that made pub unhappy.
 
 # 1.3.6
+
+# 1.3.7
+- Fixed formatting issues.
