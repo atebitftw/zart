@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="zart API docs, for the Dart programming language.">
+  <title>zart - Dart API docs</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="static-assets/github.css?v1">
+  <link rel="stylesheet" href="static-assets/styles.css?v1">
+  <link rel="icon" href="static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="https://atebitftw.github.io/site/">zart package</a></li>
+  </ol>
+  <div class="self-name">zart</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div id="dartdoc-main-content" class="main-content">
+      
+<section class="desc markdown">
+  <h2 id="zart---dart-implementation-of-infocom-z-machine">Zart - Dart Implementation of Infocom Z-Machine</h2>
+<pre class="language-dart"><code>West of House
+You are standing in an open field west of a white house, with a boarded 
+front door. You could circle the house to the north or south.
+
+There is a small mailbox here.
+
+&gt; open the mailbox
+</code></pre>
+<p>Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.</p>
+<p>This project is a labor of love.</p>
+<p>Enjoy!</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>Plays V3, V5, V7, and V8 games.</li>
+<li>Supports loading raw game files (.z3, .z5, .z8, .dat, etc).</li>
+<li>Supports loading .zblorb files, but only uses the game file from the package at this time.</li>
+<li>Separates the UI implementation from the core interpreter functions, providing extensibility to virtually any platform that Dart runs on (currently Mac, Linux, Windows, and Web).</li>
+</ul>
+<h2 id="want-to-author-your-own-if-games">Want to author your own IF games?</h2>
+<p><a href="https://ganelson.github.io/inform-website/">Inform 7</a></p>
+<h2 id="where-can-i-find-games-to-play">Where can I find games to play?</h2>
+<p>There are Interactive Fiction communities online that can get you started.  Minizork is included in this library for unit testing purposes, but you can also play it if you wish.</p>
+<p>Here are some links to some popular games:</p>
+<p><strong>I make NO warranty as to the safety or usability of these links/files.  Proceed with caution.</strong></p>
+<ul>
+<li>Zork Series: You can find these online.  Unfortunately, I can't put the link here because it's http instead of https.  Contact me if you need help.</li>
+<li>Hitchiker's Guide To The Galaxy: <a href="https://www.myabandonware.com/game/the-hitchhikers-guide-to-the-galaxy-42">https://www.myabandonware.com/game/the-hitchhikers-guide-to-the-galaxy-42</a></li>
+<li>Infidel: <a href="https://www.myabandonware.com/game/infidel-2d">https://www.myabandonware.com/game/infidel-2d</a></li>
+</ul>
+<h2 id="how-do-i-play-games-with-this-library">How Do I Play Games With This Library</h2>
+<p>You would have to write your own client which would manage the i/o between the player and the interpreter.</p>
+<p>You can also run the CLI utility to play games from the command line:</p>
+<pre class="language-bash"><code class="language-bash">dart pub global activate zart
+zart path/to/minizork.z3
+</code></pre>
+<h2 id="how-to-contribute">How To Contribute</h2>
+<p>Clone.  Code.  Submit pull request.  I'm open to any reasonable submissions.</p>
+<h2 id="reference-material">Reference Material</h2>
+<ul>
+<li>Z-Machine spec used to develop this library: <a href="https://www.inform-fiction.org/zmachine/standards/">https://www.inform-fiction.org/zmachine/standards/</a></li>
+</ul>
+<h2 id="fun-fact">Fun Fact</h2>
+<p>This was the first package ever published to <a href="https://pub.dev">https://pub.dev</a> back in the day.</p>
+</section>
+
+
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="zart">
+  <span class="name"><a href="zart/">zart</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+        </dl>
+      </section>
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="https://atebitftw.github.io/site/">zart package</a></li>
+</ol>
+
+    <h5 class="hidden-xs"><span class="package-name">zart</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="zart/">zart</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div>
+</main>
+<footer>
+  <span class="no-break">
+    zart
+      1.3.6
+  </span>
+  
+</footer>
+
+
+<script src="static-assets/highlight.pack.js?v1"></script>
+<script src="static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

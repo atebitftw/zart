@@ -97,7 +97,7 @@ class ZMachine {
       case 8:
         return ZMachineVersions.v8;
       default:
-        throw Exception("Version number not recognized.");
+        throw Exception("Version number not recognized: $ver");
     }
   }
 

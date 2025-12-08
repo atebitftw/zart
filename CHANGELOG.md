@@ -36,3 +36,5 @@
 
 # 1.3.5
 - Fixed an issue with directory names that made pub unhappy.
+
+# 1.3.6
