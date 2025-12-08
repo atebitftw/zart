@@ -51,3 +51,8 @@
 
 # 1.4.1
 - Removed dart:io references for WASM support.
+
+# 1.4.2
+- Fixed some unit tests that were no longer working.
+- Added some game files for testing.
+- Engine bug fix.

@@ -1438,7 +1438,7 @@ class Engine {
   /// address and advances the program counter [programCounter] to the next
   /// unread address.
   ///
-  /// ### Equivalancy:
+  /// ### Equivalency:
   /// ```
   /// final result = this.mem.loadb(PC);
   /// PC++;

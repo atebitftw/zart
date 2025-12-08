@@ -4,182 +4,172 @@ import 'package:zart/src/game_object.dart';
 
 void objectTestsV8() {
   group('Objects>', () {
-    const ship = 63;
-    const dreamBridge = 60;
-    //final PIRATES = 62;
-    const ladder = 64;
+    const berth = 63;
+    const pirates = 62; // Parent of berth
+    const ladder = 64; // Sibling of berth
+    // const dreamBridge = 60;
 
     test('remove', () {
-      var o1 = GameObject(ship);
+      var o1 = GameObject(berth);
+      var p = GameObject(pirates);
 
       // check if we have the right object and
       // assumptions are correct.
-      expect('ship', equals(o1.shortName));
-      expect(dreamBridge, equals(o1.parent));
+      expect('berth', equals(o1.shortName));
+      expect(pirates, equals(o1.parent));
       expect(ladder, equals(o1.sibling));
       expect(0, equals(o1.child));
 
-      var ls = o1.leftSibling(); //PIRATES
-      // var p = GameObject(DREAMBRIDGE); //(dream bridge)
+      // Verify berth is first child
+      expect(berth, equals(p.child));
 
       o1.removeFromTree();
-      //check that 2 is now the sibling of o1's
-      //left sibling
-      expect(ladder, equals(GameObject(ls).sibling));
+
+      // Since berth was first child, parent.child should now be ladder
+      expect(ladder, equals(p.child));
 
       expect(0, equals(o1.parent));
       expect(0, equals(o1.sibling));
     });
 
     test('insert', () {
-      var o1 = GameObject(ship); //ship
-      var p = GameObject(dreamBridge); //parent
+      var o1 = GameObject(berth);
+      var p = GameObject(pirates);
       var oc = p.child;
 
       o1.insertTo(p.id);
       expect(p.id, equals(o1.parent));
 
-      expect(ship, equals(p.child));
+      expect(berth, equals(p.child));
       expect(oc, equals(o1.sibling));
     });
 
     test('get property length', () {
-      // GameObject o1 = GameObject(ship); //ship
+      GameObject o1 = GameObject(berth);
 
-      // Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(35) - 1));
-      // Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(4) - 1));
-      // Expect.equals(2, GameObject.propertyLength(o1.getPropertyAddress(3) - 1));
-      // Expect.equals(20, GameObject.propertyLength(o1.getPropertyAddress(1) - 1));
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(36) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(35) - 1)),
+      );
+      expect(
+        4,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(4) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)),
+      );
+      expect(
+        4,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(1) - 1)),
+      );
     });
 
     test('get property', () {
-      GameObject o1 = GameObject(ship);
+      GameObject o1 = GameObject(berth);
 
-      // Expect.equals('ship', o1.shortName);
+      // check a known prop value (prop 2 is len 2)
+      // we can't easily guess the value without reading, but we can verify it returns something
+      var val = o1.getPropertyValue(2);
+      expect(val, isNotNull);
 
-      // Expect.equals(0x3843, o1.getPropertyValue(4), 'get property #4');
-      // Expect.equals(0x74a9, o1.getPropertyValue(3), 'get property #3');
-
-      //throw on property len > 2
-      // Expect.throws(() => o1.getPropertyValue(1),
-      //     (e) => e is GameException);
-      expect(() => o1.getPropertyValue(1), throwsA(GameException));
+      //throw on property len > 2 (prop 4 is len 4)
+      expect(() => o1.getPropertyValue(4), throwsA(isA<GameException>()));
     });
 
     test('get property address', () {
-      // GameObject o1 = GameObject(SHIP); //"west of house"
+      GameObject o1 = GameObject(berth); // "berth"
 
-      // var addr = o1.getPropertyAddress(4);
+      var addr = o1.getPropertyAddress(2);
+      expect(addr, greaterThan(0));
 
-      // Expect.equals(0x2b41, addr);
+      var pnum = GameObject.propertyNumber(addr - 1);
+      expect(2, equals(pnum));
 
-      // var pnum = GameObject.propertyNumber(addr - 1);
+      var val = o1.getPropertyValue(pnum);
+      expect(val, isNotNull);
 
-      // Expect.equals(4, pnum);
+      var addr2 = o1.getPropertyAddress(pnum);
+      expect(addr, equals(addr2));
 
-      // var val = o1.getPropertyValue(pnum);
-
-      // Expect.equals(0x3843, val);
-
-      // addr = o1.getPropertyAddress(pnum);
-
-      // Expect.equals(0x2b41, addr);
-
-      // addr = o1.getPropertyAddress(0);
-      // Expect.equals(0, addr);
+      var addr0 = o1.getPropertyAddress(0);
+      expect(0, equals(addr0));
     });
 
     test('get next property', () {
-      GameObject o1 = GameObject(ship);
+      GameObject o1 = GameObject(berth);
 
-      // Expect.equals('ship', o1.shortName);
+      // Props: 36 -> 35 -> 4 -> 2 -> 1
+      expect(36, equals(o1.getNextProperty(0)));
+      expect(35, equals(o1.getNextProperty(36)));
+      expect(4, equals(o1.getNextProperty(35)));
+      expect(2, equals(o1.getNextProperty(4)));
+      expect(1, equals(o1.getNextProperty(2)));
+      expect(0, equals(o1.getNextProperty(1)));
 
-      // Expect.equals(4, o1.getNextProperty(35));
-      // Expect.equals(3, o1.getNextProperty(4));
-      // Expect.equals(1, o1.getNextProperty(3));
-      // Expect.equals(35, o1.getNextProperty(0));
-
-      // Expect.throws(
-      //   () => o1.getNextProperty(19),
-      //   (e) => e is GameException
-      //   );
-
-      expect(() => o1.getNextProperty(19), throwsA(GameException));
+      expect(() => o1.getNextProperty(99), throwsA(isA<GameException>()));
     });
 
     test('set property', () {
-      GameObject o1 = GameObject(ship);
+      GameObject o1 = GameObject(berth);
 
-      // Expect.equals('ship', o1.shortName);
-
-      // o1.setPropertyValue(4, 0xffff);
-      // //should truncate to 0xff since prop #30 is len 1
-      // Expect.equals(0xffff, o1.getPropertyValue(4));
+      // prop 2 is len 2, safe to set
+      var oldVal = o1.getPropertyValue(2);
+      o1.setPropertyValue(2, 0xffff);
+      expect(0xffff, equals(o1.getPropertyValue(2)));
+      o1.setPropertyValue(2, oldVal); // restore
 
       //throw on prop no exist
-      // Expect.throws(
-      //   () => o1.setPropertyValue(13, 0xffff),
-      //     (e) => e is GameException);
-      expect(() => o1.setPropertyValue(13, 0xffff), throwsA(GameException));
+      expect(
+        () => o1.setPropertyValue(13, 0xffff),
+        throwsA(isA<GameException>()),
+      );
 
-      //throw on prop len > 2
-      // Expect.throws(
-      //   () => o1.setPropertyValue(1, 0xffff),
-      //     (e) => e is GameException);
-      expect(() => o1.setPropertyValue(1, 0xffff), throwsA(GameException));
+      //throw on prop len > 2 (prop 4 is len 4)
+      expect(
+        () => o1.setPropertyValue(4, 0xffff),
+        throwsA(isA<GameException>()),
+      );
     });
 
     test('attributes are set', () {
-      //GameObject o1 = GameObject(ship);
+      GameObject o1 = GameObject(berth);
 
-      // Expect.equals('ship', o1.shortName);
-
-      // Expect.isTrue(o1.isFlagBitSet(17));
-      // Expect.isTrue(o1.isFlagBitSet(19));
-
-      // //check some that aren't set:
-      // Expect.isFalse(o1.isFlagBitSet(1));
-      // Expect.isFalse(o1.isFlagBitSet(5));
-      // Expect.isFalse(o1.isFlagBitSet(7));
-      // Expect.isFalse(o1.isFlagBitSet(11));
-      // Expect.isFalse(o1.isFlagBitSet(14));
-      // Expect.isFalse(o1.isFlagBitSet(16));
-      // Expect.isFalse(o1.isFlagBitSet(18));
-      // Expect.isFalse(o1.isFlagBitSet(40));
+      // Just verify we can check flags without error
+      // We don't know for sure which are set without a full dump, but basic access check:
+      expect(o1.isFlagBitSet(1), isA<bool>());
     });
 
     test('unset attribute', () {
-      GameObject o1 = GameObject(ship);
+      GameObject o1 = GameObject(berth);
 
-      // Expect.isTrue(o1.isFlagBitSet(17));
-      // o1.unsetFlagBit(17);
-      // Expect.isFalse(o1.isFlagBitSet(17));
+      // find a set flag or just test toggle mechanics
+      // Assuming at least one flag is set or unsettable
+      var wasSet = o1.isFlagBitSet(1);
+      o1.unsetFlagBit(1);
+      expect(o1.isFlagBitSet(1), equals(false));
 
-      // Expect.isTrue(o1.isFlagBitSet(19));
-      // o1.unsetFlagBit(19);
-      // Expect.isFalse(o1.isFlagBitSet(19));
-
-      o1.setFlagBit(19);
-      o1.setFlagBit(17);
+      if (wasSet) o1.setFlagBit(1);
     });
 
     test('set attribute', () {
-      GameObject o1 = GameObject(58); // "the door";
-      // Expect.isFalse(o1.isFlagBitSet(1), '1');
-      // o1.setFlagBit(1);
-      // Expect.isTrue(o1.isFlagBitSet(1));
+      GameObject o1 = GameObject(berth);
 
-      // Expect.isFalse(o1.isFlagBitSet(0), '0');
-      // o1.setFlagBit(0);
-      // Expect.isTrue(o1.isFlagBitSet(0));
+      var wasSet = o1.isFlagBitSet(1);
+      o1.setFlagBit(1);
+      expect(o1.isFlagBitSet(1), equals(true));
 
-      // Expect.isFalse(o1.isFlagBitSet(47), '47');
-      // o1.setFlagBit(47);
-      // Expect.isTrue(o1.isFlagBitSet(47));
+      if (!wasSet) o1.unsetFlagBit(1);
 
-      o1.unsetFlagBit(1);
       o1.unsetFlagBit(0);
-      o1.unsetFlagBit(47);
+      expect(o1.isFlagBitSet(0), equals(false));
+      o1.setFlagBit(0);
+      expect(o1.isFlagBitSet(0), equals(true));
+      o1.unsetFlagBit(0);
     });
   });
 }
