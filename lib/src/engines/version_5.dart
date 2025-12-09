@@ -534,6 +534,9 @@ class Version5 extends Version4 {
 
     final operands = visitOperandsVar(2, false);
 
+    // Flush any pending text before repositioning cursor
+    Z.printBuffer();
+
     Z.inInterrupt = true;
 
     await Z.sendIO({"command": IoCommands.setCursor, "column": operands[0].value, "line": operands[1].value});
