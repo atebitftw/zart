@@ -363,21 +363,21 @@ flags: $s
 
   void _readFlags() {
     if (ZMachine.verToInt(Z.engine.version) <= 3) {
-      // V3: 32-bit flags - use multiplication for byte 0 to avoid JS signed int issue
+      // V3: 32-bit flags - use multiplication for ALL bytes to avoid JS signed int issue
       flags =
-          (Z.engine.mem.loadb(_address!) * 0x1000000) + // Use multiplication for << 24
-          (Z.engine.mem.loadb(_address! + 1) << 16) +
-          (Z.engine.mem.loadb(_address! + 2) << 8) +
+          (Z.engine.mem.loadb(_address!) * 0x1000000) +
+          (Z.engine.mem.loadb(_address! + 1) * 0x10000) +
+          (Z.engine.mem.loadb(_address! + 2) * 0x100) +
           Z.engine.mem.loadb(_address! + 3);
     } else {
       // V5+: 48-bit flags - JavaScript doesn't support 48-bit bitwise ops,
-      // so use multiplication for the upper bytes
+      // so use multiplication for ALL bytes to avoid signed int issues
       flags =
           (Z.engine.mem.loadb(_address!) * 0x10000000000) + // byte 0 * 2^40
           (Z.engine.mem.loadb(_address! + 1) * 0x100000000) + // byte 1 * 2^32
           (Z.engine.mem.loadb(_address! + 2) * 0x1000000) + // byte 2 * 2^24
-          (Z.engine.mem.loadb(_address! + 3) << 16) +
-          (Z.engine.mem.loadb(_address! + 4) << 8) +
+          (Z.engine.mem.loadb(_address! + 3) * 0x10000) + // byte 3 * 2^16
+          (Z.engine.mem.loadb(_address! + 4) * 0x100) + // byte 4 * 2^8
           Z.engine.mem.loadb(_address! + 5);
     }
   }

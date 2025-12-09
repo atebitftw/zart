@@ -1,79 +1,52 @@
-import 'dart:math';
-
-/// Helper class for binary operations
+/// Helper class for binary operations.
+/// Note: JavaScript bitwise operators convert operands to 32-bit signed integers.
+/// For values that may exceed 2^31, we use arithmetic instead of bitwise ops.
 class BinaryHelper {
-  // static String binaryOf(int n) {
-  //   if (n < 0) throw Exception("negative numbers require 2s complement");
-  //   if (n == 0) return "0";
-  //   String res = "";
-  //   while (n > 0) {
-  //     res = (n % 2).toString() + res;
-  //     n = (n ~/ 2);
-  //   }
-  //   return res;
-  // }
-
   /// Returns a binary string of bits representing [n].
   static String binaryOf(int n) => n.toRadixString(2);
 
   /// Returns true if bit is set in [n] at [bitPosition].
-  /// Works for bits >= 32 in JavaScript by using division instead of shifts.
+  /// Works for large values in JavaScript by using arithmetic.
   static bool isSet(int n, int bitPosition) {
-    if (bitPosition < 32) {
-      return (n >> bitPosition) & 1 == 1;
-    } else {
-      // For bits >= 32, use division to avoid JS 32-bit limit
-      final divisor = _pow2(bitPosition);
-      return (n ~/ divisor) & 1 == 1;
-    }
+    // Use division to extract the bit - works for all sizes in JS
+    final divisor = _pow2(bitPosition);
+    return ((n ~/ divisor) % 2) == 1;
   }
 
   /// Returns the bottom [bits] bits from [n].
-  static int bottomBits(int n, int bits) => n & ((pow(2, bits)) - 1 as int);
+  static int bottomBits(int n, int bits) {
+    // Use modulo instead of & to avoid JS 32-bit conversion
+    return n % _pow2(bits);
+  }
 
   /// Returns an int with the given [numBits] set at the bottom.
   static int setBottomBits(int? numBits) {
     if (numBits == 0) return 0;
-
-    var i = 1;
-
-    for (int x = 1; x < numBits!; x++) {
-      i = (i << 1) | 1;
-    }
-
-    return i;
+    return _pow2(numBits!) - 1;
   }
 
   /// Sets a bit in [n] at bit position [bit].
-  /// Works for bits >= 32 in JavaScript by using multiplication instead of shifts.
+  /// Works for large values in JavaScript by using arithmetic.
   static int set(int n, int bit) {
-    if (bit < 32) {
-      n |= (1 << bit);
-    } else {
-      // For bits >= 32, use multiplication to avoid JS 32-bit limit
+    if (!isSet(n, bit)) {
       n += _pow2(bit);
     }
     return n;
   }
 
   /// Unsets a bit in [n] at bit position [bit].
-  /// Works for bits >= 32 in JavaScript by using arithmetic instead of shifts.
+  /// Works for large values in JavaScript by using arithmetic.
   static int unset(int n, int bit) {
-    if (bit < 32) {
-      n &= ~(1 << bit);
-    } else {
-      // For bits >= 32, check if bit is set then subtract
-      if (isSet(n, bit)) {
-        n -= _pow2(bit);
-      }
+    if (isSet(n, bit)) {
+      n -= _pow2(bit);
     }
     return n;
   }
 
-  /// Helper: returns 2^exp as int. Works for exp >= 32 in JavaScript.
+  /// Helper: returns 2^exp as int. Works for all exp values in JavaScript.
   static int _pow2(int exp) {
-    // Use multiplication to avoid << overflow in JavaScript
-    if (exp < 32) {
+    // Use multiplication chain to avoid << overflow in JavaScript
+    if (exp <= 30) {
       return 1 << exp;
     }
     int result = 1 << 30; // 2^30

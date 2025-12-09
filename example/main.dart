@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:zart/src/logging.dart' show log;
 import 'package:zart/zart.dart';
 
-/// A basic Console player for Z-Machine
-void main(List<String> args) {
+/// A basic Console player for Z-Machine using the pump API
+void main(List<String> args) async {
   if (args.isEmpty) {
     stdout.writeln('Usage: zart <game>');
     exit(1);
@@ -51,7 +51,29 @@ void main(List<String> args) {
   //Debugger.setBreaks([0x2bfd]);
 
   try {
-    Z.run();
+    // Pump API: run until input needed, then get input and continue
+    var state = await Z.runUntilInput();
+
+    while (state != ZMachineRunState.quit) {
+      switch (state) {
+        case ZMachineRunState.needsLineInput:
+          final line = stdin.readLineSync() ?? '';
+          state = await Z.submitLineInput(line);
+          break;
+        case ZMachineRunState.needsCharInput:
+          final line = stdin.readLineSync() ?? '';
+          final char = line.isEmpty ? '\n' : line[0];
+          state = await Z.submitCharInput(char);
+          break;
+        case ZMachineRunState.quit:
+        case ZMachineRunState.error:
+        case ZMachineRunState.running:
+          break;
+      }
+    }
+
+    stdout.writeln('Zart: Game Over!');
+    exit(0);
   } on GameException catch (e) {
     log.severe('A game error occurred: $e');
     exit(1);
@@ -62,8 +84,8 @@ void main(List<String> args) {
 }
 
 /// A basic console provider with word-wrap support.
+/// With pump API, this provider only handles output commands (no read commands).
 class ConsoleProvider extends IoProvider {
-  final lineBuffer = Queue<String>();
   final outputBuffer = Queue<String>();
   final int cols = 80;
 
@@ -72,7 +94,6 @@ class ConsoleProvider extends IoProvider {
     final cmd = command['command'];
 
     switch (cmd) {
-      //print('msg received>>> $cmd');    switch(cmd){
       case IoCommands.print:
         output(command['window'], command['buffer']);
         return null;
@@ -82,18 +103,8 @@ class ConsoleProvider extends IoProvider {
           "${command['room_name'].toUpperCase()} Score: ${command['score_one']} / ${command['score_two']}\n",
         );
         return null;
-      case IoCommands.read:
-        final line = await getLine();
-        return line;
-      case IoCommands.readChar:
-        final char = await getChar();
-        return char;
       case IoCommands.save:
-        final result = await saveGame(
-          command['file_data']
-              .getRange(1, command['file_data'].length - 1)
-              .toList(),
-        );
+        final result = await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
         return result;
       case IoCommands.clearScreen:
         //no clear console api, so
@@ -109,11 +120,10 @@ class ConsoleProvider extends IoProvider {
         debugOutput(command['message']);
         return null;
       case IoCommands.quit:
-        stdout.writeln('Zart: Game Over!');
-        exit(0);
+        // Handled by pump loop
+        return null;
       default:
-        log.warning("IO Command not recognized: $cmd");
-        //print('Zart: ${cmd}');
+        // Ignore unhandled commands (setTextStyle, setColour, etc.)
         return null;
     }
   }
@@ -204,41 +214,4 @@ class ConsoleProvider extends IoProvider {
   }
 
   void debugOutput(String? text) => stdout.writeln(text);
-
-  Future<String> getChar() async {
-    if (lineBuffer.isNotEmpty) {
-      return lineBuffer.removeLast();
-    } else {
-      //TODO flush here?
-      final line = stdin.readLineSync();
-
-      if (line == null) {
-        return '';
-      } else {
-        if (line == '') {
-          return '\n';
-        } else {
-          return line[0];
-        }
-      }
-    }
-  }
-
-  Future<String> getLine() async {
-    if (lineBuffer.isNotEmpty) {
-      return lineBuffer.removeLast();
-    } else {
-      final line = stdin.readLineSync();
-
-      if (line == null) {
-        return '';
-      } else {
-        if (line == '') {
-          return '\n';
-        } else {
-          return line;
-        }
-      }
-    }
-  }
 }
