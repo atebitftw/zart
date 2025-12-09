@@ -32,24 +32,30 @@ There are Interactive Fiction communities online that can get you started.  Mini
 
 Here are some links to some popular games:
 
-**I make NO warranty as to the safety or usability of these links/files.  Proceed with caution.**
-
-* Zork Series: You can find these online.  Unfortunately, I can't put the link here because it's http instead of https.  Contact me if you need help.
-* Hitchiker's Guide To The Galaxy: https://www.myabandonware.com/game/the-hitchhikers-guide-to-the-galaxy-42
-* Infidel: https://www.myabandonware.com/game/infidel-2d
+* IFDB: https://www.ifdb.org/  This is a good resource to download and play IF games.
 
 ## How Do I Play Games With This Library
-You would have to write your own client which would manage the i/o between the player and the interpreter.
-
-You can also run the CLI utility to play games from the command line:
+### CLI
+You can install and run the CLI utility to play games from the command line:
 
 ```bash
 dart pub global activate zart
 zart path/to/minizork.z3
 ```
 
+I would only recommend playing version 3 games with this CLI tool because some of the newer games use special screen features that are not well-supported in a CLI environment.  The good news is that all of the classic games are usually version 3.
+
+### Zart Web Player
+You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: https://atebitftw.github.io/site/. The player uses the Zart library to play games.
+
+### Roll Your Own
+Use the Zart library to build your own player.  You would have to write your own client which would manage the i/o between the player and the interpreter.  The Zart library provides all the necessary functionality.
+
+
 ## How To Contribute
-Clone.  Code.  Submit pull request.  I'm open to any reasonable submissions.
+Fork. Code. Submit pull request. I'm open to any reasonable submissions.
+
+The interpreter currently only loads the game file from any .blorb/.zblorb file (these are like bundled game files for IF games).  It does not load any of the other resources from the .blorb file, like images, etc, and it ignores any audio/image commands from the game.  So this could be one area to expand on.
     
 ## Reference Material
 * Z-Machine spec used to develop this library: https://www.inform-fiction.org/zmachine/standards/

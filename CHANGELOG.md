@@ -73,3 +73,6 @@
 
 # 1.6.1
 - Fixed a ZSCII issue with some text not being displayed correctly.
+
+# 1.6.2
+- README updates.
