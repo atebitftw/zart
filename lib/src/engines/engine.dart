@@ -334,7 +334,7 @@ class Engine {
   }
 
   /// Reads input from the user and stores it in a buffer.
-  void read() {
+  void read() async {
     log.finest("read()");
     //Debugger.verbose('${pcHex(-1)} [read]');
 
@@ -342,7 +342,7 @@ class Engine {
 
     Z.inInterrupt = true;
 
-    Z.printBuffer();
+    await Z.printBuffer();
 
     final operands = visitOperandsVar(4, true);
 
@@ -400,20 +400,19 @@ class Engine {
     }
 
     log.finest("sending read command");
-    Z.sendIO({"command": IoCommands.read}).then((l) {
-      Z.inInterrupt = false;
-      if (l == '/!') {
-        Z.inBreak = true;
-        Debugger.debugStartAddr = programCounter - 1;
-        log.finest("read() callAsync(Debugger.startBreak)");
-        Z.callAsync(Debugger.startBreak);
-      } else {
-        log.finest("read() callAsync(Z.runIt)");
-        processLine(l);
-        log.fine("pc: $programCounter");
-        Z.callAsync(Z.runIt);
-      }
-    });
+    final l = await Z.sendIO({"command": IoCommands.read});
+    Z.inInterrupt = false;
+    if (l == '/!') {
+      Z.inBreak = true;
+      Debugger.debugStartAddr = programCounter - 1;
+      log.finest("read() callAsync(Debugger.startBreak)");
+      Z.callAsync(Debugger.startBreak);
+    } else {
+      log.finest("read() callAsync(Z.runIt)");
+      processLine(l);
+      log.fine("pc: $programCounter");
+      Z.callAsync(Z.runIt);
+    }
   }
 
   /// Generates a random number.

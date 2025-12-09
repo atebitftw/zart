@@ -395,7 +395,7 @@ class Version5 extends Version4 {
   void read() async {
     Z.inInterrupt = true;
 
-    Z.printBuffer();
+    await Z.printBuffer();
 
     final operands = visitOperandsVar(4, true);
 
@@ -535,7 +535,7 @@ class Version5 extends Version4 {
     final operands = visitOperandsVar(2, false);
 
     // Flush any pending text before repositioning cursor
-    Z.printBuffer();
+    await Z.printBuffer();
 
     Z.inInterrupt = true;
 
@@ -551,7 +551,7 @@ class Version5 extends Version4 {
     //Debugger.verbose('${pcHex(-1)} [set_window]');
     var operands = visitOperandsVar(1, false);
 
-    Z.printBuffer();
+    await Z.printBuffer();
 
     currentWindow = operands[0].value!;
 
@@ -789,7 +789,7 @@ class Version5 extends Version4 {
     //Debugger.verbose('${pcHex(-1)} [read_char]');
     Z.inInterrupt = true;
 
-    Z.printBuffer();
+    await Z.printBuffer();
 
     var operands = visitOperandsVar(4, true);
 

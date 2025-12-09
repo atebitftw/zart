@@ -219,13 +219,13 @@ class ZMachine {
   }
 
   /// Prints the buffer.
-  void printBuffer() {
+  /// Returns a Future that completes when the print command is sent.
+  Future<void> printBuffer() async {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
     if (!engine.outputStream3) {
-      sendIO({"command": IoCommands.print, "window": engine.currentWindow, "buffer": sbuff.toString()}).then((_) {
-        sbuff.clear();
-      });
+      await sendIO({"command": IoCommands.print, "window": engine.currentWindow, "buffer": sbuff.toString()});
+      sbuff.clear();
     }
   }
 
