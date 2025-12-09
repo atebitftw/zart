@@ -110,7 +110,11 @@ class ConsoleProvider implements IoProvider {
         );
         return null;
       case IoCommands.save:
-        final result = await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
+        final result = await saveGame(
+          command['file_data']
+              .getRange(1, command['file_data'].length - 1)
+              .toList(),
+        );
         return result;
       case IoCommands.clearScreen:
         //no clear console api, so

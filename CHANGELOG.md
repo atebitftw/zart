@@ -64,6 +64,9 @@
 # 1.5.1
 - Disabled debug output by default.
 
-# 1.5.2
+# 1.6.0
 - Improved state management on subsequent plays.
 - Fixed async bug in z5+ opcode calls.
+- Reconfigured z-machine to use a pump API for better compatiblity with Flutter.
+- Improved all math operations to be compatible with Flutter web (javascript) targets.
+- Added more unit tests.
