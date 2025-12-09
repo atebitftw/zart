@@ -48,8 +48,19 @@ class Version5 extends Version4 {
     ops[143] = call_1n;
     ops[175] = call_1n;
     ops[190] = visitExtendedInstruction;
+    // call_2s: 2OP instruction #25 - all operand type encodings
+    // (small/small=25, small/var=57, var/small=89, var/var=121, VAR=217)
+    ops[25] = call_2s;
+    ops[57] = call_2s;
+    ops[89] = call_2s;
     ops[121] = call_2s;
     ops[217] = call_2s;
+    // call_2n: 2OP instruction #26 - all operand type encodings
+    // (small/small=26, small/var=58, var/small=90, var/var=122, VAR=218)
+    ops[26] = call_2n;
+    ops[58] = call_2n;
+    ops[90] = call_2n;
+    ops[122] = call_2n;
     ops[218] = call_2n;
     ops[234] = splitWindow;
     ops[235] = setWindow;
@@ -63,8 +74,15 @@ class Version5 extends Version4 {
     ops[249] = callVN;
     ops[250] = callVN2;
     ops[251] = tokenise;
+    // set_colour (2OP:27) - all 4 byte forms
+    ops[27] = setColour;
+    ops[59] = setColour;
+    ops[91] = setColour;
+    ops[123] = setColour;
     ops[253] = copyTable;
     ops[255] = checkArgCount;
+    // not-VAR (opcode 248) - VAR form of bitwise not
+    ops[248] = notVar;
     // the extended instruction visitExtendedInstruction() adds 300 to the value, so it's offset from the other op codes safely.
     ops[304] = extSetFont; //ext4
     ops[309] = extSaveUndo; //ext5
@@ -73,6 +91,11 @@ class Version5 extends Version4 {
   // Kb
   @override
   int get maxFileLength => 256;
+
+  /// V4+ games have 63 property defaults (126 bytes) instead of 31 (62 bytes).
+  /// This is critical for correct object address calculations.
+  @override
+  int get propertyDefaultsTableSize => 63;
 
   @override
   int unpack(int packedAddr) => packedAddr << 2;
@@ -300,6 +323,36 @@ class Version5 extends Version4 {
     Z.callAsync(Z.runIt);
   }
 
+  /// Sets the foreground and background colors.
+  /// Opcode 2OP:27 (set_colour).
+  /// For console mode, this is a stub that just reads operands.
+  void setColour() {
+    //Debugger.verbose('${pcHex(-1)} [set_colour]');
+
+    // Read operands based on opcode byte form (consumes bytes from program stream)
+    // ignore: unused_local_variable
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
+
+    // foreground = operands[0].value
+    // background = operands[1].value
+    // Color values: 0=current, 1=default, 2-9=colors, 10+=custom (v6)
+    // Console mode doesn't support colors, so we just consume the operands
+  }
+
+  /// Performs a bitwise NOT operation (VAR form - opcode 248).
+  /// This is the v5+ VAR version of the 1OP not instruction.
+  void notVar() {
+    //Debugger.verbose('${pcHex(-1)} [not-VAR]');
+
+    final operands = visitOperandsVar(1, false);
+
+    final resultTo = readb();
+
+    writeVariable(resultTo, ~operands[0].value! & 0xFFFF);
+  }
+
   /// Saves the undo stack.
   void extSaveUndo() {
     //Debugger.verbose('${pcHex(-1)} [ext_save_undo]');
@@ -520,7 +573,10 @@ class Version5 extends Version4 {
     // var locals = callStack[2];
     var argCount = callStack[3 + callStack[2]];
 
-    branch(argCount == operands[0].value);
+    // Per Z-Machine Standard 1.1 section 15: check_arg_count "branches if the
+    // given argument-number (counting from 1) has been provided". This means
+    // we check if at least N arguments were provided, not exactly N.
+    branch(argCount >= operands[0].value!);
   }
 
   /// Sets the font.

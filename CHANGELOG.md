@@ -56,3 +56,10 @@
 - Fixed some unit tests that were no longer working.
 - Added some game files for testing.
 - Engine bug fix.
+
+# 1.5.0
+- Fixed some bugs that prevented play of some z5 - z8 games.
+- Added more unit tests.
+
+# 1.5.1
+- Disabled debug output by default.

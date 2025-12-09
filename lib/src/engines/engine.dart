@@ -1263,7 +1263,8 @@ class Engine {
 
     final resultTo = readb();
 
-    final addr = operands[0].value! + MathHelper.toSigned(operands[1].value!);
+    // Z-Machine spec: address must be 0-65535, use unsigned arithmetic
+    final addr = (operands[0].value! + operands[1].value!) & 0xFFFF;
 
     //Debugger.todo();
     writeVariable(resultTo, mem.loadb(addr));
@@ -1281,8 +1282,8 @@ class Engine {
 
     final resultTo = readb();
 
-    final addr =
-        operands[0].value! + 2 * MathHelper.toSigned(operands[1].value!);
+    // Z-Machine spec: address must be 0-65535, use unsigned arithmetic
+    final addr = (operands[0].value! + 2 * operands[1].value!) & 0xFFFF;
 
     //    assert(addr <= mem.highMemAddress);
 
@@ -1298,7 +1299,8 @@ class Engine {
 
     assert(operands.length == 3);
 
-    final addr = operands[0].value! + MathHelper.toSigned(operands[1].value!);
+    // Z-Machine spec: address must be 0-65535, use unsigned arithmetic
+    final addr = (operands[0].value! + operands[1].value!) & 0xFFFF;
     //
     //    assert(operands[2].value <= 0xff);
 
@@ -1314,8 +1316,8 @@ class Engine {
     final operands = visitOperandsVar(3, false);
 
     //(ref http://www.gnelson.demon.co.uk/zspec/sect15.html#storew)
-    final addr =
-        operands[0].value! + 2 * MathHelper.toSigned(operands[1].value!);
+    // Z-Machine spec: address must be 0-65535, use unsigned arithmetic
+    final addr = (operands[0].value! + 2 * operands[1].value!) & 0xFFFF;
 
     assert(addr <= mem.highMemAddress);
 
@@ -1573,8 +1575,8 @@ class Engine {
 
       /* 2OP, small, variable */
       33: je,
-      34: jg,
-      35: jl,
+      34: jl,
+      35: jg,
       36: decChk,
       37: incChk,
       38: jin,
