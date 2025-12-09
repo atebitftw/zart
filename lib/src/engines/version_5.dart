@@ -536,7 +536,7 @@ class Version5 extends Version4 {
 
     Z.inInterrupt = true;
 
-    await Z.sendIO({"command": IoCommands.setCursor, "x": operands[0].value, "y": operands[1].value});
+    await Z.sendIO({"command": IoCommands.setCursor, "column": operands[0].value, "line": operands[1].value});
 
     Z.inInterrupt = false;
 
@@ -544,13 +544,20 @@ class Version5 extends Version4 {
   }
 
   /// Sets the window.
-  void setWindow() {
+  void setWindow() async {
     //Debugger.verbose('${pcHex(-1)} [set_window]');
     var operands = visitOperandsVar(1, false);
 
     Z.printBuffer();
 
     currentWindow = operands[0].value!;
+
+    Z.inInterrupt = true;
+
+    await Z.sendIO({"command": IoCommands.setWindow, "window": currentWindow});
+
+    Z.inInterrupt = false;
+    Z.callAsync(Z.runIt);
   }
 
   /// Calls a routine.
