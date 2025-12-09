@@ -340,8 +340,6 @@ class Engine {
 
     sendStatus();
 
-    Z.inInterrupt = true;
-
     await Z.printBuffer();
 
     final operands = visitOperandsVar(4, true);
@@ -401,17 +399,16 @@ class Engine {
 
     log.finest("sending read command");
     final l = await Z.sendIO({"command": IoCommands.read});
-    Z.inInterrupt = false;
     if (l == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = programCounter - 1;
       log.finest("read() callAsync(Debugger.startBreak)");
+      // Debug break still uses async callback since it runs a different loop
       Z.callAsync(Debugger.startBreak);
     } else {
-      log.finest("read() callAsync(Z.runIt)");
+      log.finest("read() processing input");
       processLine(l);
       log.fine("pc: $programCounter");
-      Z.callAsync(Z.runIt);
     }
   }
 

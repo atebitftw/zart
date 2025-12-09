@@ -313,12 +313,7 @@ class Version5 extends Version4 {
 
     var operands = visitOperandsVar(1, false);
 
-    Z.inInterrupt = true;
-
     await Z.sendIO({"command": IoCommands.setTextStyle, "style": operands[0].value});
-
-    Z.inInterrupt = false;
-    Z.callAsync(Z.runIt);
   }
 
   /// Sets the foreground and background colors.
@@ -329,13 +324,8 @@ class Version5 extends Version4 {
     // Read operands based on opcode byte form (consumes bytes from program stream)
     final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
-    Z.inInterrupt = true;
-
     // Color values: 0=current, 1=default, 2-9=colors, 10+=custom (v6)
     await Z.sendIO({"command": IoCommands.setColour, "foreground": operands[0].value, "background": operands[1].value});
-
-    Z.inInterrupt = false;
-    Z.callAsync(Z.runIt);
   }
 
   /// Performs a bitwise NOT operation (VAR form - opcode 248).
@@ -393,8 +383,6 @@ class Version5 extends Version4 {
 
   @override
   void read() async {
-    Z.inInterrupt = true;
-
     await Z.printBuffer();
 
     final operands = visitOperandsVar(4, true);
@@ -483,14 +471,13 @@ class Version5 extends Version4 {
 
     final result = await Z.sendIO({"command": IoCommands.read});
 
-    Z.inInterrupt = false;
     if (result == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = programCounter - 1;
+      // Debug break still uses async callback since it runs a different loop
       Z.callAsync(Debugger.startBreak);
     } else {
       processLine(result);
-      Z.callAsync(Z.runIt);
     }
   }
 
@@ -512,20 +499,16 @@ class Version5 extends Version4 {
   /// Sets the font.
   void extSetFont() async {
     //Debugger.verbose('${pcHex(-1)} [ext_set_font]');
-    Z.inInterrupt = true;
 
     var operands = visitOperandsVar(1, false);
 
     final result = await Z.sendIO({"command": IoCommands.setFont, "font_id": operands[0].value});
-    Z.inInterrupt = false;
 
     if (result != null) {
       writeVariable(readb(), int.tryParse(result) ?? 0);
     } else {
       writeVariable(readb(), 0);
     }
-
-    Z.callAsync(Z.runIt);
   }
 
   /// Sets the cursor.
@@ -537,13 +520,7 @@ class Version5 extends Version4 {
     // Flush any pending text before repositioning cursor
     await Z.printBuffer();
 
-    Z.inInterrupt = true;
-
     await Z.sendIO({"command": IoCommands.setCursor, "column": operands[0].value, "line": operands[1].value});
-
-    Z.inInterrupt = false;
-
-    Z.callAsync(Z.runIt);
   }
 
   /// Sets the window.
@@ -555,12 +532,7 @@ class Version5 extends Version4 {
 
     currentWindow = operands[0].value!;
 
-    Z.inInterrupt = true;
-
     await Z.sendIO({"command": IoCommands.setWindow, "window": currentWindow});
-
-    Z.inInterrupt = false;
-    Z.callAsync(Z.runIt);
   }
 
   /// Calls a routine.
@@ -765,10 +737,7 @@ class Version5 extends Version4 {
 
     var operands = visitOperandsVar(1, false);
 
-    Z.inInterrupt = true;
     await Z.sendIO({"command": IoCommands.clearScreen, "window_id": operands[0].value});
-    Z.inInterrupt = false;
-    Z.callAsync(Z.runIt);
   }
 
   /// Splits a window.
@@ -777,17 +746,12 @@ class Version5 extends Version4 {
 
     var operands = visitOperandsVar(1, false);
 
-    Z.inInterrupt = true;
-
     await Z.sendIO({"command": IoCommands.splitWindow, "lines": operands[0].value});
-    Z.inInterrupt = false;
-    Z.callAsync(Z.runIt);
   }
 
   /// Reads a character.
   void readChar() async {
     //Debugger.verbose('${pcHex(-1)} [read_char]');
-    Z.inInterrupt = true;
 
     await Z.printBuffer();
 
@@ -801,8 +765,6 @@ class Version5 extends Version4 {
 
     final char = await Z.sendIO({"command": IoCommands.readChar});
     writeVariable(resultTo, ZSCII.charToZChar(char));
-    Z.inInterrupt = false;
-    Z.callAsync(Z.runIt);
   }
 
   // Version 5+ supports call routines that throw
