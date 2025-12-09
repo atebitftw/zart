@@ -11,13 +11,13 @@ import 'package:zart/zart.dart';
 /// A runtime debugger for Z-Machine.
 class Debugger {
   /// Set a flag whether to enable verbose output.
-  static bool enableVerbose = true;
+  static bool enableVerbose = false;
 
   /// Set a flag whether to enable trace output.
-  static bool enableTrace = true;
+  static bool enableTrace = false;
 
   /// Set a flag whether to enable debug output.
-  static bool enableDebug = true;
+  static bool enableDebug = false;
 
   /// Set a flag whether to enable stack trace output.
   static bool enableStackTrace = false;
