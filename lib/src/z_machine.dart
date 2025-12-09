@@ -290,8 +290,6 @@ class ZMachine {
     // Run instructions until we need input or quit
     while (!quit && _runState == ZMachineRunState.running) {
       await engine.visitInstruction();
-      // Yield to event loop
-      await Future.delayed(Duration.zero);
     }
 
     if (quit) {
@@ -317,7 +315,6 @@ class ZMachine {
     // Continue running until next input or quit
     while (!quit && _runState == ZMachineRunState.running) {
       await engine.visitInstruction();
-      await Future.delayed(Duration.zero);
     }
 
     if (quit) {
@@ -343,7 +340,6 @@ class ZMachine {
     // Continue running until next input or quit
     while (!quit && _runState == ZMachineRunState.running) {
       await engine.visitInstruction();
-      await Future.delayed(Duration.zero);
     }
 
     if (quit) {
