@@ -48,7 +48,13 @@ class ZMachine {
   static ZMachine? _context;
 
   //contains machine version which are supported by z-machine.
-  final List<Engine> _supportedEngines = [Version3(), Version4(), Version5(), Version7(), Version8()];
+  final List<Engine> _supportedEngines = [
+    Version3(),
+    Version4(),
+    Version5(),
+    Version7(),
+    Version8(),
+  ];
 
   /// Represents the underlying interpreter engine used to run the
   /// game (different versions require different engines).
@@ -131,7 +137,9 @@ class ZMachine {
 
     ver = ZMachine.intToVer(rawBytes[Header.version]);
 
-    var result = _supportedEngines.where(((Engine m) => m.version == ver)).toList();
+    var result = _supportedEngines
+        .where(((Engine m) => m.version == ver))
+        .toList();
 
     if (result.length != 1) {
       throw Exception('Z-Machine version $ver not supported.');
@@ -194,7 +202,10 @@ class ZMachine {
     }
 
     if (inBreak) {
-      await Z.sendIO({"command": IoCommands.printDebug, "message": "<<< DEBUG MODE >>>"});
+      await Z.sendIO({
+        "command": IoCommands.printDebug,
+        "message": "<<< DEBUG MODE >>>",
+      });
       callAsync(Debugger.startBreak);
     }
   }
@@ -209,7 +220,11 @@ class ZMachine {
     //if output stream 3 is active then we don't print,
     //Just preserve the buffer until the stream is de-selected.
     if (!engine.outputStream3) {
-      sendIO({"command": IoCommands.print, "window": engine.currentWindow, "buffer": sbuff.toString()}).then((_) {
+      sendIO({
+        "command": IoCommands.print,
+        "window": engine.currentWindow,
+        "buffer": sbuff.toString(),
+      }).then((_) {
         sbuff.clear();
       });
     }
