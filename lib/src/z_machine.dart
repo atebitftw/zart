@@ -30,6 +30,17 @@ class ZMachine {
   /// Whether the Z-Machine is in quit mode.
   bool quit = false;
 
+  // ===== Pump Mode (for Flutter) =====
+
+  /// Whether pump mode is active (Flutter controls execution instead of internal loop).
+  bool _pumpMode = false;
+
+  /// Completer for pending input in pump mode.
+  Completer<String>? _inputCompleter;
+
+  /// The current run state when in pump mode.
+  ZMachineRunState _runState = ZMachineRunState.running;
+
   /// The version of the Z-Machine.
   ZMachineVersions? ver;
 
@@ -254,11 +265,129 @@ class ZMachine {
     isLoaded = false;
   }
 
+  // ===== Pump API (for Flutter) =====
+
+  /// Runs instructions until input is needed or game ends.
+  /// This is the Flutter-friendly API where the caller controls execution.
+  /// All print output is sent via [io.command()] as usual.
+  Future<ZMachineRunState> runUntilInput() async {
+    _assertLoaded();
+    _pumpMode = true;
+    _runState = ZMachineRunState.running;
+    quit = false;
+
+    // Initialize main routine if this is a fresh start
+    if (engine.callStack.length == 0) {
+      engine.programCounter--;
+      engine.visitRoutine([]);
+      engine.callStack.push(0); // dummy result store
+      engine.callStack.push(0); // dummy return address
+    }
+
+    // Run instructions until we need input or quit
+    while (!quit && _runState == ZMachineRunState.running) {
+      await engine.visitInstruction();
+      // Yield to event loop
+      await Future.delayed(Duration.zero);
+    }
+
+    if (quit) {
+      _runState = ZMachineRunState.quit;
+    }
+
+    return _runState;
+  }
+
+  /// Submits line input (for read opcode) and continues execution.
+  /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsLineInput].
+  Future<ZMachineRunState> submitLineInput(String input) async {
+    if (_inputCompleter == null || _runState != ZMachineRunState.needsLineInput) {
+      throw Exception('Not waiting for line input');
+    }
+
+    _inputCompleter!.complete(input);
+    _inputCompleter = null;
+    _runState = ZMachineRunState.running;
+
+    // Continue running until next input or quit
+    while (!quit && _runState == ZMachineRunState.running) {
+      await engine.visitInstruction();
+      await Future.delayed(Duration.zero);
+    }
+
+    if (quit) {
+      _runState = ZMachineRunState.quit;
+    }
+
+    return _runState;
+  }
+
+  /// Submits character input (for read_char opcode) and continues execution.
+  /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsCharInput].
+  Future<ZMachineRunState> submitCharInput(String char) async {
+    if (_inputCompleter == null || _runState != ZMachineRunState.needsCharInput) {
+      throw Exception('Not waiting for character input');
+    }
+
+    _inputCompleter!.complete(char);
+    _inputCompleter = null;
+    _runState = ZMachineRunState.running;
+
+    // Continue running until next input or quit
+    while (!quit && _runState == ZMachineRunState.running) {
+      await engine.visitInstruction();
+      await Future.delayed(Duration.zero);
+    }
+
+    if (quit) {
+      _runState = ZMachineRunState.quit;
+    }
+
+    return _runState;
+  }
+
+  /// Called by engine when read opcode needs input (pump mode only).
+  /// Returns a Future that resolves when input is provided via [submitLineInput].
+  Future<String> requestLineInput() {
+    _runState = ZMachineRunState.needsLineInput;
+    _inputCompleter = Completer<String>();
+    return _inputCompleter!.future;
+  }
+
+  /// Called by engine when read_char opcode needs input (pump mode only).
+  /// Returns a Future that resolves when input is provided via [submitCharInput].
+  Future<String> requestCharInput() {
+    _runState = ZMachineRunState.needsCharInput;
+    _inputCompleter = Completer<String>();
+    return _inputCompleter!.future;
+  }
+
+  /// Whether pump mode is active.
+  bool get isPumpMode => _pumpMode;
+
   void _assertLoaded() {
     if (!isLoaded) {
       throw Exception('Z-Machine state not loaded. Use load() first.');
     }
   }
+}
+
+/// State returned after running instructions in pump mode.
+enum ZMachineRunState {
+  /// Engine is running instructions.
+  running,
+
+  /// Engine needs line input (read opcode was called).
+  needsLineInput,
+
+  /// Engine needs character input (read_char opcode was called).
+  needsCharInput,
+
+  /// Game has ended (quit opcode was called).
+  quit,
+
+  /// An error occurred.
+  error,
 }
 
 /// The Z-Machine versions.

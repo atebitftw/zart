@@ -469,7 +469,14 @@ class Version5 extends Version4 {
       writeVariable(storeTo, 13);
     }
 
-    final result = await Z.sendIO({"command": IoCommands.read});
+    // In pump mode, request input via Z-Machine and pause execution
+    // In traditional mode, send to IoProvider
+    final String result;
+    if (Z.isPumpMode) {
+      result = await Z.requestLineInput();
+    } else {
+      result = await Z.sendIO({"command": IoCommands.read});
+    }
 
     if (result == '/!') {
       Z.inBreak = true;
@@ -763,7 +770,14 @@ class Version5 extends Version4 {
 
     var resultTo = readb();
 
-    final char = await Z.sendIO({"command": IoCommands.readChar});
+    // In pump mode, request input via Z-Machine and pause execution
+    // In traditional mode, send to IoProvider
+    final String char;
+    if (Z.isPumpMode) {
+      char = await Z.requestCharInput();
+    } else {
+      char = await Z.sendIO({"command": IoCommands.readChar});
+    }
     writeVariable(resultTo, ZSCII.charToZChar(char));
   }
 

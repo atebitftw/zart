@@ -1,4 +1,4 @@
-export 'package:zart/src/z_machine.dart' show Z;
+export 'package:zart/src/z_machine.dart' show Z, ZMachineRunState;
 export 'package:zart/src/io/io_provider.dart';
 export 'package:zart/src/io/default_provider.dart';
 export 'package:zart/src/io/blorb.dart';

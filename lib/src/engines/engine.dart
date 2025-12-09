@@ -398,7 +398,16 @@ class Engine {
     }
 
     log.finest("sending read command");
-    final l = await Z.sendIO({"command": IoCommands.read});
+
+    // In pump mode, request input via Z-Machine and pause execution
+    // In traditional mode, send to IoProvider
+    final String l;
+    if (Z.isPumpMode) {
+      l = await Z.requestLineInput();
+    } else {
+      l = await Z.sendIO({"command": IoCommands.read});
+    }
+
     if (l == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = programCounter - 1;
