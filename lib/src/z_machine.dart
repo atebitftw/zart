@@ -35,11 +35,14 @@ class ZMachine {
   /// Whether pump mode is active (Flutter controls execution instead of internal loop).
   bool _pumpMode = false;
 
-  /// Completer for pending input in pump mode.
-  Completer<String>? _inputCompleter;
-
   /// The current run state when in pump mode.
   ZMachineRunState _runState = ZMachineRunState.running;
+
+  /// Callback to process line input when it arrives.
+  void Function(String)? _pendingLineCallback;
+
+  /// Callback to process char input when it arrives.
+  void Function(String)? _pendingCharCallback;
 
   /// The version of the Z-Machine.
   ZMachineVersions? ver;
@@ -301,13 +304,15 @@ class ZMachine {
   /// Submits line input (for read opcode) and continues execution.
   /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsLineInput].
   Future<ZMachineRunState> submitLineInput(String input) async {
-    if (_inputCompleter == null || _runState != ZMachineRunState.needsLineInput) {
+    if (_pendingLineCallback == null || _runState != ZMachineRunState.needsLineInput) {
       throw Exception('Not waiting for line input');
     }
 
-    _inputCompleter!.complete(input);
-    _inputCompleter = null;
+    // Execute the pending callback with user input
+    final callback = _pendingLineCallback!;
+    _pendingLineCallback = null;
     _runState = ZMachineRunState.running;
+    callback(input);
 
     // Continue running until next input or quit
     while (!quit && _runState == ZMachineRunState.running) {
@@ -325,13 +330,15 @@ class ZMachine {
   /// Submits character input (for read_char opcode) and continues execution.
   /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsCharInput].
   Future<ZMachineRunState> submitCharInput(String char) async {
-    if (_inputCompleter == null || _runState != ZMachineRunState.needsCharInput) {
+    if (_pendingCharCallback == null || _runState != ZMachineRunState.needsCharInput) {
       throw Exception('Not waiting for character input');
     }
 
-    _inputCompleter!.complete(char);
-    _inputCompleter = null;
+    // Execute the pending callback with user input
+    final callback = _pendingCharCallback!;
+    _pendingCharCallback = null;
     _runState = ZMachineRunState.running;
+    callback(char);
 
     // Continue running until next input or quit
     while (!quit && _runState == ZMachineRunState.running) {
@@ -347,19 +354,17 @@ class ZMachine {
   }
 
   /// Called by engine when read opcode needs input (pump mode only).
-  /// Returns a Future that resolves when input is provided via [submitLineInput].
-  Future<String> requestLineInput() {
+  /// Stores the callback and signals that input is needed.
+  void requestLineInput(void Function(String) callback) {
     _runState = ZMachineRunState.needsLineInput;
-    _inputCompleter = Completer<String>();
-    return _inputCompleter!.future;
+    _pendingLineCallback = callback;
   }
 
   /// Called by engine when read_char opcode needs input (pump mode only).
-  /// Returns a Future that resolves when input is provided via [submitCharInput].
-  Future<String> requestCharInput() {
+  /// Stores the callback and signals that input is needed.
+  void requestCharInput(void Function(String) callback) {
     _runState = ZMachineRunState.needsCharInput;
-    _inputCompleter = Completer<String>();
-    return _inputCompleter!.future;
+    _pendingCharCallback = callback;
   }
 
   /// Whether pump mode is active.

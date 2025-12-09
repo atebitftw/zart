@@ -469,19 +469,25 @@ class Version5 extends Version4 {
       writeVariable(storeTo, 13);
     }
 
-    // In pump mode, request input via Z-Machine and pause execution
-    // In traditional mode, send to IoProvider
-    final String result;
+    // In pump mode, store callback and return (execution pauses)
+    // In traditional mode, send to IoProvider and wait
     if (Z.isPumpMode) {
-      result = await Z.requestLineInput();
-    } else {
-      result = await Z.sendIO({"command": IoCommands.read});
+      Z.requestLineInput((String result) {
+        if (result == '/!') {
+          Z.inBreak = true;
+          Debugger.debugStartAddr = programCounter - 1;
+        } else {
+          processLine(result);
+        }
+      });
+      return; // Exit - execution will resume when submitLineInput is called
     }
 
+    // Traditional mode
+    final result = await Z.sendIO({"command": IoCommands.read});
     if (result == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = programCounter - 1;
-      // Debug break still uses async callback since it runs a different loop
       Z.callAsync(Debugger.startBreak);
     } else {
       processLine(result);
@@ -770,14 +776,17 @@ class Version5 extends Version4 {
 
     var resultTo = readb();
 
-    // In pump mode, request input via Z-Machine and pause execution
-    // In traditional mode, send to IoProvider
-    final String char;
+    // In pump mode, store callback and return (execution pauses)
+    // In traditional mode, send to IoProvider and wait
     if (Z.isPumpMode) {
-      char = await Z.requestCharInput();
-    } else {
-      char = await Z.sendIO({"command": IoCommands.readChar});
+      Z.requestCharInput((String char) {
+        writeVariable(resultTo, ZSCII.charToZChar(char));
+      });
+      return; // Exit - execution will resume when submitCharInput is called
     }
+
+    // Traditional mode
+    final char = await Z.sendIO({"command": IoCommands.readChar});
     writeVariable(resultTo, ZSCII.charToZChar(char));
   }
 

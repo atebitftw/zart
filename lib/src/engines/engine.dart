@@ -399,20 +399,29 @@ class Engine {
 
     log.finest("sending read command");
 
-    // In pump mode, request input via Z-Machine and pause execution
-    // In traditional mode, send to IoProvider
-    final String l;
+    // In pump mode, store callback and return (execution pauses)
+    // In traditional mode, send to IoProvider and wait
     if (Z.isPumpMode) {
-      l = await Z.requestLineInput();
-    } else {
-      l = await Z.sendIO({"command": IoCommands.read});
+      Z.requestLineInput((String l) {
+        if (l == '/!') {
+          Z.inBreak = true;
+          Debugger.debugStartAddr = programCounter - 1;
+          log.finest("read() debug break");
+        } else {
+          log.finest("read() processing input");
+          processLine(l);
+          log.fine("pc: $programCounter");
+        }
+      });
+      return; // Exit - execution will resume when submitLineInput is called
     }
 
+    // Traditional mode
+    final l = await Z.sendIO({"command": IoCommands.read});
     if (l == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = programCounter - 1;
       log.finest("read() callAsync(Debugger.startBreak)");
-      // Debug break still uses async callback since it runs a different loop
       Z.callAsync(Debugger.startBreak);
     } else {
       log.finest("read() processing input");
