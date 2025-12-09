@@ -8,6 +8,10 @@ import 'package:zart/zart.dart';
 void main(List<String> args) {
   log.level = .WARNING;
 
+  log.onRecord.listen((record) {
+    print(record);
+  });
+
   if (args.isEmpty) {
     stdout.writeln('Usage: zart <game>');
     exit(1);
@@ -52,15 +56,20 @@ void main(List<String> args) {
   Debugger.enableStackTrace = false;
   //Debugger.setBreaks([0x2bfd]);
 
-  try {
-    Z.run();
-  } on GameException catch (e) {
-    log.severe('A game error occurred: $e');
-    exit(1);
-  } catch (err) {
-    log.severe('A system error occurred. $err');
-    exit(1);
-  }
+  runZonedGuarded(
+    () {
+      try {
+        Z.run();
+      } on GameException catch (e) {
+        log.severe('A game error occurred: $e');
+        exit(1);
+      }
+    },
+    (e, stack) {
+      log.severe('A system error occurred. $e');
+      exit(1);
+    },
+  );
 }
 
 /// A basic console provider with word-wrap support.
@@ -91,11 +100,7 @@ class ConsoleProvider implements IoProvider {
         final char = await getChar();
         return char;
       case IoCommands.save:
-        final result = await saveGame(
-          command['file_data']
-              .getRange(1, command['file_data'].length - 1)
-              .toList(),
-        );
+        final result = await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
         return result;
       case IoCommands.clearScreen:
         //no clear console api, so
@@ -114,8 +119,7 @@ class ConsoleProvider implements IoProvider {
         stdout.writeln('Zart: Game Over!');
         exit(0);
       default:
-        log.warning("IO Command not recognized: $cmd");
-        //print('Zart: ${cmd}');
+        log.info("IO Command not recognized: $cmd. Ignoring.");
         return null;
     }
   }

@@ -66,3 +66,4 @@
 
 # 1.5.2
 - Improved state management on subsequent plays.
+- Fixed async bug in z5+ opcode calls.

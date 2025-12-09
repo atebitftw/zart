@@ -204,7 +204,7 @@ class ZMachine {
     log.finest("runIt() called.");
     //    while(!inBreak && !inInterrupt && !quit){
     while (!inInterrupt && !quit) {
-      engine.visitInstruction();
+      await engine.visitInstruction();
     }
 
     if (inBreak) {
