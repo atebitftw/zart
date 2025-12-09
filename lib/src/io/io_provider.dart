@@ -35,6 +35,12 @@ IoCommands toIOCommand(String cmd) {
       return IoCommands.async;
     case "IOCommands.SET_CURSOR":
       return IoCommands.setCursor;
+    case "IOCommands.SET_TEXT_STYLE":
+      return IoCommands.setTextStyle;
+    case "IOCommands.SET_COLOUR":
+      return IoCommands.setColour;
+    case "IOCommands.SPLIT_WINDOW":
+      return IoCommands.splitWindow;
     default:
       throw Exception("IOCommand not recognized: $cmd");
   }
@@ -42,6 +48,15 @@ IoCommands toIOCommand(String cmd) {
 
 /// Enumerates IO Commands
 enum IoCommands {
+  /// The split window command.
+  splitWindow,
+
+  /// The set text style command.
+  setTextStyle,
+
+  /// The set colour command.
+  setColour,
+
   /// The print command.
   print,
 
