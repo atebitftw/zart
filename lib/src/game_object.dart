@@ -363,35 +363,39 @@ flags: $s
 
   void _readFlags() {
     if (ZMachine.verToInt(Z.engine.version) <= 3) {
+      // V3: 32-bit flags - use multiplication for byte 0 to avoid JS signed int issue
       flags =
-          (Z.engine.mem.loadb(_address!) << 24) |
-          (Z.engine.mem.loadb(_address! + 1) << 16) |
-          (Z.engine.mem.loadb(_address! + 2) << 8) |
+          (Z.engine.mem.loadb(_address!) * 0x1000000) + // Use multiplication for << 24
+          (Z.engine.mem.loadb(_address! + 1) << 16) +
+          (Z.engine.mem.loadb(_address! + 2) << 8) +
           Z.engine.mem.loadb(_address! + 3);
     } else {
+      // V5+: 48-bit flags - JavaScript doesn't support 48-bit bitwise ops,
+      // so use multiplication for the upper bytes
       flags =
-          (Z.engine.mem.loadb(_address!) << 40) |
-          (Z.engine.mem.loadb(_address! + 1) << 32) |
-          (Z.engine.mem.loadb(_address! + 2) << 24) |
-          (Z.engine.mem.loadb(_address! + 3) << 16) |
-          (Z.engine.mem.loadb(_address! + 4) << 8) |
+          (Z.engine.mem.loadb(_address!) * 0x10000000000) + // byte 0 * 2^40
+          (Z.engine.mem.loadb(_address! + 1) * 0x100000000) + // byte 1 * 2^32
+          (Z.engine.mem.loadb(_address! + 2) * 0x1000000) + // byte 2 * 2^24
+          (Z.engine.mem.loadb(_address! + 3) << 16) +
+          (Z.engine.mem.loadb(_address! + 4) << 8) +
           Z.engine.mem.loadb(_address! + 5);
     }
   }
 
   void _writeFlags() {
     if (ZMachine.verToInt(Z.engine.version) <= 3) {
-      Z.engine.mem.storeb(_address! + 3, BinaryHelper.bottomBits(flags, 8));
-      Z.engine.mem.storeb(_address! + 2, BinaryHelper.bottomBits(flags >> 8, 8));
-      Z.engine.mem.storeb(_address! + 1, BinaryHelper.bottomBits(flags >> 16, 8));
-      Z.engine.mem.storeb(_address!, BinaryHelper.bottomBits(flags >> 24, 8));
+      Z.engine.mem.storeb(_address! + 3, flags & 0xFF);
+      Z.engine.mem.storeb(_address! + 2, (flags >> 8) & 0xFF);
+      Z.engine.mem.storeb(_address! + 1, (flags >> 16) & 0xFF);
+      Z.engine.mem.storeb(_address!, (flags ~/ 0x1000000) & 0xFF); // Use division for >> 24
     } else {
-      Z.engine.mem.storeb(_address! + 5, BinaryHelper.bottomBits(flags, 8));
-      Z.engine.mem.storeb(_address! + 4, BinaryHelper.bottomBits(flags >> 8, 8));
-      Z.engine.mem.storeb(_address! + 3, BinaryHelper.bottomBits(flags >> 16, 8));
-      Z.engine.mem.storeb(_address! + 2, BinaryHelper.bottomBits(flags >> 24, 8));
-      Z.engine.mem.storeb(_address! + 1, BinaryHelper.bottomBits(flags >> 32, 8));
-      Z.engine.mem.storeb(_address!, BinaryHelper.bottomBits(flags >> 40, 8));
+      // V5+: Use division for bits > 32 to support JavaScript
+      Z.engine.mem.storeb(_address! + 5, flags & 0xFF);
+      Z.engine.mem.storeb(_address! + 4, (flags >> 8) & 0xFF);
+      Z.engine.mem.storeb(_address! + 3, (flags >> 16) & 0xFF);
+      Z.engine.mem.storeb(_address! + 2, (flags ~/ 0x1000000) & 0xFF); // bits 24-31
+      Z.engine.mem.storeb(_address! + 1, (flags ~/ 0x100000000) & 0xFF); // bits 32-39
+      Z.engine.mem.storeb(_address!, (flags ~/ 0x10000000000) & 0xFF); // bits 40-47
     }
   }
 

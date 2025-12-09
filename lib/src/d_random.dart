@@ -62,7 +62,7 @@ class DRandom {
   /// Create [DRandom] with a random seed.
   DRandom() {
     _init();
-    int i = math.Random().nextInt((1 << 32) - 1);
+    int i = math.Random().nextInt(0xFFFFFFFF); // 2^32 - 1, works in JS
     int seed = (i * _mBig).floor().toInt();
     _seed(seed);
   }
