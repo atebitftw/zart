@@ -26,7 +26,7 @@ class Blorb {
 
     if (!isBlorb(List.from(fileBytes.getRange(0, 12)))) return fileBytes;
 
-    fileBytes = List.from(fileBytes) as Uint8List;
+    fileBytes = Uint8List.fromList(fileBytes);
 
     //print(fileBytes);
 
@@ -49,15 +49,13 @@ class Blorb {
 
         var start = IFF.read16BitValue(fileBytes);
 
-        fileBytes =
-            List.from(rawBytes.getRange(start, rawBytes.length - start))
-                as Uint8List;
+        fileBytes = Uint8List.fromList(rawBytes.sublist(start));
 
         if (IFF.readChunk(fileBytes) != Chunk.zcod) return null;
 
         var len = IFF.read16BitValue(fileBytes);
 
-        return fileBytes.getRange(0, len) as Uint8List?;
+        return Uint8List.fromList(fileBytes.sublist(0, len));
       }
 
       i++;

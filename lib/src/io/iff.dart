@@ -33,7 +33,8 @@ class IFF {
     return Chunk.toChunk(s.toString());
   }
 
-  /// Reads a 4 byte value from the stream.
+  /// Reads a 4 byte (32-bit) unsigned value from the stream.
+  /// Uses mask to ensure unsigned interpretation in JavaScript.
   static int read4Byte(List stream) {
     var bl = [];
 
@@ -41,7 +42,9 @@ class IFF {
       bl.add(nextByte(stream));
     }
 
-    return (bl[0] << 24) | (bl[1] << 16) | (bl[2] << 8) | bl[3];
+    // Mask with 0xFFFFFFFF to force unsigned interpretation in JS
+    // (JS bitwise ops return signed 32-bit integers)
+    return ((bl[0] << 24) | (bl[1] << 16) | (bl[2] << 8) | bl[3]) & 0xFFFFFFFF;
   }
 
   /// Reads a 3 byte value from the stream.
@@ -87,12 +90,12 @@ class IFF {
     stream.add(value & 0xFF);
   }
 
-  /// Reads a 16 bit value from the stream.
+  /// Reads a 32-bit unsigned value from the stream.
+  /// Note: Despite the name, this reads 4 bytes (32-bit), not 16-bit.
+  /// Uses mask to ensure unsigned interpretation in JavaScript.
   static int read16BitValue(List stream) {
-    return (nextByte(stream)! << 24) |
-        (nextByte(stream)! << 16) |
-        (nextByte(stream)! << 8) |
-        nextByte(stream)!;
+    return ((nextByte(stream)! << 24) | (nextByte(stream)! << 16) | (nextByte(stream)! << 8) | nextByte(stream)!) &
+        0xFFFFFFFF;
   }
 }
 
