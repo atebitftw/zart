@@ -13,8 +13,8 @@ IoCommands toIOCommand(String cmd) {
       return IoCommands.status;
     case "IOCommands.CLEAR_SCREEN":
       return IoCommands.clearScreen;
-    case "IOCommands.SPLIT_SCREEN":
-      return IoCommands.splitScreen;
+    case "IOCommands.SPLIT_WINDOW":
+      return IoCommands.splitWindow;
     case "IOCommands.SET_WINDOW":
       return IoCommands.setWindow;
     case "IOCommands.SET_FONT":
@@ -39,8 +39,6 @@ IoCommands toIOCommand(String cmd) {
       return IoCommands.setTextStyle;
     case "IOCommands.SET_COLOUR":
       return IoCommands.setColour;
-    case "IOCommands.SPLIT_WINDOW":
-      return IoCommands.splitWindow;
     default:
       throw Exception("IOCommand not recognized: $cmd");
   }
@@ -65,9 +63,6 @@ enum IoCommands {
 
   /// The clear screen command.
   clearScreen,
-
-  /// The split screen command.
-  splitScreen,
 
   /// The set window command.
   setWindow,
