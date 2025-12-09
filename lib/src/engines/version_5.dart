@@ -48,8 +48,19 @@ class Version5 extends Version4 {
     ops[143] = call_1n;
     ops[175] = call_1n;
     ops[190] = visitExtendedInstruction;
+    // call_2s: 2OP instruction #25 - all operand type encodings
+    // (small/small=25, small/var=57, var/small=89, var/var=121, VAR=217)
+    ops[25] = call_2s;
+    ops[57] = call_2s;
+    ops[89] = call_2s;
     ops[121] = call_2s;
     ops[217] = call_2s;
+    // call_2n: 2OP instruction #26 - all operand type encodings
+    // (small/small=26, small/var=58, var/small=90, var/var=122, VAR=218)
+    ops[26] = call_2n;
+    ops[58] = call_2n;
+    ops[90] = call_2n;
+    ops[122] = call_2n;
     ops[218] = call_2n;
     ops[234] = splitWindow;
     ops[235] = setWindow;
@@ -73,6 +84,11 @@ class Version5 extends Version4 {
   // Kb
   @override
   int get maxFileLength => 256;
+
+  /// V4+ games have 63 property defaults (126 bytes) instead of 31 (62 bytes).
+  /// This is critical for correct object address calculations.
+  @override
+  int get propertyDefaultsTableSize => 63;
 
   @override
   int unpack(int packedAddr) => packedAddr << 2;
@@ -167,9 +183,7 @@ class Version5 extends Version4 {
     var operands = visitOperandsVar(4, true);
 
     if (operands.length > 2) {
-      throw GameException(
-        "tokenise dictionary argument is not yet support in v5+",
-      );
+      throw GameException("tokenise dictionary argument is not yet support in v5+");
     }
 
     var maxBytes = mem.loadb(operands[0].value!);
@@ -321,9 +335,7 @@ class Version5 extends Version4 {
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
-          Debugger.debug(
-            '>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)',
-          );
+          Debugger.debug('>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)');
           Debugger.debug(Debugger.dumpLocals());
         }
 
@@ -416,9 +428,7 @@ class Version5 extends Version4 {
     if (operands.length > 2) {
       //TODO implement aread optional args
       log.warning('implement aread optional args');
-      throw GameException(
-        "Sorry :( This interpreter doesn't yet support a required feature of this game.",
-      );
+      throw GameException("Sorry :( This interpreter doesn't yet support a required feature of this game.");
     }
 
     int maxBytes = mem.loadb(operands[0].value!);
@@ -452,10 +462,7 @@ class Version5 extends Version4 {
       var tbTotalAddr = textBuffer - 1;
 
       //write the total to the textBuffer (adjust if continuation)
-      mem.storeb(
-        tbTotalAddr,
-        line.length + charCount > 0 ? line.length + charCount : 0,
-      );
+      mem.storeb(tbTotalAddr, line.length + charCount > 0 ? line.length + charCount : 0);
 
       var zChars = ZSCII.toZCharList(line);
 
@@ -520,7 +527,10 @@ class Version5 extends Version4 {
     // var locals = callStack[2];
     var argCount = callStack[3 + callStack[2]];
 
-    branch(argCount == operands[0].value);
+    // Per Z-Machine Standard 1.1 section 15: check_arg_count "branches if the
+    // given argument-number (counting from 1) has been provided". This means
+    // we check if at least N arguments were provided, not exactly N.
+    branch(argCount >= operands[0].value!);
   }
 
   /// Sets the font.
@@ -530,10 +540,7 @@ class Version5 extends Version4 {
 
     var operands = visitOperandsVar(1, false);
 
-    final result = await Z.sendIO({
-      "command": IoCommands.setFont,
-      "font_id": operands[0].value,
-    });
+    final result = await Z.sendIO({"command": IoCommands.setFont, "font_id": operands[0].value});
     Z.inInterrupt = false;
 
     if (result != null) {
@@ -553,11 +560,7 @@ class Version5 extends Version4 {
 
     Z.inInterrupt = true;
 
-    await Z.sendIO({
-      "command": IoCommands.setCursor,
-      "x": operands[0].value,
-      "y": operands[1].value,
-    });
+    await Z.sendIO({"command": IoCommands.setCursor, "x": operands[0].value, "y": operands[1].value});
 
     Z.inInterrupt = false;
 
@@ -709,9 +712,7 @@ class Version5 extends Version4 {
   void call_2s() {
     //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
-    var operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     var storeTo = readb();
 
@@ -751,9 +752,7 @@ class Version5 extends Version4 {
   void call_2n() {
     //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
-    var operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     var resultStore = Engine.stackMarker;
 
@@ -781,10 +780,7 @@ class Version5 extends Version4 {
     var operands = visitOperandsVar(1, false);
 
     Z.inInterrupt = true;
-    await Z.sendIO({
-      "command": IoCommands.clearScreen,
-      "window_id": operands[0].value,
-    });
+    await Z.sendIO({"command": IoCommands.clearScreen, "window_id": operands[0].value});
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
@@ -797,10 +793,7 @@ class Version5 extends Version4 {
 
     Z.inInterrupt = true;
 
-    await Z.sendIO({
-      "command": IoCommands.splitScreen,
-      "window_id": operands[0].value,
-    });
+    await Z.sendIO({"command": IoCommands.splitScreen, "window_id": operands[0].value});
     Z.inInterrupt = false;
     Z.callAsync(Z.runIt);
   }
