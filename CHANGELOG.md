@@ -63,3 +63,6 @@
 
 # 1.5.1
 - Disabled debug output by default.
+
+# 1.5.2
+- Improved state management on subsequent plays.
