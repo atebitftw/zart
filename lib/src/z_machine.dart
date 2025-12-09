@@ -130,6 +130,14 @@ class ZMachine {
   void load(List<int>? storyBytes) {
     if (storyBytes == null) return;
 
+    // Reset state
+    inBreak = false;
+    inInterrupt = false;
+    quit = false;
+    sbuff.clear();
+    memoryStreams.clear();
+    // rawBytes is cleared below
+
     rawBytes.clear();
     rawBytes.addAll(storyBytes);
     // print("First 10 Story Bytes");

@@ -30,6 +30,9 @@
 .pub/
 /build/
 
+# me
+tool/ai_testing/
+
 # Android related
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
