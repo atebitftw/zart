@@ -205,6 +205,10 @@ class ZMachine {
     //    while(!inBreak && !inInterrupt && !quit){
     while (!inInterrupt && !quit) {
       await engine.visitInstruction();
+      // Yield to event loop to prevent Flutter Web from starving.
+      // In JavaScript, a tight while loop with only synchronously-completing
+      // awaits can block the event loop, preventing Futures from resolving.
+      await Future.delayed(Duration.zero);
     }
 
     if (inBreak) {
