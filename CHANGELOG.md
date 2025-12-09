@@ -70,3 +70,6 @@
 - Reconfigured z-machine to use a pump API for better compatiblity with Flutter.
 - Improved all math operations to be compatible with Flutter web (javascript) targets.
 - Added more unit tests.
+
+# 1.6.1
+- Fixed a ZSCII issue with some text not being displayed correctly.

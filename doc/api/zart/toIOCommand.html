@@ -78,8 +78,8 @@
       return IoCommands.status;
     case &quot;IOCommands.CLEAR_SCREEN&quot;:
       return IoCommands.clearScreen;
-    case &quot;IOCommands.SPLIT_SCREEN&quot;:
-      return IoCommands.splitScreen;
+    case &quot;IOCommands.SPLIT_WINDOW&quot;:
+      return IoCommands.splitWindow;
     case &quot;IOCommands.SET_WINDOW&quot;:
       return IoCommands.setWindow;
     case &quot;IOCommands.SET_FONT&quot;:
@@ -100,6 +100,10 @@
       return IoCommands.async;
     case &quot;IOCommands.SET_CURSOR&quot;:
       return IoCommands.setCursor;
+    case &quot;IOCommands.SET_TEXT_STYLE&quot;:
+      return IoCommands.setTextStyle;
+    case &quot;IOCommands.SET_COLOUR&quot;:
+      return IoCommands.setColour;
     default:
       throw Exception(&quot;IOCommand not recognized: $cmd&quot;);
   }
@@ -130,7 +134,7 @@
 <footer>
   <span class="no-break">
     zart
-      1.5.1
+      1.6.0
   </span>
   
 </footer>

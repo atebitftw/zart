@@ -90,11 +90,7 @@ class ZSCII {
       // (ref 3.2)
       if (nextz.terminatorSet) finished = true;
 
-      if (nextz.z1 == 0 && nextz.z1 == 0 && nextz.z3 == 1) {
-        continue;
-      } else {
-        charList.addAll(nextz.toCollection());
-      }
+      charList.addAll(nextz.toCollection());
     }
 
     Z.engine.callStack.push(fromAddress!);
@@ -217,11 +213,7 @@ class ZSCII {
       // (ref 3.2)
       if (nextz.terminatorSet) finished = true;
 
-      if (nextz.z1 == 0 && nextz.z1 == 0 && nextz.z3 == 1) {
-        continue;
-      } else {
-        charList.addAll(nextz.toCollection());
-      }
+      charList.addAll(nextz.toCollection());
     }
 
     Z.engine.callStack.push(fromAddress!);
@@ -309,11 +301,7 @@ class ZSCII {
       // (ref 3.2)
       if (nextz.terminatorSet) finished = true;
 
-      if (nextz.z1 == 0 && nextz.z1 == 0 && nextz.z3 == 1) {
-        continue;
-      } else {
-        charList.addAll(nextz.toCollection());
-      }
+      charList.addAll(nextz.toCollection());
     }
 
     Z.engine.callStack.push(fromAddress!);

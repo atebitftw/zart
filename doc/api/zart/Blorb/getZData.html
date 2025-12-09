@@ -77,7 +77,7 @@ original bytes are returned (assumes it's a valid compiled ZIL file.)</p>
 
   if (!isBlorb(List.from(fileBytes.getRange(0, 12)))) return fileBytes;
 
-  fileBytes = List.from(fileBytes) as Uint8List;
+  fileBytes = Uint8List.fromList(fileBytes);
 
   &#47;&#47;print(fileBytes);
 
@@ -100,15 +100,13 @@ original bytes are returned (assumes it's a valid compiled ZIL file.)</p>
 
       var start = IFF.read16BitValue(fileBytes);
 
-      fileBytes =
-          List.from(rawBytes.getRange(start, rawBytes.length - start))
-              as Uint8List;
+      fileBytes = Uint8List.fromList(rawBytes.sublist(start));
 
       if (IFF.readChunk(fileBytes) != Chunk.zcod) return null;
 
       var len = IFF.read16BitValue(fileBytes);
 
-      return fileBytes.getRange(0, len) as Uint8List?;
+      return Uint8List.fromList(fileBytes.sublist(0, len));
     }
 
     i++;
@@ -143,7 +141,7 @@ original bytes are returned (assumes it's a valid compiled ZIL file.)</p>
 <footer>
   <span class="no-break">
     zart
-      1.5.1
+      1.6.0
   </span>
   
 </footer>
