@@ -10,8 +10,7 @@ with a boarded front door. You could circle the house to
 the north or south.
 
 There is a small mailbox here.
-
-> open the mailbox
+>
 ```
 
 Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.

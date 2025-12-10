@@ -89,3 +89,6 @@
 
 # 1.7.3
 - Reverted 1.7.2
+
+# 1.7.4
+- Improved console player output.  Now supports ANSI color and better display of status bar for z5+ games.

@@ -68,7 +68,11 @@ void main(List<String> args) async {
             final line = stdin.readLineSync() ?? '';
             stdout.writeln(); // Blank line after input for visual separation
             // Split by '.' to support chained commands like "get up.take all.n"
-            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+            final commands = line
+                .split('.')
+                .map((c) => c.trim())
+                .where((c) => c.isNotEmpty)
+                .toList();
             if (commands.isEmpty) {
               // Empty input, just submit empty string
               state = await Z.submitLineInput('');
@@ -206,14 +210,19 @@ class ConsoleProvider implements IoProvider {
       case IoCommands.status:
         // V3-style status - format and print directly
         final roomName = (command['room_name'] ?? '').toString().toUpperCase();
-        final score = 'Score: ${command['score_one']} / ${command['score_two']}';
+        final score =
+            'Score: ${command['score_one']} / ${command['score_two']}';
         _resetStatusLine();
         _writeToStatusLine(0, roomName);
         _writeToStatusLine(cols - score.length, score);
         _emitStatusLine();
         return null;
       case IoCommands.save:
-        return await _saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
+        return await _saveGame(
+          command['file_data']
+              .getRange(1, command['file_data'].length - 1)
+              .toList(),
+        );
       case IoCommands.clearScreen:
         _resetStatusLine();
         _window0Buffer.clear();
@@ -247,7 +256,9 @@ class ConsoleProvider implements IoProvider {
   @override
   int getFlags1() {
     if (!_supportsAnsi) return 0;
-    return Header.flag1V4BoldfaceAvail | Header.flag1V4ItalicAvail | Header.flag1VSColorAvail;
+    return Header.flag1V4BoldfaceAvail |
+        Header.flag1V4ItalicAvail |
+        Header.flag1VSColorAvail;
   }
 
   void _writeToStatusLine(int column, String text) {
@@ -314,7 +325,8 @@ class ConsoleProvider implements IoProvider {
       var currentLine = StringBuffer();
 
       for (final word in words) {
-        if (currentLine.length + word.length + 1 > cols && currentLine.isNotEmpty) {
+        if (currentLine.length + word.length + 1 > cols &&
+            currentLine.isNotEmpty) {
           stdout.writeln('$prefix${currentLine.toString().trimRight()}$reset');
           currentLine = StringBuffer();
         }
@@ -340,7 +352,9 @@ class ConsoleProvider implements IoProvider {
 
     try {
       stdout.writeln('Saving game "$fn.sav".');
-      File('games${Platform.pathSeparator}$fn.sav').writeAsBytesSync(saveBytes!);
+      File(
+        'games${Platform.pathSeparator}$fn.sav',
+      ).writeAsBytesSync(saveBytes!);
       return true;
     } catch (_) {
       stderr.writeln('File IO error.');

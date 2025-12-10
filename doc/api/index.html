@@ -47,11 +47,12 @@
 <p><a href="https://github.com/atebitftw/zart/actions/workflows/dart.yaml"><img src="https://github.com/atebitftw/zart/actions/workflows/dart.yaml/badge.svg" alt="Dart CI"></a></p>
 <p>Dart Implementation of the Infocom Z-Machine.</p>
 <pre class="language-dart"><code>West of House
-You are standing in an open field west of a white house, with a boarded front door. You could circle the house to the north or south.
+You are standing in an open field west of a white house,
+with a boarded front door. You could circle the house to 
+the north or south.
 
 There is a small mailbox here.
-
-&gt; open the mailbox
+&gt;
 </code></pre>
 <p>Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.</p>
 <p>This project is a labor of love.</p>
@@ -59,24 +60,24 @@ There is a small mailbox here.
 <h2 id="features">Features</h2>
 <ul>
 <li>Plays V3, V5, V7, and V8 games.</li>
-<li>Supports loading raw game files (.z3, .z5, .z8, .dat, etc).</li>
-<li>Supports loading .zblorb files, but only uses the game file from the package at this time.</li>
-<li>Separates the UI implementation from the core interpreter functions, providing extensibility to virtually any platform that Dart runs on (currently Mac, Linux, Windows, and Web).</li>
+<li>Supports loading different types of game files (.z3, .z5, .z8, .dat, .blorb, .zblorb, etc).</li>
+<li>Provides an API that allows you to build your own player for any platform that Dart runs on.</li>
+<li>Comes with a full-featured CLI player.</li>
 </ul>
 <h2 id="want-to-author-your-own-if-games">Want to author your own IF games?</h2>
 <p><a href="https://ganelson.github.io/inform-website/">Inform 7</a></p>
 <h2 id="where-can-i-find-games-to-play">Where can I find games to play?</h2>
-<p>There are Interactive Fiction communities online that can get you started.</p>
-<ul>
-<li>IFDB: <a href="https://www.ifdb.org/">https://www.ifdb.org/</a>  This is a good resource to download and play IF games.</li>
-</ul>
-<h2 id="how-do-i-play-games-with-this-library">How Do I Play Games With This Library</h2>
-<h3 id="cli">CLI</h3>
-<p>You can install and run the CLI utility to play games from the command line:</p>
+<p><a href="https://www.ifdb.org/">IFDB.org</a>.  This is arguably the best resource to find and play IF games.</p>
+<p><em>As always, use caution when downloading games and files from the Internet.</em></p>
+<h2 id="how-do-i-play-games-with-zart">How do I play games with Zart?</h2>
+<h3 id="cli-player">CLI Player</h3>
+<h4 id="flutterdart-sdk-required">Flutter/Dart SDK Required</h4>
+<p>You will need the Flutter/Dart SDK installed on your system to use the CLI player.  You can download it from <a href="https://dart.dev/get-dart">Dart SDK Download</a> or <a href="https://docs.flutter.dev/install">Install Flutter</a>.  Flutter comes with the Dart SDK.</p>
+<h4 id="installation">Installation</h4>
+<p>You can then install the <code>zart</code> CLI player and run it to play games from the command line:</p>
 <pre class="language-bash"><code class="language-bash">dart pub global activate zart
 zart path/to/minizork.z3
 </code></pre>
-<p>I would only recommend playing version 3 games with this CLI tool because some of the newer games use special screen features that are not well-supported in a CLI environment.  The good news is that all of the classic games are usually version 3.</p>
 <h3 id="zart-web-player">Zart Web Player</h3>
 <p>You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: <a href="https://atebitftw.github.io/site/">https://atebitftw.github.io/site/</a>. The player uses the Zart library to play games.</p>
 <h3 id="roll-your-own">Roll Your Own</h3>
@@ -130,7 +131,7 @@ zart path/to/minizork.z3
 <footer>
   <span class="no-break">
     zart
-      1.7.3
+      1.7.4
   </span>
   
 </footer>
