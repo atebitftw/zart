@@ -47,11 +47,26 @@ void objectTestsV8() {
     test('get property length', () {
       GameObject o1 = GameObject(berth);
 
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(36) - 1)));
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(35) - 1)));
-      expect(4, equals(GameObject.propertyLength(o1.getPropertyAddress(4) - 1)));
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)));
-      expect(4, equals(GameObject.propertyLength(o1.getPropertyAddress(1) - 1)));
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(36) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(35) - 1)),
+      );
+      expect(
+        4,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(4) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)),
+      );
+      expect(
+        4,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(1) - 1)),
+      );
     });
 
     test('get property', () {
@@ -110,10 +125,16 @@ void objectTestsV8() {
       o1.setPropertyValue(2, oldVal); // restore
 
       //throw on prop no exist
-      expect(() => o1.setPropertyValue(13, 0xffff), throwsA(isA<GameException>()));
+      expect(
+        () => o1.setPropertyValue(13, 0xffff),
+        throwsA(isA<GameException>()),
+      );
 
       //throw on prop len > 2 (prop 4 is len 4)
-      expect(() => o1.setPropertyValue(4, 0xffff), throwsA(isA<GameException>()));
+      expect(
+        () => o1.setPropertyValue(4, 0xffff),
+        throwsA(isA<GameException>()),
+      );
     });
 
     test('attributes are set', () {

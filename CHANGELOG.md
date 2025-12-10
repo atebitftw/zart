@@ -76,3 +76,7 @@
 
 # 1.6.2
 - README updates.
+
+# 1.7.0
+- Fixed some issues with text output when stream 3 is selected.
+- Added more op code support for z5+.

@@ -46,7 +46,9 @@ void main() {
 
     test('insert', () {
       var o1 = GameObject(18); // "inside"
-      var p = GameObject(5); // "CompassDirection" (root-ish object with no children initially)
+      var p = GameObject(
+        5,
+      ); // "CompassDirection" (root-ish object with no children initially)
 
       // Ensure p has no children for this simple test case
       // (Ref: output shows CompassDirection(5), child: (0))
@@ -63,10 +65,22 @@ void main() {
       GameObject o1 = GameObject(18); // "inside"
       // Props found: 41, 37, 21, 2. All len 2 based on validation.
 
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(41) - 1)));
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(37) - 1)));
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(21) - 1)));
-      expect(2, equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)));
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(41) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(37) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(21) - 1)),
+      );
+      expect(
+        2,
+        equals(GameObject.propertyLength(o1.getPropertyAddress(2) - 1)),
+      );
     });
 
     test('get property', () {
@@ -131,7 +145,10 @@ void main() {
       o1.setPropertyValue(2, originalVal);
 
       //throw on prop no exist
-      expect(() => o1.setPropertyValue(99, 0xffff), throwsA(isA<GameException>()));
+      expect(
+        () => o1.setPropertyValue(99, 0xffff),
+        throwsA(isA<GameException>()),
+      );
     });
 
     test('attributes are set', () {

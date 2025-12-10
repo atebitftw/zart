@@ -104,6 +104,16 @@
       return IoCommands.setTextStyle;
     case &quot;IOCommands.SET_COLOUR&quot;:
       return IoCommands.setColour;
+    case &quot;IOCommands.ERASE_LINE&quot;:
+      return IoCommands.eraseLine;
+    case &quot;IOCommands.GET_CURSOR&quot;:
+      return IoCommands.getCursor;
+    case &quot;IOCommands.INPUT_STREAM&quot;:
+      return IoCommands.inputStream;
+    case &quot;IOCommands.SOUND_EFFECT&quot;:
+      return IoCommands.soundEffect;
+    case &quot;IOCommands.SET_TRUE_COLOUR&quot;:
+      return IoCommands.setTrueColour;
     default:
       throw Exception(&quot;IOCommand not recognized: $cmd&quot;);
   }
@@ -134,7 +144,7 @@
 <footer>
   <span class="no-break">
     zart
-      1.6.0
+      1.6.2
   </span>
   
 </footer>

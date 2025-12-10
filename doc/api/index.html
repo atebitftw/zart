@@ -68,20 +68,23 @@ There is a small mailbox here.
 <h2 id="where-can-i-find-games-to-play">Where can I find games to play?</h2>
 <p>There are Interactive Fiction communities online that can get you started.  Minizork is included in this library for unit testing purposes, but you can also play it if you wish.</p>
 <p>Here are some links to some popular games:</p>
-<p><strong>I make NO warranty as to the safety or usability of these links/files.  Proceed with caution.</strong></p>
 <ul>
-<li>Zork Series: You can find these online.  Unfortunately, I can't put the link here because it's http instead of https.  Contact me if you need help.</li>
-<li>Hitchiker's Guide To The Galaxy: <a href="https://www.myabandonware.com/game/the-hitchhikers-guide-to-the-galaxy-42">https://www.myabandonware.com/game/the-hitchhikers-guide-to-the-galaxy-42</a></li>
-<li>Infidel: <a href="https://www.myabandonware.com/game/infidel-2d">https://www.myabandonware.com/game/infidel-2d</a></li>
+<li>IFDB: <a href="https://www.ifdb.org/">https://www.ifdb.org/</a>  This is a good resource to download and play IF games.</li>
 </ul>
 <h2 id="how-do-i-play-games-with-this-library">How Do I Play Games With This Library</h2>
-<p>You would have to write your own client which would manage the i/o between the player and the interpreter.</p>
-<p>You can also run the CLI utility to play games from the command line:</p>
+<h3 id="cli">CLI</h3>
+<p>You can install and run the CLI utility to play games from the command line:</p>
 <pre class="language-bash"><code class="language-bash">dart pub global activate zart
 zart path/to/minizork.z3
 </code></pre>
+<p>I would only recommend playing version 3 games with this CLI tool because some of the newer games use special screen features that are not well-supported in a CLI environment.  The good news is that all of the classic games are usually version 3.</p>
+<h3 id="zart-web-player">Zart Web Player</h3>
+<p>You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: <a href="https://atebitftw.github.io/site/">https://atebitftw.github.io/site/</a>. The player uses the Zart library to play games.</p>
+<h3 id="roll-your-own">Roll Your Own</h3>
+<p>Use the Zart library to build your own player.  You would have to write your own client which would manage the i/o between the player and the interpreter.  The Zart library provides all the necessary functionality.</p>
 <h2 id="how-to-contribute">How To Contribute</h2>
-<p>Clone.  Code.  Submit pull request.  I'm open to any reasonable submissions.</p>
+<p>Fork. Code. Submit pull request. I'm open to any reasonable submissions.</p>
+<p>The interpreter currently only loads the game file from any .blorb/.zblorb file (these are like bundled game files for IF games).  It does not load any of the other resources from the .blorb file, like images, etc, and it ignores any audio/image commands from the game.  So this could be one area to expand on.</p>
 <h2 id="reference-material">Reference Material</h2>
 <ul>
 <li>Z-Machine spec used to develop this library: <a href="https://www.inform-fiction.org/zmachine/standards/">https://www.inform-fiction.org/zmachine/standards/</a></li>
@@ -128,7 +131,7 @@ zart path/to/minizork.z3
 <footer>
   <span class="no-break">
     zart
-      1.6.0
+      1.6.2
   </span>
   
 </footer>
