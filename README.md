@@ -30,13 +30,18 @@ Enjoy!
 [Inform 7](https://ganelson.github.io/inform-website/)
 
 ## Where can I find games to play? 
-There are Interactive Fiction communities online that can get you started.
+[IFDB.org](https://www.ifdb.org/).  This is arguably the best resource to find and play IF games.
 
-* IFDB: https://www.ifdb.org/  This is a good resource to download and play IF games.
+*As always, use caution when downloading games and files from the Internet.*
 
-## How Do I Play Games With This Library
+## How do I play games with Zart?
 ### CLI Player
-You can install the `zart` CLI player and run it to play games from the command line:
+
+#### Flutter/Dart SDK Required
+You will need the Flutter/Dart SDK installed on your system to use the CLI player.  You can download it from [Dart SDK Download](https://dart.dev/get-dart) or [Install Flutter](https://docs.flutter.dev/install).  Flutter comes with the Dart SDK.
+
+#### Installation
+You can then install the `zart` CLI player and run it to play games from the command line:
 
 ```bash
 dart pub global activate zart
@@ -48,7 +53,6 @@ You can use the Zart Web Player App, written in Flutter.  You can find the app h
 
 ### Roll Your Own
 Use the Zart library to build your own player.  You would have to write your own client which would manage the i/o between the player and the interpreter.  The Zart library provides all the necessary functionality.
-
 
 ## How To Contribute
 Fork. Code. Submit pull request. I'm open to any reasonable submissions.
