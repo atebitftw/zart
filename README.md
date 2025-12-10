@@ -3,7 +3,7 @@
 
 Dart Implementation of the Infocom Z-Machine.
 
-```
+```text
 West of House
 You are standing in an open field west of a white house,
 with a boarded front door. You could circle the house to 

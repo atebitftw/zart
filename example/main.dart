@@ -65,6 +65,7 @@ void main(List<String> args) async {
         case ZMachineRunState.needsLineInput:
           // Check if we have queued commands from a previous chained input
           if (commandQueue.isEmpty) {
+            (Z.io as ConsoleProvider).flush(addPrompt: true);
             final line = stdin.readLineSync() ?? '';
             stdout.writeln(); // Blank line after input for visual separation
             // Split by '.' to support chained commands like "get up.take all.n"
@@ -83,6 +84,7 @@ void main(List<String> args) async {
             }
           } else {
             // Process next queued command - print as if user typed it
+            (Z.io as ConsoleProvider).flush(addPrompt: true);
             final cmd = commandQueue.removeAt(0);
             stdout.writeln('$cmd');
             stdout.writeln();
@@ -90,6 +92,7 @@ void main(List<String> args) async {
           }
           break;
         case ZMachineRunState.needsCharInput:
+          (Z.io as ConsoleProvider).flush(addPrompt: true);
           final line = stdin.readLineSync() ?? '';
           final char = line.isEmpty ? '\n' : line[0];
           state = await Z.submitCharInput(char);
@@ -189,7 +192,7 @@ class ConsoleProvider implements IoProvider {
         if (_currentWindow == 1 && newWindow == 0) {
           // Leaving Window 1 - emit status line, then flush Window 0 buffer
           _emitStatusLine();
-          _flushWindow0();
+          flush(addPrompt: false);
         } else if (_currentWindow == 0 && newWindow == 1) {
           // Entering Window 1 - reset status line
           _resetStatusLine();
@@ -239,14 +242,15 @@ class ConsoleProvider implements IoProvider {
         return null;
       case IoCommands.quit:
         _emitStatusLine();
-        _flushWindow0();
+        flush(addPrompt: false);
         stdout.write(_getAnsiReset());
         return null;
       case IoCommands.read:
       case IoCommands.readChar:
+        // (This path is for non-pump mode, if ever used)
         // Emit any pending status and buffered text before input
         _emitStatusLine();
-        _flushWindow0();
+        flush(addPrompt: true);
         return null;
       default:
         return null;
@@ -279,20 +283,28 @@ class ConsoleProvider implements IoProvider {
     _resetStatusLine();
   }
 
-  void _flushWindow0() {
-    for (int i = 0; i < _window0Buffer.length; i++) {
-      var text = _window0Buffer[i];
-      // Strip trailing prompt from last buffer entry
-      if (i == _window0Buffer.length - 1) {
-        text = text.replaceAll(RegExp(r'[\n\r]*>\s*$'), '');
-      }
-      if (text.isNotEmpty) {
-        _printWrapped(text);
-      }
+  void flush({bool addPrompt = false}) {
+    if (_window0Buffer.isEmpty && !addPrompt) return;
+
+    var fullText = _window0Buffer.join('');
+
+    // Always strip trailing prompt content from the buffer to avoid duplication
+    // (Z5 games often include their own prompt, which we want to replace with our controlled one)
+    // Regex matches a prompt '>' at the start of line/string, followed by optional whitespace and ANSI codes.
+    fullText = fullText.replaceAll(
+      RegExp(r'(?:^|[\n\r]+)>\s*(?:\x1B\[[\d;]*m)*$'),
+      '',
+    );
+
+    if (fullText.isNotEmpty) {
+      _printWrapped(fullText);
     }
+
     _window0Buffer.clear();
     // Print our prompt without newline so cursor stays on same line
-    stdout.write('> ');
+    if (addPrompt) {
+      stdout.write('> ');
+    }
   }
 
   void _handlePrint(int? windowID, String text) {

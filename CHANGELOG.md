@@ -92,3 +92,6 @@
 
 # 1.7.4
 - Improved console player output.  Now supports ANSI color and better display of status bar for z5+ games.
+
+# 1.7.5
+- Fixed a bug with the console player that caused it to display input carets improperly.
