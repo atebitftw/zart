@@ -1,9 +1,8 @@
 import 'package:zart/src/game_object.dart';
-import 'package:zart/src/engines/engine.dart';
-import 'package:zart/src/engines/version_3.dart';
-import 'package:zart/src/engines/version_5.dart';
-import 'package:zart/src/engines/version_7.dart';
-import 'package:zart/src/engines/version_8.dart';
+import 'package:zart/src/interpreters/interpreter_v3.dart';
+import 'package:zart/src/interpreters/interpreter_v5.dart';
+import 'package:zart/src/interpreters/interpreter_v7.dart';
+import 'package:zart/src/interpreters/interpreter_v8.dart';
 import 'package:zart/src/memory_map.dart';
 import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
@@ -35,18 +34,17 @@ class Debugger {
   /// The instruction counter.
   static int instructionCounter = 0;
 
-  static Engine _getEngineByVersion(ZMachineVersions? version) {
+  static InterpreterV3 _getEngineByVersion(ZMachineVersions? version) {
     switch (version) {
       case ZMachineVersions.v1:
-        return Engine();
       case ZMachineVersions.v3:
-        return Version3();
+        return InterpreterV3();
       case ZMachineVersions.v5:
-        return Version5();
+        return InterpreterV5();
       case ZMachineVersions.v7:
-        return Version7();
+        return InterpreterV7();
       case ZMachineVersions.v8:
-        return Version8();
+        return InterpreterV8();
       default:
         throw GameException(
           "Unsupported gamefile version.  This interpreter does not support $version",
@@ -54,11 +52,11 @@ class Debugger {
     }
   }
 
-  /// Selects the best suited [Engine] version for the game file.
+  /// Selects the best suited [InterpreterV3] version for the game file.
   /// will also accept optional [newEngine] which will be used
   /// to run the game (throws a [GameException] if [newEngine] version
   /// and game version do not match).
-  static void initializeEngine([Engine? newEngine]) {
+  static void initializeEngine([InterpreterV3? newEngine]) {
     Z.inInterrupt = true;
     if (!Z.isLoaded) {
       throw GameException(

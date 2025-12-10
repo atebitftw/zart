@@ -2,7 +2,7 @@ import 'dart:collection';
 import 'package:zart/src/io/iff.dart';
 import 'package:zart/src/binary_helper.dart';
 import 'package:zart/src/header.dart';
-import 'package:zart/src/engines/engine.dart';
+import 'package:zart/src/interpreters/interpreter_v3.dart';
 import 'package:zart/src/memory_map.dart';
 import 'package:zart/src/z_machine.dart';
 
@@ -82,7 +82,7 @@ class Quetzal {
       var flagByte = 0;
 
       //set the call_xN bit if this stack frame is supposed to discard returns
-      if (sd.returnVar == Engine.stackMarker) {
+      if (sd.returnVar == InterpreterV3.stackMarker) {
         flagByte = BinaryHelper.set(flagByte, 4);
       }
 
@@ -93,7 +93,9 @@ class Quetzal {
 
       // return variable number
       // (ref 4.6)
-      saveData.add(sd.returnVar != Engine.stackMarker ? sd.returnVar : 0);
+      saveData.add(
+        sd.returnVar != InterpreterV3.stackMarker ? sd.returnVar : 0,
+      );
 
       //total args passed (4.3.4)
       saveData.add(BinaryHelper.setBottomBits(sd.totalArgsPassed));
@@ -180,7 +182,7 @@ class Quetzal {
             var returnVar = IFF.nextByte(fileBytes);
 
             sf.returnVar = BinaryHelper.isSet(flagByte, 4)
-                ? Engine.stackMarker
+                ? InterpreterV3.stackMarker
                 : returnVar!;
 
             var numLocals = BinaryHelper.bottomBits(flagByte, 4);
@@ -299,7 +301,7 @@ class Quetzal {
       Z.engine.callStack.push(sf.returnAddr);
 
       //eval stack
-      Z.engine.stack.push(Engine.stackMarker);
+      Z.engine.stack.push(InterpreterV3.stackMarker);
       for (final eval in sf.evals) {
         Z.engine.stack.push(eval!);
       }
@@ -449,7 +451,7 @@ class StackFrame {
     if (evalIndex < Z.engine.stack.length) {
       var eStack = Z.engine.stack[evalIndex];
 
-      while (eStack != Engine.stackMarker) {
+      while (eStack != InterpreterV3.stackMarker) {
         evals.addFirst(eStack);
         // safe check before increment
         if (++evalIndex >= Z.engine.stack.length) break;

@@ -1,10 +1,10 @@
-import 'package:zart/src/engines/engine.dart';
+import 'package:zart/src/interpreters/interpreter_v3.dart';
 import 'package:zart/zart.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
 import 'dart:io';
 
-void setupZMachine({Engine? engine}) {
+void setupZMachine({InterpreterV3? engine}) {
   var defaultGameFile = 'assets/games/minizork.z3';
 
   final f = File(defaultGameFile);

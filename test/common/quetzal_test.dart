@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/engines/engine.dart';
+import 'package:zart/src/interpreters/interpreter_v3.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/src/io/quetzal.dart';
 import '../test_utils.dart';
@@ -26,7 +26,7 @@ void main() {
       // Setup Evaluation Stack (Engine.stack)
       // QuetzalStackFrame reads from Z.engine.stack[0] onwards until StackMarker.
       Z.engine.stack.clear();
-      Z.engine.stack.push(Engine.stackMarker);
+      Z.engine.stack.push(InterpreterV3.stackMarker);
 
       // 3. Modify dynamic memory
       var originalByte0 = Z.engine.mem.loadb(0);

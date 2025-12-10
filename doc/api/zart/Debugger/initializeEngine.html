@@ -55,7 +55,7 @@
     <section class="multi-line-signature">
       
 <span class="returntype">void</span>
-<span class="name ">initializeEngine</span>(<wbr>[<ol class="parameter-list single-line"> <li><span class="parameter" id="initializeEngine-param-newEngine"><span class="type-annotation">Engine?</span> <span class="parameter-name">newEngine</span></span></li>
+<span class="name ">initializeEngine</span>(<wbr>[<ol class="parameter-list single-line"> <li><span class="parameter" id="initializeEngine-param-newEngine"><span class="type-annotation">InterpreterV3?</span> <span class="parameter-name">newEngine</span></span></li>
 </ol>])
 
       
@@ -63,7 +63,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Selects the best suited <code>Engine</code> version for the game file.
+  <p>Selects the best suited <code>InterpreterV3</code> version for the game file.
 will also accept optional <code>newEngine</code> which will be used
 to run the game (throws a <a href="../../zart/GameException-class.html">GameException</a> if <code>newEngine</code> version
 and game version do not match).</p>
@@ -73,18 +73,14 @@ and game version do not match).</p>
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">static void initializeEngine([Engine? newEngine]) {
+  <pre class="language-dart"><code class="language-dart">static void initializeEngine([InterpreterV3? newEngine]) {
   Z.inInterrupt = true;
   if (!Z.isLoaded) {
-    throw GameException(
-      &quot;Unable to initialize Z-Machine.  No game file is loaded.&quot;,
-    );
+    throw GameException(&quot;Unable to initialize Z-Machine.  No game file is loaded.&quot;);
   }
 
   if (newEngine != null &amp;&amp; newEngine.version != Z.ver) {
-    throw GameException(
-      &#39;Machine&#47;Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}&#39;,
-    );
+    throw GameException(&#39;Machine&#47;Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}&#39;);
   }
 
   Z.engine = newEngine ?? _getEngineByVersion(Z.ver);
@@ -120,7 +116,7 @@ and game version do not match).</p>
 <footer>
   <span class="no-break">
     zart
-      1.7.4
+      1.7.5
   </span>
   
 </footer>

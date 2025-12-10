@@ -1,13 +1,12 @@
 import 'dart:async';
-import 'package:zart/src/engines/engine.dart' show Engine;
 import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/memory_map.dart' show MemoryMap;
 import 'package:zart/zart.dart';
-import 'engines/version_3.dart' show Version3;
-import 'engines/version_4.dart' show Version4;
-import 'engines/version_5.dart' show Version5;
-import 'engines/version_7.dart' show Version7;
-import 'engines/version_8.dart' show Version8;
+import 'package:zart/src/interpreters/interpreter_v3.dart' show InterpreterV3;
+import 'package:zart/src/interpreters/interpreter_v4.dart' show InterpreterV4;
+import 'package:zart/src/interpreters/interpreter_v5.dart' show InterpreterV5;
+import 'package:zart/src/interpreters/interpreter_v7.dart' show InterpreterV7;
+import 'package:zart/src/interpreters/interpreter_v8.dart' show InterpreterV8;
 
 /// The Z-Machine singleton.
 ZMachine get Z => ZMachine();
@@ -68,17 +67,17 @@ class ZMachine {
   static ZMachine? _context;
 
   //contains machine version which are supported by z-machine.
-  final List<Engine Function()> _supportedEngines = [
-    () => Version3(),
-    () => Version4(),
-    () => Version5(),
-    () => Version7(),
-    () => Version8(),
+  final List<InterpreterV3 Function()> _supportedEngines = [
+    () => InterpreterV3(),
+    () => InterpreterV4(),
+    () => InterpreterV5(),
+    () => InterpreterV7(),
+    () => InterpreterV8(),
   ];
 
   /// Represents the underlying interpreter engine used to run the
   /// game (different versions require different engines).
-  late Engine engine;
+  late InterpreterV3 engine;
 
   /// This field must be set so that the interpeter has a place to send
   /// commands and receive results from those commands (if any).
@@ -192,8 +191,12 @@ class ZMachine {
 
   /// Runs the Z-Machine using the detected machine version from the story
   /// file.  This can be overridden by passing [machineOverride] to the function.
-  /// Doing so will cause given [Engine] to be used for execution.
-  void run([Engine? machineOverride]) {
+  /// Doing so will cause given [InterpreterV3] to be used for execution.
+  ///
+  /// This method is mainly used for unit testing.
+  ///
+  /// Recommend using [runUntilInput] for normal game play.
+  void run([InterpreterV3? machineOverride]) {
     _assertLoaded();
 
     if (machineOverride != null) {
@@ -288,8 +291,6 @@ class ZMachine {
     rawBytes.clear();
     isLoaded = false;
   }
-
-  // ===== Pump API (for Flutter) =====
 
   /// Runs instructions until input is needed or game ends.
   /// This is the Flutter-friendly API where the caller controls execution.

@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:zart/src/engines/engine.dart';
+import 'package:zart/src/interpreters/interpreter_v3.dart';
 import 'package:zart/src/math_helper.dart';
 import 'package:zart/src/operand.dart';
 import 'package:zart/zart.dart'; // Added for Z
@@ -290,7 +290,7 @@ void main() {
         runRoutine();
 
         var v = await pollUntilQuit();
-        expect(Engine.gameTrue, equals(v));
+        expect(InterpreterV3.gameTrue, equals(v));
       });
 
       test('simple return false', () async {
@@ -298,7 +298,7 @@ void main() {
         runRoutine();
 
         var v = await pollUntilQuit();
-        expect(Engine.gameFalse, equals(v));
+        expect(InterpreterV3.gameFalse, equals(v));
       });
 
       test('push non-negative small', () async {

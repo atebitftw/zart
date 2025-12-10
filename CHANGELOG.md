@@ -95,3 +95,6 @@
 
 # 1.7.5
 - Fixed a bug with the console player that caused it to display input carets improperly.
+
+# 1.7.6
+- renamed some classes to be more consistent.
