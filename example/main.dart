@@ -51,14 +51,36 @@ void main(List<String> args) async {
   //Debugger.setBreaks([0x2bfd]);
 
   try {
+    // Command queue for chained commands (e.g., "get up.take all.north")
+    final commandQueue = Queue<String>();
+
     // Pump API: run until input needed, then get input and continue
     var state = await Z.runUntilInput();
 
     while (state != ZMachineRunState.quit) {
       switch (state) {
         case ZMachineRunState.needsLineInput:
-          final line = stdin.readLineSync() ?? '';
-          state = await Z.submitLineInput(line);
+          // Check if we have queued commands from a previous chained input
+          if (commandQueue.isEmpty) {
+            final line = stdin.readLineSync() ?? '';
+            // Split by '.' to support chained commands like "get up.take all.n"
+            final commands = line
+                .split('.')
+                .map((c) => c.trim())
+                .where((c) => c.isNotEmpty)
+                .toList();
+            if (commands.isEmpty) {
+              // Empty input, just submit empty string
+              state = await Z.submitLineInput('');
+            } else {
+              // Queue all commands and process the first one
+              commandQueue.addAll(commands);
+              state = await Z.submitLineInput(commandQueue.removeFirst());
+            }
+          } else {
+            // Process next queued command
+            state = await Z.submitLineInput(commandQueue.removeFirst());
+          }
           break;
         case ZMachineRunState.needsCharInput:
           final line = stdin.readLineSync() ?? '';
