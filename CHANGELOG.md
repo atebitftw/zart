@@ -80,3 +80,6 @@
 # 1.7.0
 - Fixed some issues with text output when stream 3 is selected.
 - Added more op code support for z5+.
+
+# 1.7.1
+- Console interpreters now support chained commands (e.g., "get up.take all.north")
