@@ -640,11 +640,11 @@ class Version5 extends Version4 {
             mem.storeb(addr++, ZSCII.charToZChar(capturedData[i]));
           }
 
-          // Restore the saved screen buffer
+          // Clear the buffer - don't restore saved content as it was already printed
           Z.sbuff.clear();
           if (Z.savedBuffers.isNotEmpty) {
-            var restored = Z.savedBuffers.removeLast();
-            Z.sbuff.write(restored);
+            Z.savedBuffers
+                .removeLast(); // Pop to maintain nesting balance, don't restore
             //print('[output_stream -3] Restored screen buffer: "$restored"');
           }
 

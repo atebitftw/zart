@@ -83,3 +83,6 @@
 
 # 1.7.1
 - Console interpreters now support chained commands (e.g., "get up.take all.north")
+
+# 1.7.2
+- Fixed a repeating text bug with stream 3.

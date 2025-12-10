@@ -28,9 +28,7 @@ Enjoy!
 [Inform 7](https://ganelson.github.io/inform-website/)
 
 ## Where can I find games to play? 
-There are Interactive Fiction communities online that can get you started.  Minizork is included in this library for unit testing purposes, but you can also play it if you wish.
-
-Here are some links to some popular games:
+There are Interactive Fiction communities online that can get you started.
 
 * IFDB: https://www.ifdb.org/  This is a good resource to download and play IF games.
 
