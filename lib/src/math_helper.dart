@@ -1,20 +1,22 @@
-import 'package:zart/src/game_exception.dart';
-
 /// Static helper functions for common number/math needs.
 class MathHelper {
-  /// Takes any Dart [val] between -32768 & 32767 and makes a zmachine-readable
-  /// 16-bit signed 'word' from it.
+  /// Takes any Dart [val] and converts it to a Z-Machine-readable
+  /// 16-bit unsigned representation of a signed value.
+  ///
+  /// Values outside the -32768 to 32767 range are wrapped using modular
+  /// arithmetic, as per Z-Machine specification behavior.
   ///
   /// ### Z-Machine Spec Reference
   /// 2.2
   static int dartSignedIntTo16BitSigned(int val) {
-    if (val < -32768 || val > 32767) {
-      throw GameException("Signed 16-bit int is out of range: $val");
-    }
+    // Wrap to 16-bit range using modular arithmetic
+    // This handles overflow/underflow correctly per Z-Machine spec
+    val = val & 0xFFFF;
 
-    if (val > -1) return val;
-
-    return 65536 - val.abs();
+    // If the value was negative (or wrapped to appear negative in 16-bit),
+    // it's already in the correct unsigned representation.
+    // Otherwise, positive values are already correct.
+    return val;
   }
 
   /// Converts a game 16-bit 'word' [val] into a signed Dart int.

@@ -73,10 +73,12 @@ void main() {
       expect('Inside the Barrow', equals(o1.shortName));
 
       expect(14, equals(o1.getNextProperty(18)));
-      expect(() => o1.getNextProperty(17), throwsA(isA<GameException>()));
+      // Per Z-Machine spec (strictz.z5 compliance): returns 0 for non-existent properties
+      expect(0, equals(o1.getNextProperty(17)));
       expect(18, equals(o1.getNextProperty(0)));
 
-      expect(() => o1.getNextProperty(19), throwsA(isA<GameException>()));
+      // Non-existent property returns 0
+      expect(0, equals(o1.getNextProperty(19)));
     });
 
     test('get property', () {
@@ -110,10 +112,7 @@ void main() {
       expect(0, equals(o1.getPropertyValue(5)));
 
       //throw on prop no exist
-      expect(
-        () => o1.setPropertyValue(13, 0xffff),
-        throwsA(isA<GameException>()),
-      );
+      expect(() => o1.setPropertyValue(13, 0xffff), throwsA(isA<GameException>()));
       // Expect.throws(
       //   () => o1.setPropertyValue(13, 0xffff),
       //     (e) => e is GameException);
@@ -124,10 +123,7 @@ void main() {
       // Expect.throws(
       //   () => o1.setPropertyValue(29, 0xffff),
       //     (e) => e is GameException);
-      expect(
-        () => o1.setPropertyValue(29, 0xffff),
-        throwsA(isA<GameException>()),
-      );
+      expect(() => o1.setPropertyValue(29, 0xffff), throwsA(isA<GameException>()));
     });
 
     test('attributes are set', () {

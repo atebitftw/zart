@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:zart/src/math_helper.dart';
-import 'package:zart/zart.dart';
 
 void main() {
   group('Integers', () {
@@ -12,12 +11,9 @@ void main() {
       expect(MathHelper.toSigned(32767), equals(32767));
     });
 
-    test(
-      "Machine.toSigned(32768) (0x10000 - 32768) should yield signed int -32768.",
-      () {
-        expect(MathHelper.toSigned(32768), equals(-32768));
-      },
-    );
+    test("Machine.toSigned(32768) (0x10000 - 32768) should yield signed int -32768.", () {
+      expect(MathHelper.toSigned(32768), equals(-32768));
+    });
 
     test("Machine.dartSignedIntTo16BitSigned(-1) should return 65535.", () {
       expect(MathHelper.dartSignedIntTo16BitSigned(-1), equals(65535));
@@ -39,34 +35,16 @@ void main() {
       expect(65494, equals(MathHelper.dartSignedIntTo16BitSigned(-42)));
     });
 
-    test('16-bit signed out of range (-32769) throws GameException', () {
-      expect(
-        () => MathHelper.dartSignedIntTo16BitSigned(-32769),
-        throwsA(
-          allOf(
-            const TypeMatcher<GameException>(),
-            predicate(
-              (dynamic e) =>
-                  e.msg.startsWith("Signed 16-bit int is out of range"),
-            ),
-          ),
-        ),
-      );
+    test('16-bit signed wraps correctly for -32769 (becomes 32767)', () {
+      // Z-Machine spec: values wrap using modular arithmetic
+      // -32769 & 0xFFFF = 32767
+      expect(MathHelper.dartSignedIntTo16BitSigned(-32769), equals(32767));
     });
 
-    test('16-bit signed out of range (32768) throws GameException', () {
-      expect(
-        () => MathHelper.dartSignedIntTo16BitSigned(32768),
-        throwsA(
-          allOf(
-            const TypeMatcher<GameException>(),
-            predicate(
-              (dynamic e) =>
-                  e.msg.startsWith("Signed 16-bit int is out of range"),
-            ),
-          ),
-        ),
-      );
+    test('16-bit signed wraps correctly for 32768 (stays 32768)', () {
+      // Z-Machine spec: values wrap using modular arithmetic
+      // 32768 & 0xFFFF = 32768
+      expect(MathHelper.dartSignedIntTo16BitSigned(32768), equals(32768));
     });
   });
 }

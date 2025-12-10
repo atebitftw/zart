@@ -3,24 +3,15 @@ import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
 
 /// The ZString reader function.
-typedef ZStringReader =
-    String Function(int fromAddress, [bool abbreviationLookup]);
+typedef ZStringReader = String Function(int fromAddress, [bool abbreviationLookup]);
 
 //ref 3.2.2
 /// The ZSCII character shift table.
-const char2AlphabetShift = <int, int>{
-  ZSCII.a0: ZSCII.a1,
-  ZSCII.a1: ZSCII.a2,
-  ZSCII.a2: ZSCII.a0,
-};
+const char2AlphabetShift = <int, int>{ZSCII.a0: ZSCII.a1, ZSCII.a1: ZSCII.a2, ZSCII.a2: ZSCII.a0};
 
 //ref 3.2.2
 /// The ZSCII character shift table.
-const char3AlphabetShift = <int, int>{
-  ZSCII.a0: ZSCII.a2,
-  ZSCII.a1: ZSCII.a0,
-  ZSCII.a2: ZSCII.a1,
-};
+const char3AlphabetShift = <int, int>{ZSCII.a0: ZSCII.a2, ZSCII.a1: ZSCII.a0, ZSCII.a2: ZSCII.a1};
 
 /// ZSCII Handler
 class ZSCII {
@@ -57,8 +48,7 @@ class ZSCII {
   /// Represents the padding value for ZString encoding/decoding.
   static const int padding = 5;
 
-  static const Map<ZMachineVersions, String Function(int, [bool])>
-  _stringReaderMap = <ZMachineVersions, ZStringReader>{
+  static const Map<ZMachineVersions, String Function(int, [bool])> _stringReaderMap = <ZMachineVersions, ZStringReader>{
     ZMachineVersions.v1: _readZStringVersion1And2,
     ZMachineVersions.v2: _readZStringVersion1And2,
     ZMachineVersions.v3: _readZStringVersion3and4,
@@ -69,10 +59,7 @@ class ZSCII {
     ZMachineVersions.v8: _readZStringVersion5AndUp,
   };
 
-  static String _readZStringVersion1And2(
-    int? fromAddress, [
-    bool? abbreviationLookup = false,
-  ]) {
+  static String _readZStringVersion1And2(int? fromAddress, [bool? abbreviationLookup = false]) {
     bool finished = false;
     // bool shiftLock = false; // Shift lock not supported in V1/V2
     final s = StringBuffer();
@@ -103,15 +90,17 @@ class ZSCII {
       // (ref 3.3)
       if (Z.engine.version == ZMachineVersions.v2 && char == 1) {
         if (abbreviationLookup!) {
-          throw GameException(
-            "Abbreviation lookup cannot occur inside an abbreviation lookup.",
-          );
+          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
+        }
+        // Bounds check: ensure we have another character for abbreviation index
+        if (i + 1 >= charList.length) {
+          // Malformed z-string - abbreviation marker at end without index
+          break;
         }
         //abbreviation lookup, v2 only ref 3.3
         final abbrNum = (32 * (char - 1)) + charList[++i];
 
-        final abbrAddress =
-            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        final abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         final abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -144,15 +133,18 @@ class ZSCII {
           continue;
         }
 
-        throw GameException(
-          "readZString() Expected char between 2 and 5 (inclusive), but found $char",
-        );
+        throw GameException("readZString() Expected char between 2 and 5 (inclusive), but found $char");
       }
 
       // Z-character 6 from A2 means that the two subsequent Z-characters specify a ten-bit
       // ZSCII character code: the next Z-character gives the top 5 bits and the one after the bottom 5.
       if (currentAlphabet == ZSCII.a2 && char == 6) {
         // (ref 3.4)
+        // Bounds check: ensure we have two more characters for the 10-bit code
+        if (i + 2 >= charList.length) {
+          // Malformed z-string - 10-bit escape without enough following chars
+          break;
+        }
         s.write(zCharToChar((charList[i + 1] << 5) | charList[i + 2]));
         i += 2;
         currentAlphabet = previousAlphabet;
@@ -167,9 +159,7 @@ class ZSCII {
       }
 
       // Z-char 7 from A2 means newline (except for engine version 1)
-      if (Z.engine.version != ZMachineVersions.v1 &&
-          currentAlphabet == ZSCII.a2 &&
-          char == 7) {
+      if (Z.engine.version != ZMachineVersions.v1 && currentAlphabet == ZSCII.a2 && char == 7) {
         // (ref 3.5.3)
         //newline
         s.write('\n');
@@ -194,10 +184,7 @@ class ZSCII {
     return s.toString();
   }
 
-  static String _readZStringVersion3and4(
-    int? fromAddress, [
-    bool? abbreviationLookup = false,
-  ]) {
+  static String _readZStringVersion3and4(int? fromAddress, [bool? abbreviationLookup = false]) {
     bool finished = false;
     final s = StringBuffer();
     int currentAlphabet = ZSCII.a0;
@@ -226,15 +213,17 @@ class ZSCII {
       // (ref 3.3)
       if (char >= 1 && char <= 3) {
         if (abbreviationLookup!) {
-          throw GameException(
-            "Abbreviation lookup cannot occur inside an abbreviation lookup.",
-          );
+          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
+        }
+        // Bounds check: ensure we have another character for abbreviation index
+        if (i + 1 >= charList.length) {
+          // Malformed z-string - abbreviation marker at end without index
+          break;
         }
         //abbreviation lookup
         final abbrNum = (32 * (char - 1)) + charList[++i];
 
-        final abbrAddress =
-            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        final abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         final abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -251,6 +240,11 @@ class ZSCII {
       // ZSCII character code: the next Z-character gives the top 5 bits and the one after the bottom 5.
       if (currentAlphabet == ZSCII.a2 && char == 6) {
         // (ref 3.4)
+        // Bounds check: ensure we have two more characters for the 10-bit code
+        if (i + 2 >= charList.length) {
+          // Malformed z-string - 10-bit escape without enough following chars
+          break;
+        }
         s.write(zCharToChar((charList[i + 1] << 5) | charList[i + 2]));
         i += 2;
         currentAlphabet = ZSCII.a0;
@@ -282,10 +276,7 @@ class ZSCII {
     return s.toString();
   }
 
-  static String _readZStringVersion5AndUp(
-    int? fromAddress, [
-    bool? abbreviationLookup = false,
-  ]) {
+  static String _readZStringVersion5AndUp(int? fromAddress, [bool? abbreviationLookup = false]) {
     bool finished = false;
     final s = StringBuffer();
     int currentAlphabet = ZSCII.a0;
@@ -314,15 +305,17 @@ class ZSCII {
       // (ref 3.3)
       if (char >= 1 && char <= 3) {
         if (abbreviationLookup!) {
-          throw GameException(
-            "Abbreviation lookup cannot occur inside an abbreviation lookup.",
-          );
+          throw GameException("Abbreviation lookup cannot occur inside an abbreviation lookup.");
+        }
+        // Bounds check: ensure we have another character for abbreviation index
+        if (i + 1 >= charList.length) {
+          // Malformed z-string - abbreviation marker at end without index
+          break;
         }
         //abbreviation lookup
         var abbrNum = (32 * (char - 1)) + charList[++i];
 
-        var abbrAddress =
-            2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
+        var abbrAddress = 2 * Z.engine.mem.loadw(Z.engine.mem.abbrAddress + (abbrNum * 2));
 
         String abbrString = readZString(abbrAddress, true);
         Z.engine.callStack.pop();
@@ -339,6 +332,11 @@ class ZSCII {
       // ZSCII character code: the next Z-character gives the top 5 bits and the one after the bottom 5.
       if (currentAlphabet == ZSCII.a2 && char == 6) {
         // (ref 3.4)
+        // Bounds check: ensure we have two more characters for the 10-bit code
+        if (i + 2 >= charList.length) {
+          // Malformed z-string - 10-bit escape without enough following chars
+          break;
+        }
         s.write(zCharToChar((charList[i + 1] << 5) | charList[i + 2]));
         i += 2;
         currentAlphabet = ZSCII.a0;
@@ -373,11 +371,8 @@ class ZSCII {
           s.write(zCharToChar(zsciiCode));
           currentAlphabet = ZSCII.a0;
         } else {
-          if (Z.engine.version == ZMachineVersions.v1 &&
-              currentAlphabet == a2) {
-            s.write(v1Table[currentAlphabet][char - 6]);
-            continue;
-          }
+          // Note: V1 games use _readZStringVersion1And2, not this function,
+          // so we don't need a V1-specific check here.
           s.write(defaultTable[currentAlphabet][char - 6]);
           currentAlphabet = ZSCII.a0;
         }
@@ -417,14 +412,8 @@ class ZSCII {
   ///
   /// Call [ZSCII.readZStringAndPop(...)] if you want the pop
   /// to happen automatically after the read.
-  static String readZString(
-    int fromAddress, [
-    bool abbreviationLookup = false,
-  ]) {
-    final str = _stringReaderMap[Z.engine.version]!(
-      fromAddress,
-      abbreviationLookup,
-    );
+  static String readZString(int fromAddress, [bool abbreviationLookup = false]) {
+    final str = _stringReaderMap[Z.engine.version]!(fromAddress, abbreviationLookup);
     //print("Read string (abbreviation lookup? $abbreviationLookup): $str");
     return str;
   }
@@ -442,9 +431,7 @@ class ZSCII {
   /// Converts char [c] into an equivalent Z-Character.
   static int charToZChar(String c) {
     if (c.isEmpty || c.length != 1) {
-      throw GameException(
-        'String must be length of 1.  Found ${c.length} in $c.',
-      );
+      throw GameException('String must be length of 1.  Found ${c.length} in $c.');
     }
 
     if (c == '\t') {
@@ -493,9 +480,7 @@ class ZSCII {
           if (unicodeTableAddress > 0) {
             final tableLength = Z.engine.mem.loadb(unicodeTableAddress);
             if (c >= 155 && c < 155 + tableLength) {
-              final unicodeChar = Z.engine.mem.loadw(
-                unicodeTableAddress + 1 + (c - 155) * 2,
-              );
+              final unicodeChar = Z.engine.mem.loadw(unicodeTableAddress + 1 + (c - 155) * 2);
               s.writeCharCode(unicodeChar);
               return s.toString();
             }

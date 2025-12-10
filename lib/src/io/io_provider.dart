@@ -39,6 +39,16 @@ IoCommands toIOCommand(String cmd) {
       return IoCommands.setTextStyle;
     case "IOCommands.SET_COLOUR":
       return IoCommands.setColour;
+    case "IOCommands.ERASE_LINE":
+      return IoCommands.eraseLine;
+    case "IOCommands.GET_CURSOR":
+      return IoCommands.getCursor;
+    case "IOCommands.INPUT_STREAM":
+      return IoCommands.inputStream;
+    case "IOCommands.SOUND_EFFECT":
+      return IoCommands.soundEffect;
+    case "IOCommands.SET_TRUE_COLOUR":
+      return IoCommands.setTrueColour;
     default:
       throw Exception("IOCommand not recognized: $cmd");
   }
@@ -93,4 +103,19 @@ enum IoCommands {
 
   /// The set cursor command.
   setCursor,
+
+  /// The erase line command.
+  eraseLine,
+
+  /// The get cursor command.
+  getCursor,
+
+  /// The input stream command.
+  inputStream,
+
+  /// The sound effect command.
+  soundEffect,
+
+  /// The set true colour command (V5 Standard 1.1+).
+  setTrueColour,
 }
