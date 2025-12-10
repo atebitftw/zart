@@ -86,3 +86,6 @@
 
 # 1.7.2
 - Fixed a repeating text bug with stream 3.
+
+# 1.7.3
+- Reverted 1.7.2
