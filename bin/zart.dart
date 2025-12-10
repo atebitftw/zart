@@ -36,18 +36,14 @@ void main(List<String> args) async {
       exit(1);
     }
 
+    // Set IoProvider before loading so visitHeader() can read flags
+    Z.io = ConsoleProvider() as IoProvider;
+
     Z.load(gameData);
   } catch (fe) {
     stdout.writeln("Exception occurred while trying to load game: $fe");
     exit(1);
   }
-
-  // This interpreter doesn't support any advanced functions so set the
-  // header flags to reflect that.
-  Header.setFlags1(0);
-  Header.setFlags2(0);
-
-  Z.io = ConsoleProvider() as IoProvider;
 
   //enableDebug enables the other flags (verbose, trace, breakpoints, etc)
   Debugger.enableDebug = false;
@@ -55,6 +51,9 @@ void main(List<String> args) async {
   Debugger.enableTrace = false;
   Debugger.enableStackTrace = false;
   //Debugger.setBreaks([0x2bfd]);
+
+  stdout.writeln(getPreamble().join('\n'));
+  stdout.writeln();
 
   try {
     // Command queue for chained commands (e.g., "get up.take all.north")
@@ -68,13 +67,11 @@ void main(List<String> args) async {
         case ZMachineRunState.needsLineInput:
           // Check if we have queued commands from a previous chained input
           if (commandQueue.isEmpty) {
+            stdout.write('> '); // Prompt on same line as input
             final line = stdin.readLineSync() ?? '';
+            stdout.writeln(); // Blank line after input for visual separation
             // Split by '.' to support chained commands like "get up.take all.n"
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               // Empty input, just submit empty string
               state = await Z.submitLineInput('');
@@ -84,8 +81,11 @@ void main(List<String> args) async {
               state = await Z.submitLineInput(commandQueue.removeFirst());
             }
           } else {
-            // Process next queued command
-            state = await Z.submitLineInput(commandQueue.removeFirst());
+            // Process next queued command - print as if user typed it
+            final cmd = commandQueue.removeFirst();
+            stdout.writeln('> $cmd');
+            stdout.writeln();
+            state = await Z.submitLineInput(cmd);
           }
           break;
         case ZMachineRunState.needsCharInput:
@@ -111,11 +111,84 @@ void main(List<String> args) async {
   }
 }
 
-/// A basic console provider with word-wrap support.
-/// With pump API, this provider only handles output commands (no read commands).
+/// A basic console provider with word-wrap support and quote box handling.
+/// - Suppresses "quote box" content (Window 1 when split_window > 2 lines)
+/// - Uses setCursor to properly position status bar text on single line
+/// - Supports ANSI escape codes for text styling when terminal supports it
 class ConsoleProvider implements IoProvider {
-  final outputBuffer = Queue<String>();
   final int cols = 80;
+
+  // ANSI escape code support
+  final bool _supportsAnsi = stdout.supportsAnsiEscapes;
+
+  // Current text style (Z-Machine bitmask: 0=roman, 1=reverse, 2=bold, 4=italic, 8=fixed)
+  int _currentStyle = 0;
+
+  // Current colors (Z-Machine color codes, 0=current, 1=default)
+  int _foregroundColor = 1;
+  int _backgroundColor = 1;
+
+  // Track split window height to detect quote boxes
+  int _splitWindowLines = 0;
+
+  // Track current window and cursor column for status line positioning
+  int _currentWindow = 0;
+  int _cursorColumn = 0;
+
+  // Status line buffer (single row, fixed-width, filled with spaces)
+  late List<String> _statusLine;
+
+  // Buffer Window 0 output
+  final List<String> _window0Buffer = [];
+
+  ConsoleProvider() {
+    _resetStatusLine();
+  }
+
+  void _resetStatusLine() {
+    _statusLine = List.filled(cols, ' ');
+    _cursorColumn = 0;
+  }
+
+  // ANSI escape code helpers
+  String _getAnsiStyle() {
+    if (!_supportsAnsi || _currentStyle == 0) return '';
+
+    final codes = <String>[];
+    if (_currentStyle & 1 != 0) codes.add('7'); // Reverse video
+    if (_currentStyle & 2 != 0) codes.add('1'); // Bold
+    if (_currentStyle & 4 != 0) codes.add('3'); // Italic
+    // Note: Fixed-pitch (8) doesn't have ANSI equivalent, ignore
+
+    return codes.isEmpty ? '' : '\x1B[${codes.join(";")}m';
+  }
+
+  String _getAnsiReset() {
+    return _supportsAnsi ? '\x1B[0m' : '';
+  }
+
+  // Z-Machine color to ANSI color code mapping (foreground: 30-37, background: 40-47)
+  int _zColorToAnsiFg(int zColor) {
+    // Z-Machine: 2=black, 3=red, 4=green, 5=yellow, 6=blue, 7=magenta, 8=cyan, 9=white
+    const map = {2: 30, 3: 31, 4: 32, 5: 33, 6: 34, 7: 35, 8: 36, 9: 37};
+    return map[zColor] ?? 39; // 39 = default foreground
+  }
+
+  int _zColorToAnsiBg(int zColor) {
+    const map = {2: 40, 3: 41, 4: 42, 5: 43, 6: 44, 7: 45, 8: 46, 9: 47};
+    return map[zColor] ?? 49; // 49 = default background
+  }
+
+  String _getAnsiColor() {
+    if (!_supportsAnsi) return '';
+    if (_foregroundColor <= 1 && _backgroundColor <= 1) return '';
+
+    final codes = <String>[];
+    if (_foregroundColor > 1) codes.add('${_zColorToAnsiFg(_foregroundColor)}');
+    if (_backgroundColor > 1) codes.add('${_zColorToAnsiBg(_backgroundColor)}');
+
+    return codes.isEmpty ? '' : '\x1B[${codes.join(";")}m';
+  }
 
   @override
   Future<dynamic> command(Map<String, dynamic> command) async {
@@ -123,24 +196,56 @@ class ConsoleProvider implements IoProvider {
 
     switch (cmd) {
       case IoCommands.print:
-        output(command['window'], command['buffer']);
+        _bufferOutput(command['window'], command['buffer']);
+        return null;
+      case IoCommands.splitWindow:
+        _splitWindowLines = command['lines'] ?? 0;
+        return null;
+      case IoCommands.setWindow:
+        final newWindow = command['window'] ?? 0;
+        if (_currentWindow == 1 && newWindow == 0) {
+          // Leaving Window 1 - emit status line, then flush Window 0
+          _emitStatusLine();
+          _flushBuffers();
+        } else if (_currentWindow == 0 && newWindow == 1) {
+          // Entering Window 1 - reset status line for new content
+          _resetStatusLine();
+        }
+        _currentWindow = newWindow;
+        return null;
+      case IoCommands.setCursor:
+        // Track cursor column for status line positioning (we ignore row for single-line console)
+        // Engine sends 'line' and 'column' (1-indexed)
+        _cursorColumn = (command['column'] ?? 1) - 1;
+        return null;
+      case IoCommands.setTextStyle:
+        // Z-Machine style bitmask: 0=roman, 1=reverse, 2=bold, 4=italic, 8=fixed
+        _currentStyle = command['style'] ?? 0;
+        return null;
+      case IoCommands.setColour:
+        // Z-Machine color codes: 0=current, 1=default, 2-9=colors
+        _foregroundColor = command['foreground'] ?? 1;
+        _backgroundColor = command['background'] ?? 1;
         return null;
       case IoCommands.status:
-        //TODO format for timed game type as well
-        stdout.writeln(
-          "${command['room_name'].toUpperCase()} Score: ${command['score_one']} / ${command['score_two']}\n",
-        );
+        // V3-style status - format and print directly
+        final roomName = (command['room_name'] ?? '').toString().toUpperCase();
+        final score = 'Score: ${command['score_one']} / ${command['score_two']}';
+        _resetStatusLine();
+        _writeToStatusLine(0, roomName);
+        _writeToStatusLine(cols - score.length, score);
+        _emitStatusLine();
         return null;
       case IoCommands.save:
-        final result = await saveGame(
-          command['file_data']
-              .getRange(1, command['file_data'].length - 1)
-              .toList(),
-        );
+        final result = await saveGame(command['file_data'].getRange(1, command['file_data'].length - 1).toList());
         return result;
       case IoCommands.clearScreen:
-        //no clear console api, so
-        //we just print a bunch of lines
+        _emitStatusLine();
+        _flushBuffers();
+        _resetStatusLine();
+        _currentStyle = 0; // Reset style on clear
+        _foregroundColor = 1;
+        _backgroundColor = 1;
         for (int i = 0; i < 50; i++) {
           stdout.writeln('');
         }
@@ -152,11 +257,113 @@ class ConsoleProvider implements IoProvider {
         debugOutput(command['message']);
         return null;
       case IoCommands.quit:
-        // Handled by pump loop
+        _emitStatusLine();
+        _flushBuffers();
+        stdout.write(_getAnsiReset()); // Reset styling on quit
+        return null;
+      case IoCommands.read:
+      case IoCommands.readChar:
+        // Before input, emit status line (if any) then game text
+        _emitStatusLine();
+        _flushBuffers();
         return null;
       default:
-        // Ignore unhandled commands (setTextStyle, setColour, etc.)
         return null;
+    }
+  }
+
+  @override
+  int getFlags1() {
+    if (!_supportsAnsi) return 0;
+    // Advertise bold, italic, and color support when ANSI is available
+    return Header.flag1V4BoldfaceAvail | Header.flag1V4ItalicAvail | Header.flag1VSColorAvail;
+  }
+
+  void _writeToStatusLine(int column, String text) {
+    for (int i = 0; i < text.length && column + i < cols; i++) {
+      _statusLine[column + i] = text[i];
+    }
+  }
+
+  void _emitStatusLine() {
+    final line = _statusLine.join();
+    if (line.trim().isNotEmpty) {
+      // Status line is bold by default when ANSI is supported
+      if (_supportsAnsi) {
+        stdout.writeln('\x1B[1m$line\x1B[0m');
+      } else {
+        stdout.writeln(line);
+      }
+    }
+    _resetStatusLine();
+  }
+
+  void _bufferOutput(int? windowID, String text) {
+    if (text.isEmpty) return;
+
+    // Filter out STATUS JSON format
+    if (text.startsWith('["STATUS",') && text.endsWith(']')) {
+      return;
+    }
+
+    if (windowID == 1) {
+      // Suppress quote box content (Window 1 when split_window > 2 lines)
+      if (_splitWindowLines > 2) {
+        return; // Skip quote box content
+      }
+      // For 1-2 line Window 1 (status bar), use cursor positioning
+      _writeToStatusLine(_cursorColumn, text.replaceAll('\n', ''));
+      _cursorColumn += text.length;
+    } else {
+      _window0Buffer.add(text);
+    }
+  }
+
+  void _flushBuffers() {
+    // Print Window 0 (game text)
+    for (int i = 0; i < _window0Buffer.length; i++) {
+      var text = _window0Buffer[i];
+      // For the last item, strip trailing prompt to avoid duplicate with our prompt
+      if (i == _window0Buffer.length - 1) {
+        text = text.replaceAll(RegExp(r'[\n\r]*>[\n\r]*$'), '');
+      }
+      if (text.isNotEmpty) {
+        _printWithWordWrap(text);
+      }
+    }
+    _window0Buffer.clear();
+  }
+
+  void _printWithWordWrap(String text) {
+    final stylePrefix = _getAnsiStyle() + _getAnsiColor();
+    final styleReset = (stylePrefix.isNotEmpty) ? _getAnsiReset() : '';
+
+    var lines = text.split('\n');
+    for (final l in lines) {
+      var words = Queue<String>.from(l.split(' '));
+
+      var s = StringBuffer();
+      while (words.isNotEmpty) {
+        var nextWord = words.removeFirst();
+
+        if (s.length > cols) {
+          stdout.writeln('$stylePrefix$s$styleReset');
+          s = StringBuffer();
+          s.write('$nextWord ');
+        } else {
+          if (words.isEmpty) {
+            s.write('$nextWord ');
+            stdout.writeln('$stylePrefix$s$styleReset');
+            s = StringBuffer();
+          } else {
+            s.write('$nextWord ');
+          }
+        }
+      }
+
+      if (s.length > 0) {
+        stdout.writeln('$stylePrefix$s$styleReset');
+      }
     }
   }
 
@@ -205,44 +412,6 @@ class ConsoleProvider implements IoProvider {
     }
 
     return c.future.then((value) => value as List<int>);
-  }
-
-  void output(int? windowID, String text) {
-    if (text.startsWith('["STATUS",') && text.endsWith(']')) {
-      //ignore status line for simple console games
-      return;
-    }
-    var lines = text.split('\n');
-    for (final l in lines) {
-      var words = Queue<String>.from(l.split(' '));
-
-      var s = StringBuffer();
-      while (words.isNotEmpty) {
-        var nextWord = words.removeFirst();
-
-        if (s.length > cols) {
-          outputBuffer.addFirst('$s');
-          stdout.writeln('$s');
-          s = StringBuffer();
-          s.write('$nextWord ');
-        } else {
-          if (words.isEmpty) {
-            s.write('$nextWord ');
-            outputBuffer.addFirst('$s');
-            stdout.writeln('$s');
-            s = StringBuffer();
-          } else {
-            s.write('$nextWord ');
-          }
-        }
-      }
-
-      if (s.length > 0) {
-        outputBuffer.addFirst('$s');
-        stdout.writeln('$s');
-        s = StringBuffer();
-      }
-    }
   }
 
   void debugOutput(String? text) => stdout.writeln(text);

@@ -2,6 +2,17 @@
 abstract class IoProvider {
   /// Sends a command to the provider.
   Future<dynamic> command(Map<String, dynamic> commandMessage);
+
+  /// Returns the flags1 capabilities this provider supports.
+  ///
+  /// Override to declare capabilities (screen split, colors, bold, etc).
+  /// Use constants from [Header] class, e.g.:
+  /// - [Header.flag1V3ScreenSplitAvail] - split window support
+  /// - [Header.flag1VSColorAvail] - color support
+  /// - [Header.flag1V4BoldfaceAvail] - bold text support
+  ///
+  /// Default returns 0 (no capabilities advertised).
+  int getFlags1() => 0;
 }
 
 /// Converts a string to an IO command.

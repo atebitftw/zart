@@ -8,4 +8,7 @@ class MockUIProvider implements IoProvider {
     print('Command received: ${command['command']} ');
     return null;
   }
+
+  @override
+  int getFlags1() => 0;
 }

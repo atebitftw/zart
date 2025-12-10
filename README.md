@@ -5,7 +5,9 @@ Dart Implementation of the Infocom Z-Machine.
 
 ```
 West of House
-You are standing in an open field west of a white house, with a boarded front door. You could circle the house to the north or south.
+You are standing in an open field west of a white house,
+with a boarded front door. You could circle the house to 
+the north or south.
 
 There is a small mailbox here.
 
@@ -20,9 +22,9 @@ Enjoy!
 
 ## Features
 * Plays V3, V5, V7, and V8 games.
-* Supports loading raw game files (.z3, .z5, .z8, .dat, etc).
-* Supports loading .zblorb files, but only uses the game file from the package at this time.
-* Separates the UI implementation from the core interpreter functions, providing extensibility to virtually any platform that Dart runs on (currently Mac, Linux, Windows, and Web).
+* Supports loading different types of game files (.z3, .z5, .z8, .dat, .blorb, .zblorb, etc).
+* Provides an API that allows you to build your own player for any platform that Dart runs on.
+* Comes with a full-featured CLI player.
 
 ## Want to author your own IF games? 
 [Inform 7](https://ganelson.github.io/inform-website/)
@@ -33,15 +35,13 @@ There are Interactive Fiction communities online that can get you started.
 * IFDB: https://www.ifdb.org/  This is a good resource to download and play IF games.
 
 ## How Do I Play Games With This Library
-### CLI
-You can install and run the CLI utility to play games from the command line:
+### CLI Player
+You can install the `zart` CLI player and run it to play games from the command line:
 
 ```bash
 dart pub global activate zart
 zart path/to/minizork.z3
 ```
-
-I would only recommend playing version 3 games with this CLI tool because some of the newer games use special screen features that are not well-supported in a CLI environment.  The good news is that all of the classic games are usually version 3.
 
 ### Zart Web Player
 You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: https://atebitftw.github.io/site/. The player uses the Zart library to play games.
