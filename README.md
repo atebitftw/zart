@@ -34,7 +34,15 @@ Enjoy!
 *As always, use caution when downloading games and files from the Internet.*
 
 ## How do I play games with Zart?
+You'll need a player that uses the Zart library.  I've provided a CLI player and a web player.
+
+### Zart Web Player
+You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: https://atebitftw.github.io/site/. The player uses the Zart library to run the games.
+
+You can get the Zart Web Player source code here: [Zart Web Player On Github](https://github.com/atebitftw/zart-player).
+
 ### CLI Player
+*If you want to see how this works, the source code for the CLI player is included in this package, in either the `bin/` or `example/` directories.*
 
 #### Flutter/Dart SDK Required
 You will need the Flutter/Dart SDK installed on your system to use the CLI player.  You can download it from [Dart SDK Download](https://dart.dev/get-dart) or [Install Flutter](https://docs.flutter.dev/install).  Flutter comes with the Dart SDK.
@@ -43,12 +51,9 @@ You will need the Flutter/Dart SDK installed on your system to use the CLI playe
 You can then install the `zart` CLI player and run it to play games from the command line:
 
 ```bash
-dart pub global activate zart
-zart path/to/minizork.z3
+> dart pub global activate zart
+> zart path/to/minizork.z3
 ```
-
-### Zart Web Player
-You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: https://atebitftw.github.io/site/. The player uses the Zart library to play games.
 
 ### Roll Your Own
 Use the Zart library to build your own player.  You would have to write your own client which would manage the i/o between the player and the interpreter.  The Zart library provides all the necessary functionality.
@@ -56,7 +61,7 @@ Use the Zart library to build your own player.  You would have to write your own
 ## How To Contribute
 Fork. Code. Submit pull request. I'm open to any reasonable submissions.
 
-The interpreter currently only loads the game file from any .blorb/.zblorb file (these are like bundled game files for IF games).  It does not load any of the other resources from the .blorb file, like images, etc, and it ignores any audio/image commands from the game.  So this could be one area to expand on.
+Better support for z-machine v6 (the version we shall not speak of) is always nice.  If loading a .blorb/.zblorb file, the interpreter currently only loads the game file from the file bundle. It does not load any of the other resources from the .blorb file, like images, etc, and it ignores any audio/image commands from the game.  So this could be one area to expand on.
     
 ## Reference Material
 * Z-Machine spec used to develop this library: https://www.inform-fiction.org/zmachine/standards/
