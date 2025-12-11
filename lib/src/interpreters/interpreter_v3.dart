@@ -863,18 +863,36 @@ class InterpreterV3 {
     );
   }
 
-  /// Branches if the first operand is equal to the second.
+  /// Branches if the first operand is equal to any of the others (2OP:1).
+  ///
+  /// ### Z-Machine Spec Reference
+  /// 2OP:1 (je a b c d ?(label))
+  /// In VAR form, can have up to 4 operands. Branches if a equals any of b, c, d.
   void je() {
     //Debugger.verbose('${pcHex(-1)} [je]');
 
+    // In VAR form (opcode >= 193), we can have up to 4 operands
+    // In long form, we have exactly 2 operands
     final operands = mem.loadb(programCounter - 1) < 193
         ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+        : visitOperandsVar(4, true); // Allow up to 4 operands
 
-    branch(
-      MathHelper.toSigned(operands[0].value!) ==
-          MathHelper.toSigned(operands[1].value!),
-    );
+    if (operands.length < 2) {
+      throw GameException('je instruction requires at least 2 operands');
+    }
+
+    final testVal = MathHelper.toSigned(operands[0].value!);
+
+    // Check if testVal equals ANY of the remaining operands
+    bool foundMatch = false;
+    for (int i = 1; i < operands.length; i++) {
+      if (testVal == MathHelper.toSigned(operands[i].value!)) {
+        foundMatch = true;
+        break;
+      }
+    }
+
+    branch(foundMatch);
   }
 
   /// Adds a newline to the output buffer.

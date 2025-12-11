@@ -251,14 +251,27 @@ class GameObject {
   }
 
   /// Gets the property default of the game object.
+  ///
+  /// The property defaults table is at the start of the object table.
+  /// V1-3: 31 word entries (properties 1-31).
+  /// V4+: 63 word entries (properties 1-63).
+  ///
+  /// Returns the default value for the given [propertyNum], which is used
+  /// when an object does not have that property defined.
   static int getPropertyDefault(int propertyNum) {
-    propertyNum -= 1;
-    propertyNum %= 31;
+    // Convert to 0-indexed
+    final index = propertyNum - 1;
 
-    if (propertyNum < 0 || propertyNum > 31) {
-      throw GameException('property number out of bounds (1-31)');
+    // Determine max properties based on version
+    final maxProps = ZMachine.verToInt(Z.engine.version) <= 3 ? 31 : 63;
+
+    if (index < 0 || index >= maxProps) {
+      throw GameException(
+        'property number out of bounds (1-$maxProps): $propertyNum',
+      );
     }
-    return Z.engine.mem.loadw(Z.engine.mem.objectsAddress + (propertyNum * 2));
+
+    return Z.engine.mem.loadw(Z.engine.mem.objectsAddress + (index * 2));
   }
 
   /// Removes the game object from the tree.

@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:zart/src/logging.dart' show log;
+import 'package:logging/logging.dart' show Level;
 import 'package:zart/zart.dart';
 
 /// A basic Console player for Z-Machine using the pump API
 void main(List<String> args) async {
-  log.level = .WARNING;
+  log.level = Level.WARNING;
 
   log.onRecord.listen((record) {
     print(record);

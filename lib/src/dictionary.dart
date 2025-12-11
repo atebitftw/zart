@@ -186,14 +186,6 @@ class Dictionary {
 
       final wordMatchIndex = _entries.indexOf(searchWord);
 
-      // final searchWord = _entries.reversed.firstWhere(
-      //     (entry) => word == entry || (word.length > entry.length)
-      //         ? word.startsWith(entry)
-      //         : entry.startsWith(word),
-      //     orElse: () => "");
-      // final indexOfDictionaryWord =
-      //     searchWord.isEmpty ? -1 : _entries.indexOf(searchWord);
-
       if (wordMatchIndex != -1) {
         final addr = _wordAddress(wordMatchIndex);
         log.fine(
@@ -215,7 +207,6 @@ class Dictionary {
         log.fine(
           "parse() entryLength: $_entryLength, word length: ${searchWord.length}",
         );
-        //log.warning('(word: ${t} not found in dictionary ${entries})');
 
         // byte address of the word in the dictionary (0 if not found)
         parseTable.add(0);

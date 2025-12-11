@@ -101,3 +101,6 @@
 
 # 1.7.7
 - Added missing files.
+
+# 1.7.8
+- Fixed a bug that miscalculated some property lookups in v4+ games.

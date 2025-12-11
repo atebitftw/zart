@@ -575,7 +575,7 @@ class InterpreterV5 extends InterpreterV4 {
     //Debugger.debug('>> $line');
 
     //write the total to the textBuffer (adjust if continuation)
-    mem.storeb(textBuffer - 1, line.length + charCount > 0 ? charCount : 0);
+    mem.storeb(textBuffer - 1, line.length + (charCount > 0 ? charCount : 0));
 
     var zChars = ZSCII.toZCharList(line);
 
@@ -915,7 +915,7 @@ class InterpreterV5 extends InterpreterV4 {
       parseBuffer = null;
     }
 
-    void processLine(String line) async {
+    void processLine(String line) {
       line = line.trim().toLowerCase();
       Z.mostRecentInput = line;
 
@@ -933,10 +933,9 @@ class InterpreterV5 extends InterpreterV4 {
       var tbTotalAddr = textBuffer - 1;
 
       //write the total to the textBuffer (adjust if continuation)
-      mem.storeb(
-        tbTotalAddr,
-        line.length + charCount > 0 ? line.length + charCount : 0,
-      );
+      // Write the character count to the text buffer header (V5+ format)
+      final totalChars = line.length + (charCount > 0 ? charCount : 0);
+      mem.storeb(tbTotalAddr, totalChars);
 
       var zChars = ZSCII.toZCharList(line);
 
@@ -1179,13 +1178,22 @@ class InterpreterV5 extends InterpreterV4 {
     }
   }
 
-  /// Calls a routine.
+  /// Calls a routine with 1 argument, storing result (1OP:8).
+  ///
+  /// ### Z-Machine Spec Reference
+  /// Section 6.4.3: Calling address 0 is legal and returns false.
   void call_1s() {
     //Debugger.verbose('${pcHex(-1)} [call_1s]');
 
     var operand = visitOperandsShortForm();
 
     var storeTo = readb();
+
+    // Per Z-Machine spec 6.4.3: calling routine at address 0 returns false
+    if (operand.value == 0) {
+      writeVariable(storeTo, InterpreterV3.gameFalse);
+      return;
+    }
 
     var returnAddr = programCounter;
 
@@ -1200,7 +1208,10 @@ class InterpreterV5 extends InterpreterV4 {
     callStack.push(returnAddr);
   }
 
-  /// Calls a routine.
+  /// Calls a routine with 2 arguments, storing result (2OP:25).
+  ///
+  /// ### Z-Machine Spec Reference
+  /// Section 6.4.3: Calling address 0 is legal and returns false.
   void call_2s() {
     //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
@@ -1209,6 +1220,12 @@ class InterpreterV5 extends InterpreterV4 {
         : visitOperandsVar(2, false);
 
     var storeTo = readb();
+
+    // Per Z-Machine spec 6.4.3: calling routine at address 0 returns false
+    if (operands[0].value == 0) {
+      writeVariable(storeTo, InterpreterV3.gameFalse);
+      return;
+    }
 
     var returnAddr = programCounter;
 
@@ -1223,11 +1240,19 @@ class InterpreterV5 extends InterpreterV4 {
     callStack.push(returnAddr);
   }
 
-  /// Calls a routine.
+  /// Calls a routine with 1 argument, discarding result (1OP:15).
+  ///
+  /// ### Z-Machine Spec Reference
+  /// Section 6.4.3: Calling address 0 is legal and does nothing.
   void call_1n() {
     //Debugger.verbose('${pcHex(-1)} [call_1n]');
 
     var operand = visitOperandsShortForm();
+
+    // Per Z-Machine spec 6.4.3: calling routine at address 0 does nothing
+    if (operand.value == 0) {
+      return;
+    }
 
     var returnAddr = programCounter;
 
@@ -1242,7 +1267,10 @@ class InterpreterV5 extends InterpreterV4 {
     callStack.push(returnAddr);
   }
 
-  /// Calls a routine.
+  /// Calls a routine with 2 arguments, discarding result (2OP:26).
+  ///
+  /// ### Z-Machine Spec Reference
+  /// Section 6.4.3: Calling address 0 is legal and does nothing.
   void call_2n() {
     //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
@@ -1250,11 +1278,14 @@ class InterpreterV5 extends InterpreterV4 {
         ? visitOperandsLongForm()
         : visitOperandsVar(2, false);
 
+    // Per Z-Machine spec 6.4.3: calling routine at address 0 does nothing
+    if (operands[0].value == 0) {
+      return;
+    }
+
     var resultStore = InterpreterV3.stackMarker;
 
     var returnAddr = programCounter;
-
-    // var addr = unpack(operands[0].value);
 
     //move to the routine address
     programCounter = unpack(operands[0].value!);
