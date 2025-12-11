@@ -113,3 +113,6 @@
 
 # 1.7.11
 - Added support for z5+ readChar expanded values so that IoProvider's can handle things like arrow-keys, etc.
+
+# 1.7.12
+- Fixed a bug in the quetzal save/restore format that was causing some games to not restore properly.

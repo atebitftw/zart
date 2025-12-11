@@ -98,5 +98,33 @@ void main() {
 
       print('Mem Size: $memSize, Save Size: $saveSize');
     });
+
+    test('IFF Header Compliance', () {
+      var pc = 0;
+      var saveBytes = Quetzal.save(pc);
+
+      // Check FORM chunk (0-3)
+      expect(saveBytes[0], equals(0x46)); // F
+      expect(saveBytes[1], equals(0x4F)); // O
+      expect(saveBytes[2], equals(0x52)); // R
+      expect(saveBytes[3], equals(0x4D)); // M
+
+      // Check Size (Bytes 4-7)
+      // Total size - 8
+      var expectedSize = saveBytes.length - 8;
+      // saveBytes is List<int?>, but we know it contains ints.
+      var actualSize =
+          (saveBytes[4]! << 24) |
+          (saveBytes[5]! << 16) |
+          (saveBytes[6]! << 8) |
+          saveBytes[7]!;
+      expect(actualSize, equals(expectedSize));
+
+      // Check IFZS (Bytes 8-11)
+      expect(saveBytes[8], equals(0x49)); // I
+      expect(saveBytes[9], equals(0x46)); // F
+      expect(saveBytes[10], equals(0x5A)); // Z
+      expect(saveBytes[11], equals(0x53)); // S
+    });
   });
 }

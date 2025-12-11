@@ -22,6 +22,7 @@ class Quetzal {
     List<int> saveData = <int>[];
 
     IFF.writeChunk(saveData, Chunk.form);
+    IFF.write4Byte(saveData, 0); // Placeholder for FORM size
     IFF.writeChunk(saveData, Chunk.ifzs);
 
     //associated story file
@@ -115,6 +116,13 @@ class Quetzal {
       saveData.add(0);
     } //pad byte
 
+    // Patch FORM size (Total size - 8 bytes for FORM header and size field)
+    var totalSize = saveData.length - 8;
+    saveData[4] = (totalSize >> 24) & 0xFF;
+    saveData[5] = (totalSize >> 16) & 0xFF;
+    saveData[6] = (totalSize >> 8) & 0xFF;
+    saveData[7] = totalSize & 0xFF;
+
     return saveData;
   }
 
@@ -125,6 +133,8 @@ class Quetzal {
 
     Chunk? nextChunk = IFF.readChunk(fileBytes);
     if (!assertChunk(Chunk.form, nextChunk)) return false;
+
+    IFF.read4Byte(fileBytes); // Skip FORM size
 
     nextChunk = IFF.readChunk(fileBytes);
     if (!assertChunk(Chunk.ifzs, nextChunk)) return false;

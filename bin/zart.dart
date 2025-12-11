@@ -294,11 +294,7 @@ class ConsoleProvider implements IoProvider {
         _emitStatusLine();
         return null;
       case IoCommands.save:
-        return await _saveGame(
-          command['file_data']
-              .getRange(1, command['file_data'].length - 1)
-              .toList(),
-        );
+        return await _saveGame(command['file_data']);
       case IoCommands.clearScreen:
         _resetStatusLine();
         _window0Buffer.clear();
@@ -456,7 +452,9 @@ class ConsoleProvider implements IoProvider {
 
     try {
       stdout.writeln('Restoring game "$fn.sav"...');
-      return File('$fn.sav').readAsBytesSync();
+      final result = File('$fn.sav').readAsBytesSync().toList();
+      print(result.length);
+      return result;
     } catch (_) {
       stderr.writeln('File IO error.');
       return null;
