@@ -98,3 +98,6 @@
 
 # 1.7.6
 - renamed some classes to be more consistent.
+
+# 1.7.7
+- Added missing files.
