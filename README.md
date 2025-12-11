@@ -25,15 +25,16 @@ Enjoy!
 * Provides an API that allows you to build your own player for any platform that Dart runs on.
 * Comes with a full-featured CLI player.
 
-## Want to author your own IF games? 
+## How Can I Author My Own IF Games? 
 [Inform 7](https://ganelson.github.io/inform-website/)
 
-## Where can I find games to play? 
-[IFDB.org](https://www.ifdb.org/).  This is arguably the best resource to find and play IF games.
+## Where Can I Find Games To Play? 
+* **Zork Series:**  Search up "infocom-if . org" for the Zork series.  *Unfortunately I cannot link to it directly in this document because the site is old and still rocking http, not https.*
+* **Many games can be found here:** [IFDB.org](https://www.ifdb.org/)
 
 *As always, use caution when downloading games and files from the Internet.*
 
-## How do I play games with Zart?
+## How Do I Play Games With Zart?
 You'll need a player that uses the Zart library.  I've provided a CLI player and a web player.
 
 ### Zart Web Player
