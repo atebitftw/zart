@@ -205,10 +205,21 @@ class InterpreterV3 {
     }
 
     //PC should be set by restore here
-    Z.callAsync(Z.runIt);
+    // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
+    if (!Z.isPumpMode) {
+      Z.callAsync(Z.runIt);
+    }
   }
 
-  /// Saves the game state to a save file.
+  /// Initiates a save operation.
+  /// Sends an IO command to the Z-Engine to handle the save process.
+  /// ### IO Command
+  /// ```json
+  /// {
+  ///   "command": "save",
+  ///   "file_data": "<save_data>"
+  /// }
+  /// ```
   void save() async {
     if (Z.inInterrupt) {
       return;
@@ -243,7 +254,10 @@ class InterpreterV3 {
       });
       Z.inInterrupt = false;
       if (result) programCounter += offset - 2;
-      Z.callAsync(Z.runIt);
+      // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
+      if (!Z.isPumpMode) {
+        Z.callAsync(Z.runIt);
+      }
     } else {
       final result = await Z.sendIO({
         "command": IoCommands.save,
@@ -251,7 +265,10 @@ class InterpreterV3 {
       });
       Z.inInterrupt = false;
       if (!result) programCounter += offset - 2;
-      Z.callAsync(Z.runIt);
+      // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
+      if (!Z.isPumpMode) {
+        Z.callAsync(Z.runIt);
+      }
     }
   }
 

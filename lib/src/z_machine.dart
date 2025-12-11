@@ -309,8 +309,8 @@ class ZMachine {
       engine.callStack.push(0); // dummy return address
     }
 
-    // Run instructions until we need input or quit
-    while (!quit && _runState == ZMachineRunState.running) {
+    // Run instructions until we need input, quit, or are interrupted (save/restore)
+    while (!quit && !inInterrupt && _runState == ZMachineRunState.running) {
       await engine.visitInstruction();
     }
 
@@ -335,8 +335,8 @@ class ZMachine {
     _runState = ZMachineRunState.running;
     callback(input);
 
-    // Continue running until next input or quit
-    while (!quit && _runState == ZMachineRunState.running) {
+    // Continue running until next input, quit, or interrupted (save/restore)
+    while (!quit && !inInterrupt && _runState == ZMachineRunState.running) {
       await engine.visitInstruction();
     }
 
@@ -361,8 +361,8 @@ class ZMachine {
     _runState = ZMachineRunState.running;
     callback(char);
 
-    // Continue running until next input or quit
-    while (!quit && _runState == ZMachineRunState.running) {
+    // Continue running until next input, quit, or interrupted (save/restore)
+    while (!quit && !inInterrupt && _runState == ZMachineRunState.running) {
       await engine.visitInstruction();
     }
 

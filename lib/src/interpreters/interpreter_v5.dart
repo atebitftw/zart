@@ -4,6 +4,7 @@ import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/math_helper.dart';
 import 'package:zart/src/operand.dart';
 import 'package:zart/src/z_machine.dart';
+import 'package:zart/src/io/quetzal.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/src/zscii.dart';
 
@@ -725,31 +726,111 @@ class InterpreterV5 extends InterpreterV4 {
   /// V5+ extended save opcode (EXT:0).
   /// In V5+, save/restore are store instructions, not branch instructions.
   /// Returns: 0 = failure, 1 = success, 2 = game restored
-  void extSave() {
+  /// ### IO Command
+  /// ```json
+  /// {
+  ///   "command": "save",
+  ///   "file_data": "<save_data>"
+  /// }
+  /// ```
+  void extSave() async {
     //Debugger.verbose('${pcHex(-1)} [ext_save]');
 
-    // EXT save is VAR form with optional operands
-    visitOperandsVar(4, true);
+    if (Z.inInterrupt) {
+      return;
+    }
+
+    Z.inInterrupt = true;
+
+    // EXT save is VAR form with optional operands (table, bytes, name - for partial saves)
+    final operands = visitOperandsVar(4, true);
+
+    // Save PC BEFORE reading resultTo, so restore can re-read it to know where to store result 2
+    final savePC = programCounter;
     final resultTo = readb();
 
-    // For now, just return 0 (failure) - full implementation requires IO provider
-    // TODO: Implement full save with optional memory region parameters
-    writeVariable(resultTo, 0);
+    // TODO: Handle optional operands for partial memory saves
+    // operands[0] = table address, operands[1] = bytes to save, operands[2] = name
+    if (operands.isNotEmpty && operands[0].value != 0) {
+      log.warning('extSave: partial memory save not yet implemented');
+      Z.inInterrupt = false;
+      writeVariable(resultTo, 0); // Failure
+      return;
+    }
+
+    // Save with PC pointing BEFORE resultTo byte so restore can read it
+    final saveData = Quetzal.save(savePC);
+
+    final result = await Z.sendIO({
+      "command": IoCommands.save,
+      "file_data": saveData,
+    });
+
+    Z.inInterrupt = false;
+
+    // V5+ uses store semantics: 0 = failure, 1 = success
+    writeVariable(resultTo, result == true ? 1 : 0);
+
+    // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
+    if (!Z.isPumpMode) {
+      Z.callAsync(Z.runIt);
+    }
   }
 
   /// V5+ extended restore opcode (EXT:1).
   /// In V5+, save/restore are store instructions, not branch instructions.
-  /// Returns: 0 = failure, or value stored when save was made
-  void extRestore() {
+  /// Returns: 0 = failure, 2 = success (per spec, restore returns 2 to indicate it was restored)
+  /// ### IO Command
+  /// ```json
+  /// {
+  ///   "command": "restore"
+  /// }
+  /// ```
+  void extRestore() async {
     //Debugger.verbose('${pcHex(-1)} [ext_restore]');
 
-    // EXT restore is VAR form with optional operands
-    visitOperandsVar(4, true);
+    if (Z.inInterrupt) {
+      return;
+    }
+
+    Z.inInterrupt = true;
+
+    // EXT restore is VAR form with optional operands (table, bytes, name - for partial restores)
+    final operands = visitOperandsVar(4, true);
     final resultTo = readb();
 
-    // For now, just return 0 (failure) - full implementation requires IO provider
-    // TODO: Implement full restore with optional memory region parameters
-    writeVariable(resultTo, 0);
+    // TODO: Handle optional operands for partial memory restores
+    if (operands.isNotEmpty && operands[0].value != 0) {
+      log.warning('extRestore: partial memory restore not yet implemented');
+      Z.inInterrupt = false;
+      writeVariable(resultTo, 0); // Failure
+      return;
+    }
+
+    final result = await Z.sendIO({"command": IoCommands.restore});
+
+    Z.inInterrupt = false;
+
+    if (result == null) {
+      writeVariable(resultTo, 0); // Failure
+    } else {
+      final restoreResult = Quetzal.restore(result);
+      if (!restoreResult) {
+        writeVariable(resultTo, 0); // Failure
+      } else {
+        // Per Z-Machine spec, after successful restore, store 2 at the resultTo
+        // that was saved in the Quetzal file (PC points after the save instruction)
+        // The Quetzal.restore already set PC appropriately
+        // We need to read the result store byte from where PC now points
+        final restoredResultTo = readb();
+        writeVariable(restoredResultTo, 2); // 2 = restored successfully
+      }
+    }
+
+    // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
+    if (!Z.isPumpMode) {
+      Z.callAsync(Z.runIt);
+    }
   }
 
   /// Saves the undo stack.
@@ -849,7 +930,7 @@ class InterpreterV5 extends InterpreterV4 {
   }
 
   /// Visits an extended instruction.
-  void visitExtendedInstruction() {
+  void visitExtendedInstruction() async {
     // offset the extended instruction by 300 in order to offset it safely from other instructions
     // i.e. extended 1 = 301, extended 2 = 302, etc...
     var i = readb() + 300;
@@ -873,7 +954,7 @@ class InterpreterV5 extends InterpreterV4 {
           Debugger.debugStartAddr = programCounter - 1;
         }
       }
-      ops[i]!();
+      await ops[i]!();
     } else {
       throw GameException('Unsupported EXT Op Code: $i');
     }

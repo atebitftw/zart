@@ -104,3 +104,6 @@
 
 # 1.7.8
 - Fixed a bug that miscalculated some property lookups in v4+ games.
+
+# 1.7.9
+- Added save/restore support for z5+ games.  Interpreters that support save/restore for z3 games will automatically work for z5+ games as well now.
