@@ -93,10 +93,82 @@ void main(List<String> args) async {
           }
           break;
         case ZMachineRunState.needsCharInput:
-          (Z.io as ConsoleProvider).flush(addPrompt: true);
-          final line = stdin.readLineSync() ?? '';
-          final char = line.isEmpty ? '\n' : line[0];
-          state = await Z.submitCharInput(char);
+          (Z.io as ConsoleProvider).flush(addPrompt: false);
+          // Use raw terminal mode for single character input
+          // This allows immediate keypress detection without requiring Enter
+          stdin.echoMode = false;
+          stdin.lineMode = false;
+          final charCode = stdin.readByteSync();
+          String char;
+
+          // Debug: print the byte received (uncomment to diagnose key detection)
+          stderr.writeln(
+            '[DEBUG] charCode: $charCode (0x${charCode.toRadixString(16)})',
+          );
+
+          // Check for escape sequences (arrow keys, function keys, etc.)
+          if (charCode == 0x1B) {
+            // ESC detected - check for CSI sequence (ESC [)
+            final next = stdin.readByteSync();
+            if (next == 0x5B) {
+              // CSI sequence - read the final byte
+              final code = stdin.readByteSync();
+              switch (code) {
+                case 0x41: // ESC [ A = Up arrow
+                  char = String.fromCharCode(129); // ZSCII cursor up
+                  break;
+                case 0x42: // ESC [ B = Down arrow
+                  char = String.fromCharCode(130); // ZSCII cursor down
+                  break;
+                case 0x43: // ESC [ C = Right arrow
+                  char = String.fromCharCode(132); // ZSCII cursor right
+                  break;
+                case 0x44: // ESC [ D = Left arrow
+                  char = String.fromCharCode(131); // ZSCII cursor left
+                  break;
+                default:
+                  char = String.fromCharCode(
+                    0x1B,
+                  ); // Unknown sequence, send ESC
+              }
+            } else {
+              // Not a CSI sequence, just ESC followed by something else
+              char = String.fromCharCode(0x1B);
+            }
+          } else if (charCode == 0xE0 || charCode == 0x00) {
+            // Windows extended key code - arrow keys, function keys, etc.
+            // On Windows console, special keys send 0xE0 (or 0x00) followed by a scan code
+            final scanCode = stdin.readByteSync();
+            switch (scanCode) {
+              case 0x48: // Up arrow
+                char = String.fromCharCode(129); // ZSCII cursor up
+                break;
+              case 0x50: // Down arrow
+                char = String.fromCharCode(130); // ZSCII cursor down
+                break;
+              case 0x4D: // Right arrow
+                char = String.fromCharCode(132); // ZSCII cursor right
+                break;
+              case 0x4B: // Left arrow
+                char = String.fromCharCode(131); // ZSCII cursor left
+                break;
+              default:
+                // Unknown extended key, send empty
+                char = '';
+            }
+          } else if (charCode == 13 || charCode == 10) {
+            // Enter key - ZSCII 13 is newline
+            char = '\n';
+          } else {
+            // Regular character
+            char = String.fromCharCode(charCode);
+          }
+
+          stdin.lineMode = true;
+          stdin.echoMode = true;
+          if (char.isNotEmpty) {
+            state = await Z.submitCharInput(char);
+          }
           break;
         case ZMachineRunState.quit:
         case ZMachineRunState.error:

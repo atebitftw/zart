@@ -480,9 +480,20 @@ class ZSCII {
       return 13;
     } else {
       final cc = c.codeUnitAt(0);
+      // Standard printable ASCII (32-126)
       if (cc >= 32 && cc <= 126) {
         return cc;
-      } else if (cc >= 155 && cc <= 223) {
+      }
+      // ZSCII input-only codes (cursor keys, function keys: 129-154)
+      // These have no Unicode representation; the IO provider sends them
+      // as their raw ZSCII values embedded in a single-char string.
+      // Cursor Up=129, Down=130, Left=131, Right=132
+      // Keypad 0-9 = 145-154, F1-F12 = 133-144
+      if (cc >= 129 && cc <= 154) {
+        return cc;
+      }
+      // Extended ZSCII characters (155-223)
+      if (cc >= 155 && cc <= 223) {
         return cc;
       }
     }

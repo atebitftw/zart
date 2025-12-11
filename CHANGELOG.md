@@ -110,3 +110,6 @@
 
 # 1.7.10
 - Fixed a save/restore bug in the console player.  Files now save in the current directory.
+
+# 1.7.11
+- Added support for z5+ readChar expanded values so that IoProvider's can handle things like arrow-keys, etc.

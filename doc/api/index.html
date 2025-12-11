@@ -64,27 +64,33 @@ There is a small mailbox here.
 <li>Provides an API that allows you to build your own player for any platform that Dart runs on.</li>
 <li>Comes with a full-featured CLI player.</li>
 </ul>
-<h2 id="want-to-author-your-own-if-games">Want to author your own IF games?</h2>
+<h2 id="how-can-i-author-my-own-if-games">How Can I Author My Own IF Games?</h2>
 <p><a href="https://ganelson.github.io/inform-website/">Inform 7</a></p>
-<h2 id="where-can-i-find-games-to-play">Where can I find games to play?</h2>
-<p><a href="https://www.ifdb.org/">IFDB.org</a>.  This is arguably the best resource to find and play IF games.</p>
+<h2 id="where-can-i-find-games-to-play">Where Can I Find Games To Play?</h2>
+<ul>
+<li><strong>Zork Series:</strong>  Search up "infocom-if . org" for the Zork series.  <em>Unfortunately I cannot link to it directly in this document because the site is old and still rocking http, not https.</em></li>
+<li><strong>Many games can be found here:</strong> <a href="https://www.ifdb.org/">IFDB.org</a></li>
+</ul>
 <p><em>As always, use caution when downloading games and files from the Internet.</em></p>
-<h2 id="how-do-i-play-games-with-zart">How do I play games with Zart?</h2>
+<h2 id="how-do-i-play-games-with-zart">How Do I Play Games With Zart?</h2>
+<p>You'll need a player that uses the Zart library.  I've provided a CLI player and a web player.</p>
+<h3 id="zart-web-player">Zart Web Player</h3>
+<p>You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: <a href="https://atebitftw.github.io/site/">https://atebitftw.github.io/site/</a>. The player uses the Zart library to run the games.</p>
+<p>You can get the Zart Web Player source code here: <a href="https://github.com/atebitftw/zart-player">Zart Web Player On Github</a>.</p>
 <h3 id="cli-player">CLI Player</h3>
+<p><em>If you want to see how this works, the source code for the CLI player is included in this package, in either the <code>bin/</code> or <code>example/</code> directories.</em></p>
 <h4 id="flutterdart-sdk-required">Flutter/Dart SDK Required</h4>
 <p>You will need the Flutter/Dart SDK installed on your system to use the CLI player.  You can download it from <a href="https://dart.dev/get-dart">Dart SDK Download</a> or <a href="https://docs.flutter.dev/install">Install Flutter</a>.  Flutter comes with the Dart SDK.</p>
 <h4 id="installation">Installation</h4>
 <p>You can then install the <code>zart</code> CLI player and run it to play games from the command line:</p>
-<pre class="language-bash"><code class="language-bash">dart pub global activate zart
-zart path/to/minizork.z3
+<pre class="language-bash"><code class="language-bash">&gt; dart pub global activate zart
+&gt; zart path/to/minizork.z3
 </code></pre>
-<h3 id="zart-web-player">Zart Web Player</h3>
-<p>You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: <a href="https://atebitftw.github.io/site/">https://atebitftw.github.io/site/</a>. The player uses the Zart library to play games.</p>
 <h3 id="roll-your-own">Roll Your Own</h3>
 <p>Use the Zart library to build your own player.  You would have to write your own client which would manage the i/o between the player and the interpreter.  The Zart library provides all the necessary functionality.</p>
 <h2 id="how-to-contribute">How To Contribute</h2>
 <p>Fork. Code. Submit pull request. I'm open to any reasonable submissions.</p>
-<p>The interpreter currently only loads the game file from any .blorb/.zblorb file (these are like bundled game files for IF games).  It does not load any of the other resources from the .blorb file, like images, etc, and it ignores any audio/image commands from the game.  So this could be one area to expand on.</p>
+<p>Better support for z-machine v6 (the version we shall not speak of) is always nice.  If loading a .blorb/.zblorb file, the interpreter currently only loads the game file from the file bundle. It does not load any of the other resources from the .blorb file, like images, etc, and it ignores any audio/image commands from the game.  So this could be one area to expand on.</p>
 <h2 id="reference-material">Reference Material</h2>
 <ul>
 <li>Z-Machine spec used to develop this library: <a href="https://www.inform-fiction.org/zmachine/standards/">https://www.inform-fiction.org/zmachine/standards/</a></li>
@@ -131,7 +137,7 @@ zart path/to/minizork.z3
 <footer>
   <span class="no-break">
     zart
-      1.7.8+5
+      1.7.11
   </span>
   
 </footer>
