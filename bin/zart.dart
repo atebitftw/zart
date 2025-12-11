@@ -365,9 +365,7 @@ class ConsoleProvider implements IoProvider {
 
     try {
       stdout.writeln('Saving game "$fn.sav".');
-      File(
-        'games${Platform.pathSeparator}$fn.sav',
-      ).writeAsBytesSync(saveBytes!);
+      File('$fn.sav').writeAsBytesSync(saveBytes!);
       return true;
     } catch (_) {
       stderr.writeln('File IO error.');
@@ -386,7 +384,7 @@ class ConsoleProvider implements IoProvider {
 
     try {
       stdout.writeln('Restoring game "$fn.sav"...');
-      return File('games${Platform.pathSeparator}$fn.sav').readAsBytesSync();
+      return File('$fn.sav').readAsBytesSync();
     } catch (_) {
       stderr.writeln('File IO error.');
       return null;

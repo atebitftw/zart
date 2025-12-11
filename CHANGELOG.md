@@ -107,3 +107,6 @@
 
 # 1.7.9
 - Added save/restore support for z5+ games.  Interpreters that support save/restore for z3 games will automatically work for z5+ games as well now.
+
+# 1.7.10
+- Fixed a save/restore bug in the console player.  Files now save in the current directory.
