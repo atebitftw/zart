@@ -70,11 +70,7 @@ void main(List<String> args) async {
             final line = stdin.readLineSync() ?? '';
             stdout.writeln(); // Blank line after input for visual separation
             // Split by '.' to support chained commands like "get up.take all.n"
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               // Empty input, just submit empty string
               state = await Z.submitLineInput('');
@@ -126,9 +122,7 @@ void main(List<String> args) async {
                   char = String.fromCharCode(131); // ZSCII cursor left
                   break;
                 default:
-                  char = String.fromCharCode(
-                    0x1B,
-                  ); // Unknown sequence, send ESC
+                  char = String.fromCharCode(0x1B); // Unknown sequence, send ESC
               }
             } else {
               // Not a CSI sequence, just ESC followed by something else
@@ -214,7 +208,8 @@ class ConsoleProvider implements IoProvider {
 
   // Status line buffer (fixed width, filled with spaces)
   late List<String> _statusLine;
-  int _cursorColumn = 0;
+  int _cursorRow = 1;
+  int _cursorColumn = 1;
 
   // Buffer for Window 0 output
   final List<String> _window0Buffer = [];
@@ -225,7 +220,8 @@ class ConsoleProvider implements IoProvider {
 
   void _resetStatusLine() {
     _statusLine = List.filled(cols, ' ');
-    _cursorColumn = 0;
+    _cursorRow = 1;
+    _cursorColumn = 1;
   }
 
   // Z-Machine color to ANSI mapping
@@ -276,9 +272,13 @@ class ConsoleProvider implements IoProvider {
         _currentWindow = newWindow;
         return null;
       case IoCommands.setCursor:
-        // Track cursor column for status line positioning
-        _cursorColumn = (command['column'] ?? 1) - 1;
+        // Track cursor row and column for status line positioning
+        _cursorRow = command['line'] ?? 1;
+        _cursorColumn = command['column'] ?? 1;
         return null;
+      case IoCommands.getCursor:
+        // Return current cursor position (1-indexed)
+        return {'row': _cursorRow, 'column': _cursorColumn};
       case IoCommands.setTextStyle:
         _currentStyle = command['style'] ?? 0;
         return null;
@@ -289,8 +289,7 @@ class ConsoleProvider implements IoProvider {
       case IoCommands.status:
         // V3-style status - format and print directly
         final roomName = (command['room_name'] ?? '').toString().toUpperCase();
-        final score =
-            'Score: ${command['score_one']} / ${command['score_two']}';
+        final score = 'Score: ${command['score_one']} / ${command['score_two']}';
         _resetStatusLine();
         _writeToStatusLine(0, roomName);
         _writeToStatusLine(cols - score.length, score);
@@ -332,9 +331,7 @@ class ConsoleProvider implements IoProvider {
   @override
   int getFlags1() {
     if (!_supportsAnsi) return 0;
-    return Header.flag1V4BoldfaceAvail |
-        Header.flag1V4ItalicAvail |
-        Header.flag1VSColorAvail;
+    return Header.flag1V4BoldfaceAvail | Header.flag1V4ItalicAvail | Header.flag1VSColorAvail;
   }
 
   void _writeToStatusLine(int column, String text) {
@@ -363,10 +360,7 @@ class ConsoleProvider implements IoProvider {
     // Always strip trailing prompt content from the buffer to avoid duplication
     // (Z5 games often include their own prompt, which we want to replace with our controlled one)
     // Regex matches a prompt '>' at the start of line/string, followed by optional whitespace and ANSI codes.
-    fullText = fullText.replaceAll(
-      RegExp(r'(?:^|[\n\r]+)>\s*(?:\x1B\[[\d;]*m)*$'),
-      '',
-    );
+    fullText = fullText.replaceAll(RegExp(r'(?:^|[\n\r]+)>\s*(?:\x1B\[[\d;]*m)*$'), '');
 
     if (fullText.isNotEmpty) {
       _printWrapped(fullText);
@@ -386,8 +380,8 @@ class ConsoleProvider implements IoProvider {
     if (windowID == 1) {
       // Skip quote box content (Window 1 when split > 2)
       if (_splitWindowLines > 2) return;
-      // Status window - write to status line buffer at cursor column
-      _writeToStatusLine(_cursorColumn, text.replaceAll('\n', ''));
+      // Status window - write to status line buffer at cursor column (0-indexed for array)
+      _writeToStatusLine(_cursorColumn - 1, text.replaceAll('\n', ''));
       _cursorColumn += text.length;
     } else {
       // Main window - buffer for later
@@ -409,8 +403,7 @@ class ConsoleProvider implements IoProvider {
       var currentLine = StringBuffer();
 
       for (final word in words) {
-        if (currentLine.length + word.length + 1 > cols &&
-            currentLine.isNotEmpty) {
+        if (currentLine.length + word.length + 1 > cols && currentLine.isNotEmpty) {
           stdout.writeln('$prefix${currentLine.toString().trimRight()}$reset');
           currentLine = StringBuffer();
         }
