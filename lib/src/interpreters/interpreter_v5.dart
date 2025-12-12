@@ -88,6 +88,8 @@ class InterpreterV5 extends InterpreterV4 {
     ops[311] = extCheckUnicode; //ext11: check_unicode
     ops[312] = extPrintUnicode; //ext12: print_unicode
     ops[313] = extSetTrueColour; //ext13: set_true_colour (Standard 1.1+)
+    ops[314] = extSoundData; //ext14: sound_data (brancher, for sound queries)
+    ops[330] = extGestalt; //ext30: gestalt (Z-Machine 1.2 spec)
   }
 
   // Kb
@@ -946,6 +948,54 @@ class InterpreterV5 extends InterpreterV4 {
     writeVariable(resultTo, 3);
   }
 
+  /// Queries about sound resource data (EXT:14).
+  ///
+  /// This is a brancher opcode that queries whether a sound resource exists
+  /// or has finished loading. Since we don't support sound resources, we
+  /// always branch false (sound not available).
+  ///
+  /// ### Z-Machine Spec Reference
+  /// EXT:14 (sound_data number ?(label))
+  void extSoundData() {
+    // Read the operand types byte and the operand
+    visitOperandsVar(1, false);
+
+    // We don't support sound resources, so always branch false
+    branch(false);
+  }
+
+  /// Queries interpreter capabilities (EXT:30).
+  ///
+  /// Returns information about the interpreter and Z-Machine implementation.
+  /// This is part of the Z-Machine 1.2 specification.
+  ///
+  /// ### Z-Machine Spec Reference
+  /// EXT:30 (gestalt id arg -> result)
+  ///
+  /// Known gestalt selectors:
+  /// - 1: Return version number (0x0102 = version 1.2)
+  void extGestalt() {
+    final operands = visitOperandsVar(2, true);
+
+    final id = operands.isNotEmpty ? operands[0].value! : 0;
+    // arg is operands[1] if present, currently unused
+
+    final resultTo = readb();
+
+    int result;
+    switch (id) {
+      case 1:
+        // Return interpreter version: 1.1 as per Z-Machine Standard 1.1
+        result = 0x0101;
+        break;
+      default:
+        // Unknown gestalt selector - return 0
+        result = 0;
+    }
+
+    writeVariable(resultTo, result);
+  }
+
   /// Visits an extended instruction.
   void visitExtendedInstruction() async {
     // offset the extended instruction by 300 in order to offset it safely from other instructions
@@ -1146,34 +1196,64 @@ class InterpreterV5 extends InterpreterV4 {
     branch(argCount >= operands[0].value!);
   }
 
-  /// Sets the font.
+  /// Sets the font (EXT:4).
+  ///
+  /// Changes the current font and returns the previous font number.
+  ///
+  /// ### Font Numbers
+  /// - 0: Query current font (no change)
+  /// - 1: Normal (proportional) font
+  /// - 3: Character graphics font (unsupported)
+  /// - 4: Fixed-pitch (monospace) font
+  ///
+  /// ### Z-Machine Spec Reference
+  /// EXT:4 (set_font font -> result)
+  /// Returns previous font, or 0 if requested font unavailable.
   void extSetFont() async {
     //Debugger.verbose('${pcHex(-1)} [ext_set_font]');
 
     var operands = visitOperandsVar(1, false);
+    final resultTo = readb();
 
     final result = await Z.sendIO({
       "command": IoCommands.setFont,
       "font_id": operands[0].value,
     });
 
-    if (result != null) {
-      writeVariable(readb(), int.tryParse(result) ?? 0);
+    // Result should be an int (previous font number, or 0 if not available)
+    if (result is int) {
+      writeVariable(resultTo, result);
+    } else if (result is String) {
+      // Fallback for legacy providers that may return strings
+      writeVariable(resultTo, int.tryParse(result) ?? 0);
     } else {
-      writeVariable(readb(), 0);
+      writeVariable(resultTo, 0);
     }
   }
 
-  /// Sets the cursor.
+  /// Sets the cursor position (VAR:239).
+  ///
+  /// Moves the cursor to the given line and column.
+  /// Per Z-Machine spec 8.7.2.3: This opcode does nothing when the lower
+  /// window (window 0) is selected.
+  ///
+  /// ### Z-Machine Spec Reference
+  /// VAR:239 (set_cursor line column)
+  /// Line and column are 1-indexed.
   void setCursor() async {
     //Debugger.verbose('${pcHex(-1)} [set_cursor]');
 
     final operands = visitOperandsVar(2, false);
 
+    // Per Z-Machine spec 8.7.2.3: do nothing if the lower window is selected
+    if (currentWindow == 0) {
+      return;
+    }
+
     // Flush any pending text before repositioning cursor
     await Z.printBuffer();
 
-    // Z-Machine spec: set_cursor line column (operands[0]=line, operands[1]=column)
+    // Z-Machine spec: set_cursor line column (1-indexed)
     await Z.sendIO({
       "command": IoCommands.setCursor,
       "line": operands[0].value,
@@ -1181,17 +1261,32 @@ class InterpreterV5 extends InterpreterV4 {
     });
   }
 
-  /// Sets the window.
+  /// Sets the current window (VAR:235).
+  ///
+  /// Switches output to the specified window.
+  /// - Window 0: Lower (main) window - scrolling text window
+  /// - Window 1: Upper (status) window - fixed position, non-scrolling
+  ///
+  /// When switching to the upper window (1), the cursor is automatically
+  /// reset to position (1, 1) - the top-left corner.
+  ///
+  /// ### Z-Machine Spec Reference
+  /// VAR:235 (set_window window)
   void setWindow() async {
     //Debugger.verbose('${pcHex(-1)} [set_window]');
     var operands = visitOperandsVar(1, false);
 
     await Z.printBuffer();
 
+    final previousWindow = currentWindow;
     currentWindow = operands[0].value!;
-    //print('[DEBUG set_window] window=$currentWindow');
 
     await Z.sendIO({"command": IoCommands.setWindow, "window": currentWindow});
+
+    // Per Z-Machine spec: Switching to the upper window resets cursor to (1, 1)
+    if (currentWindow != 0 && previousWindow == 0) {
+      await Z.sendIO({"command": IoCommands.setCursor, "line": 1, "column": 1});
+    }
   }
 
   /// Calls a routine.
@@ -1426,24 +1521,48 @@ class InterpreterV5 extends InterpreterV4 {
     callStack.push(returnAddr);
   }
 
-  /// Erases a window.
+  /// Erases a window (VAR:237).
+  ///
+  /// Clears the specified window and resets its cursor.
+  ///
+  /// ### Window ID Values
+  /// - **-2**: Unsplit the screen (closes upper window) and clear all windows
+  /// - **-1**: Clear all windows without changing the split
+  /// - **0**: Clear lower (main) window only
+  /// - **1**: Clear upper (status) window only
+  ///
+  /// ### Z-Machine Spec Reference
+  /// VAR:237 (erase_window window)
+  /// Note: The window ID is treated as a signed value.
   void eraseWindow() async {
     //Debugger.verbose('${pcHex(-1)} [erase_window]');
 
     var operands = visitOperandsVar(1, false);
 
-    await Z.sendIO({
-      "command": IoCommands.clearScreen,
-      "window_id": operands[0].value,
-    });
+    // Convert to signed to handle -1 and -2 properly
+    final windowId = MathHelper.toSigned(operands[0].value!);
+
+    await Z.sendIO({"command": IoCommands.clearScreen, "window_id": windowId});
   }
 
-  /// Splits a window.
+  /// Splits the screen to create an upper window (VAR:234).
+  ///
+  /// Creates or resizes the upper window to have the specified number of lines.
+  /// The upper window is positioned at the top of the screen and does not scroll.
+  /// The lower window (main window) occupies the remaining space below.
+  ///
+  /// ### Behavior
+  /// - If `lines` is 0, the upper window is closed (unsplit)
+  /// - If `lines` is greater than 0, the upper window is created/resized
+  /// - The upper window should be cleared when it is first created or expanded
+  /// - In V3, the upper window is always cleared when split_window is called
+  ///
+  /// ### Z-Machine Spec Reference
+  /// VAR:234 (split_window lines)
   void splitWindow() async {
     //Debugger.verbose('${pcHex(-1)} [split_window]');
 
     var operands = visitOperandsVar(1, false);
-    //print('[DEBUG split_window] lines=${operands[0].value}');
 
     await Z.sendIO({
       "command": IoCommands.splitWindow,

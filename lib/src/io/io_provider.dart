@@ -65,68 +65,140 @@ IoCommands toIOCommand(String cmd) {
   }
 }
 
-/// Enumerates IO Commands
+/// Enumerates IO Commands sent from the Z-Machine to the IO provider.
+///
+/// Each command is sent as a Map with a "command" key containing the IoCommand,
+/// plus additional keys for parameters specific to that command.
 enum IoCommands {
-  /// The split window command.
+  /// Split the screen to create an upper window.
+  ///
+  /// **Parameters:**
+  /// - `lines`: Number of lines for the upper window (0 = close upper window)
   splitWindow,
 
-  /// The set text style command.
+  /// Set the current text style.
+  ///
+  /// **Parameters:**
+  /// - `style`: Bitmask of style flags:
+  ///   - 0 = Roman (clear all styles)
+  ///   - 1 = Reverse video
+  ///   - 2 = Bold
+  ///   - 4 = Italic
+  ///   - 8 = Fixed-pitch (monospace)
   setTextStyle,
 
-  /// The set colour command.
+  /// Set text colors.
+  ///
+  /// **Parameters:**
+  /// - `foreground`: Color code (0=current, 1=default, 2-9=standard colors)
+  /// - `background`: Color code
   setColour,
 
-  /// The print command.
+  /// Print text to the current window.
+  ///
+  /// **Parameters:**
+  /// - `window`: Window number (0=lower, 1=upper)
+  /// - `buffer`: String text to print
   print,
 
-  /// The status command.
+  /// Update the status line (V3 only).
+  ///
+  /// **Parameters:**
+  /// - `game_type`: "SCORE" or "TIME"
+  /// - `room_name`: Current room name
+  /// - `score_one`: Score or hours
+  /// - `score_two`: Turns or minutes
   status,
 
-  /// The clear screen command.
+  /// Clear/erase a window.
+  ///
+  /// **Parameters:**
+  /// - `window_id`: Signed value:
+  ///   - -2 = Clear all windows and unsplit (close upper window)
+  ///   - -1 = Clear all windows
+  ///   - 0 = Clear lower window only
+  ///   - 1 = Clear upper window only
   clearScreen,
 
-  /// The set window command.
+  /// Set the current output window.
+  ///
+  /// **Parameters:**
+  /// - `window`: Window number (0=lower/main, 1=upper/status)
   setWindow,
 
-  /// The set font command.
+  /// Set the current font.
+  ///
+  /// **Parameters:**
+  /// - `font_id`: Font number (1=normal, 4=fixed-pitch)
+  ///
+  /// **Returns:** Previous font number, or 0 if font not available
   setFont,
 
-  /// The save command.
+  /// Save the game state.
+  ///
+  /// **Parameters:**
+  /// - `file_data`: Quetzal save data as bytes
+  ///
+  /// **Returns:** true on success, false on failure
   save,
 
-  /// The restore command.
+  /// Restore the game state.
+  ///
+  /// **Returns:** Quetzal save data bytes, or null on failure/cancel
   restore,
 
-  /// The read command.
+  /// Request line input from the user.
+  ///
+  /// **Returns:** String of user input
   read,
 
-  /// The read char command.
+  /// Request single character input.
+  ///
+  /// **Returns:** String containing single character
   readChar,
 
-  /// The quit command.
+  /// Quit the game.
   quit,
 
-  /// The print debug command.
+  /// Print debug information (internal use).
   printDebug,
 
-  /// The async command.
+  /// Execute an async operation (internal use).
   async,
 
-  /// The set cursor command.
+  /// Set the cursor position in the current window.
+  ///
+  /// **Parameters:**
+  /// - `line`: 1-indexed line number
+  /// - `column`: 1-indexed column number
+  ///
+  /// **Note:** Only valid when upper window is selected.
   setCursor,
 
-  /// The erase line command.
+  /// Erase from cursor to end of line.
   eraseLine,
 
-  /// The get cursor command.
+  /// Get the current cursor position.
+  ///
+  /// **Returns:** Map with `row` and `column` keys (1-indexed)
   getCursor,
 
-  /// The input stream command.
+  /// Select input stream (rarely used).
   inputStream,
 
-  /// The sound effect command.
+  /// Play a sound effect.
+  ///
+  /// **Parameters:**
+  /// - `number`: Sound number (1-2 = bleeps, 3+ = resources)
+  /// - `effect`: Optional (1=prepare, 2=start, 3=stop, 4=finish)
+  /// - `volume`: Optional volume/repeats
+  /// - `routine`: Optional callback routine address
   soundEffect,
 
-  /// The set true colour command (V5 Standard 1.1+).
+  /// Set true colors using 15-bit RGB values (Standard 1.1+).
+  ///
+  /// **Parameters:**
+  /// - `foreground`: 15-bit color (0xFFFE=current, 0xFFFF=default)
+  /// - `background`: 15-bit color
   setTrueColour,
 }

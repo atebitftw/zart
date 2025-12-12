@@ -23,7 +23,13 @@ class InterpreterV4 extends InterpreterV3 {
   // The form is optional (and only used in Version 5?): bit 7 is set for words, clear for bytes:
   // the rest contains the length of each field in the table. (The first word or byte in each field
   // being the one looked at.) Thus $82 is the default.
-  /// Scans a table for a word.
+  /// Scans a table for a value (VAR:247).
+  ///
+  /// Searches table for value x. If found, returns address and branches.
+  /// If not found, returns 0 and doesn't branch.
+  ///
+  /// ### Z-Machine Spec Reference
+  /// VAR:247 (scan_table x table len form -> result)
   void scanTable() {
     //v4 expects only 3 operands, x table len
     final operands = visitOperandsVar(4, true);
@@ -43,50 +49,37 @@ class InterpreterV4 extends InterpreterV3 {
     }
 
     final form = operands[3].value!;
+    final fieldLen = form & 0x7F;
+    final isWord = BinaryHelper.isSet(form, 7);
 
     log.fine(
       "scan_table operands: search: $searchWord, table: $tableAddress, table-length: $tableLength, form: $form",
     );
 
     log.fine(
-      BinaryHelper.isSet(form, 7)
+      isWord
           ? "form is set for word scanning"
           : "form is set for byte scanning",
     );
 
-    if (BinaryHelper.isSet(form, 7)) {
-      log.fine("..word scan");
-      var addr = tableAddress;
-      for (var i = 0; i < tableLength!; i++) {
-        final value = mem.loadw(addr!);
-        if (value == searchWord) {
-          log.fine("...found match");
-          final resultTo = readb();
-          writeVariable(resultTo, addr);
-          branch(true);
-          return;
-        }
-        addr += form & 0x7f; // little trick I picked up from Frotz...
+    // Read the result store byte BEFORE the search
+    final resultTo = readb();
+
+    var addr = tableAddress!;
+    for (var i = 0; i < tableLength!; i++) {
+      final value = isWord ? mem.loadw(addr) : mem.loadb(addr);
+      if (value == searchWord) {
+        log.fine("...found match at addr 0x${addr.toRadixString(16)}");
+        writeVariable(resultTo, addr);
+        branch(true);
+        return;
       }
-    } else {
-      log.fine("..byte scan");
-      //byte scan
-      for (var i = 0; i < tableLength!; i++) {
-        var addr = tableAddress;
-        for (var i = 0; i < tableLength; i++) {
-          final value = mem.loadb(addr!);
-          if (value == searchWord) {
-            log.fine("...found match");
-            final resultTo = readb();
-            writeVariable(resultTo, addr);
-            branch(true);
-            return;
-          }
-          addr += form & 0x7f;
-        }
-      }
+      addr += fieldLen;
     }
 
-    doReturn(0);
+    // Not found - store 0 and don't branch
+    log.fine("...no match found");
+    writeVariable(resultTo, 0);
+    branch(false);
   }
 }
