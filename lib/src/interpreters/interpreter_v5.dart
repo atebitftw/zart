@@ -485,42 +485,59 @@ class InterpreterV5 extends InterpreterV4 {
     });
   }
 
-  /// Copies a table.
+  /// Copies a table (VAR:253).
+  ///
+  /// Per Z-Machine spec:
+  /// - If t2Addr is 0, zeros `size` bytes starting at t1Addr
+  /// - If size is negative, copies abs(size) bytes forward (allowing overlap corruption)
+  /// - If size is positive and tables overlap, copies backward to prevent corruption
+  /// - Beyond Zork uses negative size to fill arrays with spaces
   void copyTable() {
     //Debugger.verbose('${pcHex(-1)} [copy_table]');
 
     var operands = visitOperandsVar(3, false);
 
     int t1Addr = operands[0].value!;
-
     var t2Addr = operands[1].value;
-
-    var size = operands[2].value;
+    var size = MathHelper.toSigned(operands[2].value!);
 
     if (t2Addr == 0) {
-      //write size of 0's into t1
-      mem.storew(t1Addr, size! >> 1);
-      t1Addr += 2;
-      for (int i = 0; i < size; i++) {
-        mem.storeb(t1Addr++, 0);
+      // Zero out abs(size) bytes at t1Addr
+      var absSize = size.abs();
+      Debugger.debug(
+        '>>> Zeroing $absSize bytes at 0x${t1Addr.toRadixString(16)}',
+      );
+      for (int i = 0; i < absSize; i++) {
+        mem.storeb(t1Addr + i, 0);
       }
     } else {
-      var absSize = size!.abs();
-      var t1End = t1Addr + mem.loadw(t1Addr);
-      if (t2Addr! >= t1Addr && t2Addr <= t1End) {
-        //overlap copy...
+      var absSize = size.abs();
+      final dest = t2Addr!; // Non-null destination address
 
-        Debugger.todo(
-          'implement overlap copy: t1 end: 0x${(t1Addr + mem.loadw(t1Addr)).toRadixString(16)}, t2 start: 0x${t2Addr.toRadixString(16)}',
-        );
-      } else {
-        //copy
-        Debugger.debug('>>> Copying $absSize bytes.');
+      // Negative size means copy forward (intentionally allowing overlap corruption)
+      // Positive size means copy safely (backward if destination overlaps source)
+      if (size < 0) {
+        // Forward copy (negative size)
+        Debugger.debug('>>> Copying $absSize bytes forward (size negative)');
         for (int i = 0; i < absSize; i++) {
-          var offset = 2 + i;
-          mem.storeb(t2Addr + offset, mem.loadb(t1Addr + offset));
+          mem.storeb(dest + i, mem.loadb(t1Addr + i));
         }
-        mem.storew(t2Addr, absSize);
+      } else {
+        // Check for overlap: if destination is within source range, copy backward
+        var t1End = t1Addr + absSize;
+        if (dest > t1Addr && dest < t1End) {
+          // Overlap detected - copy backward to prevent corruption
+          Debugger.debug('>>> Overlap copy: $absSize bytes (reverse order)');
+          for (int i = absSize - 1; i >= 0; i--) {
+            mem.storeb(dest + i, mem.loadb(t1Addr + i));
+          }
+        } else {
+          // No overlap or destination before source - copy forward
+          Debugger.debug('>>> Copying $absSize bytes.');
+          for (int i = 0; i < absSize; i++) {
+            mem.storeb(dest + i, mem.loadb(t1Addr + i));
+          }
+        }
       }
     }
   }
@@ -990,6 +1007,15 @@ class InterpreterV5 extends InterpreterV4 {
     if (operands.length >= 2) {
       maxWords = mem.loadb(operands[1].value!);
       parseBuffer = operands[1].value! + 1;
+
+      // Validate maxWords - if it's 0, it might be uninitialized garbage
+      // Beyond Zork has this issue. Use a reasonable default.
+      if (maxWords == 0) {
+        // Check if there's actually a parse buffer address (non-zero)
+        if (operands[1].value! != 0) {
+          maxWords = 8; // Reasonable default for most games
+        }
+      }
     } else {
       // Only text buffer provided - no parsing will occur
       maxWords = null;
@@ -1001,13 +1027,33 @@ class InterpreterV5 extends InterpreterV4 {
       Z.mostRecentInput = line;
 
       var charCount = mem.loadb(textBuffer - 1);
+
+      // Validate charCount - several conditions can indicate garbage data:
+      // 1. charCount >= maxBytes (obviously invalid)
+      // 2. charCount > 0 but first continuation byte isn't a valid printable ZSCII char
+      //    (valid printable chars are roughly 0x20-0x7E)
+      // This handles uninitialized text buffers that contain random data
+      if (charCount > 0 && charCount < maxBytes) {
+        // Check if first "continuation" character is actually printable
+        final firstContChar = mem.loadb(textBuffer);
+        if (firstContChar < 0x20 || firstContChar > 0x7E) {
+          // First char isn't printable ASCII - this is garbage, not real continuation
+          charCount = 0;
+          mem.storeb(textBuffer - 1, 0); // Clear the garbage value
+        }
+      } else if (charCount >= maxBytes) {
+        charCount = 0;
+        mem.storeb(textBuffer - 1, 0); // Clear the garbage value
+      }
+
       if (charCount > 0) {
-        //continuation of previous input
+        //continuation of previous input - reduce available space
         maxBytes -= charCount;
       }
 
-      if (line.length > maxBytes - 1) {
-        line = line.substring(0, maxBytes - 2);
+      // Check if input is too long (should fit in maxBytes chars)
+      if (line.length > maxBytes) {
+        line = line.substring(0, maxBytes);
         log.warning("Truncated line in v5 read(): $line");
       }
 
@@ -1044,7 +1090,6 @@ class InterpreterV5 extends InterpreterV4 {
       //Debugger.verbose('    (tokenized: $tokens)');
 
       var parsed = Z.engine.mem.dictionary.parse(tokens, line);
-      //Debugger.debug('$parsed');
 
       var maxParseBufferBytes = (4 * maxWords) + 2;
 

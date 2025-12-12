@@ -1247,7 +1247,12 @@ class InterpreterV3 {
 
     final resultTo = readb();
 
-    assert(operands[1].value != 0);
+    if (operands[1].value == 0) {
+      // Division by zero is undefined in Z-Machine spec, but Frotz returns 0
+      // to be permissive. We do the same for compatibility with games like Beyond Zork.
+      writeVariable(resultTo, 0);
+      return;
+    }
 
     // final result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
     final result =
@@ -1282,7 +1287,11 @@ class InterpreterV3 {
 
     final resultTo = readb();
 
-    assert(operands[1].peekValue != 0);
+    if (operands[1].peekValue == 0) {
+      // Modulo by zero is undefined in Z-Machine spec. Return 0 for consistency with div().
+      writeVariable(resultTo, 0);
+      return;
+    }
 
     final x = MathHelper.toSigned(operands[0].value!);
     final y = MathHelper.toSigned(operands[1].value!);

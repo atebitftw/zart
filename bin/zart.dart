@@ -96,15 +96,14 @@ void main(List<String> args) async {
           (Z.io as ConsoleProvider).flush(addPrompt: false);
           // Use raw terminal mode for single character input
           // This allows immediate keypress detection without requiring Enter
-          stdin.echoMode = false;
-          stdin.lineMode = false;
+          try {
+            stdin.echoMode = false;
+            stdin.lineMode = false;
+          } catch (_) {
+            // Terminal mode not supported - continue anyway
+          }
           final charCode = stdin.readByteSync();
           String char;
-
-          // Debug: print the byte received (uncomment to diagnose key detection)
-          stderr.writeln(
-            '[DEBUG] charCode: $charCode (0x${charCode.toRadixString(16)})',
-          );
 
           // Check for escape sequences (arrow keys, function keys, etc.)
           if (charCode == 0x1B) {
@@ -164,8 +163,12 @@ void main(List<String> args) async {
             char = String.fromCharCode(charCode);
           }
 
-          stdin.lineMode = true;
-          stdin.echoMode = true;
+          try {
+            stdin.lineMode = true;
+            stdin.echoMode = true;
+          } catch (_) {
+            // Terminal mode not supported - continue anyway
+          }
           if (char.isNotEmpty) {
             state = await Z.submitCharInput(char);
           }
