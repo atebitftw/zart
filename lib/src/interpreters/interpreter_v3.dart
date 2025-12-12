@@ -1475,14 +1475,25 @@ class InterpreterV3 {
     mem.dictionaryAddress = mem.loadw(Header.dictionaryAddr);
     mem.highMemAddress = mem.loadw(Header.highMemStartAddr);
 
-    // Store a screen height (infinite = 255) and width.
-    // Some games want to know out this (Hitchhiker's, for example)
-    mem.storeb(Header.screenHeight, 255);
+    // Store a screen height and width.
+    // Height is capped at 254 (not 255) because 255 means "infinite" and breaks some games.
+    // See ifvms.js reference implementation.
+    mem.storeb(Header.screenHeight, 254);
     mem.storeb(Header.screenWidth, 80);
 
-    // Using interpreter standard version 1.1
-    mem.storeb(Header.revisionNumberN, 1);
-    mem.storeb(Header.revisionNumberM, 1);
+    // For V5+ games, set additional screen/font unit fields
+    // These are words at 0x22 (width units) and 0x24 (height units)
+    // For text-based interpreters, 1 unit = 1 character
+    if (version.index >= ZMachineVersions.v5.index) {
+      mem.storew(Header.screenWidthUnits, 80); // 0x22: screen width in units
+      mem.storew(Header.screenHeightUnits, 254); // 0x24: screen height in units
+      // Font height/width in "units" - set to 1x1 for character-based display
+      mem.storew(Header.fontWidthUnits, 0x0101); // 0x26: both font width and height = 1
+    }
+
+    // Using interpreter standard version 1.2 (matching ifvms.js)
+    // 0x32 is a word: high byte = major, low byte = minor
+    mem.storew(Header.revisionNumberN, 0x0102);
 
     // Get capability flags from IoProvider and merge with existing flags
     final providerFlags = Z.io.getFlags1();
@@ -1490,6 +1501,11 @@ class InterpreterV3 {
     final combinedFlags = currentFlags | providerFlags;
     //print('[DEBUG visitHeader] providerFlags=0x${providerFlags.toRadixString(16)}, currentFlags=0x${currentFlags.toRadixString(16)}, combined=0x${combinedFlags.toRadixString(16)}');
     mem.storeb(Header.flags1, combinedFlags);
+
+    // Flags 2: Clear bits 3, 5, 7 to indicate no character graphics, mouse, or sound effects
+    // This matches ifvms.js: ram.setUint8(0x11, ram.getUint8(0x11) & 0x57)
+    final currentFlags2 = mem.loadb(Header.flags2);
+    mem.storeb(Header.flags2, currentFlags2 & 0x57);
 
     //initialize the game dictionary
     mem.dictionary = Dictionary(address: mem.dictionaryAddress);

@@ -1219,14 +1219,6 @@ class InterpreterV5 extends InterpreterV4 {
 
     // Z-Machine spec: set_cursor line column (1-indexed)
     await Z.sendIO({"command": IoCommands.setCursor, "line": operands[0].value, "column": operands[1].value});
-
-    // QUIRK: Beyond Zork relies on the interpreter updating the cursor position
-    // in the header (0x24=row, 0x25=col) for the upper window.
-    // Standard says don't do this, but we must for compat.
-    if (currentWindow == 1) {
-      mem.storeb(0x24, operands[0].value!);
-      mem.storeb(0x25, operands[1].value!);
-    }
   }
 
   /// Sets the current window (VAR:235).
@@ -1254,10 +1246,6 @@ class InterpreterV5 extends InterpreterV4 {
     // Per Z-Machine spec: Switching to the upper window resets cursor to (1, 1)
     if (currentWindow != 0 && previousWindow == 0) {
       await Z.sendIO({"command": IoCommands.setCursor, "line": 1, "column": 1});
-
-      // QUIRK: Update header for Beyond Zork compat
-      mem.storeb(0x24, 1);
-      mem.storeb(0x25, 1);
     }
   }
 
@@ -1511,15 +1499,6 @@ class InterpreterV5 extends InterpreterV4 {
     final windowId = MathHelper.toSigned(operands[0].value!);
 
     await Z.sendIO({"command": IoCommands.clearScreen, "window_id": windowId});
-
-    // QUIRK: Beyond Zork compat - update header if window 1 is cleared
-    // Window 1 clear moves cursor to (1,1) per spec.
-    if (windowId == 1 || windowId == -1 || windowId == -2) {
-      // Note: -1 and -2 also unsplit or clear all, but resetting cursor header to 1,1
-      // is a safe default if window 1 is subsequently used.
-      mem.storeb(0x24, 1);
-      mem.storeb(0x25, 1);
-    }
   }
 
   /// Splits the screen to create an upper window (VAR:234).
