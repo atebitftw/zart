@@ -7,6 +7,7 @@ import 'package:zart/src/z_machine.dart';
 import 'package:zart/src/io/quetzal.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/src/zscii.dart';
+import 'package:zart/src/dictionary.dart';
 
 /// Implementation of Z-Machine v5
 class InterpreterV5 extends InterpreterV4 {
@@ -160,7 +161,9 @@ class InterpreterV5 extends InterpreterV4 {
   /// ### Z-Machine Spec Reference
   /// 2OP:28 (throw value stack-frame)
   void throwOp() {
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     final value = operands[0].value!;
     final targetFrame = operands[1].value!;
@@ -197,6 +200,7 @@ class InterpreterV5 extends InterpreterV4 {
   /// ### Z-Machine Spec Reference
   /// VAR:238 (erase_line value)
   void eraseLine() async {
+    await Z.printBuffer();
     final operands = visitOperandsVar(1, false);
     final value = operands[0].value!;
 
@@ -214,6 +218,7 @@ class InterpreterV5 extends InterpreterV4 {
   /// ### Z-Machine Spec Reference
   /// VAR:240 (get_cursor array)
   void getCursor() async {
+    await Z.printBuffer();
     final operands = visitOperandsVar(1, false);
     final arrayAddr = operands[0].value!;
 
@@ -241,7 +246,9 @@ class InterpreterV5 extends InterpreterV4 {
     // Currently only keyboard input (stream 0) is supported
     // This is effectively a no-op but we consume the operand
     if (streamNum != 0) {
-      log.warning('input_stream $streamNum requested but only stream 0 (keyboard) is supported');
+      log.warning(
+        'input_stream $streamNum requested but only stream 0 (keyboard) is supported',
+      );
     }
   }
 
@@ -370,7 +377,11 @@ class InterpreterV5 extends InterpreterV4 {
 
     final zchars = <int>[];
 
-    for (int i = 0; i < text.length && zchars.length < (byteCount ~/ 2) * 3; i++) {
+    for (
+      int i = 0;
+      i < text.length && zchars.length < (byteCount ~/ 2) * 3;
+      i++
+    ) {
       final c = text[i];
       final idx = a0.indexOf(c);
 
@@ -429,14 +440,34 @@ class InterpreterV5 extends InterpreterV4 {
 
     await Z.printBuffer();
 
+    // Get start position
+    final cursor = await Z.sendIO({"command": IoCommands.getCursor});
+    final startRow = cursor?['row'] ?? 1;
+    final startCol = cursor?['column'] ?? 1;
+
     var addr = text;
     for (int row = 0; row < height; row++) {
+      final sb = StringBuffer();
       for (int col = 0; col < width; col++) {
         final c = mem.loadb(addr++);
-        Z.sbuff.write(ZSCII.zCharToChar(c));
+        sb.write(ZSCII.zCharToChar(c));
       }
+
+      // Explicitly set cursor for this row
+      await Z.sendIO({
+        "command": IoCommands.setCursor,
+        "line": startRow + row,
+        "column": startCol,
+      });
+
+      // Print the row
+      await Z.sendIO({
+        "command": IoCommands.print,
+        "window": currentWindow,
+        "buffer": sb.toString(),
+      });
+
       if (row < height - 1) {
-        Z.sbuff.write('\n');
         addr += skip;
       }
     }
@@ -466,12 +497,17 @@ class InterpreterV5 extends InterpreterV4 {
   /// ### Z-Machine Spec Reference
   /// EXT:13 (set_true_colour foreground background)
   void extSetTrueColour() async {
+    await Z.printBuffer();
     final operands = visitOperandsVar(2, false);
 
     final foreground = operands[0].value!;
     final background = operands[1].value!;
 
-    await Z.sendIO({"command": IoCommands.setTrueColour, "foreground": foreground, "background": background});
+    await Z.sendIO({
+      "command": IoCommands.setTrueColour,
+      "foreground": foreground,
+      "background": background,
+    });
   }
 
   /// Copies a table (VAR:253).
@@ -493,7 +529,9 @@ class InterpreterV5 extends InterpreterV4 {
     if (t2Addr == 0) {
       // Zero out abs(size) bytes at t1Addr
       var absSize = size.abs();
-      Debugger.debug('>>> Zeroing $absSize bytes at 0x${t1Addr.toRadixString(16)}');
+      Debugger.debug(
+        '>>> Zeroing $absSize bytes at 0x${t1Addr.toRadixString(16)}',
+      );
       for (int i = 0; i < absSize; i++) {
         mem.storeb(t1Addr + i, 0);
       }
@@ -544,23 +582,52 @@ class InterpreterV5 extends InterpreterV4 {
 
     var operands = visitOperandsVar(4, true);
 
-    if (operands.length > 2) {
-      throw GameException("tokenise dictionary argument is not yet support in v5+");
+    // Check for optional dictionary argument (operand 2, 0-indexed)
+    // If provided and non-zero, use it. Otherwise use default game dictionary.
+    Dictionary dict = Z.engine.mem.dictionary;
+    if (operands.length > 2 && operands[2].value! != 0) {
+      int addr = operands[2].value!;
+
+      try {
+        dict = Dictionary(address: addr);
+
+        if (dict.totalEntries == 0) {
+          dict = Dictionary.unsorted(address: addr);
+        }
+      } catch (e) {
+        log.warning("Failed to initialize custom dictionary at $addr: $e");
+        try {
+          dict = Dictionary.unsorted(address: addr);
+        } catch (e2) {
+          log.warning("Failed to initialize unsorted dictionary fallback: $e2");
+        }
+      }
+    } else {
+      // Use default dictionary
     }
+    log.info("tokenise: using default dictionary.");
 
     var maxBytes = mem.loadb(operands[0].value!);
-
-    var textBuffer = operands[0].value! + 2;
 
     var maxWords = mem.loadb(operands[1].value!);
 
     var parseBuffer = operands[1].value! + 1;
 
-    var line = Z.mostRecentInput.toLowerCase();
+    // Read the text from the buffer as per Standard (and reference parity)
+    // instead of relying on Z.mostRecentInput.
+    // Text buffer V5: Byte 0=Max, Byte 1=Length, Bytes 2...=Chars
+    var textBuffer = operands[0].value! + 2;
+    var charCount = mem.loadb(textBuffer - 1);
+
+    // Construct line from ZSCII bytes in buffer
+    StringBuffer sb = StringBuffer();
+    for (int i = 0; i < charCount; i++) {
+      int zc = mem.loadb(textBuffer + i);
+      sb.write(ZSCII.zCharToChar(zc));
+    }
+    var line = sb.toString().toLowerCase();
 
     //Debugger.verbose('    (processing: "$line")');
-
-    var charCount = mem.loadb(textBuffer - 1);
     //Debugger.debug('existing chars: $charCount');
 
     if (charCount > 0) {
@@ -590,19 +657,61 @@ class InterpreterV5 extends InterpreterV4 {
       mem.storeb(textBuffer++, c);
     }
 
-    var tokens = Z.engine.mem.dictionary.tokenize(line);
+    // Check for flag operand (operand 3)
+    bool flag = false;
+    if (operands.length > 3 && operands[3].value != 0) {
+      flag = true;
+      log.info("tokenise: flag is set (do not overwrite unknown words)");
+    }
+
+    var tokens = dict.tokenize(line);
 
     //Debugger.verbose('    (tokenized: $tokens)');
 
-    var parsed = Z.engine.mem.dictionary.parse(tokens, line);
+    var parsed = dict.parse(tokens, line);
 
-    var maxParseBufferBytes = (4 * maxWords) + 2;
+    // Parse buffer format:
+    // Byte 0: Number of words
+    // Then 4-byte blocks for each word:
+    //   Byte 0-1: Address in dictionary (0 if not found)
+    //   Byte 2: Length of word
+    //   Byte 3: Offset in text buffer
 
-    var i = 0;
-    for (final p in parsed) {
-      i++;
-      if (i > maxParseBufferBytes) break;
-      mem.storeb(parseBuffer++, p);
+    // Always update word count
+    if (parsed.isNotEmpty) {
+      mem.storeb(parseBuffer, parsed[0]);
+    }
+
+    int currentByte = 1; // Start after count byte
+    int wordIndex = 0;
+
+    // parsed[0] is count. Words start at parsed[1].
+    // Each word uses 4 bytes in 'parsed'.
+    while (currentByte < parsed.length && wordIndex < maxWords) {
+      int addrHigh = parsed[currentByte];
+      int addrLow = parsed[currentByte + 1];
+      int len = parsed[currentByte + 2];
+      int offset = parsed[currentByte + 3];
+
+      int wordAddr = (addrHigh << 8) | addrLow;
+
+      int parseBufSlot = parseBuffer + 1 + (wordIndex * 4);
+
+      // If flag is set AND word was not found (addr == 0), skip writing
+      if (flag && wordAddr == 0) {
+        // Do not overwrite
+        // We might still want to ensure length/offset are correct?
+        // The standard says "slots are left unchanged".
+        // This implies rely on previous tokenise.
+      } else {
+        mem.storeb(parseBufSlot, addrHigh);
+        mem.storeb(parseBufSlot + 1, addrLow);
+        mem.storeb(parseBufSlot + 2, len);
+        mem.storeb(parseBufSlot + 3, offset);
+      }
+
+      currentByte += 4;
+      wordIndex++;
     }
   }
 
@@ -685,23 +794,34 @@ class InterpreterV5 extends InterpreterV4 {
 
   /// Sets the text style.
   void setTextStyle() async {
+    await Z.printBuffer();
     //Debugger.verbose('${pcHex(-1)} [set_text_style]');
 
     var operands = visitOperandsVar(1, false);
 
-    await Z.sendIO({"command": IoCommands.setTextStyle, "style": operands[0].value});
+    await Z.sendIO({
+      "command": IoCommands.setTextStyle,
+      "style": operands[0].value,
+    });
   }
 
   /// Sets the foreground and background colors.
   /// Opcode 2OP:27 (set_colour).
   void setColour() async {
+    await Z.printBuffer();
     //Debugger.verbose('${pcHex(-1)} [set_colour]');
 
     // Read operands based on opcode byte form (consumes bytes from program stream)
-    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     // Color values: 0=current, 1=default, 2-9=colors, 10+=custom (v6)
-    await Z.sendIO({"command": IoCommands.setColour, "foreground": operands[0].value, "background": operands[1].value});
+    await Z.sendIO({
+      "command": IoCommands.setColour,
+      "foreground": operands[0].value,
+      "background": operands[1].value,
+    });
   }
 
   /// Performs a bitwise NOT operation (VAR form - opcode 248).
@@ -742,8 +862,6 @@ class InterpreterV5 extends InterpreterV4 {
     final savePC = programCounter;
     final resultTo = readb();
 
-    // TODO: Handle optional operands for partial memory saves
-    // operands[0] = table address, operands[1] = bytes to save, operands[2] = name
     if (operands.isNotEmpty && operands[0].value != 0) {
       log.warning('extSave: partial memory save not yet implemented');
       Z.inInterrupt = false;
@@ -754,7 +872,10 @@ class InterpreterV5 extends InterpreterV4 {
     // Save with PC pointing BEFORE resultTo byte so restore can read it
     final saveData = Quetzal.save(savePC);
 
-    final result = await Z.sendIO({"command": IoCommands.save, "file_data": saveData});
+    final result = await Z.sendIO({
+      "command": IoCommands.save,
+      "file_data": saveData,
+    });
 
     Z.inInterrupt = false;
 
@@ -789,7 +910,6 @@ class InterpreterV5 extends InterpreterV4 {
     final operands = visitOperandsVar(4, true);
     final resultTo = readb();
 
-    // TODO: Handle optional operands for partial memory restores
     if (operands.isNotEmpty && operands[0].value != 0) {
       log.warning('extRestore: partial memory restore not yet implemented');
       Z.inInterrupt = false;
@@ -976,7 +1096,9 @@ class InterpreterV5 extends InterpreterV4 {
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
-          Debugger.debug('>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)');
+          Debugger.debug(
+            '>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)',
+          );
           Debugger.debug(Debugger.dumpLocals());
         }
 
@@ -1007,7 +1129,9 @@ class InterpreterV5 extends InterpreterV4 {
     if (operands.length > 2) {
       //TODO implement aread optional args
       log.warning('implement aread optional args');
-      throw GameException("Sorry :( This interpreter doesn't yet support a required feature of this game.");
+      throw GameException(
+        "Sorry :( This interpreter doesn't yet support a required feature of this game.",
+      );
     }
 
     int maxBytes = mem.loadb(operands[0].value!);
@@ -1025,8 +1149,6 @@ class InterpreterV5 extends InterpreterV4 {
       maxWords = mem.loadb(operands[1].value!);
       parseBuffer = operands[1].value! + 1;
 
-      // Validate maxWords - if it's 0, it might be uninitialized garbage
-      // Beyond Zork has this issue. Use a reasonable default.
       if (maxWords == 0) {
         // Check if there's actually a parse buffer address (non-zero)
         if (operands[1].value! != 0) {
@@ -1038,6 +1160,11 @@ class InterpreterV5 extends InterpreterV4 {
       maxWords = null;
       parseBuffer = null;
     }
+
+    // V5 read (aread) operands: text, parse, time, routine.
+    // There is NO dictionary argument in V5 read.
+    // The Standard Dictionary is always used.
+    Dictionary dict = Z.engine.mem.dictionary;
 
     void processLine(String line) {
       line = line.trim().toLowerCase();
@@ -1091,7 +1218,8 @@ class InterpreterV5 extends InterpreterV4 {
         mem.storeb(textBuffer++, c);
       }
 
-      var tokens = Z.engine.mem.dictionary.tokenize(line);
+      // Use the selected dictionary for tokenization
+      var tokens = dict.tokenize(line);
 
       log.fine("got tokens $tokens in v5 read()");
 
@@ -1106,7 +1234,8 @@ class InterpreterV5 extends InterpreterV4 {
 
       //Debugger.verbose('    (tokenized: $tokens)');
 
-      var parsed = Z.engine.mem.dictionary.parse(tokens, line);
+      // Use the selected dictionary for parsing
+      var parsed = dict.parse(tokens, line);
 
       var maxParseBufferBytes = (4 * maxWords) + 2;
 
@@ -1177,12 +1306,16 @@ class InterpreterV5 extends InterpreterV4 {
   /// EXT:4 (set_font font -> result)
   /// Returns previous font, or 0 if requested font unavailable.
   void extSetFont() async {
+    await Z.printBuffer();
     //Debugger.verbose('${pcHex(-1)} [ext_set_font]');
 
     var operands = visitOperandsVar(1, false);
     final resultTo = readb();
 
-    final result = await Z.sendIO({"command": IoCommands.setFont, "font_id": operands[0].value});
+    final result = await Z.sendIO({
+      "command": IoCommands.setFont,
+      "font_id": operands[0].value,
+    });
 
     // Result should be an int (previous font number, or 0 if not available)
     if (result is int) {
@@ -1218,7 +1351,11 @@ class InterpreterV5 extends InterpreterV4 {
     await Z.printBuffer();
 
     // Z-Machine spec: set_cursor line column (1-indexed)
-    await Z.sendIO({"command": IoCommands.setCursor, "line": operands[0].value, "column": operands[1].value});
+    await Z.sendIO({
+      "command": IoCommands.setCursor,
+      "line": operands[0].value,
+      "column": operands[1].value,
+    });
   }
 
   /// Sets the current window (VAR:235).
@@ -1396,7 +1533,9 @@ class InterpreterV5 extends InterpreterV4 {
   void call_2s() {
     //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
-    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     var storeTo = readb();
 
@@ -1453,7 +1592,9 @@ class InterpreterV5 extends InterpreterV4 {
   void call_2n() {
     //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
-    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193
+        ? visitOperandsLongForm()
+        : visitOperandsVar(2, false);
 
     // Per Z-Machine spec 6.4.3: calling routine at address 0 does nothing
     if (operands[0].value == 0) {
@@ -1491,6 +1632,7 @@ class InterpreterV5 extends InterpreterV4 {
   /// VAR:237 (erase_window window)
   /// Note: The window ID is treated as a signed value.
   void eraseWindow() async {
+    await Z.printBuffer();
     //Debugger.verbose('${pcHex(-1)} [erase_window]');
 
     var operands = visitOperandsVar(1, false);
@@ -1516,11 +1658,15 @@ class InterpreterV5 extends InterpreterV4 {
   /// ### Z-Machine Spec Reference
   /// VAR:234 (split_window lines)
   void splitWindow() async {
+    await Z.printBuffer();
     //Debugger.verbose('${pcHex(-1)} [split_window]');
 
     var operands = visitOperandsVar(1, false);
 
-    await Z.sendIO({"command": IoCommands.splitWindow, "lines": operands[0].value});
+    await Z.sendIO({
+      "command": IoCommands.splitWindow,
+      "lines": operands[0].value,
+    });
   }
 
   /// Reads a character.

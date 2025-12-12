@@ -178,9 +178,6 @@ void main() {
     //    Debugger.debug('${Z.machine.mem.dump(callAddr, 20)}');
 
     Z.callAsync(Z.runIt);
-
-    //TODO figure this out
-    //callbackDone();
   }
 
   void restoreRoutine() {

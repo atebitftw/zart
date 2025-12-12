@@ -3,11 +3,6 @@ import 'dart:math';
 import 'package:zart/src/game_object.dart';
 import 'package:zart/zart.dart';
 
-/// Loads a story file into the [Z] machine.
-void loadStoryFile(String pathToFile) {
-  throw "Not implemented.";
-}
-
 /// Returns a string containing a pretty-print visual tree of game objects.
 /// This function crawls the tree structure until all objects have been found
 /// although there is the possibility that some orphaned objects may not be

@@ -301,7 +301,7 @@ class Debugger {
       'Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n',
     );
     s.write('Checksum Of File: ${Z.engine.mem.loadw(Header.checkSumOfFile)}\n');
-    //TODO v4+ header stuff here
+
     s.write(
       'Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n',
     );

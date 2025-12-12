@@ -33,6 +33,7 @@
 # me
 tool/ai_testing/
 gemini.md
+packages/
 
 # Android related
 **/android/**/gradle-wrapper.jar

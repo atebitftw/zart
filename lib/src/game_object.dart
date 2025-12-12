@@ -402,9 +402,6 @@ flags: $s
     // 9 or 14 bytes per object (ref 12.3.1)
     objStart += (id! - 1) * (ZMachine.verToInt(Z.engine.version) <= 3 ? 9 : 14);
 
-    //TODO find a better check (this doesn't work in minizork)
-    //if (objStart > Z.machine.mem.loadw(Header.GLOBAL_VARS_TABLE_ADDR)) return 0;
-
     return objStart;
   }
 

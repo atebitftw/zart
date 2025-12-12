@@ -10,6 +10,13 @@ class Dictionary {
     _initDictionary(address);
   }
 
+  /// Initializes a Dictionary treating the data at [address] as an unsorted table
+  /// of words (count word followed by entries).
+  Dictionary.unsorted({required int address}) {
+    _address = address;
+    _initUnsorted();
+  }
+
   bool _isIntialized = false;
   List<String> _entries = <String>[];
 
@@ -139,6 +146,28 @@ class Dictionary {
     }
   }
 
+  void _initUnsorted() {
+    // Use standard entry bytes for the version
+    _entryLength = entryBytes;
+
+    // Read 2-byte count
+    final entryCount = Z.engine.mem.loadw(_address);
+
+    _entries = List<String>.filled(entryCount, "");
+
+    // Entries start immediately after the 2-byte count
+    _entriesStartAddress = _address + 2;
+
+    for (int i = 0; i < entryCount; i++) {
+      _entries[i] = ZSCII.readByteLimited(
+        _entriesStartAddress + (i * _entryLength),
+        _entryLength,
+      );
+    }
+
+    _isIntialized = true;
+  }
+
   // Initializes ths Dictionary
   void _initDictionary(int? address) {
     if (_isIntialized) {
@@ -188,9 +217,8 @@ class Dictionary {
 
       if (wordMatchIndex != -1) {
         final addr = _wordAddress(wordMatchIndex);
-        log.fine(
-          'parse() (found word: "$tokenizedWord ($searchWord)" in dictionary as "${_entries[wordMatchIndex]}"'
-          ' at address 0x${addr.toRadixString(16)}) ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()}',
+        log.info(
+          'parse() FOUND "$tokenizedWord" ($searchWord)" in dict (addr 0x${addr.toRadixString(16)})',
         );
 
         // byte address of the word in the dictionary
@@ -200,9 +228,8 @@ class Dictionary {
 
         parseTable.add(tokenizedWord.length);
       } else {
-        log.fine(
-          'parse() (word: $tokenizedWord ($searchWord) not found in dictionary'
-          ' ${_entries.where((e) => e.startsWith(tokenizedWord[0])).toList()})',
+        log.info(
+          'parse() NOT FOUND "$tokenizedWord" ($searchWord) in dict (entries: ${_entries.length})',
         );
         log.fine(
           "parse() entryLength: $_entryLength, word length: ${searchWord.length}",
@@ -213,7 +240,6 @@ class Dictionary {
 
         parseTable.add(0);
 
-        // number of characters in the word
         parseTable.add(tokenizedWord.length);
       }
 
@@ -248,7 +274,7 @@ class Dictionary {
       if (c == ' ' && s.length > 0) {
         tokens.add(s.toString().trim());
         s.clear();
-      } else if (Z.engine.mem.dictionary._separators.contains(c)) {
+      } else if (_separators.contains(c)) {
         if (s.length > 0) {
           tokens.add(s.toString().trim());
           s.clear();

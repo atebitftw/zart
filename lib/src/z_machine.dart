@@ -169,7 +169,9 @@ class ZMachine {
 
     ver = ZMachine.intToVer(rawBytes[Header.version]);
 
-    final result = _supportedEngines.where(((m) => m().version == ver)).toList();
+    final result = _supportedEngines
+        .where(((m) => m().version == ver))
+        .toList();
 
     if (result.length != 1) {
       throw Exception('Z-Machine version $ver not supported.');
@@ -181,10 +183,12 @@ class ZMachine {
 
     engine.mem = MemoryMap(rawBytes);
 
-    engine.visitHeader();
-
-    // Set interpreter number to DECSystem-20 (1) as requested for Flutter player
+    // Set interpreter number to DECSystem-20 (1) to ensure Z-Machine games (like Beyond Zork)
+    // recognize the interpreter and enable color/terminal features.
+    // Defaulting to 0 or story-file values caused "No Color" regression.
     engine.mem.storeb(Header.interpreterNumber, 1);
+
+    engine.visitHeader();
 
     isLoaded = true;
   }
@@ -244,7 +248,10 @@ class ZMachine {
     }
 
     if (inBreak) {
-      await Z.sendIO({"command": IoCommands.printDebug, "message": "<<< DEBUG MODE >>>"});
+      await Z.sendIO({
+        "command": IoCommands.printDebug,
+        "message": "<<< DEBUG MODE >>>",
+      });
       callAsync(Debugger.startBreak);
     }
   }
@@ -265,7 +272,11 @@ class ZMachine {
       //if (text.isNotEmpty) {
       //  print('[PRINT DEBUG] window=${engine.currentWindow} text="${text.replaceAll('\n', '\\n')}"');
       //}
-      await sendIO({"command": IoCommands.print, "window": engine.currentWindow, "buffer": text});
+      await sendIO({
+        "command": IoCommands.print,
+        "window": engine.currentWindow,
+        "buffer": text,
+      });
       sbuff.clear();
     }
   }
@@ -323,7 +334,8 @@ class ZMachine {
   /// Submits line input (for read opcode) and continues execution.
   /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsLineInput].
   Future<ZMachineRunState> submitLineInput(String input) async {
-    if (_pendingLineCallback == null || _runState != ZMachineRunState.needsLineInput) {
+    if (_pendingLineCallback == null ||
+        _runState != ZMachineRunState.needsLineInput) {
       throw Exception('Not waiting for line input');
     }
 
@@ -348,7 +360,8 @@ class ZMachine {
   /// Submits character input (for read_char opcode) and continues execution.
   /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsCharInput].
   Future<ZMachineRunState> submitCharInput(String char) async {
-    if (_pendingCharCallback == null || _runState != ZMachineRunState.needsCharInput) {
+    if (_pendingCharCallback == null ||
+        _runState != ZMachineRunState.needsCharInput) {
       throw Exception('Not waiting for character input');
     }
 

@@ -11,7 +11,6 @@ void main() {
   try {
     Z.load(f.readAsBytesSync());
   } on Exception catch (e) {
-    //TODO log then print friendly
     stdout.writeln('$e');
     exit(1);
   }

@@ -59,7 +59,9 @@
 
     
 <section class="desc markdown">
-  <p>Enumerates IO Commands</p>
+  <p>Enumerates IO Commands sent from the Z-Machine to the IO provider.</p>
+<p>Each command is sent as a Map with a "command" key containing the IoCommand,
+plus additional keys for parameters specific to that command.</p>
 </section>
 
 
@@ -69,8 +71,8 @@
   <dt>Inheritance</dt>
   <dd>
     <ul class="gt-separated dark eNum-relationships">
-      <li><a href="https://api.dart.dev/stable/3.10.3/dart-core/Object-class.html">Object</a></li>
-        <li><a href="https://api.dart.dev/stable/3.10.3/dart-core/Enum-class.html">Enum</a></li>
+      <li><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object-class.html">Object</a></li>
+        <li><a href="https://api.dart.dev/stable/3.10.4/dart-core/Enum-class.html">Enum</a></li>
       <li>IoCommands</li>
     </ul>
   </dd>
@@ -80,7 +82,7 @@
           
   <dt>Available extensions</dt>
   <dd><ul class="comma-separated clazz-relationships">
-      <li><a href="https://api.dart.dev/stable/3.10.3/dart-core/EnumName.html">EnumName</a></li>
+      <li><a href="https://api.dart.dev/stable/3.10.4/dart-core/EnumName.html">EnumName</a></li>
   </ul></dd>
           
 
@@ -98,7 +100,11 @@
 
 </dt>
 <dd>
-  <p>The split window command.</p>
+  <p>Split the screen to create an upper window.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>lines</code>: Number of lines for the upper window (0 = close upper window)</li>
+</ul>
   
 
 </dd>
@@ -110,7 +116,19 @@
 
 </dt>
 <dd>
-  <p>The set text style command.</p>
+  <p>Set the current text style.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>style</code>: Bitmask of style flags:
+<ul>
+<li>0 = Roman (clear all styles)</li>
+<li>1 = Reverse video</li>
+<li>2 = Bold</li>
+<li>4 = Italic</li>
+<li>8 = Fixed-pitch (monospace)</li>
+</ul>
+</li>
+</ul>
   
 
 </dd>
@@ -122,7 +140,12 @@
 
 </dt>
 <dd>
-  <p>The set colour command.</p>
+  <p>Set text colors.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>foreground</code>: Color code (0=current, 1=default, 2-9=standard colors)</li>
+<li><code>background</code>: Color code</li>
+</ul>
   
 
 </dd>
@@ -134,7 +157,12 @@
 
 </dt>
 <dd>
-  <p>The print command.</p>
+  <p>Print text to the current window.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>window</code>: Window number (0=lower, 1=upper)</li>
+<li><code>buffer</code>: String text to print</li>
+</ul>
   
 
 </dd>
@@ -146,7 +174,14 @@
 
 </dt>
 <dd>
-  <p>The status command.</p>
+  <p>Update the status line (V3 only).</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>game_type</code>: "SCORE" or "TIME"</li>
+<li><code>room_name</code>: Current room name</li>
+<li><code>score_one</code>: Score or hours</li>
+<li><code>score_two</code>: Turns or minutes</li>
+</ul>
   
 
 </dd>
@@ -158,7 +193,18 @@
 
 </dt>
 <dd>
-  <p>The clear screen command.</p>
+  <p>Clear/erase a window.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>window_id</code>: Signed value:
+<ul>
+<li>-2 = Clear all windows and unsplit (close upper window)</li>
+<li>-1 = Clear all windows</li>
+<li>0 = Clear lower window only</li>
+<li>1 = Clear upper window only</li>
+</ul>
+</li>
+</ul>
   
 
 </dd>
@@ -170,7 +216,11 @@
 
 </dt>
 <dd>
-  <p>The set window command.</p>
+  <p>Set the current output window.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>window</code>: Window number (0=lower/main, 1=upper/status)</li>
+</ul>
   
 
 </dd>
@@ -182,7 +232,12 @@
 
 </dt>
 <dd>
-  <p>The set font command.</p>
+  <p>Set the current font.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>font_id</code>: Font number (1=normal, 4=fixed-pitch)</li>
+</ul>
+<p><strong>Returns:</strong> Previous font number, or 0 if font not available</p>
   
 
 </dd>
@@ -194,7 +249,12 @@
 
 </dt>
 <dd>
-  <p>The save command.</p>
+  <p>Save the game state.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>file_data</code>: Quetzal save data as bytes</li>
+</ul>
+<p><strong>Returns:</strong> true on success, false on failure</p>
   
 
 </dd>
@@ -206,7 +266,8 @@
 
 </dt>
 <dd>
-  <p>The restore command.</p>
+  <p>Restore the game state.</p>
+<p><strong>Returns:</strong> Quetzal save data bytes, or null on failure/cancel</p>
   
 
 </dd>
@@ -218,7 +279,8 @@
 
 </dt>
 <dd>
-  <p>The read command.</p>
+  <p>Request line input from the user.</p>
+<p><strong>Returns:</strong> String of user input</p>
   
 
 </dd>
@@ -230,7 +292,8 @@
 
 </dt>
 <dd>
-  <p>The read char command.</p>
+  <p>Request single character input.</p>
+<p><strong>Returns:</strong> String containing single character</p>
   
 
 </dd>
@@ -242,7 +305,7 @@
 
 </dt>
 <dd>
-  <p>The quit command.</p>
+  <p>Quit the game.</p>
   
 
 </dd>
@@ -254,7 +317,7 @@
 
 </dt>
 <dd>
-  <p>The print debug command.</p>
+  <p>Print debug information (internal use).</p>
   
 
 </dd>
@@ -266,7 +329,7 @@
 
 </dt>
 <dd>
-  <p>The async command.</p>
+  <p>Execute an async operation (internal use).</p>
   
 
 </dd>
@@ -278,7 +341,13 @@
 
 </dt>
 <dd>
-  <p>The set cursor command.</p>
+  <p>Set the cursor position in the current window.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>line</code>: 1-indexed line number</li>
+<li><code>column</code>: 1-indexed column number</li>
+</ul>
+<p><strong>Note:</strong> Only valid when upper window is selected.</p>
   
 
 </dd>
@@ -290,7 +359,7 @@
 
 </dt>
 <dd>
-  <p>The erase line command.</p>
+  <p>Erase from cursor to end of line.</p>
   
 
 </dd>
@@ -302,7 +371,8 @@
 
 </dt>
 <dd>
-  <p>The get cursor command.</p>
+  <p>Get the current cursor position.</p>
+<p><strong>Returns:</strong> Map with <code>row</code> and <code>column</code> keys (1-indexed)</p>
   
 
 </dd>
@@ -314,7 +384,7 @@
 
 </dt>
 <dd>
-  <p>The input stream command.</p>
+  <p>Select input stream (rarely used).</p>
   
 
 </dd>
@@ -326,7 +396,14 @@
 
 </dt>
 <dd>
-  <p>The sound effect command.</p>
+  <p>Play a sound effect.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>number</code>: Sound number (1-2 = bleeps, 3+ = resources)</li>
+<li><code>effect</code>: Optional (1=prepare, 2=start, 3=stop, 4=finish)</li>
+<li><code>volume</code>: Optional volume/repeats</li>
+<li><code>routine</code>: Optional callback routine address</li>
+</ul>
   
 
 </dd>
@@ -338,7 +415,12 @@
 
 </dt>
 <dd>
-  <p>The set true colour command (V5 Standard 1.1+).</p>
+  <p>Set true colors using 15-bit RGB values (Standard 1.1+).</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>foreground</code>: 15-bit color (0xFFFE=current, 0xFFFF=default)</li>
+<li><code>background</code>: 15-bit color</li>
+</ul>
   
 
 </dd>
@@ -353,8 +435,8 @@
     <h2>Properties</h2>
     <dl class="properties">
         <dt id="hashCode" class="property inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Object/hashCode.html">hashCode</a></span>
-  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.3/dart-core/int-class.html">int</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
   
 
 </dt>
@@ -365,8 +447,8 @@
 </dd>
 
         <dt id="index" class="property inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Enum/index.html">index</a></span>
-  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.3/dart-core/int-class.html">int</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Enum/index.html">index</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
   
 
 </dt>
@@ -377,15 +459,15 @@
 </dd>
 
         <dt id="name" class="property">
-  <span class="name"><a href="https://api.dart.dev/stable/3.10.3/dart-core/EnumName/name.html">name</a></span>
-  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.3/dart-core/String-class.html">String</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/EnumName/name.html">name</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/String-class.html">String</a></span>
   
 
 </dt>
 <dd>
       <p class="from-extension">
-        <span>Available on <a href="https://api.dart.dev/stable/3.10.3/dart-core/Enum-class.html">Enum</a>,
-        provided by the <a href="https://api.dart.dev/stable/3.10.3/dart-core/EnumName.html">EnumName</a> extension</span>
+        <span>Available on <a href="https://api.dart.dev/stable/3.10.4/dart-core/Enum-class.html">Enum</a>,
+        provided by the <a href="https://api.dart.dev/stable/3.10.4/dart-core/EnumName.html">EnumName</a> extension</span>
       </p>
   The name of the enum value.
   <div class="features"><span class="feature">no setter</span></div>
@@ -393,8 +475,8 @@
 </dd>
 
         <dt id="runtimeType" class="property inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Object/runtimeType.html">runtimeType</a></span>
-  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.3/dart-core/Type-class.html">Type</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/Type-class.html">Type</a></span>
   
 
 </dt>
@@ -414,7 +496,7 @@
     <h2>Methods</h2>
     <dl class="callables">
         <dt id="noSuchMethod" class="callable inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
     <span class="returntype parameter">&#8594; dynamic</span>
   </span>
   
@@ -427,8 +509,8 @@
 </dd>
 
         <dt id="toString" class="callable inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.3/dart-core/String-class.html">String</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/String-class.html">String</a></span>
   </span>
   
 
@@ -448,8 +530,8 @@
     <h2>Operators</h2>
     <dl class="callables">
         <dt id="operator ==" class="callable inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.3/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.3/dart-core/bool-class.html">bool</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/bool-class.html">bool</a></span>
   </span>
   
 
@@ -471,7 +553,7 @@
     <dl class="properties">
         <dt id="values" class="constant">
     <span class="name "><a href="../zart/IoCommands/values-constant.html">values</a></span>
-  <span class="signature">&#8594; const <a href="https://api.dart.dev/stable/3.10.3/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../zart/IoCommands.html">IoCommands</a></span>&gt;</span></span>
+  <span class="signature">&#8594; const <a href="https://api.dart.dev/stable/3.10.4/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../zart/IoCommands.html">IoCommands</a></span>&gt;</span></span>
   
 
 </dt>
@@ -506,7 +588,7 @@
 <footer>
   <span class="no-break">
     zart
-      1.7.12+3
+      1.7.13+2
   </span>
   
 </footer>

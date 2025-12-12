@@ -119,3 +119,8 @@
 
 # 1.7.13
 - Fixed some issues with z5+ opcodes and the way that div/0 is handled.
+
+# 1.8.0
+- Fixed a bunch of bugs with ZSCII, Dictionary, and Op Code handling.
+- Completely overhauled the zart console player.  It now uses full ANSI-compliant directives for screen and color support.
+- Added more unit tests.
