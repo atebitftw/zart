@@ -3,7 +3,6 @@ import 'package:zart/src/logging.dart' show log;
 import 'package:logging/logging.dart' show Level;
 import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/src/io/screen_model.dart';
 
 /// A full-screen terminal-based console player for Z-Machine.
 /// Uses ANSI escape codes to manage the entire terminal display,

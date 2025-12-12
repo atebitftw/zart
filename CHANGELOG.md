@@ -124,3 +124,6 @@
 - Fixed a bunch of bugs with ZSCII, Dictionary, and Op Code handling.
 - Completely overhauled the zart console player.  It now uses full ANSI-compliant directives for screen and color support.
 - Added more unit tests.
+
+# 1.8.1
+- Exposed ScreenModel API, which allows custom players to implement their own display logic.
