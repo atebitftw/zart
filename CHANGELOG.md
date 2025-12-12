@@ -117,5 +117,5 @@
 # 1.7.12
 - Fixed a bug in the quetzal save/restore format that was causing some games to not restore properly.
 
-# 1.7.14
+# 1.7.13
 - Fixed some issues with z5+ opcodes and the way that div/0 is handled.
