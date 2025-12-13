@@ -58,7 +58,9 @@ class ScreenModel {
   void _recomputeEffectiveHeight() {
     final newHeight = max(_requestedHeight, _contentHeight);
     if (newHeight != _window1Height) {
-      _log.info('Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight');
+      _log.info(
+        'Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight',
+      );
       _window1Height = newHeight;
       _ensureGridRows(_window1Height);
     }
@@ -193,7 +195,9 @@ class ScreenModel {
   /// Write text to Window 1 at current cursor position.
   void writeToWindow1(String text) {
     // Log simplified text content
-    _log.info('writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol');
+    _log.info(
+      'writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol',
+    );
 
     for (int i = 0; i < text.length; i++) {
       final char = text[i];
@@ -247,11 +251,15 @@ class ScreenModel {
     if (_window1Height > _requestedHeight) {
       final trimmed = text.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        _log.info('Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"');
+        _log.info(
+          'Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"',
+        );
         return;
       }
       if (trimmed.startsWith('[')) {
-        _log.info('Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"');
+        _log.info(
+          'Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"',
+        );
         return;
       }
     }
@@ -292,14 +300,18 @@ class ScreenModel {
           // Hard break if word is longer than entire line width (rare edge case)
           if (currentLine.length >= cols) newLine();
 
-          currentLine.add(Cell(word[i], fg: fgColor, bg: bgColor, style: currentStyle));
+          currentLine.add(
+            Cell(word[i], fg: fgColor, bg: bgColor, style: currentStyle),
+          );
         }
       }
 
       if (space != null) {
         for (int i = 0; i < space.length; i++) {
           if (currentLine.length >= cols) newLine();
-          currentLine.add(Cell(space[i], fg: fgColor, bg: bgColor, style: currentStyle));
+          currentLine.add(
+            Cell(space[i], fg: fgColor, bg: bgColor, style: currentStyle),
+          );
         }
       }
     }
