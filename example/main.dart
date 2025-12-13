@@ -8,17 +8,20 @@ import 'package:zart/zart.dart';
 /// Uses ANSI escape codes to manage the entire terminal display,
 /// similar to text editors like micro, nano, or vim.
 void main(List<String> args) async {
-  log.level = Level.WARNING;
+  log.level = Level.INFO;
 
   // Write logs to file since we can't print in full-screen mode
   // final debugFile = File('debug.txt');
   // debugFile.writeAsStringSync(''); // Clear file
   // log.onRecord.listen((record) {
-  //   debugFile.writeAsStringSync('${record.level.name}: ${record.message}\n', mode: FileMode.append);
+  //   debugFile.writeAsStringSync(
+  //     '${record.level.name}: ${record.message}\n',
+  //     mode: FileMode.append,
+  //   );
   // });
 
   if (args.isEmpty) {
-    stdout.writeln('Usage: dart run main.dart <game>');
+    stdout.writeln('Usage: zart <game>');
     exit(1);
   }
 
@@ -58,9 +61,16 @@ void main(List<String> args) async {
 
   // Handle Ctrl+C to properly exit full-screen mode
   ProcessSignal.sigint.watch().listen((_) {
-    terminal.exitFullScreen();
-    stdout.writeln('Interrupted.');
-    exit(0);
+    try {
+      terminal.exitFullScreen();
+      stdout.writeln('Interrupted.');
+      exit(0);
+    } catch (e, stack) {
+      terminal.exitFullScreen();
+      stdout.writeln('Error: $e');
+      stdout.writeln('Stack Trace: $stack');
+      rethrow;
+    }
   });
 
   try {
@@ -95,7 +105,7 @@ void main(List<String> args) async {
             }
           } else {
             final cmd = commandQueue.removeAt(0);
-            terminal.appendToWindow0('> $cmd\n');
+            terminal.appendToWindow0('$cmd\n');
             state = await Z.submitLineInput(cmd);
           }
           break;
@@ -184,11 +194,15 @@ class TerminalDisplay {
 
   /// Detect terminal size.
   void _detectTerminalSize() {
+    // Standard terminal detection
     try {
       _cols = stdout.terminalColumns;
       _rows = stdout.terminalLines;
+      if (_cols <= 0) _cols = 80;
+      if (_rows <= 0) _rows = 24;
       _screen.resize(_cols, _rows);
     } catch (_) {
+      // Fallback if terminal size detection fails
       _cols = 80;
       _rows = 24;
       _screen.resize(_cols, _rows);
@@ -209,6 +223,9 @@ class TerminalDisplay {
         if (ZMachine.verToInt(Z.ver!) >= 5) {
           Z.engine.mem.storew(0x22, _cols);
           Z.engine.mem.storew(0x24, _rows);
+          // Standardize Units: 1 Unit = 1 Char
+          Z.engine.mem.storeb(0x26, 1);
+          Z.engine.mem.storeb(0x27, 1);
         }
 
         if (oldRows != _rows || oldCols != _cols) {
@@ -520,6 +537,7 @@ class TerminalDisplay {
 
         // Finalize
         appendToWindow0('\n');
+        render();
         _inputBuffer = '';
         _inputLine = -1;
 
@@ -739,10 +757,54 @@ class TerminalProvider implements IoProvider {
       case IoCommands.eraseLine:
         // Erase line in current window?
         // Z-machine standard: erase to end of line.
-        // In window 1: overwrite with spaces.
-        // In window 0: ignore/newline?
-        // We'll leave unimplemented for now or implement in ScreenModel later.
-        // (User said "Erase Line" implementation not critical for now)
+        // We'll leave unimplemented for now.
+        break;
+      case IoCommands.status:
+        // V3 Status Line
+        final room = commandMessage['room_name'] as String;
+        final score1 = commandMessage['score_one'] as String;
+        final score2 = commandMessage['score_two'] as String;
+        final isTime = (commandMessage['game_type'] as String) == 'TIME';
+
+        // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
+        final rightText = isTime
+            ? 'Time: $score1:$score2'
+            : 'Score: $score1 Moves: $score2';
+
+        // Ensure window 1 has at least 1 line
+        if (terminal._screen.window1Height < 1) {
+          terminal.splitWindow(1); // Force 1 line for status
+        }
+
+        // We want to construct a single line of text with padding
+        // But writeToWindow1 writes sequentially.
+        // And we want INVERSE VIDEO.
+
+        // Enable Reverse Video + Bold
+        terminal.setStyle(3); // 1=Reverse + 2=Bold
+
+        // Move to top-left of Window 1
+        terminal.setCursor(1, 1);
+
+        // 1. Write Room Name
+        terminal.writeToWindow1(' $room');
+
+        // 2. Calculate padding
+        final width = terminal._cols;
+        final leftLen = room.length + 1; // +1 for leading space
+        final rightLen =
+            rightText.length + 1; // +1 for trailing space? or just visual?
+        final pad = width - leftLen - rightLen;
+
+        if (pad > 0) {
+          terminal.writeToWindow1(' ' * pad);
+        }
+
+        // 3. Write Score/Time
+        terminal.writeToWindow1('$rightText ');
+
+        // Reset Style
+        terminal.setStyle(0); // 0 = Reset (Roman)
         break;
       default:
         break;

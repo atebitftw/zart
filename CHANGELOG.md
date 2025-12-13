@@ -135,3 +135,6 @@
 # 1.8.3
 - Improved support for z5+ game files that use complex window 1 features, or write outside window 1 bounds.
 - Added more unit tests.
+
+# 1.8.4
+- Removed debugging output.

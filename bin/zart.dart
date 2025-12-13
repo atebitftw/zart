@@ -11,17 +11,17 @@ void main(List<String> args) async {
   log.level = Level.INFO;
 
   // Write logs to file since we can't print in full-screen mode
-  final debugFile = File('debug.txt');
-  debugFile.writeAsStringSync(''); // Clear file
-  log.onRecord.listen((record) {
-    debugFile.writeAsStringSync(
-      '${record.level.name}: ${record.message}\n',
-      mode: FileMode.append,
-    );
-  });
+  // final debugFile = File('debug.txt');
+  // debugFile.writeAsStringSync(''); // Clear file
+  // log.onRecord.listen((record) {
+  //   debugFile.writeAsStringSync(
+  //     '${record.level.name}: ${record.message}\n',
+  //     mode: FileMode.append,
+  //   );
+  // });
 
   if (args.isEmpty) {
-    stdout.writeln('Usage: zart2 <game>');
+    stdout.writeln('Usage: zart <game>');
     exit(1);
   }
 
