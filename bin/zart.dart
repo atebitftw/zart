@@ -1,16 +1,16 @@
 import 'dart:io';
+import 'dart:async';
+import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/logging.dart' show log;
 import 'package:logging/logging.dart' show Level;
 import 'package:zart/src/z_machine.dart';
 import 'package:zart/zart.dart';
 
 /// A full-screen terminal-based console player for Z-Machine.
-/// Uses ANSI escape codes to manage the entire terminal display,
-/// similar to text editors like micro, nano, or vim.
+/// Uses dart_console for cross-platform support.
 void main(List<String> args) async {
   log.level = Level.INFO;
 
-  // Write logs to file since we can't print in full-screen mode
   // final debugFile = File('debug.txt');
   // debugFile.writeAsStringSync(''); // Clear file
   // log.onRecord.listen((record) {
@@ -89,14 +89,10 @@ void main(List<String> args) async {
         case ZMachineRunState.needsLineInput:
           if (commandQueue.isEmpty) {
             terminal.render();
-            final line = terminal.readLine();
+            final line = await terminal.readLine();
             terminal.appendToWindow0('\n');
             // Split by '.' to support chained commands
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {
@@ -111,7 +107,7 @@ void main(List<String> args) async {
           break;
         case ZMachineRunState.needsCharInput:
           terminal.render();
-          final char = terminal.readChar();
+          final char = await terminal.readChar();
           if (char.isNotEmpty) {
             state = await Z.submitCharInput(char);
           }
@@ -125,7 +121,7 @@ void main(List<String> args) async {
 
     terminal.appendToWindow0('\n[Press any key to exit]');
     terminal.render();
-    terminal.readChar();
+    await terminal.readChar();
   } on GameException catch (e) {
     terminal.exitFullScreen();
     log.severe('A game error occurred: $e');
@@ -155,58 +151,73 @@ class TerminalDisplay {
 
   final ScreenModel _screen = ScreenModel();
 
-  // Input state
+  final Console _console = Console();
+
   String _inputBuffer = '';
-  int _inputLine =
-      -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
 
   // ignore: unused_field
   int _inputCol = 0; // Column where input started
 
-  // ANSI support
-  bool get _supportsAnsi => stdout.supportsAnsiEscapes;
+  // ANSI helper via console?
+  bool get _supportsAnsi => true; // dart_console handles this internally usually
+
+  /// Handle input (Not used with dart_console)
+  // void _handleInputData(List<int> codes) { ... }
+
+  // helper to get key string
+  String _keyToString(Key key) {
+    if (key.char.isNotEmpty) return key.char;
+
+    switch (key.controlChar) {
+      case ControlCharacter.enter:
+        return '\n';
+      case ControlCharacter.backspace:
+        return String.fromCharCode(127);
+      case ControlCharacter.arrowUp:
+        return String.fromCharCode(129);
+      case ControlCharacter.arrowDown:
+        return String.fromCharCode(130);
+      case ControlCharacter.arrowLeft:
+        return String.fromCharCode(131);
+      case ControlCharacter.arrowRight:
+        return String.fromCharCode(132);
+      default:
+        return '';
+    }
+  }
 
   /// Enter full-screen mode using alternate screen buffer.
   void enterFullScreen() {
+    // Try to switch to alternate buffer manually
+    stdout.write('\x1B[?1049h');
+
+    _console.rawMode = true;
+    _console.hideCursor();
+    _console.clearScreen();
+
     _detectTerminalSize();
     _screen.resize(_cols, _rows);
-
-    if (_supportsAnsi) {
-      stdout.write('\x1B[?1049h'); // Switch to alternate screen buffer
-      stdout.write(
-        '\x1B[?1h',
-      ); // Enable Application Cursor Keys (for arrow keys)
-      stdout.write('\x1B[?25l'); // Hide cursor
-      stdout.write('\x1B[2J'); // Clear screen
-      stdout.write('\x1B[H'); // Move to home
-    }
     _screen.clearWindow1(); // Init window 1
   }
 
   /// Exit full-screen mode and restore normal terminal.
   void exitFullScreen() {
-    if (_supportsAnsi) {
-      stdout.write('\x1B[?25h'); // Show cursor
-      stdout.write('\x1B[0m'); // Reset styles
-      stdout.write('\x1B[?1049l'); // Switch back to main screen buffer
-    }
+    _console.showCursor();
+    _console.rawMode = false;
+    _console.resetColorAttributes();
+
+    // Switch back to main screen buffer
+    stdout.write('\x1B[?1049l');
   }
 
   /// Detect terminal size.
   void _detectTerminalSize() {
-    // Standard terminal detection
-    try {
-      _cols = stdout.terminalColumns;
-      _rows = stdout.terminalLines;
-      if (_cols <= 0) _cols = 80;
-      if (_rows <= 0) _rows = 24;
-      _screen.resize(_cols, _rows);
-    } catch (_) {
-      // Fallback if terminal size detection fails
-      _cols = 80;
-      _rows = 24;
-      _screen.resize(_cols, _rows);
-    }
+    _cols = _console.windowWidth;
+    _rows = _console.windowHeight;
+    if (_cols <= 0) _cols = 80;
+    if (_rows <= 0) _rows = 24;
+    _screen.resize(_cols, _rows);
 
     // Update Z-Machine Header with screen dimensions (Standard 1.0, 8.4)
     if (Z.isLoaded) {
@@ -229,9 +240,7 @@ class TerminalDisplay {
         }
 
         if (oldRows != _rows || oldCols != _cols) {
-          log.info(
-            'Updated Z-Header ScreenSize: ${_cols}x$_rows (was ${oldCols}x${oldRows})',
-          );
+          log.info('Updated Z-Header ScreenSize: ${_cols}x$_rows (was ${oldCols}x${oldRows})');
         }
       } catch (e) {
         log.warning('Failed to update Z-Header: $e');
@@ -373,11 +382,7 @@ class TerminalDisplay {
     int lastStyle = -1;
 
     // Helper to render a row of cells
-    void renderRow(
-      int screenRow,
-      List<Cell> cells, {
-      required bool forceFullWidth,
-    }) {
+    void renderRow(int screenRow, List<Cell> cells, {required bool forceFullWidth}) {
       buf.write('\x1B[$screenRow;1H'); // Position cursor
 
       // Calculate effective cells
@@ -440,9 +445,7 @@ class TerminalDisplay {
 
     // Render Window 0 (main scrollable content)
     final w0Grid = _screen.window0Grid;
-    final startLine = (w0Grid.length > window0Lines)
-        ? w0Grid.length - window0Lines
-        : 0;
+    final startLine = (w0Grid.length > window0Lines) ? w0Grid.length - window0Lines : 0;
 
     for (int i = 0; i < window0Lines; i++) {
       buf.write('\x1B[$currentRow;1H');
@@ -458,8 +461,7 @@ class TerminalDisplay {
     // Position cursor at end of input line if we're in input mode
     if (_inputLine >= 0 && _inputLine < w0Grid.length) {
       // Calculate which screen row the input line is on
-      final inputScreenRow =
-          _inputLine - startLine + window1Lines + separatorLine + 1;
+      final inputScreenRow = _inputLine - startLine + window1Lines + separatorLine + 1;
       if (inputScreenRow >= 1 && inputScreenRow <= _rows) {
         final cursorCol = w0Grid[_inputLine].length + 1;
         buf.write('\x1B[$inputScreenRow;${cursorCol}H');
@@ -487,73 +489,38 @@ class TerminalDisplay {
   }
 
   /// Read a line of input from the user.
-  String readLine() {
+  Future<String> readLine() async {
     _inputBuffer = '';
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.length - 1
-        : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
-      _screen.appendToWindow0(
-        '',
-      ); // Ensure grid has a line? screen append handles empty?
-      // appendToWindow0 empty does nothing?
-      // We need to force a line if grid empty.
-      // Modifying grid directly is easier here.
+      _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.last.length
-        : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
 
     render();
 
-    try {
-      stdin.echoMode = false;
-      stdin.lineMode = false;
-    } catch (_) {}
-
     while (true) {
-      final byte = stdin.readByteSync();
+      // Blocking read (sync) but in async function
+      final key = _console.readKey();
 
-      // Ctrl+C (3) or Ctrl+Q (17) = exit
-      if (byte == 3 || byte == 17) {
-        _inputLine = -1;
-        try {
-          stdin.lineMode = true;
-          stdin.echoMode = true;
-        } catch (_) {}
-        exitFullScreen();
-        stdout.writeln('Interrupted.');
-        exit(0);
-      }
-
-      if (byte == 13 || byte == 10) {
+      if (key.controlChar == ControlCharacter.enter) {
         // Enter key
         final result = _inputBuffer;
-        // The display grid already has the chars (from incremental updates below)
-        // or simplistic fallback.
-
-        // Finalize
         appendToWindow0('\n');
         render();
         _inputBuffer = '';
         _inputLine = -1;
-
-        try {
-          stdin.lineMode = true;
-          stdin.echoMode = true;
-        } catch (_) {}
         applyPendingWindowShrink();
         return result;
-      } else if (byte == 127 || byte == 8) {
+      } else if (key.controlChar == ControlCharacter.backspace) {
         // Backspace
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) {
               rowList.removeLast();
@@ -561,128 +528,28 @@ class TerminalDisplay {
           }
           render();
         }
-      } else if (byte >= 32 && byte < 127) {
+      } else if (key.char.isNotEmpty) {
         // Printable
-        final char = String.fromCharCode(byte);
+        final char = key.char;
         _inputBuffer += char;
         // Update display grid
-        if (_screen.window0Grid.isNotEmpty &&
-            _inputLine < _screen.window0Grid.length) {
+        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
-            rowList.add(
-              Cell(
-                char,
-                fg: _screen.fgColor,
-                bg: _screen.bgColor,
-                style: _screen.currentStyle,
-              ),
-            );
+            rowList.add(Cell(char, fg: _screen.fgColor, bg: _screen.bgColor, style: _screen.currentStyle));
           }
         }
         render();
-      } else if (byte == 0x1B) {
-        try {
-          final next = stdin.readByteSync();
-          if (next == 0x5B) {
-            stdin.readByteSync();
-          }
-        } catch (_) {}
-      } else if (byte == 0xE0 || byte == 0x00) {
-        try {
-          stdin.readByteSync();
-        } catch (_) {}
       }
+      // Ignore Arrows in Line Mode
     }
   }
 
   /// Read a single character for char input mode.
-  String readChar() {
-    // Verify terminal
-    if (!stdin.hasTerminal) {
-      // log.warning('readChar: stdin does not have a terminal! Input might be buffered.');
-    }
-
-    try {
-      stdin.echoMode = false;
-      stdin.lineMode = false;
-    } catch (e) {
-      // log.warning('readChar: Failed to set raw mode: $e');
-    }
-
-    final byte = stdin.readByteSync();
-    String char;
-
-    if (byte == 3) {
-      try {
-        stdin.lineMode = true;
-        stdin.echoMode = true;
-      } catch (_) {}
-      exitFullScreen();
-      stdout.writeln('Interrupted.');
-      exit(0);
-    }
-
-    if (byte == 0x1B) {
-      // Small wait to ensure we don't block indefinitely if it's just ESC
-      // But readByteSync blocks...
-      // In Dart for a console app, standard practice for escape sequences is tricky without non-blocking check.
-      // We'll assume if it's ESC, the rest follows immediately if it's a sequence.
-
-      final next = stdin.readByteSync();
-      // Support both [ (CSI) and O (Application Cursor Keys)
-      if (next == 0x5B || next == 0x4F) {
-        final code = stdin.readByteSync();
-        switch (code) {
-          case 0x41: // A (Up)
-            char = String.fromCharCode(129);
-            break;
-          case 0x42: // B (Down)
-            char = String.fromCharCode(130);
-            break;
-          case 0x43: // C (Right)
-            char = String.fromCharCode(132);
-            break;
-          case 0x44: // D (Left)
-            char = String.fromCharCode(131);
-            break;
-          default:
-            char = String.fromCharCode(0x1B);
-        }
-      } else {
-        char = String.fromCharCode(0x1B);
-      }
-    } else if (byte == 0xE0 || byte == 0x00) {
-      final scanCode = stdin.readByteSync();
-      switch (scanCode) {
-        case 0x48:
-          char = String.fromCharCode(129);
-          break;
-        case 0x50:
-          char = String.fromCharCode(130);
-          break;
-        case 0x4D:
-          char = String.fromCharCode(132);
-          break;
-        case 0x4B:
-          char = String.fromCharCode(131);
-          break;
-        default:
-          char = '';
-      }
-    } else if (byte == 13 || byte == 10) {
-      char = '\n';
-    } else {
-      char = String.fromCharCode(byte);
-    }
-
-    try {
-      stdin.lineMode = true;
-      stdin.echoMode = true;
-    } catch (_) {}
-
+  Future<String> readChar() async {
+    final key = _console.readKey();
     applyPendingWindowShrink();
-    return char;
+    return _keyToString(key);
   }
 }
 
@@ -767,9 +634,7 @@ class TerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (terminal._screen.window1Height < 1) {
@@ -792,8 +657,7 @@ class TerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = terminal._cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -810,7 +674,7 @@ class TerminalProvider implements IoProvider {
         final fileData = commandMessage['file_data'] as List<int>;
         terminal.appendToWindow0('\nEnter filename to save: ');
         terminal.render();
-        var filename = terminal.readLine();
+        var filename = await terminal.readLine();
         terminal.appendToWindow0('$filename\n');
 
         if (filename.isEmpty) return false;
@@ -831,7 +695,7 @@ class TerminalProvider implements IoProvider {
       case IoCommands.restore:
         terminal.appendToWindow0('\nEnter filename to restore: ');
         terminal.render();
-        var filename = terminal.readLine();
+        var filename = await terminal.readLine();
         terminal.appendToWindow0('$filename\n');
 
         if (filename.isEmpty) return null;
@@ -862,9 +726,5 @@ class TerminalProvider implements IoProvider {
 
 // ... helper getPreamble ...
 List<String> getPreamble() {
-  return [
-    'Zart Z-Machine Interpreter (Console)',
-    'Loaded.',
-    '------------------------------------------------',
-  ];
+  return ['Zart Z-Machine Interpreter (Console)', 'Loaded.', '------------------------------------------------'];
 }
