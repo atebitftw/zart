@@ -800,12 +800,60 @@ class TerminalProvider implements IoProvider {
           terminal.writeToWindow1(' ' * pad);
         }
 
-        // 3. Write Score/Time
+        // 3. Write Score/Moves
         terminal.writeToWindow1('$rightText ');
 
-        // Reset Style
-        terminal.setStyle(0); // 0 = Reset (Roman)
+        // Reset style
+        terminal.setStyle(0);
         break;
+      case IoCommands.save:
+        final fileData = commandMessage['file_data'] as List<int>;
+        terminal.appendToWindow0('\nEnter filename to save: ');
+        terminal.render();
+        var filename = terminal.readLine();
+        terminal.appendToWindow0('$filename\n');
+
+        if (filename.isEmpty) return false;
+
+        if (!filename.toLowerCase().endsWith('.sav')) {
+          filename += '.sav';
+        }
+
+        try {
+          final f = File(filename);
+          f.writeAsBytesSync(fileData);
+          terminal.appendToWindow0('Saved to "$filename".\n');
+          return true;
+        } catch (e) {
+          terminal.appendToWindow0('Save failed: $e\n');
+          return false;
+        }
+      case IoCommands.restore:
+        terminal.appendToWindow0('\nEnter filename to restore: ');
+        terminal.render();
+        var filename = terminal.readLine();
+        terminal.appendToWindow0('$filename\n');
+
+        if (filename.isEmpty) return null;
+
+        if (!filename.toLowerCase().endsWith('.sav')) {
+          filename += '.sav';
+        }
+
+        try {
+          final f = File(filename);
+          if (!f.existsSync()) {
+            terminal.appendToWindow0('File not found: "$filename"\n');
+            return null;
+          }
+          final data = f.readAsBytesSync();
+          terminal.appendToWindow0('Restored from "$filename".\n');
+          return data;
+        } catch (e) {
+          terminal.appendToWindow0('Restore failed: $e\n');
+          return null;
+        }
+
       default:
         break;
     }

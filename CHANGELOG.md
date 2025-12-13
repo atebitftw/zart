@@ -138,3 +138,7 @@
 
 # 1.8.4
 - Removed debugging output.
+
+# 1.8.5
+- Save/Restore for TerminalProvider
+- Added more unit tests.
