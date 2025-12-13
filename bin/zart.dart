@@ -128,7 +128,8 @@ void main(List<String> args) async {
     exit(1);
   } catch (err, stack) {
     terminal.exitFullScreen();
-    log.severe('A system error occurred. $err\n$stack');
+    stdout.writeln('A system error occurred: $err');
+    stdout.writeln('Stack Trace:\n$stack');
     exit(1);
   } finally {
     terminal.exitFullScreen();
