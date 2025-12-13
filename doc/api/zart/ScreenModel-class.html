@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the ScreenModel class from the zart library, for the Dart programming language.">
+  <title>ScreenModel class - zart library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">zart</a></li>
+    <li><a href="../zart/">zart.dart</a></li>
+    <li class="self-crumb">ScreenModel class</li>
+  </ol>
+  <div class="self-name">ScreenModel</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="zart&#47;zart-library-sidebar.html"
+    data-below-sidebar="zart&#47;ScreenModel-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">ScreenModel</span> class 
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>A reusable model of a Z-Machine screen with two windows.</p>
+<ul>
+<li>Window 1 (Upper): Mixed text/graphics grid, fixed height.</li>
+<li>Window 0 (Lower): Buffered text stream, scrolling history.</li>
+</ul>
+</section>
+
+
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="ScreenModel.new" class="callable">
+          <span class="name"><a href="../zart/ScreenModel/ScreenModel.html">ScreenModel</a></span><span class="signature">({<span class="parameter" id="-param-cols"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">cols</span> = <span class="default-value">80</span>, </span><span class="parameter" id="-param-rows"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">rows</span> = <span class="default-value">24</span></span>})</span>
+        </dt>
+        <dd>
+          Creates a new screen model.
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="bgColor" class="property">
+  <span class="name"><a href="../zart/ScreenModel/bgColor.html">bgColor</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The current background color (1-9).
+  <div class="features"><span class="feature">getter/setter pair</span></div>
+
+</dd>
+
+        <dt id="cols" class="property">
+  <span class="name"><a href="../zart/ScreenModel/cols.html">cols</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The number of columns in the screen.
+  <div class="features"><span class="feature">getter/setter pair</span></div>
+
+</dd>
+
+        <dt id="currentStyle" class="property">
+  <span class="name"><a href="../zart/ScreenModel/currentStyle.html">currentStyle</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The current text style (bitmask: 1=Reverse, 2=Bold, 4=Italic, 8=Fixed).
+  <div class="features"><span class="feature">getter/setter pair</span></div>
+
+</dd>
+
+        <dt id="cursorCol" class="property">
+  <span class="name"><a href="../zart/ScreenModel/cursorCol.html">cursorCol</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The cursor column in Window 1 (1-indexed as per Z-Machine).
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="cursorRow" class="property">
+  <span class="name"><a href="../zart/ScreenModel/cursorRow.html">cursorRow</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The cursor row in Window 1 (1-indexed as per Z-Machine).
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="fgColor" class="property">
+  <span class="name"><a href="../zart/ScreenModel/fgColor.html">fgColor</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The current foreground color (1-9).
+  <div class="features"><span class="feature">getter/setter pair</span></div>
+
+</dd>
+
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="maxScrollback" class="property">
+  <span class="name"><a href="../zart/ScreenModel/maxScrollback.html">maxScrollback</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The maximum number of lines to keep in the scroll buffer.
+  <div class="features"><span class="feature">getter/setter pair</span></div>
+
+</dd>
+
+        <dt id="rows" class="property">
+  <span class="name"><a href="../zart/ScreenModel/rows.html">rows</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The number of rows in the screen.
+  <div class="features"><span class="feature">getter/setter pair</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="separatorLine" class="property">
+  <span class="name"><a href="../zart/ScreenModel/separatorLine.html">separatorLine</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The separator line between the two windows.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="window0Grid" class="property">
+  <span class="name"><a href="../zart/ScreenModel/window0Grid.html">window0Grid</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.4/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../zart/Cell-class.html">Cell</a></span>&gt;</span></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  The grid for Window 0 (lower/main window) scroll buffer.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="window0Lines" class="property">
+  <span class="name"><a href="../zart/ScreenModel/window0Lines.html">window0Lines</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The number of lines in Window 0 (lower/main window).
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="window1Grid" class="property">
+  <span class="name"><a href="../zart/ScreenModel/window1Grid.html">window1Grid</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.4/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../zart/Cell-class.html">Cell</a></span>&gt;</span></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  The grid for Window 1 (upper/status window) content.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="window1Height" class="property">
+  <span class="name"><a href="../zart/ScreenModel/window1Height.html">window1Height</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  The height of Window 1 (upper/status window).
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="appendToWindow0" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/appendToWindow0.html">appendToWindow0</a></span><span class="signature">(<wbr><span class="parameter" id="appendToWindow0-param-text"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/String-class.html">String</a></span> <span class="parameter-name">text</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Append text to Window 0 (main scrollable area).
+  
+
+</dd>
+
+        <dt id="applyPendingWindowShrink" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/applyPendingWindowShrink.html">applyPendingWindowShrink</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Apply any pending Window 1 height change (call after user input).
+  
+
+</dd>
+
+        <dt id="clearAll" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/clearAll.html">clearAll</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Clear all windows.
+  
+
+</dd>
+
+        <dt id="clearWindow0" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/clearWindow0.html">clearWindow0</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Clear Window 0.
+  
+
+</dd>
+
+        <dt id="clearWindow1" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/clearWindow1.html">clearWindow1</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Clear Window 1.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="resize" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/resize.html">resize</a></span><span class="signature">(<wbr><span class="parameter" id="resize-param-newCols"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">newCols</span>, </span><span class="parameter" id="resize-param-newRows"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">newRows</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resize the screen model.
+  
+
+</dd>
+
+        <dt id="setColors" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/setColors.html">setColors</a></span><span class="signature">(<wbr><span class="parameter" id="setColors-param-fg"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">fg</span>, </span><span class="parameter" id="setColors-param-bg"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">bg</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Set text colors.
+  
+
+</dd>
+
+        <dt id="setCursor" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/setCursor.html">setCursor</a></span><span class="signature">(<wbr><span class="parameter" id="setCursor-param-row"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">row</span>, </span><span class="parameter" id="setCursor-param-col"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">col</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Set cursor position in Window 1 (1-indexed).
+  
+
+</dd>
+
+        <dt id="setStyle" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/setStyle.html">setStyle</a></span><span class="signature">(<wbr><span class="parameter" id="setStyle-param-style"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">style</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Set text style.
+  
+
+</dd>
+
+        <dt id="splitWindow" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/splitWindow.html">splitWindow</a></span><span class="signature">(<wbr><span class="parameter" id="splitWindow-param-lines"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/int-class.html">int</a></span> <span class="parameter-name">lines</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Split the window - set Window 1 height.
+If shrinking, defer until after user input (quote box counter-trick).
+  
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="writeToWindow1" class="callable">
+  <span class="name"><a href="../zart/ScreenModel/writeToWindow1.html">writeToWindow1</a></span><span class="signature">(<wbr><span class="parameter" id="writeToWindow1-param-text"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/String-class.html">String</a></span> <span class="parameter-name">text</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Write text to Window 1 at current cursor position.
+  
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.4/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.4/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">zart</a></li>
+    <li><a href="../zart/">zart</a></li>
+    <li class="self-crumb">ScreenModel class</li>
+</ol>
+
+    <h5>zart library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    zart
+      1.8.1
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

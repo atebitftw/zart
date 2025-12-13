@@ -12,7 +12,7 @@ List<String> getPreamble() {
   return [
     "-----------------------------",
     "Zart: A Z-Machine Interpreter",
-    "Version 1.7",
+    "Version 1.8",
     "https://pub.dev/packages/zart",
     "-----------------------------",
     "",
