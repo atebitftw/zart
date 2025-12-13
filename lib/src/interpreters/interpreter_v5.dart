@@ -78,6 +78,8 @@ class InterpreterV5 extends InterpreterV4 {
     ops[92] = throwOp;
     ops[124] = throwOp;
     ops[220] = throwOp;
+    // aread (VAR:228) - V5+ specific read implementation
+    ops[228] = aread;
     // the extended instruction visitExtendedInstruction() adds 300 to the value, so it's offset from the other op codes safely.
     ops[300] = extSave; //ext0: save (V5+)
     ops[301] = extRestore; //ext1: restore (V5+)
@@ -1321,11 +1323,14 @@ class InterpreterV5 extends InterpreterV4 {
     // Flush any pending text before repositioning cursor
     await Z.printBuffer();
 
+    final line = operands[0].value!;
+    final column = operands[1].value!;
+
     // Z-Machine spec: set_cursor line column (1-indexed)
     await Z.sendIO({
       "command": IoCommands.setCursor,
-      "line": operands[0].value,
-      "column": operands[1].value,
+      "line": line,
+      "column": column,
     });
   }
 
@@ -1726,5 +1731,142 @@ class InterpreterV5 extends InterpreterV4 {
     //    }
 
     return operands;
+  }
+
+  /// Reads input from the user (V5 specific).
+  ///
+  /// V5 Text Buffer Format:
+  /// Byte 0: Max input length (n)
+  /// Byte 1: Number of characters typed (written by interpreter)
+  /// Byte 2...n+1: The characters (written by interpreter)
+  ///
+  /// Returns the terminating character (usually 13 for return).
+  ///
+  /// ### Z-Machine Spec Reference
+  /// VAR:228 (aread text parse time routine -> result)
+  void aread() async {
+    log.finest("aread() (V5)");
+    //Debugger.verbose('${pcHex(-1)} [aread]');
+
+    // sendStatus(); // V5 does not use V3-style status line (managed by game via Window 1)
+
+    await Z.printBuffer();
+
+    final operands = visitOperandsVar(4, true);
+
+    // Read the result store byte (store instruction in V5)
+    final resultStore = readb();
+
+    final maxBytes = mem.loadb(operands[0].value!);
+
+    // V5: Text starts at Byte 2 (Byte 1 is length)
+    var textBufferBase = operands[0].value!;
+    var textBuffer = textBufferBase + 2;
+
+    int? maxWords;
+    int? parseBuffer;
+
+    if (operands.length > 1 && operands[1].value != 0) {
+      maxWords = mem.loadb(operands[1].value!);
+      parseBuffer = operands[1].value! + 1;
+    }
+
+    log.fine(
+      "aread() operands: $operands maxBytes: $maxBytes, textBuffer: $textBuffer, maxWords: $maxWords, parseBuffer: $parseBuffer",
+    );
+
+    void processLine(String line) {
+      line = line.trim().toLowerCase();
+
+      // Detect "non-response" or empty line?
+      // Standard writes whatever is typed.
+
+      if (line.length > maxBytes - 2) {
+        line = line.substring(0, maxBytes - 2);
+      }
+
+      final zChars = ZSCII.toZCharList(line);
+
+      log.fine("zChars:  $zChars");
+      log.fine("textBuffer address: $textBuffer");
+
+      // Write text to Byte 2+
+      int currentAddr = textBuffer;
+      for (final c in zChars) {
+        mem.storeb(currentAddr++, c);
+      }
+
+      // V5 has no null terminator for text buffer (length is explicit)
+
+      // Write Key (Length) to Byte 1 (V5 specific)
+      mem.storeb(textBufferBase + 1, zChars.length);
+
+      // Tokenise if parse buffer provided
+      if (parseBuffer != null && maxWords != null) {
+        final dict = Z.engine.mem.dictionary;
+        final tokens = dict.tokenize(line);
+
+        log.fine('(tokenized: $tokens)');
+
+        final parsed = dict.parse(tokens, line);
+        log.fine('parsed: $parsed');
+
+        // Parse buffer format:
+        // Byte 0: Number of words
+        // Then 4-byte blocks for each word
+
+        // Write number of parsed words
+        if (parsed.isNotEmpty) {
+          mem.storeb(parseBuffer, parsed[0]);
+        }
+
+        // Write the words (parsed[1..])
+        int pIndex = 1;
+        int wordCount = 0;
+        int bufPtr = parseBuffer + 1;
+
+        while (pIndex < parsed.length && wordCount < maxWords) {
+          mem.storeb(bufPtr++, parsed[pIndex++]); // byte 1
+          mem.storeb(bufPtr++, parsed[pIndex++]); // byte 2
+          mem.storeb(bufPtr++, parsed[pIndex++]); // byte 3
+          mem.storeb(bufPtr++, parsed[pIndex++]); // byte 4
+
+          wordCount++;
+        }
+      }
+
+      // Store result (terminator). 13 = Newline.
+      writeVariable(resultStore, 13);
+    }
+
+    log.finest("sending aread command");
+
+    if (Z.isPumpMode) {
+      Z.requestLineInput((String l) {
+        if (l == '/!') {
+          Z.inBreak = true;
+          Debugger.debugStartAddr = programCounter - 1;
+          log.finest("aread() debug break");
+        } else {
+          log.finest("aread() processing input");
+          processLine(l);
+          log.fine("pc: $programCounter");
+        }
+      });
+      return;
+    }
+
+    // Traditional mode
+    final l = await Z.sendIO({"command": IoCommands.read});
+    if (l == '/!') {
+      Z.inBreak = true;
+      Debugger.debugStartAddr = programCounter - 1;
+      log.finest("aread() callAsync(Debugger.startBreak)");
+      Z.callAsync(Debugger.startBreak);
+    } else {
+      log.finest("aread() processing input");
+      processLine(l);
+      log.fine("pc: $programCounter");
+    }
   }
 }

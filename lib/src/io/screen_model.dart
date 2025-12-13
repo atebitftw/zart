@@ -45,11 +45,26 @@ class ScreenModel {
   /// Grid is [row][col]
   List<List<Cell>> _window1Grid = [];
 
-  /// The height of Window 1 (upper/status window).
+  /// The effective visible height of Window 1.
   int _window1Height = 0;
 
-  /// The pending height of Window 1 (upper/status window).
-  int _pendingWindow1Height = -1; // -1 means no pending height change
+  /// The height explicitly requested by splitWindow.
+  int _requestedHeight = 0;
+
+  /// The maximum row index that contains content (written to).
+  int _contentHeight = 0;
+
+  /// Recomputes the effective window height based on request and content.
+  void _recomputeEffectiveHeight() {
+    final newHeight = max(_requestedHeight, _contentHeight);
+    if (newHeight != _window1Height) {
+      _log.info(
+        'Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight',
+      );
+      _window1Height = newHeight;
+      _ensureGridRows(_window1Height);
+    }
+  }
 
   /// The grid for Window 0 (lower/main window) scroll buffer.
   final List<List<Cell>> _window0Grid = [];
@@ -99,67 +114,43 @@ class ScreenModel {
     if (newCols == cols && newRows == rows) return;
     cols = newCols;
     rows = newRows;
-    // Re-init grids if needed?
-    // Window 1 needs resize (truncate or expand)
-    // Window 0 needs re-wrapping? That's hard. We just keep it as is.
-    _initWindow1();
+    // Window 1 grid persists, but we might need to truncate columns?
+    // For now, we trust the grid to handle overflow or lazy resize.
+    // _ensureGridRows checks length, not width.
   }
 
-  /// Initialize Window 1 buffer with the given height.
-  void _initWindow1() {
-    // Generate new grid. Ideally enforce cols limit.
-    // Preserve existing content (truncate or expand)
-    final newGrid = List.generate(
-      _window1Height,
-      (_) => List.generate(cols, (_) => Cell.empty()),
-    );
-
-    for (int r = 0; r < min(_window1Grid.length, newGrid.length); r++) {
-      for (int c = 0; c < min(_window1Grid[r].length, newGrid[r].length); c++) {
-        newGrid[r][c] = _window1Grid[r][c];
-      }
+  /// Ensure Window 1 Grid has at least [count] rows.
+  /// Grows the grid if needed, preserving existing content.
+  void _ensureGridRows(int count) {
+    while (_window1Grid.length < count) {
+      _window1Grid.add(List.generate(cols, (_) => Cell.empty()));
     }
-    _window1Grid = newGrid;
   }
 
-  /// Split the window - set Window 1 height.
-  /// If shrinking, defer until after user input (quote box counter-trick).
+  /// Split the window - set Window 1 height (Viewport).
   void splitWindow(int lines) {
-    if (lines < _window1Height && _window1Height > 1) {
-      _log.info(
-        'splitWindow: $lines (deferring shrink, current: $_window1Height)',
-      );
-      // Deferring shrink - save pending height
-      _pendingWindow1Height = lines;
-    } else {
-      _log.info('splitWindow: $lines (applying immediately)');
-      // Growing or no change - apply immediately
-
-      // If we are growing, we just set the new height and re-init (which preserves content)
-      _window1Height = lines;
-      _initWindow1();
-    }
+    _log.info('splitWindow: $lines (Request)');
+    _requestedHeight = lines;
+    _recomputeEffectiveHeight();
   }
 
-  /// Apply any pending Window 1 height change (call after user input).
-  void applyPendingWindowShrink() {
-    if (_pendingWindow1Height >= 0) {
-      _log.info('applyPendingWindowShrink: $_pendingWindow1Height');
-      _window1Height = _pendingWindow1Height;
-      _initWindow1();
-      _pendingWindow1Height = -1;
-    }
-  }
+  // Removed legacy _pendingWindow1Height logic and applyPendingWindowShrink
+  // as persistent storage handles the "Quote Box" scenario natively.
+  /// Deprecated.  will remove later.
+  void applyPendingWindowShrink() {}
 
-  /// Clear Window 1.
+  /// Clear Window 1. Resets grid to empty and cursor to (1,1).
   void clearWindow1() {
     _log.info('clearWindow1');
-    _window1Grid = List.generate(
-      _window1Height,
-      (_) => List.generate(cols, (_) => Cell.empty()),
-    );
+    // We recreate the grid to be fresh.
+    // Size? We reset to current Viewport height.
+    // If hidden content existed, it is gone now (compliant with erase_window).
+    _contentHeight = 0;
+    _window1Grid = [];
     _cursorRow = 1;
     _cursorCol = 1;
+    // Recompute will likely shrink window back to _requestedHeight
+    _recomputeEffectiveHeight();
   }
 
   /// Clear Window 0.
@@ -177,7 +168,9 @@ class ScreenModel {
   /// Set cursor position in Window 1 (1-indexed).
   void setCursor(int row, int col) {
     _log.info('setCursor: $row, $col');
-    _cursorRow = row.clamp(1, _window1Height > 0 ? _window1Height : 1);
+    // Relaxed clamping: Cursor can go anywhere.
+    // We will expand the grid if writing happens.
+    _cursorRow = row.clamp(1, 255); // Arbitrary large limit
     _cursorCol = col.clamp(1, cols);
   }
 
@@ -197,7 +190,6 @@ class ScreenModel {
 
   /// Write text to Window 1 at current cursor position.
   void writeToWindow1(String text) {
-    if (_window1Height == 0) return;
     // Log simplified text content
     _log.info(
       'writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol',
@@ -211,23 +203,29 @@ class ScreenModel {
         continue;
       }
 
-      if (_cursorRow >= 1 &&
-          _cursorRow <= _window1Height &&
-          _cursorCol >= 1 &&
-          _cursorCol <= cols) {
-        // Ensure grid has enough rows
-        while (_window1Grid.length < _cursorRow) {
-          _window1Grid.add(List.generate(cols, (_) => Cell.empty()));
-        }
+      // Track Max Content Height
+      if (_cursorRow > _contentHeight) {
+        _contentHeight = _cursorRow;
+        _recomputeEffectiveHeight();
+      }
 
-        final rowList = _window1Grid[_cursorRow - 1];
-        if (_cursorCol <= rowList.length) {
-          // Update cell with character and current style/colors
-          final cell = rowList[_cursorCol - 1];
-          cell.char = char;
-          cell.fg = fgColor;
-          cell.bg = bgColor;
-          cell.style = currentStyle;
+      // Auto-expand Grid if needed (should be handled by recompute, but double check)
+      if (_cursorRow > _window1Grid.length) {
+        _ensureGridRows(_cursorRow);
+      }
+
+      // Write to grid
+      if (_cursorRow >= 1 && _cursorCol >= 1 && _cursorCol <= cols) {
+        // Safe access
+        if (_cursorRow <= _window1Grid.length) {
+          final rowList = _window1Grid[_cursorRow - 1];
+          if (_cursorCol <= rowList.length) {
+            final cell = rowList[_cursorCol - 1];
+            cell.char = char;
+            cell.fg = fgColor;
+            cell.bg = bgColor;
+            cell.style = currentStyle;
+          }
         }
 
         _cursorCol++;
@@ -244,21 +242,19 @@ class ScreenModel {
     if (text.isEmpty) return;
 
     // Suppress generic helper text (often enclosed in brackets) that games might
-    // print to Window 0 as a fallback for interpreters that don't support Window 1.
-    // We only do this if we are in a "pending shrink" state (e.g. quote box active).
-    if (_pendingWindow1Height >= 0) {
+    // print to Window 0 as a fallback for interpreters that don't support Window 1 or have closed it.
+    // We only do this if we are "forcing" the window open (Effective > Requested).
+    if (_window1Height > _requestedHeight) {
       final trimmed = text.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
         _log.info(
-          'Suppressed bracketed Window 0 text during quote box: "${text.trim()}"',
+          'Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"',
         );
         return;
       }
-      // Also catch cases where it starts with [ but the newline might be outside trim?
-      // Or simple heuristic: starts with [
       if (trimmed.startsWith('[')) {
         _log.info(
-          'Suppressed bracketed (start) Window 0 text during quote box: "${text.trim()}"',
+          'Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"',
         );
         return;
       }

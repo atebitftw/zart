@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/src/interpreters/interpreter_v5.dart';
 
 class MockIoProvider extends IoProvider {
   final List<Map<String, dynamic>> commands = [];
@@ -76,15 +75,11 @@ void main() {
       print("Step 1: set_window 1");
       await Z.engine.visitInstruction();
 
+      // Ensure header NOT modified (0x24/0x25 are Screen Height Units in V5)
       expect(
         Z.engine.mem.loadb(0x24),
-        equals(1),
-        reason: "Header Row should be 1 after set_window 1",
-      );
-      expect(
-        Z.engine.mem.loadb(0x25),
-        equals(1),
-        reason: "Header Column should be 1 after set_window 1",
+        equals(0), // Should remain 0 (or original value)
+        reason: "Header Row (0x24) should NOT be modified by set_window",
       );
 
       print("Step 2: set_cursor 15 25");
@@ -92,13 +87,8 @@ void main() {
 
       expect(
         Z.engine.mem.loadb(0x24),
-        equals(15),
-        reason: "Header Row should be updated to 15",
-      );
-      expect(
-        Z.engine.mem.loadb(0x25),
-        equals(25),
-        reason: "Header Column should be updated to 25",
+        equals(0),
+        reason: "Header Row (0x24) should NOT be modified by set_cursor",
       );
 
       print("Step 3: quit");
@@ -116,41 +106,8 @@ void main() {
 
       expect(
         Z.engine.mem.loadb(0x24),
-        equals(1),
-        reason: "Header Row should be reset to 1 after erase_window 1",
-      );
-      expect(
-        Z.engine.mem.loadb(0x25),
-        equals(1),
-        reason: "Header Column should be reset to 1 after erase_window 1",
-      );
-
-      print("Step 5: set_window 1 again");
-      Z.engine.mem.storeb(0x24, 10);
-      Z.engine.mem.storeb(0x25, 10);
-
-      pc = 310;
-      Z.engine.programCounter = pc;
-      Z.engine.mem.storeb(pc++, 0xEB);
-      Z.engine.mem.storeb(pc++, 0x7F);
-      Z.engine.mem.storeb(pc++, 0x01);
-
-      if (Z.engine is InterpreterV5) {
-        (Z.engine as InterpreterV5).currentWindow = 0;
-      }
-
-      await Z.engine.visitInstruction();
-
-      expect(
-        Z.engine.mem.loadb(0x24),
-        equals(1),
-        reason: "Header Row should be reset to 1 after switching to window 1",
-      );
-      expect(
-        Z.engine.mem.loadb(0x25),
-        equals(1),
-        reason:
-            "Header Column should be reset to 1 after switching to window 1",
+        equals(0),
+        reason: "Header Row (0x24) should NOT be modified by erase_window",
       );
     },
   );

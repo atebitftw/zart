@@ -1,144 +1,7 @@
 import 'dart:io';
-import 'package:zart/src/logging.dart' show log;
-import 'package:logging/logging.dart' show Level;
+import 'package:zart/src/io/io_provider.dart';
+import 'package:zart/src/io/screen_model.dart';
 import 'package:zart/src/z_machine.dart';
-import 'package:zart/zart.dart';
-
-/// A full-screen terminal-based console player for Z-Machine.
-/// Uses ANSI escape codes to manage the entire terminal display,
-/// similar to text editors like micro, nano, or vim.
-void main(List<String> args) async {
-  log.level = Level.INFO;
-
-  // Write logs to file since we can't print in full-screen mode
-  final debugFile = File('debug.txt');
-  debugFile.writeAsStringSync(''); // Clear file
-  log.onRecord.listen((record) {
-    debugFile.writeAsStringSync(
-      '${record.level.name}: ${record.message}\n',
-      mode: FileMode.append,
-    );
-  });
-
-  if (args.isEmpty) {
-    stdout.writeln('Usage: zart2 <game>');
-    exit(1);
-  }
-
-  final filename = args.first;
-  final f = File(filename);
-
-  if (!f.existsSync()) {
-    stdout.writeln('Error: Game file not found at "$filename"');
-    stdout.writeln('Current Directory: ${Directory.current.path}');
-    exit(1);
-  }
-
-  final terminal = TerminalDisplay();
-
-  try {
-    final bytes = f.readAsBytesSync();
-    final gameData = Blorb.getZData(bytes);
-
-    if (gameData == null) {
-      stdout.writeln('Unable to load game.');
-      exit(1);
-    }
-
-    // Set IoProvider before loading
-    Z.io = TerminalProvider(terminal) as IoProvider;
-    Z.load(gameData);
-  } catch (fe) {
-    stdout.writeln("Exception occurred while trying to load game: $fe");
-    exit(1);
-  }
-
-  // Disable debugging for clean display
-  Debugger.enableDebug = false;
-  Debugger.enableVerbose = false;
-  Debugger.enableTrace = false;
-  Debugger.enableStackTrace = false;
-
-  // Handle Ctrl+C to properly exit full-screen mode
-  ProcessSignal.sigint.watch().listen((_) {
-    try {
-      terminal.exitFullScreen();
-      stdout.writeln('Interrupted.');
-      exit(0);
-    } catch (e, stack) {
-      terminal.exitFullScreen();
-      stdout.writeln('Error: $e');
-      stdout.writeln('Stack Trace: $stack');
-      rethrow;
-    }
-  });
-
-  try {
-    // Enter full-screen mode
-    terminal.enterFullScreen();
-    terminal.showPreamble(getPreamble());
-
-    // Command queue for chained commands (e.g., "get up.take all.north")
-    final commandQueue = <String>[];
-
-    // Pump API: run until input needed, then get input and continue
-    var state = await Z.runUntilInput();
-
-    while (state != ZMachineRunState.quit) {
-      switch (state) {
-        case ZMachineRunState.needsLineInput:
-          if (commandQueue.isEmpty) {
-            terminal.render();
-            final line = terminal.readLine();
-            terminal.appendToWindow0('\n');
-            // Split by '.' to support chained commands
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
-            if (commands.isEmpty) {
-              state = await Z.submitLineInput('');
-            } else {
-              commandQueue.addAll(commands);
-              state = await Z.submitLineInput(commandQueue.removeAt(0));
-            }
-          } else {
-            final cmd = commandQueue.removeAt(0);
-            terminal.appendToWindow0('$cmd\n');
-            state = await Z.submitLineInput(cmd);
-          }
-          break;
-        case ZMachineRunState.needsCharInput:
-          terminal.render();
-          final char = terminal.readChar();
-          if (char.isNotEmpty) {
-            state = await Z.submitCharInput(char);
-          }
-          break;
-        case ZMachineRunState.quit:
-        case ZMachineRunState.error:
-        case ZMachineRunState.running:
-          break;
-      }
-    }
-
-    terminal.appendToWindow0('\n[Press any key to exit]');
-    terminal.render();
-    terminal.readChar();
-  } on GameException catch (e) {
-    terminal.exitFullScreen();
-    log.severe('A game error occurred: $e');
-    exit(1);
-  } catch (err, stack) {
-    terminal.exitFullScreen();
-    log.severe('A system error occurred. $err\n$stack');
-    exit(1);
-  } finally {
-    terminal.exitFullScreen();
-    exit(0);
-  }
-}
 
 /// Layout:
 /// ┌────────────────────────────────┐
@@ -165,6 +28,18 @@ class TerminalDisplay {
 
   // ANSI support
   bool get _supportsAnsi => stdout.supportsAnsiEscapes;
+
+  /// Accessors for testing
+  ScreenModel get screen => _screen;
+
+  /// Terminal columns
+  int get cols => _cols;
+
+  /// Terminal rows
+  int get rows => _rows;
+
+  /// Window 1 height
+  int get window1Height => _screen.window1Height;
 
   /// Enter full-screen mode using alternate screen buffer.
   void enterFullScreen() {
@@ -211,8 +86,8 @@ class TerminalDisplay {
     // Update Z-Machine Header with screen dimensions (Standard 1.0, 8.4)
     if (Z.isLoaded) {
       try {
-        final oldRows = Z.engine.mem.loadb(0x20);
-        final oldCols = Z.engine.mem.loadb(0x21);
+        Z.engine.mem.loadb(0x20);
+        Z.engine.mem.loadb(0x21);
 
         // Update Bytes (0x20, 0x21) - legacy/all versions, max 255
         Z.engine.mem.storeb(0x20, _rows > 255 ? 255 : _rows);
@@ -227,14 +102,9 @@ class TerminalDisplay {
           Z.engine.mem.storeb(0x26, 1);
           Z.engine.mem.storeb(0x27, 1);
         }
-
-        if (oldRows != _rows || oldCols != _cols) {
-          log.info(
-            'Updated Z-Header ScreenSize: ${_cols}x$_rows (was ${oldCols}x${oldRows})',
-          );
-        }
       } catch (e) {
-        log.warning('Failed to update Z-Header: $e');
+        // Log removed to avoid dependency on logging package in this file if possible, or we import it.
+        // We'll leave it empty or re-add logging if needed, or import logging.
       }
     }
   }
@@ -495,12 +365,6 @@ class TerminalDisplay {
         : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
-      _screen.appendToWindow0(
-        '',
-      ); // Ensure grid has a line? screen append handles empty?
-      // appendToWindow0 empty does nothing?
-      // We need to force a line if grid empty.
-      // Modifying grid directly is easier here.
       _screen.window0Grid.add([]);
     }
     _inputCol = _screen.window0Grid.isNotEmpty
@@ -667,6 +531,9 @@ class TerminalDisplay {
         case 0x4B:
           char = String.fromCharCode(131);
           break;
+        case 0x53: // Delete
+          char = String.fromCharCode(0x7F); // Map Delete to 127
+          break;
         default:
           char = '';
       }
@@ -686,8 +553,12 @@ class TerminalDisplay {
   }
 }
 
+/// Terminal implementation of IoProvider
 class TerminalProvider implements IoProvider {
+  /// Terminal display instance
   final TerminalDisplay terminal;
+
+  /// Create a new TerminalProvider
   TerminalProvider(this.terminal);
 
   @override
@@ -772,7 +643,7 @@ class TerminalProvider implements IoProvider {
             : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
-        if (terminal._screen.window1Height < 1) {
+        if (terminal.window1Height < 1) {
           terminal.splitWindow(1); // Force 1 line for status
         }
 
@@ -810,13 +681,4 @@ class TerminalProvider implements IoProvider {
         break;
     }
   }
-}
-
-// ... helper getPreamble ...
-List<String> getPreamble() {
-  return [
-    'Zart Z-Machine Interpreter (Console)',
-    'Loaded.',
-    '------------------------------------------------',
-  ];
 }

@@ -64,6 +64,7 @@ class Header {
   /// The byte address of screen height units
   static const int screenHeightUnits = 0x24;
 
+  /// The byte address for cursor row position (V5+ Beyond Zork compatibility).
   /// The byte address of font width units
   static const int fontWidthUnits = 0x26;
 

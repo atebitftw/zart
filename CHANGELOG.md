@@ -131,3 +131,7 @@
 # 1.8.2
 - Fixed a bug with the v5+ tokenise opcode that would cause some games to parse input incorrectly.
 - Added more unit tests.
+
+# 1.8.3
+- Improved support for z5+ game files that use complex window 1 features, or write outside window 1 bounds.
+- Added more unit tests.
