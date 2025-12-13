@@ -142,3 +142,8 @@
 # 1.8.5
 - Save/Restore for TerminalProvider
 - Added more unit tests.
+
+# 1.8.6
+- Fixed a bug with backspace in the console player.
+- Arrow keys are now supported in the console player.
+- Fixed a cursor alignment issue during certain windowing operations.
