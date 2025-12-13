@@ -127,3 +127,7 @@
 
 # 1.8.1
 - Exposed ScreenModel API, which allows custom players to implement their own display logic.
+
+# 1.8.2
+- Fixed a bug with the v5+ tokenise opcode that would cause some games to parse input incorrectly.
+- Added more unit tests.
