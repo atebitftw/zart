@@ -21,7 +21,8 @@ class TerminalDisplay {
 
   // Input state
   String _inputBuffer = '';
-  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine =
+      -1; // Line in buffer where input is happening (-1 = not in input)
 
   // ignore: unused_field
   int _inputCol = 0; // Column where input started
@@ -48,7 +49,9 @@ class TerminalDisplay {
 
     if (_supportsAnsi) {
       stdout.write('\x1B[?1049h'); // Switch to alternate screen buffer
-      stdout.write('\x1B[?1h'); // Enable Application Cursor Keys (for arrow keys)
+      stdout.write(
+        '\x1B[?1h',
+      ); // Enable Application Cursor Keys (for arrow keys)
       stdout.write('\x1B[?25l'); // Hide cursor
       stdout.write('\x1B[2J'); // Clear screen
       stdout.write('\x1B[H'); // Move to home
@@ -241,7 +244,11 @@ class TerminalDisplay {
     int lastStyle = -1;
 
     // Helper to render a row of cells
-    void renderRow(int screenRow, List<Cell> cells, {required bool forceFullWidth}) {
+    void renderRow(
+      int screenRow,
+      List<Cell> cells, {
+      required bool forceFullWidth,
+    }) {
       buf.write('\x1B[$screenRow;1H'); // Position cursor
 
       // Calculate effective cells
@@ -304,7 +311,9 @@ class TerminalDisplay {
 
     // Render Window 0 (main scrollable content)
     final w0Grid = _screen.window0Grid;
-    final startLine = (w0Grid.length > window0Lines) ? w0Grid.length - window0Lines : 0;
+    final startLine = (w0Grid.length > window0Lines)
+        ? w0Grid.length - window0Lines
+        : 0;
 
     for (int i = 0; i < window0Lines; i++) {
       buf.write('\x1B[$currentRow;1H');
@@ -320,7 +329,8 @@ class TerminalDisplay {
     // Position cursor at end of input line if we're in input mode
     if (_inputLine >= 0 && _inputLine < w0Grid.length) {
       // Calculate which screen row the input line is on
-      final inputScreenRow = _inputLine - startLine + window1Lines + separatorLine + 1;
+      final inputScreenRow =
+          _inputLine - startLine + window1Lines + separatorLine + 1;
       if (inputScreenRow >= 1 && inputScreenRow <= _rows) {
         final cursorCol = w0Grid[_inputLine].length + 1;
         buf.write('\x1B[$inputScreenRow;${cursorCol}H');
@@ -351,12 +361,16 @@ class TerminalDisplay {
   String readLine() {
     _inputBuffer = '';
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty
+        ? _screen.window0Grid.length - 1
+        : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty
+        ? _screen.window0Grid.last.length
+        : 0;
 
     render();
 
@@ -403,7 +417,8 @@ class TerminalDisplay {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
-          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty &&
+              _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) {
               rowList.removeLast();
@@ -416,10 +431,18 @@ class TerminalDisplay {
         final char = String.fromCharCode(byte);
         _inputBuffer += char;
         // Update display grid
-        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+        if (_screen.window0Grid.isNotEmpty &&
+            _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
-            rowList.add(Cell(char, fg: _screen.fgColor, bg: _screen.bgColor, style: _screen.currentStyle));
+            rowList.add(
+              Cell(
+                char,
+                fg: _screen.fgColor,
+                bg: _screen.bgColor,
+                style: _screen.currentStyle,
+              ),
+            );
           }
         }
         render();
@@ -616,7 +639,9 @@ class TerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
+        final rightText = isTime
+            ? 'Time: $score1:$score2'
+            : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (terminal.window1Height < 1) {
@@ -639,7 +664,8 @@ class TerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = terminal._cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen =
+            rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {

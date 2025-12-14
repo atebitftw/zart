@@ -154,3 +154,4 @@
 # 1.9.1
 - Added text scrolling for the CLI player window 0 (the main game window).
 - Added readme file for the CLI player.
+- "Zart bar" colors and visibility are now configurable (see README.md in bin/)
