@@ -1,5 +1,6 @@
 import 'package:zart/src/ui/terminal_display.dart';
 import 'package:zart/src/config/configuration_manager.dart';
+import 'package:zart/zart.dart';
 
 /// A settings screen for the Zart CLI application.
 class SettingsScreen {
@@ -38,10 +39,9 @@ class SettingsScreen {
 
       while (true) {
         terminal.clearAll();
-        terminal.appendToWindow0('Zart Settings\n');
-        terminal.appendToWindow0(
-          '------------------------------------------------\n',
-        );
+        terminal.appendToWindow0(getPreamble().join('\n'));
+        terminal.appendToWindow0('\nSettings\n');
+        terminal.appendToWindow0('------------------------------------------------\n');
 
         final bindings = config.bindings;
         if (bindings.isEmpty) {
@@ -53,10 +53,9 @@ class SettingsScreen {
           terminal.appendToWindow0('\n');
         }
 
-        terminal.appendToWindow0(
-          '------------------------------------------------\n',
-        );
-        terminal.appendToWindow0('[A] Add Binding   [D] Delete Binding\n');
+        terminal.appendToWindow0('------------------------------------------------\n');
+        terminal.appendToWindow0('[A] Add Binding\n');
+        terminal.appendToWindow0('[D] Delete Binding\n');
 
         // Context-aware exit message
         if (isGameStarted) {
@@ -94,9 +93,7 @@ class SettingsScreen {
   }
 
   Future<void> _addBinding() async {
-    terminal.appendToWindow0(
-      '\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ',
-    );
+    terminal.appendToWindow0('\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ');
     terminal.render();
 
     // We need to read a key and see if it is a Ctrl char

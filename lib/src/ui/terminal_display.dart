@@ -8,6 +8,8 @@ import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/screen_model.dart';
 import 'package:zart/src/z_machine.dart';
 
+const _zartBarText = "(Zart) F1=Settings, F2=Autosave, F3=Restore (Autosave), F4=Text Color";
+
 /// Layout:
 /// ┌────────────────────────────────┐
 /// │ Window 1 (status/upper)        │
@@ -50,8 +52,7 @@ class TerminalDisplay {
   bool enableStatusBar = false;
 
   String _inputBuffer = '';
-  int _inputLine =
-      -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
   String? _tempStatusMessage;
@@ -66,8 +67,7 @@ class TerminalDisplay {
   int _currentTextColorIndex = 0;
 
   void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _screen.forceWindow0Color(newColor);
 
@@ -122,14 +122,8 @@ class TerminalDisplay {
 
     sleep(Duration(seconds: seconds));
 
-    // Default Status Text matching _drawStatusBar default
-    const defaultText =
-        " Zart: F1 - Settings, F2 - Autosave, F3 - Restore, F4 - Text Color ";
-
-    final paddedText = defaultText.padRight(cols);
-    final finalText = paddedText.length > cols
-        ? paddedText.substring(0, cols)
-        : paddedText;
+    final paddedText = _zartBarText.padRight(cols);
+    final finalText = paddedText.length > cols ? paddedText.substring(0, cols) : paddedText;
 
     // ANSI Sequence:
     // 1. Save Cursor (\x1b7)
@@ -146,8 +140,7 @@ class TerminalDisplay {
   int _inputCol = 0; // Column where input started
 
   // ANSI helper via console?
-  bool get _supportsAnsi =>
-      true; // dart_console handles this internally usually
+  bool get _supportsAnsi => true; // dart_console handles this internally usually
 
   // helper to get key string
   String _keyToString(Key key) {
@@ -278,11 +271,7 @@ class TerminalDisplay {
   /// Save screen state (for settings/menus).
   void saveState() {
     _screen.saveState();
-    _savedTerminalState = {
-      'inputLine': _inputLine,
-      'inputBuffer': _inputBuffer,
-      'inputCol': _inputCol,
-    };
+    _savedTerminalState = {'inputLine': _inputLine, 'inputBuffer': _inputBuffer, 'inputCol': _inputCol};
   }
 
   /// Restore screen state.
@@ -406,11 +395,7 @@ class TerminalDisplay {
     int lastStyle = -1;
 
     // Helper to render a row of cells
-    void renderRow(
-      int screenRow,
-      List<Cell> cells, {
-      required bool forceFullWidth,
-    }) {
+    void renderRow(int screenRow, List<Cell> cells, {required bool forceFullWidth}) {
       buf.write('\x1B[$screenRow;1H'); // Position cursor
 
       // Calculate effective cells
@@ -442,6 +427,24 @@ class TerminalDisplay {
           buf.write(_resetAnsi);
 
           if (fg != 1) buf.write(_fgAnsi(fg));
+          // Smart Reverse Video Logic
+          // If in reverse mode, the effective background is the current foreground.
+          // We want to improve legibility.  This is a style choice based on the
+          // testing of many games.
+          if (hasReverse) {
+            // Resolve effective background (current foreground)
+            // Assume Default (1) is White (9) for this check
+            final effectiveBg = (fg == 1) ? 9 : fg;
+
+            if (effectiveBg == 9) {
+              // Background is White -> Text (which comes from 'bg' in reverse) must be Black
+              bg = 2;
+            } else {
+              // Background is NOT White -> Text must be White
+              bg = 9;
+            }
+          }
+
           if (bg != 1) buf.write(_bgAnsi(bg));
 
           if (hasReverse) buf.write('\x1B[7m'); // Reverse
@@ -473,9 +476,7 @@ class TerminalDisplay {
 
     // Render Window 0 (main scrollable content)
     final w0Grid = _screen.window0Grid;
-    final startLine = (w0Grid.length > window0Lines)
-        ? w0Grid.length - window0Lines
-        : 0;
+    final startLine = (w0Grid.length > window0Lines) ? w0Grid.length - window0Lines : 0;
 
     for (int i = 0; i < window0Lines; i++) {
       buf.write('\x1B[$currentRow;1H');
@@ -496,11 +497,8 @@ class TerminalDisplay {
     // Position cursor at end of input line if we're in input mode
     if (_inputLine >= 0 && _inputLine < w0Grid.length) {
       // Calculate which screen row the input line is on
-      final inputScreenRow =
-          _inputLine - startLine + window1Lines + separatorLine + 1;
-      if (inputScreenRow >= 1 &&
-          inputScreenRow <= _rows &&
-          inputScreenRow < _console.windowHeight) {
+      final inputScreenRow = _inputLine - startLine + window1Lines + separatorLine + 1;
+      if (inputScreenRow >= 1 && inputScreenRow <= _rows && inputScreenRow < _console.windowHeight) {
         // Ensure not overwriting status bar
         final cursorCol = w0Grid[_inputLine].length + 1;
         buf.write('\x1B[$inputScreenRow;${cursorCol}H');
@@ -514,9 +512,7 @@ class TerminalDisplay {
   }
 
   void _drawStatusBar(StringBuffer buf) {
-    if (_tempStatusMessage != null &&
-        _tempStatusExpiry != null &&
-        DateTime.now().isAfter(_tempStatusExpiry!)) {
+    if (_tempStatusMessage != null && _tempStatusExpiry != null && DateTime.now().isAfter(_tempStatusExpiry!)) {
       _tempStatusMessage = null;
     }
 
@@ -524,16 +520,13 @@ class TerminalDisplay {
     if (_tempStatusMessage != null) {
       statusText = " $_tempStatusMessage"; // Add leading space
     } else {
-      statusText =
-          " Zart: F1 - Settings, F2 - Autosave, F3 - Restore, F4 - Text Color ";
+      statusText = _zartBarText;
     }
 
     // Pad with spaces to fill width
     final paddedText = statusText.padRight(_cols);
     // Truncate if too long to prevent wrapping
-    final finalText = paddedText.length > _cols
-        ? paddedText.substring(0, _cols)
-        : paddedText;
+    final finalText = paddedText.length > _cols ? paddedText.substring(0, _cols) : paddedText;
 
     // Position at last row (using _console.windowHeight directly)
     // Note: _rows is now windowHeight - 1
@@ -603,17 +596,13 @@ class TerminalDisplay {
   Future<String> readLine() async {
     _inputBuffer = '';
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.length - 1
-        : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.last.length
-        : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
 
     render();
 
@@ -694,8 +683,7 @@ class TerminalDisplay {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) {
               rowList.removeLast();
@@ -708,19 +696,11 @@ class TerminalDisplay {
         final char = key.char;
         _inputBuffer += char;
         // Update display grid
-        if (_screen.window0Grid.isNotEmpty &&
-            _inputLine < _screen.window0Grid.length) {
+        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
             // Force user input to be White (9) per user request
-            rowList.add(
-              Cell(
-                char,
-                fg: 9,
-                bg: _screen.bgColor,
-                style: _screen.currentStyle,
-              ),
-            );
+            rowList.add(Cell(char, fg: 9, bg: _screen.bgColor, style: _screen.currentStyle));
           }
         }
         render();
