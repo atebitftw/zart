@@ -12,8 +12,8 @@ export 'package:zart/src/io/io_commands.dart';
 List<String> getPreamble() {
   return [
     "-----------------------------",
-    "Zart: A Z-Machine Interpreter",
-    "Version 1.8",
+    "Zart: A Z-Machine Interpreter Library",
+    "Version 1.9",
     "https://pub.dev/packages/zart",
     "-----------------------------",
     "",

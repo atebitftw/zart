@@ -43,7 +43,16 @@ You can use the Zart Web Player App, written in Flutter.  You can find the app h
 You can get the Zart Web Player source code here: [Zart Web Player On Github](https://github.com/atebitftw/zart-player).
 
 ### CLI Player
-*If you want to see how this works, the source code for the CLI player is included in this package, in either the `bin/` or `example/` directories.*
+*The source code for the CLI player is included in this package, in either the `bin/` or `example/` directories.*
+
+The CLI player is a full-featured terminal player that supports modern quality-of-life features while remaining true to the original experience:
+- Custom key bindings (macros)
+- Color selection
+- Zart bar visibility
+- Quick-save/restore
+- Text scrolling
+
+For more information, see the [CLI Player README](https://github.com/atebitftw/zart/blob/main/bin/README.md).
 
 #### Flutter/Dart SDK Required
 You will need the Flutter/Dart SDK installed on your system to use the CLI player.  You can download it from [Dart SDK Download](https://dart.dev/get-dart) or [Install Flutter](https://docs.flutter.dev/install).  Flutter comes with the Dart SDK.
