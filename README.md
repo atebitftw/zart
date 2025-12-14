@@ -43,14 +43,12 @@ You can use the Zart Web Player App, written in Flutter.  You can find the app h
 You can get the Zart Web Player source code here: [Zart Web Player On Github](https://github.com/atebitftw/zart-player).
 
 ### CLI Player
-*The source code for the CLI player is included in this package, in either the `bin/` or `example/` directories.*
-
 The CLI player is a full-featured terminal player that supports modern quality-of-life features while remaining true to the original experience:
 - Custom key bindings (macros)
 - Color selection
-- Zart bar visibility
+- Zart bar visibility and color customization
 - Quick-save/restore
-- Text scrolling
+- Text scrolling with mouse wheel support.
 
 For more information, see the [CLI Player README](https://github.com/atebitftw/zart/blob/main/bin/README.md).
 
@@ -64,6 +62,8 @@ You can then install the `zart` CLI player and run it to play games from the com
 > dart pub global activate zart
 > zart path/to/minizork.z3
 ```
+
+*The source code for the CLI player is included in this package, in either the `bin/` or `example/` directories.*
 
 ### Roll Your Own
 Use the Zart library to build your own player.  You would have to write your own client which would manage the i/o between the player and the interpreter.  The Zart library provides all the necessary functionality.
