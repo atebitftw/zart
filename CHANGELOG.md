@@ -150,3 +150,7 @@
 
 # 1.9.0
 - CLI player now supports key macro binding, auto-save/restore, and color selection of text output (window 0 only).
+
+# 1.9.1
+- Added text scrolling for the CLI player window 0 (the main game window).
+- Added readme file for the CLI player.

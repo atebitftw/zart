@@ -28,3 +28,34 @@ The player supports text color cycling to provide a more modern experience.  The
 
 ### The Configuration File
 Any changes the player makes to key binds or colors are saved to a configuration file in the current directory called "zart.config".  This file is in JSON format, and can be edited by hand if desired.
+
+#### Configuring Zart Bar Colors and Visibility
+You can manually configure the foreground/background colors and visibility of the Zart status bar (the bottom bar) by editing the `zart.config` file. Add or modify the properties `zart_bar_foreground`, `zart_bar_background`, and `zart_bar_visible`.
+
+Example configuration:
+```json
+{
+  "bindings": {
+    "ctrl+a": "take all. inventory"
+  },
+  "text_color": 5,
+  "zart_bar_visible": true,
+  "zart_bar_foreground": 9,
+  "zart_bar_background": 6
+}
+```
+
+### Color Codes Table
+
+| Code | Color        |
+|------|--------------|
+| 1    | Default      |
+| 2    | Black        |
+| 3    | Red          |
+| 4    | Green        |
+| 5    | Yellow       |
+| 6    | Blue         |
+| 7    | Magenta      |
+| 8    | Cyan         |
+| 9    | White        |
+| 10   | Dark Grey    |

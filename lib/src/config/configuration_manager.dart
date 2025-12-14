@@ -14,9 +14,27 @@ class ConfigurationManager {
   Map<String, String> get bindings => Map.unmodifiable(_bindings);
 
   int _textColor = 1; // Default
+  int _zartBarForeground = 9; // Default White
+  int _zartBarBackground = 10; // Default Grey
+  bool _zartBarVisible = true; // Default True
 
   /// Current text color (1-15).
   int get textColor => _textColor;
+
+  /// Zart Bar Foreground Color (1-15).
+  int get zartBarForeground => _zartBarForeground;
+
+  /// Zart Bar Background Color (1-15).
+  int get zartBarBackground => _zartBarBackground;
+
+  /// Zart Bar Visibility.
+  bool get zartBarVisible => _zartBarVisible;
+
+  /// Sets Zart Bar Visibility and saves.
+  set zartBarVisible(bool visible) {
+    _zartBarVisible = visible;
+    save();
+  }
 
   /// Set the text color (1-15).
   set textColor(int value) {
@@ -45,6 +63,18 @@ class ConfigurationManager {
         _textColor = jsonMap['text_color'] as int;
       }
 
+      if (jsonMap.containsKey('zart_bar_foreground')) {
+        _zartBarForeground = jsonMap['zart_bar_foreground'] as int;
+      }
+
+      if (jsonMap.containsKey('zart_bar_background')) {
+        _zartBarBackground = jsonMap['zart_bar_background'] as int;
+      }
+
+      if (jsonMap.containsKey('zart_bar_visible')) {
+        _zartBarVisible = jsonMap['zart_bar_visible'] as bool;
+      }
+
       log.info('Configuration loaded.');
     } catch (e) {
       log.warning('Failed to load configuration: $e');
@@ -56,6 +86,9 @@ class ConfigurationManager {
     final Map<String, dynamic> jsonMap = {
       'bindings': _bindings,
       'text_color': _textColor,
+      'zart_bar_foreground': _zartBarForeground,
+      'zart_bar_background': _zartBarBackground,
+      'zart_bar_visible': _zartBarVisible,
     };
 
     try {

@@ -55,10 +55,12 @@ class SettingsScreen {
       while (true) {
         terminal.clearAll();
         terminal.appendToWindow0(getPreamble().join('\n'));
-        terminal.appendToWindow0('\nSettings\n');
+        terminal.appendToWindow0('\nSETTINGS\n');
         terminal.appendToWindow0('------------------------------------------------\n');
-        terminal.appendToWindow0('Custom Key Bindings (Ctrl+Key)\n');
+        terminal.appendToWindow0('CUSTOM KEY BINDINGS (Ctrl+Key)\n');
         terminal.appendToWindow0('Allowed Keys: ${allowedKeys.join(', ')}\n\n');
+        terminal.appendToWindow0('[A] Add Binding\n');
+        terminal.appendToWindow0('[D] Delete Binding\n');
 
         final bindings = config.bindings;
         if (bindings.isEmpty) {
@@ -69,18 +71,15 @@ class SettingsScreen {
           });
           terminal.appendToWindow0('\n');
         }
-
         terminal.appendToWindow0('------------------------------------------------\n');
-        terminal.appendToWindow0('[A] Add Binding\n');
-        terminal.appendToWindow0('[D] Delete Binding\n');
-
+        terminal.appendToWindow0('[V] Toggle Zart Bar Visibility: ${config.zartBarVisible ? 'ON' : 'OFF'}\n');
+        terminal.appendToWindow0('\n------------------------------------------------\n');
         // Context-aware exit message
         if (isGameStarted) {
           terminal.appendToWindow0('[R] Resume Game\n');
         } else {
           terminal.appendToWindow0('[R] Start Game\n');
         }
-
         terminal.render();
 
         final input = await terminal.readChar();
@@ -92,6 +91,8 @@ class SettingsScreen {
           await _addBinding();
         } else if (lowerChar == 'd') {
           await _deleteBinding();
+        } else if (lowerChar == 'v') {
+          config.zartBarVisible = !config.zartBarVisible;
         }
       }
 

@@ -27,7 +27,7 @@ class TerminalDisplay {
   int get cols => _cols;
 
   /// Terminal rows
-  int get rows => enableStatusBar ? _rows - 1 : _rows; // Dynamic sizing
+  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true)) ? _rows - 1 : _rows; // Dynamic sizing
 
   final ScreenModel _screen = ScreenModel();
 
@@ -99,7 +99,10 @@ class TerminalDisplay {
     _statusResetIsolate?.kill(priority: Isolate.immediate);
 
     // Render immediate message
-    render();
+    // Only if visible
+    if (config?.zartBarVisible ?? true) {
+      render();
+    }
 
     // Spawn isolate to visually reset the status bar after [seconds]
     // The isolate writes directly to stdout using ANSI codes since main loop is blocked.
@@ -111,6 +114,9 @@ class TerminalDisplay {
       'seconds': seconds,
       'row': row,
       'cols': col,
+      'fgAnsi': _fgAnsi(config?.zartBarForeground ?? 9),
+      'bgAnsi': _bgAnsi(config?.zartBarBackground ?? 10),
+      'visible': config?.zartBarVisible ?? true,
     }).then((iso) => _statusResetIsolate = iso);
   }
 
@@ -118,6 +124,10 @@ class TerminalDisplay {
   static void _restoreStatusBarIsolate(Map<String, dynamic> args) {
     final seconds = args['seconds'] as int;
     final row = args['row'] as int;
+    final visible = args['visible'] as bool;
+
+    if (!visible) return;
+
     final cols = args['cols'] as int; // Width to pad
 
     sleep(Duration(seconds: seconds));
@@ -133,7 +143,10 @@ class TerminalDisplay {
     // 5. Reset Attributes (\x1b[0m)
     // 6. Restore Cursor (\x1b8)
 
-    stdout.write('\x1b7\x1b[$row;1H\x1b[7m$finalText\x1b[0m\x1b8');
+    final fgAnsi = args['fgAnsi'] as String;
+    final bgAnsi = args['bgAnsi'] as String;
+
+    stdout.write('\x1b7\x1b[$row;1H$fgAnsi$bgAnsi$finalText\x1b[0m\x1b8');
   }
 
   // ignore: unused_field
@@ -601,6 +614,8 @@ class TerminalDisplay {
   }
 
   void _drawStatusBar(StringBuffer buf) {
+    if (!(config?.zartBarVisible ?? true)) return;
+
     if (_tempStatusMessage != null && _tempStatusExpiry != null && DateTime.now().isAfter(_tempStatusExpiry!)) {
       _tempStatusMessage = null;
     }
@@ -622,7 +637,13 @@ class TerminalDisplay {
     final statusRow = _console.windowHeight;
 
     buf.write('\x1B[$statusRow;1H'); // Move to last row
-    buf.write('\x1B[97;100m'); // White on Dark Grey
+
+    // Configurable Colors (Default White on Dark Grey)
+    final fg = config?.zartBarForeground ?? 9;
+    final bg = config?.zartBarBackground ?? 10;
+
+    buf.write(_fgAnsi(fg));
+    buf.write(_bgAnsi(bg));
     buf.write(finalText);
     buf.write('\x1B[0m'); // Reset attributes
     // Cursor is now at end of status bar, need to move it back if we want input?
