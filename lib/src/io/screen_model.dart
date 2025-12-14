@@ -85,6 +85,12 @@ class ScreenModel {
   /// The current background color (1-9).
   int bgColor = 1;
 
+  /// The user's preferred color for Window 0 (overrides default/1).
+  int _window0ColorPref = 1;
+
+  /// The user's preferred color for Window 0 (overrides default/1).
+  int get window0ColorPref => _window0ColorPref;
+
   /// Creates a new screen model.
   ScreenModel({this.cols = 80, this.rows = 24});
 
@@ -300,8 +306,10 @@ class ScreenModel {
           // Hard break if word is longer than entire line width (rare edge case)
           if (currentLine.length >= cols) newLine();
 
+          // Apply preference if fgColor is default (1), otherwise respect game color
+          final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
           currentLine.add(
-            Cell(word[i], fg: fgColor, bg: bgColor, style: currentStyle),
+            Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
           );
         }
       }
@@ -309,10 +317,90 @@ class ScreenModel {
       if (space != null) {
         for (int i = 0; i < space.length; i++) {
           if (currentLine.length >= cols) newLine();
+          // Apply preference if fgColor is default (1), otherwise respect game color
+          final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
           currentLine.add(
-            Cell(space[i], fg: fgColor, bg: bgColor, style: currentStyle),
+            Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
           );
         }
+      }
+    }
+  }
+
+  /// internal state storage
+  Map<String, dynamic>? _savedState;
+
+  /// Saves the current state of the screen model (grids, cursor, etc).
+  void saveState() {
+    _log.info('Saving ScreenModel state');
+    _savedState = {
+      'cols': cols,
+      'rows': rows,
+      'window1Grid': _window1Grid
+          .map((row) => row.map((c) => c.clone()).toList())
+          .toList(),
+      'window1Height': _window1Height,
+      'requestedHeight': _requestedHeight,
+      'contentHeight': _contentHeight,
+      'window0Grid': _window0Grid
+          .map((row) => row.map((c) => c.clone()).toList())
+          .toList(),
+      'cursorRow': _cursorRow,
+      'cursorCol': _cursorCol,
+      'currentStyle': currentStyle,
+      'fgColor': fgColor,
+      'bgColor': bgColor,
+      'window0ColorPref': _window0ColorPref,
+    };
+  }
+
+  /// Restores the saved state.
+  void restoreState() {
+    if (_savedState == null) {
+      _log.warning('Attempted to restore state but no state was saved.');
+      return;
+    }
+    _log.info('Restoring ScreenModel state');
+
+    final state = _savedState!;
+    cols = state['cols'];
+    rows = state['rows'];
+
+    _window1Grid = (state['window1Grid'] as List)
+        .map((row) => (row as List).cast<Cell>())
+        .toList();
+    _window1Height = state['window1Height'];
+    _requestedHeight = state['requestedHeight'];
+    _contentHeight = state['contentHeight'];
+
+    _window0Grid.clear();
+    _window0Grid.addAll(
+      (state['window0Grid'] as List)
+          .map((row) => (row as List).cast<Cell>())
+          .toList(),
+    );
+
+    _cursorRow = state['cursorRow'];
+    _cursorCol = state['cursorCol'];
+    currentStyle = state['currentStyle'];
+    fgColor = state['fgColor'];
+    bgColor = state['bgColor'];
+    if (state.containsKey('window0ColorPref')) {
+      _window0ColorPref = state['window0ColorPref'];
+    }
+
+    _savedState = null; // Consume save
+  }
+
+  /// Force updates the foreground color of all text in Window 0.
+  /// Used for theme/color cycling features.
+  void forceWindow0Color(int fg) {
+    _log.info('forceWindow0Color: $fg');
+    _window0ColorPref = fg;
+    // We treat this as a theme change, so we update all cells.
+    for (var row in _window0Grid) {
+      for (var cell in row) {
+        cell.fg = fg;
       }
     }
   }

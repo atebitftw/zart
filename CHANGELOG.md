@@ -147,3 +147,6 @@
 - Fixed a bug with backspace in the console player.
 - Arrow keys are now supported in the console player.
 - Fixed a cursor alignment issue during certain windowing operations.
+
+# 1.9.0
+- CLI player now supports key macro binding, auto-save/restore, and color selection of text output (window 0 only).
