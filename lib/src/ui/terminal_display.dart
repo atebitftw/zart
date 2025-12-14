@@ -207,6 +207,8 @@ class TerminalDisplay {
 
     // Resize based on dynamic 'rows' getter
     _screen.resize(_cols, rows);
+    // Reserve 2 columns for scroll bar (1 for bar, 1 for padding)
+    _screen.wrapWidth = _cols - 2;
 
     // Update Z-Machine Header with screen dimensions (Standard 1.0, 8.4)
     if (Z.isLoaded) {
@@ -329,6 +331,8 @@ class TerminalDisplay {
         return '\x1B[36m'; // Cyan
       case 9:
         return '\x1B[97m'; // Bright White
+      case 10:
+        return '\x1B[90m'; // Bright Black (Dark Grey)
       default:
         return '';
     }
@@ -358,6 +362,8 @@ class TerminalDisplay {
         return '\x1B[46m'; // Cyan
       case 9:
         return '\x1B[47m'; // White
+      case 10:
+        return '\x1B[100m'; // Bright Black (Dark Grey)
       default:
         return '';
     }
@@ -616,7 +622,7 @@ class TerminalDisplay {
     final statusRow = _console.windowHeight;
 
     buf.write('\x1B[$statusRow;1H'); // Move to last row
-    buf.write('\x1B[7m'); // Inverse video (Black on White usually)
+    buf.write('\x1B[97;100m'); // White on Dark Grey
     buf.write(finalText);
     buf.write('\x1B[0m'); // Reset attributes
     // Cursor is now at end of status bar, need to move it back if we want input?

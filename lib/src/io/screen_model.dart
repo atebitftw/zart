@@ -41,6 +41,13 @@ class ScreenModel {
   /// The number of rows in the screen.
   int rows;
 
+  /// The width to wrap text at in Window 0.
+  /// If 0 or >= cols, text wraps at [cols].
+  int wrapWidth = 0;
+
+  /// Effective wrap width.
+  int get _effectiveWrapWidth => (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
+
   /// The grid for Window 1 (upper/status window) content.
   /// Grid is [row][col]
   List<List<Cell>> _window1Grid = [];
@@ -58,9 +65,7 @@ class ScreenModel {
   void _recomputeEffectiveHeight() {
     final newHeight = max(_requestedHeight, _contentHeight);
     if (newHeight != _window1Height) {
-      _log.info(
-        'Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight',
-      );
+      _log.info('Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight');
       _window1Height = newHeight;
       _ensureGridRows(_window1Height);
     }
@@ -201,9 +206,7 @@ class ScreenModel {
   /// Write text to Window 1 at current cursor position.
   void writeToWindow1(String text) {
     // Log simplified text content
-    _log.info(
-      'writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol',
-    );
+    _log.info('writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol');
 
     for (int i = 0; i < text.length; i++) {
       final char = text[i];
@@ -257,15 +260,11 @@ class ScreenModel {
     if (_window1Height > _requestedHeight) {
       final trimmed = text.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        _log.info(
-          'Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
       if (trimmed.startsWith('[')) {
-        _log.info(
-          'Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
     }
@@ -298,30 +297,29 @@ class ScreenModel {
 
       if (word != null) {
         // Wrap if word doesn't fit
-        if (currentLine.isNotEmpty && currentLine.length + word.length > cols) {
+        if (currentLine.isNotEmpty && currentLine.length + word.length > _effectiveWrapWidth) {
           newLine();
         }
 
         for (int i = 0; i < word.length; i++) {
           // Hard break if word is longer than entire line width (rare edge case)
-          if (currentLine.length >= cols) newLine();
+          if (currentLine.length >= _effectiveWrapWidth) newLine();
 
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(
-            Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
-          );
+          currentLine.add(Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
         }
       }
 
       if (space != null) {
         for (int i = 0; i < space.length; i++) {
-          if (currentLine.length >= cols) newLine();
+          if (currentLine.length >= _effectiveWrapWidth) {
+            newLine();
+            continue; // Skip adding the space that caused the wrap
+          }
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(
-            Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
-          );
+          currentLine.add(Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
         }
       }
     }
@@ -336,15 +334,12 @@ class ScreenModel {
     _savedState = {
       'cols': cols,
       'rows': rows,
-      'window1Grid': _window1Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'wrapWidth': wrapWidth,
+      'window1Grid': _window1Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'window1Height': _window1Height,
       'requestedHeight': _requestedHeight,
       'contentHeight': _contentHeight,
-      'window0Grid': _window0Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'window0Grid': _window0Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'cursorRow': _cursorRow,
       'cursorCol': _cursorCol,
       'currentStyle': currentStyle,
@@ -365,20 +360,17 @@ class ScreenModel {
     final state = _savedState!;
     cols = state['cols'];
     rows = state['rows'];
+    if (state.containsKey('wrapWidth')) {
+      wrapWidth = state['wrapWidth'];
+    }
 
-    _window1Grid = (state['window1Grid'] as List)
-        .map((row) => (row as List).cast<Cell>())
-        .toList();
+    _window1Grid = (state['window1Grid'] as List).map((row) => (row as List).cast<Cell>()).toList();
     _window1Height = state['window1Height'];
     _requestedHeight = state['requestedHeight'];
     _contentHeight = state['contentHeight'];
 
     _window0Grid.clear();
-    _window0Grid.addAll(
-      (state['window0Grid'] as List)
-          .map((row) => (row as List).cast<Cell>())
-          .toList(),
-    );
+    _window0Grid.addAll((state['window0Grid'] as List).map((row) => (row as List).cast<Cell>()).toList());
 
     _cursorRow = state['cursorRow'];
     _cursorCol = state['cursorCol'];

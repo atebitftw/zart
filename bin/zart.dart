@@ -256,8 +256,9 @@ class TerminalProvider implements IoProvider {
         // But writeToWindow1 writes sequentially.
         // And we want INVERSE VIDEO.
 
-        // Enable Reverse Video + Bold
-        terminal.setStyle(3); // 1=Reverse + 2=Bold
+        // Enable White on Grey + Bold
+        terminal.setStyle(2); // 2=Bold
+        terminal.setColors(9, 10); // White on Grey
 
         // Move to top-left of Window 1
         terminal.setCursor(1, 1);
@@ -279,7 +280,9 @@ class TerminalProvider implements IoProvider {
         terminal.writeToWindow1('$rightText ');
 
         // Reset style
+        // Reset style
         terminal.setStyle(0);
+        terminal.setColors(1, 1); // Reset to defaults
         break;
       case IoCommands.save:
         final fileData = commandMessage['file_data'] as List<int>;
