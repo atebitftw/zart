@@ -13,6 +13,28 @@ class SettingsScreen {
   /// Creates a new settings screen.
   SettingsScreen(this.terminal, this.config);
 
+  static const allowedKeys = [
+    'q',
+    'w',
+    'e',
+    'r',
+    't',
+    'y',
+    'u',
+    'i',
+    'o',
+    'p',
+    'a',
+    's',
+    'd',
+    'f',
+    'g',
+    'h',
+    'j',
+    'k',
+    'l',
+  ];
+
   /// Shows the settings screen.
   Future<void> show({bool isGameStarted = false}) async {
     /// Hide status bar while in settings
@@ -29,19 +51,14 @@ class SettingsScreen {
 
       // Reset window split so settings use full screen
       terminal.splitWindow(0);
-      // Ensure we are not in "input mode" effectively, or just rely on clearAll
-      // Input mode state is also part of what might be saved/restored if stored in TerminalDisplay?
-      // TerminalDisplay._inputLine etc are NOT part of ScreenModel save currently.
-      // They are in TerminalDisplay.
-      // We might need to reset them too if we want a clean slate?
-      // But SettingsScreen loop uses its own input calls.
-      // Let's just reset splitWindow for layout.
 
       while (true) {
         terminal.clearAll();
         terminal.appendToWindow0(getPreamble().join('\n'));
         terminal.appendToWindow0('\nSettings\n');
         terminal.appendToWindow0('------------------------------------------------\n');
+        terminal.appendToWindow0('Custom Key Bindings (Ctrl+Key)\n');
+        terminal.appendToWindow0('Allowed Keys: ${allowedKeys.join(', ')}\n\n');
 
         final bindings = config.bindings;
         if (bindings.isEmpty) {
@@ -108,13 +125,22 @@ class SettingsScreen {
     terminal.render();
 
     final charKey = await terminal.readChar();
+
     if (charKey.isEmpty || charKey.length > 1) {
       terminal.appendToWindow0('\nInvalid input.\n');
       await _wait(1);
       return;
     }
 
-    final keyName = 'ctrl+${charKey.toLowerCase()}';
+    final lowerKey = charKey.toLowerCase();
+    if (!allowedKeys.contains(lowerKey)) {
+      terminal.appendToWindow0('\nKey "$lowerKey" is not allowed for binding.\n');
+      terminal.appendToWindow0('Allowed: ${allowedKeys.join(',')}\n');
+      await _wait(2);
+      return;
+    }
+
+    final keyName = 'ctrl+$lowerKey';
 
     terminal.appendToWindow0('\nEnter command for $keyName: ');
     terminal.render();

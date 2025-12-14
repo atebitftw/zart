@@ -45,8 +45,7 @@ void main(List<String> args) async {
   final terminal = TerminalDisplay();
   terminal.config = config;
   terminal.applySavedSettings();
-  terminal.onOpenSettings = () =>
-      SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
+  terminal.onOpenSettings = () => SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
 
   try {
     final bytes = f.readAsBytesSync();
@@ -62,7 +61,7 @@ void main(List<String> args) async {
     Z.io = provider as IoProvider;
     // Map autosave trigger to provider flag
     terminal.onAutosave = () {
-      provider.isAutosaveMode = true;
+      provider.isQuickSaveMode = true;
     };
     // Map autorestore trigger
     terminal.onRestore = () {
@@ -117,11 +116,7 @@ void main(List<String> args) async {
             final line = await terminal.readLine();
             terminal.appendToWindow0('\n');
             // Split by '.' to support chained commands
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {
@@ -169,7 +164,7 @@ void main(List<String> args) async {
 class TerminalProvider implements IoProvider {
   final TerminalDisplay terminal;
   final String gameName;
-  bool isAutosaveMode = false;
+  bool isQuickSaveMode = false;
   bool isAutorestoreMode = false;
   TerminalProvider(this.terminal, this.gameName);
 
@@ -250,9 +245,7 @@ class TerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (terminal.screen.window1Height < 1) {
@@ -275,8 +268,7 @@ class TerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -293,15 +285,16 @@ class TerminalProvider implements IoProvider {
         final fileData = commandMessage['file_data'] as List<int>;
 
         String filename;
-        if (isAutosaveMode) {
-          // Autosave logic
-          // Use format "auto_save_{game_name}.sav"
+        if (isQuickSaveMode) {
+          // QuickSave logic
+          // Use format "quick_save_{game_name}.sav"
           // Robustly handle path separators (both / and \) to get just the filename
           String base = gameName.split(RegExp(r'[/\\]')).last;
-          if (base.contains('.'))
+          if (base.contains('.')) {
             base = base.substring(0, base.lastIndexOf('.'));
+          }
 
-          filename = 'auto_save_$base.sav';
+          filename = 'quick_save_$base.sav';
 
           final f = File(filename);
           f.writeAsBytesSync(fileData);
@@ -310,7 +303,7 @@ class TerminalProvider implements IoProvider {
           terminal.showTempMessage('Game saved...');
 
           // Reset flag
-          isAutosaveMode = false;
+          isQuickSaveMode = false;
           return true;
         }
 
@@ -340,17 +333,15 @@ class TerminalProvider implements IoProvider {
         if (isAutorestoreMode) {
           // Robustly handle path separators (both / and \) to get just the filename
           String base = gameName.split(RegExp(r'[/\\]')).last;
-          if (base.contains('.'))
+          if (base.contains('.')) {
             base = base.substring(0, base.lastIndexOf('.'));
+          }
 
-          filename = 'auto_save_$base.sav';
+          filename = 'quick_save_$base.sav';
 
           final f = File(filename);
           if (!f.existsSync()) {
-            terminal.showTempMessage(
-              'Autosave File Not Found! Cannot Restore',
-              seconds: 3,
-            );
+            terminal.showTempMessage('QuickSave File Not Found! Cannot Restore', seconds: 3);
             isAutorestoreMode = false;
             return null;
           }

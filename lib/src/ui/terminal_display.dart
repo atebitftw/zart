@@ -8,7 +8,7 @@ import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/screen_model.dart';
 import 'package:zart/src/z_machine.dart';
 
-const _zartBarText = "(Zart) F1=Settings, F2=Autosave, F3=Restore (Autosave), F4=Text Color";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
 
 /// Layout:
 /// ┌────────────────────────────────┐
@@ -166,10 +166,16 @@ class TerminalDisplay {
     }
   }
 
+  int _scrollOffset = 0; // 0 = at bottom
+
   /// Enter full-screen mode using alternate screen buffer.
   void enterFullScreen() {
     // Try to switch to alternate buffer manually
     stdout.write('\x1B[?1049h');
+    // Enable Mouse Reporting (Click + Scroll)
+    // 1000: Send Mouse X & Y on button press and release.
+    // 1006: SGR Extended Mouse Mode (supports > 223 cols/rows).
+    stdout.write('\x1B[?1000h\x1B[?1006h');
 
     _console.rawMode = true;
     _console.hideCursor();
@@ -186,6 +192,8 @@ class TerminalDisplay {
     _console.rawMode = false;
     _console.resetColorAttributes();
 
+    // Disable Mouse Reporting
+    stdout.write('\x1B[?1000l\x1B[?1006l');
     // Switch back to main screen buffer
     stdout.write('\x1B[?1049l');
   }
@@ -476,17 +484,33 @@ class TerminalDisplay {
 
     // Render Window 0 (main scrollable content)
     final w0Grid = _screen.window0Grid;
-    final startLine = (w0Grid.length > window0Lines) ? w0Grid.length - window0Lines : 0;
+
+    // Calculate maximum possible scroll
+    // w0Grid.length is total history. window0Lines is viewport height.
+    final maxScroll = (w0Grid.length > window0Lines) ? w0Grid.length - window0Lines : 0;
+
+    // Clamp offset
+    if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
+    if (_scrollOffset < 0) _scrollOffset = 0;
+
+    // Calculate start index based on scroll offset from bottom
+    // If offset=0, start = maxScroll (which is length - window0Lines)
+    final startLine = maxScroll - _scrollOffset;
 
     for (int i = 0; i < window0Lines; i++) {
       buf.write('\x1B[$currentRow;1H');
       buf.write('\x1B[K'); // Clear line to remove artifacts
 
       final lineIndex = startLine + i;
-      if (lineIndex < w0Grid.length) {
+      if (lineIndex >= 0 && lineIndex < w0Grid.length) {
         renderRow(currentRow, w0Grid[lineIndex], forceFullWidth: false);
       }
       currentRow++;
+    }
+
+    // Draw Scroll Bar if needed
+    if (maxScroll > 0) {
+      _drawScrollBar(buf, window0Lines, startLine, w0Grid.length, window1Lines + separatorLine + 1);
     }
 
     // Draw status bar
@@ -495,20 +519,79 @@ class TerminalDisplay {
     }
 
     // Position cursor at end of input line if we're in input mode
-    if (_inputLine >= 0 && _inputLine < w0Grid.length) {
+    // Only show cursor if we are at the bottom (scrollOffset == 0)
+    // AND we are actually waiting for input.
+    // However, if the user scrolls up, they usually want to see where they are scrolling.
+    // The cursor should logically stay with the input line. If input line is scrolled off, cursor should hide.
+
+    if (_inputLine >= 0 && _inputLine < w0Grid.length && _scrollOffset == 0) {
       // Calculate which screen row the input line is on
-      final inputScreenRow = _inputLine - startLine + window1Lines + separatorLine + 1;
-      if (inputScreenRow >= 1 && inputScreenRow <= _rows && inputScreenRow < _console.windowHeight) {
-        // Ensure not overwriting status bar
-        final cursorCol = w0Grid[_inputLine].length + 1;
-        buf.write('\x1B[$inputScreenRow;${cursorCol}H');
-        buf.write('\x1B[?25h'); // Show cursor
+      // It's usually the last drawn line, or close to it.
+      // inputLine is an index in window0Grid.
+      // Our viewport starts at 'startLine'.
+      final inputRelativeRaw = _inputLine - startLine;
+
+      if (inputRelativeRaw >= 0 && inputRelativeRaw < window0Lines) {
+        final inputScreenRow = inputRelativeRaw + window1Lines + separatorLine + 1;
+
+        if (inputScreenRow >= 1 && inputScreenRow <= _rows && inputScreenRow < _console.windowHeight) {
+          final cursorCol = w0Grid[_inputLine].length + 1;
+          buf.write('\x1B[$inputScreenRow;${cursorCol}H');
+          buf.write('\x1B[?25h'); // Show cursor
+        }
       }
     } else {
-      buf.write('\x1B[?25l'); // Hide cursor when not in input mode
+      buf.write('\x1B[?25l'); // Hide cursor if scrolled up or not input
     }
 
     stdout.write(buf.toString());
+  }
+
+  void _drawScrollBar(StringBuffer buf, int height, int currentStart, int totalLines, int startRow) {
+    if (totalLines <= height) return;
+
+    // Calculate visible ratio
+    final double ratio = height / totalLines;
+    final int thumbSize = (height * ratio).ceil().clamp(1, height);
+
+    // Calculate thumb position
+    // currentStart ranges from 0 to (totalLines - height)
+    final int maxStart = totalLines - height;
+    final double posRatio = (maxStart > 0) ? currentStart / maxStart : 0.0;
+
+    // Position 0 = Top of scrollbar area
+    // Max Pos = height - thumbSize
+    final int thumbPos = ((height - thumbSize) * posRatio).round();
+
+    // Draw
+    // We are overlaying on the rightmost column (_cols)
+    final int col = _cols;
+
+    // Save current cursor? We just move it and reset at end of render anyway.
+    // Use slightly different colors for scrollbar track vs thumb
+
+    // Track (Dark Grey or just standard background?)
+    // Thumb (White or Bright)
+
+    // Standard ASCII Block chars
+    // Thumb: █ (\u2588)
+    // Track: │ (\u2502) or just dimmer
+
+    for (int i = 0; i < height; i++) {
+      final int row = startRow + i;
+      buf.write('\x1B[$row;${col}H');
+
+      if (i >= thumbPos && i < thumbPos + thumbSize) {
+        // Thumb
+        buf.write('\x1B[37;40m'); // White on Black
+        buf.write('█');
+      } else {
+        // Track
+        buf.write('\x1B[90;40m'); // Dark Grey on Black
+        buf.write('│');
+      }
+      buf.write('\x1B[0m'); // Reset
+    }
   }
 
   void _drawStatusBar(StringBuffer buf) {
@@ -595,6 +678,10 @@ class TerminalDisplay {
   /// Read a line of input from the user.
   Future<String> readLine() async {
     _inputBuffer = '';
+    // Reset scroll when starting new input?
+    // Usually yes, if typing, we want to see what we type.
+    _scrollOffset = 0;
+
     // Remember where input starts (end of current content)
     _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
     if (_screen.window0Grid.isEmpty) {
@@ -609,6 +696,55 @@ class TerminalDisplay {
     while (true) {
       // Blocking read (sync) but in async function
       final key = _console.readKey();
+
+      if (key.controlChar == ControlCharacter.escape) {
+        _pendingMouseSequence.clear();
+        _pendingMouseSequence.write('\x1B');
+        continue;
+      }
+
+      if (_pendingMouseSequence.isNotEmpty) {
+        // We are in a potential sequence
+        _pendingMouseSequence.write(_keyChar(key));
+
+        final seq = _pendingMouseSequence.toString();
+        // Valid SGR Mouse: \x1B[<...M or m
+        // If it matches pattern start...
+
+        if (seq.startsWith('\x1B[<')) {
+          if (seq.endsWith('M') || seq.endsWith('m')) {
+            _parseMouse(seq);
+            _pendingMouseSequence.clear();
+            render();
+            continue;
+          }
+          // Continue gathering
+          continue;
+        } else if (seq.startsWith('\x1B[')) {
+          // Could be mouse or other CSI
+          if (seq.length > 2 && !_isDigit(key) && key.char != ';') {
+            // Not a mouse sequence compatible char?
+            if (key.char == '<') {
+              // Good, continue
+              continue;
+            }
+            // Invalid or other sequence we don't care about (e.g. arrow keys we already handle?)
+            // Actually `readKey` handles arrows.
+            // So if we are here, it's something `readKey` split up.
+
+            // Flush buffer as input?
+            // This is dangerous.
+
+            // Fallback: Just clear buffer and process current key as normal?
+            _pendingMouseSequence.clear();
+          } else {
+            continue;
+          }
+        } else {
+          // Not a sequence we are tracking
+          _pendingMouseSequence.clear();
+        }
+      }
 
       if (await _handleGlobalKeys(key)) {
         if (key.controlChar == ControlCharacter.F2) {
@@ -645,6 +781,8 @@ class TerminalDisplay {
         // Enter key
         final result = _inputBuffer;
         appendToWindow0('\n');
+        // Reset Scroll on Enter
+        _scrollOffset = 0;
         render();
         _inputBuffer = '';
         _inputLine = -1;
@@ -655,6 +793,7 @@ class TerminalDisplay {
       // We assume mapped control attributes effectively.
       // Note: dart_console often maps Ctrl+A to unit separator etc or ControlCharacter.ctrlA
       key.controlChar.toString().startsWith('ControlCharacter.ctrl')) {
+        // ... existing macro logic ...
         // Extract letter
         // format is ControlCharacter.ctrlA
         final s = key.controlChar.toString();
@@ -664,13 +803,10 @@ class TerminalDisplay {
         if (config != null) {
           final cmd = config!.getBinding(bindingKey);
           if (cmd != null) {
-            // Execute Macro
-            // We replace the current input buffer with the command and submit it immediately?
-            // Or append? Usually specific command.
-            // Let's replace and auto-submit for "Macro" feel.
             _inputBuffer = cmd;
             appendToWindow0(cmd); // Echo it
             appendToWindow0('\n');
+            _scrollOffset = 0; // Reset scroll
             render();
             _inputBuffer = '';
             _inputLine = -1;
@@ -679,7 +815,7 @@ class TerminalDisplay {
           }
         }
       } else if (key.controlChar == ControlCharacter.backspace) {
-        // Backspace
+        // ... existing backspace logic ...
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
@@ -694,29 +830,251 @@ class TerminalDisplay {
       } else if (key.char.isNotEmpty) {
         // Printable
         final char = key.char;
-        _inputBuffer += char;
-        // Update display grid
-        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
-          final rowList = _screen.window0Grid[_inputLine];
-          if (rowList.length < _cols) {
-            // Force user input to be White (9) per user request
-            rowList.add(Cell(char, fg: 9, bg: _screen.bgColor, style: _screen.currentStyle));
+
+        // Check if char is "mouse-like" (digit, semi, M, m)
+        // If so, buffer it and don't echo yet.
+        final isMouseChar = RegExp(r'[0-9;Mm]').hasMatch(char);
+
+        if (isMouseChar) {
+          _partialMouseBuffer.write(char);
+          final partial = _partialMouseBuffer.toString();
+
+          // 1. Validation Logic
+          // Valid Prefix: Starts with digit, followed by digits/semis
+          final RegExp validPrefix = RegExp(r'^\d[\d;]*$');
+
+          // 1. Check for Complete Mouse Sequence
+          final RegExp fullSeq = RegExp(r'^\d+;\d+;\d+[Mm]$');
+          if (fullSeq.hasMatch(partial)) {
+            // Complete Mouse Sequence!
+            final match = fullSeq.firstMatch(partial);
+            if (match != null) {
+              // Parse
+              final fullStr = match.group(0)!;
+              final parts = fullStr.substring(0, fullStr.length - 1).split(';');
+              if (parts.length >= 3) {
+                final btn = int.tryParse(parts[0]) ?? 0;
+                if (btn == 64) {
+                  _scrollOffset++;
+                  final maxScroll = (_screen.window0Grid.length > _screen.window0Lines)
+                      ? _screen.window0Grid.length - _screen.window0Lines
+                      : 0;
+                  if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
+                } else if (btn == 65) {
+                  _scrollOffset--;
+                  if (_scrollOffset < 0) _scrollOffset = 0;
+                }
+                // Other buttons ignored
+              }
+            }
+            _partialMouseBuffer.clear();
+            render();
+            continue; // Consumed, do not echo
           }
+
+          // 2. Check Valid Prefix (digits/semis only)
+          if (validPrefix.hasMatch(partial)) {
+            // Partial valid sequence, continue buffering
+            // Do NOT echo yet
+            continue;
+          }
+
+          // If NOT valid prefix, flush buffer
+          // It was just random numbers/semis typed by user
+          // Fall through to flush logic below
         }
-        render();
+
+        // Processing Logic (Flush buffer + current char)
+        // If we are here, either:
+        // 1. char is NOT mouse-like
+        // 2. char IS mouse-like, but combined with buffer makes invalid sequence
+
+        String toProcess = '';
+        // If buffer has content that turned out invalid, use it
+        if (_partialMouseBuffer.isNotEmpty) {
+          toProcess = _partialMouseBuffer.toString();
+          _partialMouseBuffer.clear();
+        }
+
+        // If char wasn't effectively strictly buffered (i.e. we fell through), add it.
+        // Wait, if it WAS mouse char, it IS in buffer.
+        // If it WAS NOT mouse char, it is NOT in buffer.
+        if (!isMouseChar) {
+          toProcess += char;
+        }
+
+        if (toProcess.isNotEmpty) {
+          _inputBuffer += toProcess;
+
+          // Update Grid
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+            final rowList = _screen.window0Grid[_inputLine];
+            for (int i = 0; i < toProcess.length; i++) {
+              if (rowList.length < _cols) {
+                // Force user input to be White (9) per user request
+                rowList.add(Cell(toProcess[i], fg: 9, bg: _screen.bgColor, style: _screen.currentStyle));
+              }
+            }
+          }
+          render();
+        }
       }
       // Ignore Arrows in Line Mode
+    }
+  }
+
+  // Buffer for mouse sequence parsing (Header based)
+  final StringBuffer _pendingMouseSequence = StringBuffer();
+
+  // Buffer for flushed keys (when mouse detection fails)
+  final List<String> _keyQueue = [];
+  // Buffer for potential mouse tail (Leak based)
+  final StringBuffer _partialMouseBuffer = StringBuffer();
+
+  String _keyChar(Key key) {
+    if (key.char.isNotEmpty) return key.char;
+    return '';
+  }
+
+  bool _isDigit(Key key) {
+    return key.char.isNotEmpty && int.tryParse(key.char) != null;
+  }
+
+  void _parseMouse(String seq) {
+    // Format: \x1B[<B;X;YM
+    // Remove Prefix `\x1B[<` and Suffix `M` or `m`
+    // Or if leak: 64;X;YM
+
+    String content = seq;
+    if (seq.startsWith('\x1B[<')) {
+      content = seq.substring(3, seq.length - 1);
+    } else if (seq.endsWith('M') || seq.endsWith('m')) {
+      // Leak format: 64;X;YM
+      content = seq.substring(0, seq.length - 1);
+    }
+
+    final parts = content.split(';');
+    if (parts.length >= 3) {
+      final btn = int.tryParse(parts[0]) ?? 0;
+
+      // Scroll Up is 64, Scroll Down is 65
+      if (btn == 64) {
+        _scrollOffset++;
+        // Calculate maxScroll to clamp
+        final maxScroll = (_screen.window0Grid.length > _screen.window0Lines)
+            ? _screen.window0Grid.length - _screen.window0Lines
+            : 0;
+        if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
+      } else if (btn == 65) {
+        _scrollOffset--;
+        if (_scrollOffset < 0) _scrollOffset = 0;
+      }
     }
   }
 
   /// Read a single character for char input mode.
   Future<String> readChar() async {
     while (true) {
+      // 1. Process Queue
+      if (_keyQueue.isNotEmpty) {
+        return _keyQueue.removeAt(0);
+      }
+
       final key = _console.readKey();
+
+      // 2. Standard Header-based Mouse Handling (Escape)
+      if (key.controlChar == ControlCharacter.escape) {
+        _pendingMouseSequence.clear();
+        _pendingMouseSequence.write('\x1B');
+        continue;
+      }
+
+      if (_pendingMouseSequence.isNotEmpty) {
+        _pendingMouseSequence.write(_keyChar(key));
+        final seq = _pendingMouseSequence.toString();
+
+        if (seq.startsWith('\x1B[<')) {
+          if (seq.endsWith('M') || seq.endsWith('m')) {
+            _parseMouse(seq);
+            _pendingMouseSequence.clear();
+            render();
+            continue;
+          }
+          continue; // Wait for more
+        } else if (seq.startsWith('\x1B[')) {
+          if (seq.length > 2 && !_isDigit(key) && key.char != ';') {
+            if (key.char == '<') {
+              continue;
+            }
+            // Invalid sequence
+            _pendingMouseSequence.clear();
+          } else {
+            continue;
+          }
+        } else {
+          _pendingMouseSequence.clear();
+        }
+      }
 
       if (await _handleGlobalKeys(key)) continue;
 
       applyPendingWindowShrink();
+
+      // 3. Leak-based Mouse Handling (Digits/Semi/M/m)
+      // If we see chars likely to be part of a mouse code, buffer them.
+      // SGR Tail: digits, ;, M, m
+      final char = _keyChar(key);
+      if (char.isNotEmpty) {
+        final isMouseChar = RegExp(r'[0-9;Mm]').hasMatch(char);
+        if (isMouseChar) {
+          _partialMouseBuffer.write(char);
+          final partial = _partialMouseBuffer.toString();
+
+          // Validation
+          // Valid Prefix: Starts with digit, followed by digits/semis
+          final RegExp validPrefix = RegExp(r'^\d[\d;]*$');
+
+          // 1. Check for Complete Sequence
+          final RegExp fullSeq = RegExp(r'^\d+;\d+;\d+[Mm]$');
+          if (fullSeq.hasMatch(partial)) {
+            // It's a mouse event!
+            _parseMouse(partial);
+            _partialMouseBuffer.clear();
+            render();
+            continue;
+          }
+
+          // 2. Check Valid Prefix
+          if (validPrefix.hasMatch(partial)) {
+            // Continue buffering
+            continue;
+          }
+
+          // If here, it's NOT a valid mouse prefix or sequence.
+          // Flush buffer to queue
+          for (int i = 0; i < partial.length; i++) {
+            _keyQueue.add(partial[i]);
+          }
+          _partialMouseBuffer.clear();
+          // Loop will pick up from queue
+          continue;
+        } else {
+          // Not a mouse char.
+          // If we have buffer, flush it + this char
+          if (_partialMouseBuffer.isNotEmpty) {
+            final partial = _partialMouseBuffer.toString();
+            for (int i = 0; i < partial.length; i++) {
+              _keyQueue.add(partial[i]);
+            }
+            _partialMouseBuffer.clear();
+            _keyQueue.add(char);
+            continue; // Loop processes queue
+          }
+          // Else just return this char
+          return char;
+        }
+      }
+
       return _keyToString(key);
     }
   }
