@@ -1,6 +1,18 @@
 # About The Zart CLI Player
 The Zart CLI Player is a command-line interface for playing Z-Machine games.  It tries to implement modern Quality-of-Life features while remaining true to the original experience.
 
+## Installation
+### Flutter/Dart SDK Required
+You will need the Flutter/Dart SDK installed on your system to use the CLI player.  You can download it from [Dart SDK Download](https://dart.dev/get-dart) or [Install Flutter](https://docs.flutter.dev/install).  Flutter comes with the Dart SDK.
+
+### Activate the CLI Player
+You can then install the `zart` CLI player and run it to play games from the command line:
+
+```bash
+> dart pub global activate zart
+> zart path/to/minizork.z3
+```
+
 ## Usage
 `zart {gamefile}`
 
