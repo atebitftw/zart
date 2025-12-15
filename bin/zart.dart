@@ -4,9 +4,9 @@ import 'dart:async';
 import 'package:zart/src/logging.dart' show log;
 import 'package:logging/logging.dart' show Level;
 import 'package:zart/zart.dart' hide getPreamble;
-import 'package:zart/src/config/configuration_manager.dart';
-import 'package:zart/src/ui/settings_screen.dart';
-import 'package:zart/src/ui/terminal_display.dart';
+import 'package:zart/src/cli/config/configuration_manager.dart';
+import 'package:zart/src/cli/ui/settings_screen.dart';
+import 'package:zart/src/cli/ui/terminal_display.dart';
 
 /// A full-screen terminal-based console player for Z-Machine.
 /// Uses dart_console for cross-platform support.
@@ -44,8 +44,7 @@ void main(List<String> args) async {
   final terminal = TerminalDisplay();
   terminal.config = config;
   terminal.applySavedSettings();
-  terminal.onOpenSettings = () =>
-      SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
+  terminal.onOpenSettings = () => SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
 
   try {
     final bytes = f.readAsBytesSync();
@@ -116,11 +115,7 @@ void main(List<String> args) async {
             final line = await terminal.readLine();
             terminal.appendToWindow0('\n');
             // Split by '.' to support chained commands
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {
@@ -249,9 +244,7 @@ class TerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (terminal.screen.window1Height < 1) {
@@ -275,8 +268,7 @@ class TerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -351,10 +343,7 @@ class TerminalProvider implements IoProvider {
 
           final f = File(filename);
           if (!f.existsSync()) {
-            terminal.showTempMessage(
-              'QuickSave File Not Found! Cannot Restore',
-              seconds: 3,
-            );
+            terminal.showTempMessage('QuickSave File Not Found! Cannot Restore', seconds: 3);
             isAutorestoreMode = false;
             return null;
           }

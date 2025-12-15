@@ -7,6 +7,7 @@ export 'package:zart/src/debugger.dart';
 export 'package:zart/src/header.dart';
 export 'package:zart/src/io/screen_model.dart';
 export 'package:zart/src/io/io_commands.dart';
+export 'package:zart/src/io/cell.dart';
 
 /// Returns a simple preamble that can be outputed by [IoProvider]s.
 List<String> getPreamble() {

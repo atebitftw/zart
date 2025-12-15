@@ -1,5 +1,5 @@
-import 'package:zart/src/ui/terminal_display.dart';
-import 'package:zart/src/config/configuration_manager.dart';
+import 'package:zart/src/cli/ui/terminal_display.dart';
+import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/zart.dart';
 
 /// A settings screen for the Zart CLI application.
@@ -57,13 +57,9 @@ class SettingsScreen {
         terminal.clearAll();
         terminal.appendToWindow0(getPreamble().join('\n'));
         terminal.appendToWindow0('\nSETTINGS\n');
-        terminal.appendToWindow0(
-          '------------------------------------------------\n',
-        );
+        terminal.appendToWindow0('------------------------------------------------\n');
         terminal.appendToWindow0('CUSTOM KEY BINDINGS (Ctrl+Key)\n');
-        terminal.appendToWindow0(
-          'Allowed Keys: ${_allowedKeys.join(', ')}\n\n',
-        );
+        terminal.appendToWindow0('Allowed Keys: ${_allowedKeys.join(', ')}\n\n');
         terminal.appendToWindow0('[A] Add Binding\n');
         terminal.appendToWindow0('[D] Delete Binding\n');
 
@@ -76,15 +72,9 @@ class SettingsScreen {
           });
           terminal.appendToWindow0('\n');
         }
-        terminal.appendToWindow0(
-          '------------------------------------------------\n',
-        );
-        terminal.appendToWindow0(
-          '[V] Toggle Zart Bar Visibility: ${config.zartBarVisible ? 'ON' : 'OFF'}\n',
-        );
-        terminal.appendToWindow0(
-          '\n------------------------------------------------\n',
-        );
+        terminal.appendToWindow0('------------------------------------------------\n');
+        terminal.appendToWindow0('[V] Toggle Zart Bar Visibility: ${config.zartBarVisible ? 'ON' : 'OFF'}\n');
+        terminal.appendToWindow0('\n------------------------------------------------\n');
         // Context-aware exit message
         if (isGameStarted) {
           terminal.appendToWindow0('[R] Resume Game\n');
@@ -122,9 +112,7 @@ class SettingsScreen {
   }
 
   Future<void> _addBinding() async {
-    terminal.appendToWindow0(
-      '\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ',
-    );
+    terminal.appendToWindow0('\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ');
     terminal.render();
 
     // We need to read a key and see if it is a Ctrl char
@@ -148,9 +136,7 @@ class SettingsScreen {
 
     final lowerKey = charKey.toLowerCase();
     if (!_allowedKeys.contains(lowerKey)) {
-      terminal.appendToWindow0(
-        '\nKey "$lowerKey" is not allowed for binding.\n',
-      );
+      terminal.appendToWindow0('\nKey "$lowerKey" is not allowed for binding.\n');
       terminal.appendToWindow0('Allowed: ${_allowedKeys.join(',')}\n');
       await _wait(2);
       return;

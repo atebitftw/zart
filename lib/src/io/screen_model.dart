@@ -1,39 +1,58 @@
 import 'dart:math';
 import 'package:logging/logging.dart';
+import 'package:zart/src/io/cell.dart';
 
 final _log = Logger('ScreenModel');
 
-/// A single cell in the terminal grid styling.
-class Cell {
-  /// The character in the cell.
-  String char;
-
-  /// The foreground color (1-9).
-  int fg;
-
-  /// The background color (1-9).
-  int bg;
-
-  /// The style of the cell (bitmask: 1=Reverse, 2=Bold, 4=Italic, 8=Fixed).
-  int style;
-
-  /// Creates a new cell.
-  Cell(this.char, {this.fg = 1, this.bg = 1, this.style = 0});
-
-  /// Creates an empty cell.
-  factory Cell.empty() => Cell(' ');
-
-  /// Creates a clone of this cell.
-  Cell clone() => Cell(char, fg: fg, bg: bg, style: style);
-
-  @override
-  String toString() => char;
-}
-
-/// A reusable model of a Z-Machine screen with two windows.
+/// Screen Model for the Zart interpreter.
 ///
-/// - Window 1 (Upper): Mixed text/graphics grid, fixed height.
-/// - Window 0 (Lower): Buffered text stream, scrolling history.
+/// The screen model presents a common API for any player app to use,
+/// and then manages the presentation layer logic.  It emits [Cell]
+/// objects for the player app to render.  Each cell contains a character with
+/// styling information.
+///
+/// It also contain API methods that allow the player to control the layout,
+/// for example if they want to create custom screens (the CLI player does this
+/// to display a settings screen)
+///
+/// Layout:
+/// ```text
+/// ┌────────────────────────────────┐
+/// │ Window 1 (status/upper)        │ ← Window 1
+/// ├────────────────────────────────┤ ← Separator (optional visible)
+/// │ Window 0 (main, scrollable)    │ ← Window 0.
+/// │ (text, text)                   │
+/// │ > [input line]                 │
+/// │                                │
+/// └────────────────────────────────┘
+///```
+///
+/// # In the Z-Machine Windowing System
+/// The z-machine spec calls for interpreters to implement a stacked dual window
+/// system.  The layout of the windows (height of each) is determined by the game
+/// and the interpreter is expected to implement this.  Interpreters do have some
+/// leeway in how they manage the presentation layer.  In Zart, we choose to
+/// abstract the windowing/layout into this [ScreenModel] class, so that
+/// multiple interpreter "player" apps can use the same API to display the game,
+/// and then manaage their own presentation layer logic. (CLI, Flutter, etc.)
+///
+/// ## Window 1
+/// Window 1 is the upper window and allows for
+/// positioning of text.  It is used for status lines, menus, and other
+/// positional UI components.
+///
+/// Window 1 expands and contracts at game request.
+///
+/// Window 1, in some versions of z-machine can also display graphics.
+/// Zart does not yet support this.
+///
+/// ## Window 0
+/// Window 0 is the main window and is used for the main text of the game.
+///
+/// It is generally scrollable, but does not have to be.  Most modern players
+/// should try to support scrolling.
+///
+/// It is always expanded to fill the remaining space.
 class ScreenModel {
   /// The number of columns in the screen.
   int cols;
@@ -46,8 +65,7 @@ class ScreenModel {
   int wrapWidth = 0;
 
   /// Effective wrap width.
-  int get _effectiveWrapWidth =>
-      (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
+  int get _effectiveWrapWidth => (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
 
   /// The grid for Window 1 (upper/status window) content.
   /// Grid is [row][col]
@@ -66,9 +84,7 @@ class ScreenModel {
   void _recomputeEffectiveHeight() {
     final newHeight = max(_requestedHeight, _contentHeight);
     if (newHeight != _window1Height) {
-      _log.info(
-        'Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight',
-      );
+      _log.info('Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight');
       _window1Height = newHeight;
       _ensureGridRows(_window1Height);
     }
@@ -148,11 +164,6 @@ class ScreenModel {
     _recomputeEffectiveHeight();
   }
 
-  // Removed legacy _pendingWindow1Height logic and applyPendingWindowShrink
-  // as persistent storage handles the "Quote Box" scenario natively.
-  /// Deprecated.  will remove later.
-  void applyPendingWindowShrink() {}
-
   /// Clear Window 1. Resets grid to empty and cursor to (1,1).
   void clearWindow1() {
     _log.info('clearWindow1');
@@ -183,7 +194,7 @@ class ScreenModel {
     clearWindow0();
   }
 
-  /// Set cursor position in Window 1 (1-indexed).
+  /// Set cursor position in Window 1 (1-indexed for z-machine spec compliance).
   void setCursor(int row, int col) {
     _log.info('setCursor: $row, $col');
     // Relaxed clamping: Cursor can go anywhere.
@@ -209,9 +220,7 @@ class ScreenModel {
   /// Write text to Window 1 at current cursor position.
   void writeToWindow1(String text) {
     // Log simplified text content
-    _log.info(
-      'writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol',
-    );
+    _log.info('writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol');
 
     for (int i = 0; i < text.length; i++) {
       final char = text[i];
@@ -265,15 +274,11 @@ class ScreenModel {
     if (_window1Height > _requestedHeight) {
       final trimmed = text.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        _log.info(
-          'Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
       if (trimmed.startsWith('[')) {
-        _log.info(
-          'Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
     }
@@ -306,8 +311,7 @@ class ScreenModel {
 
       if (word != null) {
         // Wrap if word doesn't fit
-        if (currentLine.isNotEmpty &&
-            currentLine.length + word.length > _effectiveWrapWidth) {
+        if (currentLine.isNotEmpty && currentLine.length + word.length > _effectiveWrapWidth) {
           newLine();
         }
 
@@ -317,9 +321,7 @@ class ScreenModel {
 
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(
-            Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
-          );
+          currentLine.add(Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
         }
       }
 
@@ -331,9 +333,7 @@ class ScreenModel {
           }
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(
-            Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
-          );
+          currentLine.add(Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
         }
       }
     }
@@ -343,21 +343,22 @@ class ScreenModel {
   Map<String, dynamic>? _savedState;
 
   /// Saves the current state of the screen model (grids, cursor, etc).
+  /// This is useful for storing the game screen while switching to some custom
+  /// screen, like a settings screen.  You can later restore the game screen
+  /// by calling [restoreState].  This is probably less useful for frameworks
+  /// that have their own GUI system (like Flutter), but it definitely helps
+  /// for CLI-based apps like the Zart CLI Player.
   void saveState() {
     _log.info('Saving ScreenModel state');
     _savedState = {
       'cols': cols,
       'rows': rows,
       'wrapWidth': wrapWidth,
-      'window1Grid': _window1Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'window1Grid': _window1Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'window1Height': _window1Height,
       'requestedHeight': _requestedHeight,
       'contentHeight': _contentHeight,
-      'window0Grid': _window0Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'window0Grid': _window0Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'cursorRow': _cursorRow,
       'cursorCol': _cursorCol,
       'currentStyle': currentStyle,
@@ -382,19 +383,13 @@ class ScreenModel {
       wrapWidth = state['wrapWidth'];
     }
 
-    _window1Grid = (state['window1Grid'] as List)
-        .map((row) => (row as List).cast<Cell>())
-        .toList();
+    _window1Grid = (state['window1Grid'] as List).map((row) => (row as List).cast<Cell>()).toList();
     _window1Height = state['window1Height'];
     _requestedHeight = state['requestedHeight'];
     _contentHeight = state['contentHeight'];
 
     _window0Grid.clear();
-    _window0Grid.addAll(
-      (state['window0Grid'] as List)
-          .map((row) => (row as List).cast<Cell>())
-          .toList(),
-    );
+    _window0Grid.addAll((state['window0Grid'] as List).map((row) => (row as List).cast<Cell>()).toList());
 
     _cursorRow = state['cursorRow'];
     _cursorCol = state['cursorCol'];
