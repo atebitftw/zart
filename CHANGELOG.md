@@ -158,3 +158,6 @@
 
 # 1.9.2
 - README.md updated
+
+# 1.9.3
+- Improved CLI player settings screen options and layout.
