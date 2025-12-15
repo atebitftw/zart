@@ -57,8 +57,7 @@ Example configuration:
 }
 ```
 
-### Color Codes Table
-
+### Color Codes Table (Z-Machine Spec 8.3.1)
 | Code | Color        |
 |------|--------------|
 | 1    | Default      |
@@ -70,4 +69,6 @@ Example configuration:
 | 7    | Magenta      |
 | 8    | Cyan         |
 | 9    | White        |
-| 10   | Dark Grey    |
+| 10   | Light Grey   |
+| 11   | Medium Grey  |
+| 12   | Dark Grey    |
