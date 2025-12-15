@@ -13,6 +13,7 @@ import 'package:zart/src/io/cell.dart';
 const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
 
 /// Layout:
+/// ```text
 /// ┌────────────────────────────────┐
 /// │ Window 1 (status/upper)        │
 /// ├────────────────────────────────┤ ← Separator
@@ -20,6 +21,7 @@ const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Co
 /// │ (text, text)                   │
 /// │ > [input line]                 │
 /// └────────────────────────────────┘
+/// ```
 class TerminalDisplay {
   /// Terminal dimensions
   int _cols = 80;
