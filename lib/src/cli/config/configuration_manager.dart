@@ -23,9 +23,17 @@ class ConfigurationManager {
 
   /// Zart Bar Foreground Color (1-15).
   int get zartBarForeground => _zartBarForeground;
+  set zartBarForeground(int value) {
+    _zartBarForeground = value;
+    save();
+  }
 
   /// Zart Bar Background Color (1-15).
   int get zartBarBackground => _zartBarBackground;
+  set zartBarBackground(int value) {
+    _zartBarBackground = value;
+    save();
+  }
 
   /// Zart Bar Visibility.
   bool get zartBarVisible => _zartBarVisible;
