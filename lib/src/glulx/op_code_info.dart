@@ -62,6 +62,18 @@ class OpcodeInfo {
     GlulxOpcodes.stkroll: OpcodeInfo(2, [false, false]), // stkroll L1 L2
     GlulxOpcodes.stkcopy: OpcodeInfo(1, [false]), // stkcopy L1
     GlulxOpcodes.tailcall: OpcodeInfo(2, [false, false]), // tailcall L1 L2
+    GlulxOpcodes.gestalt: OpcodeInfo(3, [false, false, true]), // gestalt L1 L2 S1
+    GlulxOpcodes.debugtrap: OpcodeInfo(1, [false]), // debugtrap L1
+    GlulxOpcodes.getmemsize: OpcodeInfo(1, [true]), // getmemsize S1
+    GlulxOpcodes.setmemsize: OpcodeInfo(2, [false, true]), // setmemsize L1 S1
+    GlulxOpcodes.jumpabs: OpcodeInfo(1, [false]), // jumpabs L1
+    GlulxOpcodes.streamnum: OpcodeInfo(1, [false]), // streamnum L1
+    GlulxOpcodes.streamstr: OpcodeInfo(1, [false]), // streamstr L1
+    GlulxOpcodes.random: OpcodeInfo(2, [false, true]), // random L1 S1
+    GlulxOpcodes.setrandom: OpcodeInfo(1, [false]), // setrandom L1
+    GlulxOpcodes.verify: OpcodeInfo(1, [true]), // verify S1
+    GlulxOpcodes.catchEx: OpcodeInfo(2, [true, false]), // catch S1 L1
+    GlulxOpcodes.throwEx: OpcodeInfo(2, [false, false]), // throw L1 L2
   };
 
   static OpcodeInfo get(int opcode) {

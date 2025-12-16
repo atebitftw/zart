@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:math';
 
 import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
@@ -24,6 +25,7 @@ import 'package:zart/src/logging.dart';
 /// Glulx Interpreter
 class GlulxInterpreter {
   late ByteData _memory;
+  ByteData get memory => _memory;
   // We keep the raw Uint8List for easy resizing/copying if needed, unique to Glulx memory model
   late Uint8List _rawMemory;
 
@@ -42,6 +44,10 @@ class GlulxInterpreter {
   int _extStart = 0;
   int _endMem = 0;
 
+  int get ramStart => _ramStart;
+  int get extStart => _extStart;
+  int get endMem => _endMem;
+
   /// IO provider for Glulx interpreter.
   final IoProvider? io;
 
@@ -49,6 +55,16 @@ class GlulxInterpreter {
   bool debugMode = false;
 
   bool _running = false;
+
+  Random _random_rng = Random();
+
+  void _setRandom(int seed) {
+    if (seed == 0) {
+      _random_rng = Random();
+    } else {
+      _random_rng = Random(seed);
+    }
+  }
 
   /// Create a new Glulx interpreter.
   GlulxInterpreter({this.io});
@@ -244,15 +260,31 @@ class GlulxInterpreter {
     _fp = framePtr;
     _pc = pc;
 
+    if (_fp == 0) {
+      _running = false;
+    }
+
     // 4. Store Result
     _storeResult(destType, destAddr, result);
   }
 
-  Future<void> run() async {
+  Future<void> run({int maxSteps = -1}) async {
     _running = true;
 
+    int steps = 0;
     while (_running) {
+      if (maxSteps > 0 && steps++ >= maxSteps) {
+        print('Aborting: Max steps reached ($maxSteps)');
+        _running = false;
+        break;
+      }
       // Debug Logging
+      // Always print for debugging this issue
+      int dbgOp = _memRead8(_pc);
+      if (true) {
+        // Force enable
+        print('PC: ${_pc.toRadixString(16)} Op: ${dbgOp.toRadixString(16)}');
+      }
       if (debugMode) {
         int nextOp = _memRead8(_pc);
         if ((nextOp & 0x80) == 0x80) {
@@ -338,6 +370,148 @@ class GlulxInterpreter {
 
         case GlulxOpcodes.ret: // return (0x31)
           _leaveFunction(operands[0]);
+
+        case GlulxOpcodes.catchEx: // catch (0x32)
+          // catch(dest, branch)
+          int branchOffset = operands[1]; // L1
+          int nextPC = _pc;
+
+          // Push Call Stub (DestType, DestAddr, NextPC, FP)
+          _pushCallStub(destTypes[0], operands[0], nextPC, _fp);
+
+          // Token is the value of SP after pushing the stub
+          int token = _sp;
+
+          // Store the Token in S1
+          _storeResult(destTypes[0], operands[0], token);
+
+          // Branch to L1
+          if (branchOffset == 0 || branchOffset == 1) {
+            _leaveFunction(branchOffset);
+          } else {
+            // "The branch is to (Addr + L1 - 2)" where Addr is _pc (instruction end)
+            _pc = (_pc + branchOffset - 2) & 0xFFFFFFFF;
+          }
+          break;
+
+        case GlulxOpcodes.throwEx: // throw (0x33)
+          // throw(val, token)
+          int val = operands[0];
+          int token = operands[1];
+
+          // Validation
+          if (_sp < token) throw GlulxException('throw: Invalid Token (SP < Token)');
+
+          // Unwind Stack to Token
+          _sp = token;
+
+          // Pop Call Stub (LIFO: FP, PC, Addr, Type)
+          int oldFp = _pop();
+          int oldPc = _pop();
+          int destAddr = _pop();
+          int destType = _pop();
+
+          // Restore Registers
+          _fp = oldFp;
+          _pc = oldPc;
+
+          // Store Thrown Value
+          _storeResult(destType, destAddr, val);
+          break;
+
+        case GlulxOpcodes.random: // random (0x100)
+          int range = operands[0];
+          int result = 0;
+          if (range == 0) {
+            result = _random_rng.nextInt(1 << 32);
+          } else if (range > 0) {
+            result = _random_rng.nextInt(range);
+          } else {
+            result = -(_random_rng.nextInt(-range));
+          }
+          _storeResult(destTypes[1], operands[1], result);
+          break;
+
+        case GlulxOpcodes.setrandom: // setrandom (0x101)
+          _setRandom(operands[0]);
+          break;
+
+        case GlulxOpcodes.verify: // verify (0x128)
+          // Stub: Always pass. Real verification requires original file checksumming.
+          _storeResult(destTypes[0], operands[0], 0);
+          break;
+
+        case GlulxOpcodes.streamnum: // streamnum (0x71)
+          _streamNum(operands[0]);
+          break;
+
+        case GlulxOpcodes.streamstr: // streamstr (0x72)
+          _streamString(operands[0]);
+          break;
+
+        case GlulxOpcodes.gestalt: // gestalt (0x04)
+          // gestalt(selector, arg) -> val
+          int selector = operands[0];
+          int val = 0;
+          switch (selector) {
+            case 0: // Glulx Version
+              val = 0x00030103; // Version 3.1.3
+              break;
+            case 1: // Terp Version
+              val = 0x00010000; // 1.0.0
+              break;
+            case 2: // ResizeMem
+              val = 1;
+              break;
+            case 3: // Undo
+              val = 1; // Support undo? Maybe later.
+              break;
+            case 4: // IOSystem
+              // Supports 0 (Null), 1 (Filter), 2 (Glk).
+              if (operands[1] == 0 || operands[1] == 1 || operands[1] == 2) val = 1;
+              break;
+            default:
+              val = 0;
+          }
+          _storeResult(destTypes[2], operands[2], val);
+          break;
+
+        case GlulxOpcodes.debugtrap: // debugtrap (0x05)
+          if (debugMode) {
+            print('Glulx Debug Trap at 0x${(_pc - opLen).toRadixString(16)}');
+          }
+          break;
+
+        case GlulxOpcodes.getmemsize: // getmemsize (0x08)
+          _storeResult(destTypes[0], operands[0], _memory.lengthInBytes);
+          break;
+
+        case GlulxOpcodes.setmemsize: // setmemsize (0x09)
+          int newSize = operands[0];
+          int result = 0; // 0 Success, 1 Fail
+
+          if (newSize < _endMem || newSize % 256 != 0) {
+            result = 1;
+          } else {
+            try {
+              if (newSize != _rawMemory.length) {
+                Uint8List newRaw = Uint8List(newSize);
+                // Copy existing
+                int copyLen = min(_rawMemory.length, newSize);
+                for (int i = 0; i < copyLen; i++) newRaw[i] = _rawMemory[i];
+                _rawMemory = newRaw;
+                _memory = ByteData.sublistView(_rawMemory);
+              }
+              result = 0;
+            } catch (e) {
+              result = 1;
+            }
+          }
+          _storeResult(destTypes[1], operands[1], result);
+          break;
+
+        case GlulxOpcodes.jumpabs: // jumpabs (0x0A)
+          _pc = operands[0];
           break;
 
         case GlulxOpcodes.tailcall: // tailcall
@@ -632,37 +806,36 @@ class GlulxInterpreter {
         _pc += 4;
         break;
 
-      case 0x5: // Address 00-FF
+      case 0x4: // Address 00-FF
         value = _memRead8(_pc++);
         if (!isStore) value = _memRead32(value);
         break;
-      case 0x6: // Address 0000-FFFF
+      case 0x5: // Address 0000-FFFF
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0x7: // Address any
+      case 0x6: // Address Any
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
         if (!isStore) value = _memRead32(value);
         break;
 
-      case 0x8: // Stack
-        if (isStore) {
-          value = 0; // Stack push, value irrelevant for address
-        } else {
+      case 0x7: // Stack
+        if (!isStore)
           value = _pop();
-        }
+        else
+          value = 0;
         break;
 
-      case 0x9: // callf (Local byte offset)
+      case 0x8: // Local 00-FF
         value = _memRead8(_pc++);
         if (!isStore)
           value = _stackRead32(_fp + value);
         else
           value = _fp + value; // Address for storing
         break;
-      case 0xA: // callf (Local short offset)
+      case 0x9: // Local 0000-FFFF
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
         if (!isStore)
@@ -670,7 +843,7 @@ class GlulxInterpreter {
         else
           value = _fp + value;
         break;
-      case 0xB: // callf (Local int offset)
+      case 0xA: // Local Any
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
         if (!isStore)
@@ -679,21 +852,21 @@ class GlulxInterpreter {
           value = _fp + value;
         break;
 
-      case 0xD: // RAM byte offset
+      case 0xB: // RAM 00-FF
         value = _memRead8(_pc++);
         value = _ramStart + value;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0xE: // RAM short offset
+      case 0xC: // RAM 0000-FFFF
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
         value = _ramStart + value;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0xF: // RAM int offset
+      case 0xD: // RAM Any
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
-        _pc += 4; // _ramStart is uint32, so this wraps naturally if it overflows? Dart int is 64-bit.
-        value = (_ramStart + value) & 0xFFFFFFFF; // Ensure 32-bit wrapping?
+        _pc += 4;
+        value = (_ramStart + value) & 0xFFFFFFFF;
         if (!isStore) value = _memRead32(value);
         break;
 
@@ -786,13 +959,13 @@ class GlulxInterpreter {
     switch (mode) {
       case 0x0: // Discard
         break;
-      case 0x8: // Stack
-        _push(value); // Stack always 32-bit
+      case 0x7: // Stack (Push)
+        _push(value);
         break;
 
-      case 0x9: // Local 00-FF
-      case 0xA: // Local 0000-FFFF
-      case 0xB: // Local Any
+      case 0x8: // Local 00-FF
+      case 0x9: // Local 0000-FFFF
+      case 0xA: // Local Any
         if (size == 1) {
           _stackWrite8(address, value);
         } else if (size == 2) {
@@ -802,12 +975,12 @@ class GlulxInterpreter {
         }
         break;
 
-      case 0x5: // Address 00-FF (Address provided in 'address')
-      case 0x6: // Address 0000-FFFF
-      case 0x7: // Address Any
-      case 0xD: // RAM 00-FF
-      case 0xE: // RAM 0000-FFFF
-      case 0xF: // RAM Any
+      case 0x4: // Address 00-FF
+      case 0x5: // Address 0000-FFFF
+      case 0x6: // Address Any
+      case 0xB: // RAM 00-FF
+      case 0xC: // RAM 0000-FFFF
+      case 0xD: // RAM Any
         // address was calculated during decodeOperand
         if (size == 1) {
           _memWrite8(address, value);
@@ -831,6 +1004,46 @@ class GlulxInterpreter {
     } else {
       // Offset is from instruction *after* branch.
       _pc += offset.toSigned(32);
+    }
+  }
+
+  void _streamNum(int val) {
+    String s = val.toString();
+    for (int char in s.runes) {
+      io?.glulxGlk(0x0080, [char]);
+    }
+  }
+
+  void _streamString(int addr) {
+    int type = _memRead8(addr);
+
+    if (type == 0xE0) {
+      // C-style string
+      int ptr = addr + 1;
+      while (true) {
+        int char = _memRead8(ptr);
+        if (char == 0) break;
+        io?.glulxGlk(0x0080, [char]);
+        ptr++;
+      }
+    } else if (type == 0xE2) {
+      // Unicode string
+      int ptr = addr + 4; // Data starts 4 bytes after type byte
+      while (true) {
+        int char = _memRead32(ptr);
+        if (char == 0) break;
+        io?.glulxGlk(0x0080, [char]);
+        ptr += 4;
+      }
+    } else if (type == 0xE1) {
+      // Compressed
+      // TODO: Implement compressed strings
+      _streamNum(60); // <
+      _streamNum(69); // E
+      _streamNum(49); // 1
+      _streamNum(62); // >
+    } else {
+      // Unknown
     }
   }
 }

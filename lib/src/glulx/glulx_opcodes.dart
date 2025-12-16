@@ -76,19 +76,19 @@ class GlulxOpcodes {
   static const int jgeu = 0x2B; // implemented. unit tested
 
   /// call
-  static const int call = 0x30;
+  static const int call = 0x30; // implemented. unit tested
 
   /// ret
-  static const int ret = 0x31; // 'return' is a keyword
+  static const int ret = 0x31; // implemented. unit tested
 
   /// catchEx
-  static const int catchEx = 0x32; // 'catch' is a keyword, 'throw' is a keyword
+  static const int catchEx = 0x32; // implemented. unit tested
 
   /// throwEx
-  static const int throwEx = 0x33;
+  static const int throwEx = 0x33; // implemented. unit tested
 
   /// tailcall
-  static const int tailcall = 0x34;
+  static const int tailcall = 0x34; // implemented. unit tested
 
   /// copy
   static const int copy = 0x40; // implemented. unit tested
@@ -130,19 +130,19 @@ class GlulxOpcodes {
   static const int astorebit = 0x4F;
 
   /// stkcount
-  static const int stkcount = 0x50;
+  static const int stkcount = 0x50; // implemented. unit tested
 
   /// stkpeek
-  static const int stkpeek = 0x51;
+  static const int stkpeek = 0x51; // implemented. unit tested
 
   /// stkswap
-  static const int stkswap = 0x52;
+  static const int stkswap = 0x52; // implemented. unit tested
 
   /// stkroll
-  static const int stkroll = 0x53;
+  static const int stkroll = 0x53; // implemented. unit tested
 
   /// stkcopy
-  static const int stkcopy = 0x54;
+  static const int stkcopy = 0x54; // implemented. unit tested
 
   /// streamchar
   static const int streamchar = 0x70; // implemented. unit tested
