@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:zart/src/cli/ui/glulx_terminal_provider.dart';
 import 'package:zart/src/cli/ui/z_machine_terminal_provider.dart';
 import 'package:zart/src/logging.dart' show log;
 import 'package:logging/logging.dart' show Level;
@@ -54,29 +55,35 @@ void main(List<String> args) async {
       stdout.writeln("Zart: Loading Glulx game...");
 
       // Set IoProvider before loading
-      final terminal = TerminalDisplay();
-      terminal.config = config;
-      terminal.applySavedSettings();
-
-      // Create provider
-      final provider = ZMachineTerminalProvider(terminal, filename);
-
-      try {
-        final glulx = GlulxInterpreter(io: provider);
-        glulx.load(gameData);
-        await glulx.run();
-        exit(0);
-      } catch (e) {
-        stdout.writeln("Glulx Error: $e");
-        exit(1);
-      }
+      await _runGlulxGame(filename, gameData, config);
+      exit(0);
     }
 
     if (fileType == GameFileType.z) {
       await _runZMachineGame(filename, gameData, config);
+      exit(0);
     }
   } catch (fe) {
     stdout.writeln("Exception occurred while trying to load game: $fe");
+    exit(1);
+  }
+}
+
+Future<void> _runGlulxGame(String fileName, Uint8List gameData, ConfigurationManager config) async {
+  final terminal = TerminalDisplay();
+  terminal.config = config;
+  terminal.applySavedSettings();
+
+  // Create provider
+  final provider = GlulxTerminalProvider(terminal);
+
+  try {
+    final glulx = GlulxInterpreter(io: provider);
+    glulx.load(gameData);
+    await glulx.run();
+    exit(0);
+  } catch (e) {
+    stdout.writeln("Glulx Error: $e");
     exit(1);
   }
 }
