@@ -7,8 +7,14 @@ import 'package:zart/zart.dart';
 class ZMachineTerminalProvider implements IoProvider {
   final TerminalDisplay _terminal;
   final String _gameName;
+
+  /// Indicates if the mode is a quick-save or not.
   bool isQuickSaveMode = false;
+
+  /// Indicates if the mode is an auto-restore or not.
   bool isAutorestoreMode = false;
+
+  /// Default constructor.
   ZMachineTerminalProvider(this._terminal, this._gameName);
 
   @override
@@ -88,7 +94,9 @@ class ZMachineTerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
+        final rightText = isTime
+            ? 'Time: $score1:$score2'
+            : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (_terminal.screen.window1Height < 1) {
@@ -112,7 +120,8 @@ class ZMachineTerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = _terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen =
+            rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -187,7 +196,10 @@ class ZMachineTerminalProvider implements IoProvider {
 
           final f = File(filename);
           if (!f.existsSync()) {
-            _terminal.showTempMessage('QuickSave File Not Found! Cannot Restore', seconds: 3);
+            _terminal.showTempMessage(
+              'QuickSave File Not Found! Cannot Restore',
+              seconds: 3,
+            );
             isAutorestoreMode = false;
             return null;
           }
