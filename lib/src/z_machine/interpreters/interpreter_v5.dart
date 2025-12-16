@@ -163,9 +163,7 @@ class InterpreterV5 extends InterpreterV4 {
   /// ### Z-Machine Spec Reference
   /// 2OP:28 (throw value stack-frame)
   void throwOp() {
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final value = operands[0].value!;
     final targetFrame = operands[1].value!;
@@ -248,9 +246,7 @@ class InterpreterV5 extends InterpreterV4 {
     // Currently only keyboard input (stream 0) is supported
     // This is effectively a no-op but we consume the operand
     if (streamNum != 0) {
-      log.warning(
-        'input_stream $streamNum requested but only stream 0 (keyboard) is supported',
-      );
+      log.warning('input_stream $streamNum requested but only stream 0 (keyboard) is supported');
     }
   }
 
@@ -379,11 +375,7 @@ class InterpreterV5 extends InterpreterV4 {
 
     final zchars = <int>[];
 
-    for (
-      int i = 0;
-      i < text.length && zchars.length < (byteCount ~/ 2) * 3;
-      i++
-    ) {
+    for (int i = 0; i < text.length && zchars.length < (byteCount ~/ 2) * 3; i++) {
       final c = text[i];
       final idx = a0.indexOf(c);
 
@@ -456,18 +448,10 @@ class InterpreterV5 extends InterpreterV4 {
       }
 
       // Explicitly set cursor for this row
-      await Z.sendIO({
-        "command": IoCommands.setCursor,
-        "line": startRow + row,
-        "column": startCol,
-      });
+      await Z.sendIO({"command": IoCommands.setCursor, "line": startRow + row, "column": startCol});
 
       // Print the row
-      await Z.sendIO({
-        "command": IoCommands.print,
-        "window": currentWindow,
-        "buffer": sb.toString(),
-      });
+      await Z.sendIO({"command": IoCommands.print, "window": currentWindow, "buffer": sb.toString()});
 
       if (row < height - 1) {
         addr += skip;
@@ -505,11 +489,7 @@ class InterpreterV5 extends InterpreterV4 {
     final foreground = operands[0].value!;
     final background = operands[1].value!;
 
-    await Z.sendIO({
-      "command": IoCommands.setTrueColour,
-      "foreground": foreground,
-      "background": background,
-    });
+    await Z.sendIO({"command": IoCommands.setTrueColour, "foreground": foreground, "background": background});
   }
 
   /// Copies a table (VAR:253).
@@ -531,9 +511,7 @@ class InterpreterV5 extends InterpreterV4 {
     if (t2Addr == 0) {
       // Zero out abs(size) bytes at t1Addr
       var absSize = size.abs();
-      Debugger.debug(
-        '>>> Zeroing $absSize bytes at 0x${t1Addr.toRadixString(16)}',
-      );
+      Debugger.debug('>>> Zeroing $absSize bytes at 0x${t1Addr.toRadixString(16)}');
       for (int i = 0; i < absSize; i++) {
         mem.storeb(t1Addr + i, 0);
       }
@@ -772,10 +750,7 @@ class InterpreterV5 extends InterpreterV4 {
 
     var operands = visitOperandsVar(1, false);
 
-    await Z.sendIO({
-      "command": IoCommands.setTextStyle,
-      "style": operands[0].value,
-    });
+    await Z.sendIO({"command": IoCommands.setTextStyle, "style": operands[0].value});
   }
 
   /// Sets the foreground and background colors.
@@ -785,16 +760,10 @@ class InterpreterV5 extends InterpreterV4 {
     //Debugger.verbose('${pcHex(-1)} [set_colour]');
 
     // Read operands based on opcode byte form (consumes bytes from program stream)
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     // Color values: 0=current, 1=default, 2-9=colors, 10+=custom (v6)
-    await Z.sendIO({
-      "command": IoCommands.setColour,
-      "foreground": operands[0].value,
-      "background": operands[1].value,
-    });
+    await Z.sendIO({"command": IoCommands.setColour, "foreground": operands[0].value, "background": operands[1].value});
   }
 
   /// Performs a bitwise NOT operation (VAR form - opcode 248).
@@ -845,10 +814,7 @@ class InterpreterV5 extends InterpreterV4 {
     // Save with PC pointing BEFORE resultTo byte so restore can read it
     final saveData = Quetzal.save(savePC);
 
-    final result = await Z.sendIO({
-      "command": IoCommands.save,
-      "file_data": saveData,
-    });
+    final result = await Z.sendIO({"command": IoCommands.save, "file_data": saveData});
 
     Z.inInterrupt = false;
 
@@ -1069,9 +1035,7 @@ class InterpreterV5 extends InterpreterV4 {
     if (ops.containsKey(i)) {
       if (Debugger.enableDebug) {
         if (Debugger.enableTrace && !Z.inBreak) {
-          Debugger.debug(
-            '>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)',
-          );
+          Debugger.debug('>>> (0x${(programCounter - 1).toRadixString(16)}) ($i)');
           Debugger.debug(Debugger.dumpLocals());
         }
 
@@ -1092,7 +1056,7 @@ class InterpreterV5 extends InterpreterV4 {
   }
 
   @override
-  void read() async {
+  Future<void> read() async {
     await Z.printBuffer();
 
     final operands = visitOperandsVar(4, true);
@@ -1102,9 +1066,7 @@ class InterpreterV5 extends InterpreterV4 {
     if (operands.length > 2) {
       //TODO implement aread optional args
       log.warning('implement aread optional args');
-      throw GameException(
-        "Sorry :( This interpreter doesn't yet support a required feature of this game.",
-      );
+      throw GameException("Sorry :( This interpreter doesn't yet support a required feature of this game.");
     }
 
     int maxBytes = mem.loadb(operands[0].value!);
@@ -1285,10 +1247,7 @@ class InterpreterV5 extends InterpreterV4 {
     var operands = visitOperandsVar(1, false);
     final resultTo = readb();
 
-    final result = await Z.sendIO({
-      "command": IoCommands.setFont,
-      "font_id": operands[0].value,
-    });
+    final result = await Z.sendIO({"command": IoCommands.setFont, "font_id": operands[0].value});
 
     // Result should be an int (previous font number, or 0 if not available)
     if (result is int) {
@@ -1337,11 +1296,7 @@ class InterpreterV5 extends InterpreterV4 {
     final column = operands[1].value!;
 
     // Z-Machine spec: set_cursor line column (1-indexed)
-    await Z.sendIO({
-      "command": IoCommands.setCursor,
-      "line": line,
-      "column": column,
-    });
+    await Z.sendIO({"command": IoCommands.setCursor, "line": line, "column": column});
   }
 
   /// Sets the current window (VAR:235).
@@ -1519,9 +1474,7 @@ class InterpreterV5 extends InterpreterV4 {
   void call_2s() {
     //Debugger.verbose('${pcHex(-1)} [call_2s]');
 
-    var operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     var storeTo = readb();
 
@@ -1578,9 +1531,7 @@ class InterpreterV5 extends InterpreterV4 {
   void call_2n() {
     //Debugger.verbose('${pcHex(-1)} [call_2n]');
 
-    var operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    var operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     // Per Z-Machine spec 6.4.3: calling routine at address 0 does nothing
     if (operands[0].value == 0) {
@@ -1649,22 +1600,45 @@ class InterpreterV5 extends InterpreterV4 {
 
     var operands = visitOperandsVar(1, false);
 
-    await Z.sendIO({
-      "command": IoCommands.splitWindow,
-      "lines": operands[0].value,
-    });
+    await Z.sendIO({"command": IoCommands.splitWindow, "lines": operands[0].value});
   }
 
   /// Reads a character.
-  void readChar() async {
+  Future<void> readChar() async {
     //Debugger.verbose('${pcHex(-1)} [read_char]');
 
     await Z.printBuffer();
 
     var operands = visitOperandsVar(4, true);
 
-    if (operands.length == 3) {
-      Debugger.todo('read_char time & routine operands');
+    // VAR:246 (read_char 1 time routine -> result)
+    // First operand is always 1 (input device id).
+    // Optional time (tenths of second) and routine (packed address).
+
+    int? time;
+    int? routine;
+
+    if (operands.length > 2) {
+      if (operands.length > 3) {
+        time = operands[1].value;
+        routine = operands[2].value;
+      } else {
+        // According to spec, operands are time and routine.
+        // But read_char is defined as 1 time routine.
+        // So operands[1] is time, operands[2] is routine.
+        // If length is 3, that means 1, time are present? Or 1, routine?
+        // Spec: "time and routine are optional ... and dealt with as in read".
+        // read: "if the operands time and routine are supplied..."
+        // So we expect 3 or 4 operands for full timed input?
+        // Z-Machine spec 15: VAR:246 16 4 read_char 1 time routine -> (result)
+        // 4 operands max (standard says 16?).
+        // Actually, normally 1 operand (device ID).
+        // +2 for time/routine = 3 operands.
+
+        // Let's safe guard:
+        if (operands.length >= 2) time = operands[1].value;
+        if (operands.length >= 3) routine = operands[2].value;
+      }
     }
 
     var resultTo = readb();
@@ -1672,14 +1646,26 @@ class InterpreterV5 extends InterpreterV4 {
     // In pump mode, store callback and return (execution pauses)
     // In traditional mode, send to IoProvider and wait
     if (Z.isPumpMode) {
-      Z.requestCharInput((String char) {
-        writeVariable(resultTo, ZSCII.charToZChar(char));
-      });
+      Z.requestCharInput(
+        (String char) {
+          writeVariable(resultTo, ZSCII.charToZChar(char));
+        },
+        time: time,
+        routine: routine,
+      );
       return; // Exit - execution will resume when submitCharInput is called
     }
 
     // Traditional mode
-    final char = await Z.sendIO({"command": IoCommands.readChar});
+    // We pass time/routine but existing IO providers might ignore them.
+    // Ideally we'd update SendIO to take a map with these.
+    // IoCommands.readChar does not currently specify params in io_commands.dart
+    // but the map is dynamic.
+    final char = await Z.sendIO({
+      "command": IoCommands.readChar,
+      if (time != null) "time": time,
+      if (routine != null) "routine": routine,
+    });
     writeVariable(resultTo, ZSCII.charToZChar(char));
   }
 
@@ -1753,12 +1739,12 @@ class InterpreterV5 extends InterpreterV4 {
   /// Returns the terminating character (usually 13 for return).
   ///
   /// ### Z-Machine Spec Reference
-  /// VAR:228 (aread text parse time routine -> result)
-  void aread() async {
+  // V5 read (aread) operands: text, parse, time, routine.
+  // There is NO dictionary argument in V5 read.
+  // The Standard Dictionary is always used.
+  Future<void> aread() async {
     log.finest("aread() (V5)");
     //Debugger.verbose('${pcHex(-1)} [aread]');
-
-    // sendStatus(); // V5 does not use V3-style status line (managed by game via Window 1)
 
     await Z.printBuffer();
 
@@ -1785,11 +1771,44 @@ class InterpreterV5 extends InterpreterV4 {
       "aread() operands: $operands maxBytes: $maxBytes, textBuffer: $textBuffer, maxWords: $maxWords, parseBuffer: $parseBuffer",
     );
 
+    int? time;
+    int? routine;
+
+    if (operands.length > 2) {
+      time = operands[2].value;
+      if (operands.length > 3) {
+        routine = operands[3].value;
+      }
+    }
+
+    // Check for existing text in the buffer (continuation)
+    // Byte 0: max length
+    // Byte 1: current length (if > 0, we are continuing)
+    // Byte 2+: the text
+    String initialText = "";
+    int currentLength = mem.loadb(textBufferBase + 1);
+
+    // Safety check just in case currentLength is garbage huge
+    if (currentLength > 0 && currentLength < maxBytes) {
+      // Read existing text
+      StringBuffer sb = StringBuffer();
+      int addr = textBufferBase + 2;
+      for (int i = 0; i < currentLength; i++) {
+        int charCode = mem.loadb(addr + i);
+        // Basic ZSCII to ASCII mapping for standard chars
+        if (charCode >= 32 && charCode <= 126) {
+          sb.writeCharCode(charCode);
+        } else {
+          // Fallback for untranslatable or complex ZSCII
+          sb.write('?');
+        }
+      }
+      initialText = sb.toString();
+    }
+
+    // We update the processLine function to handle appending
     void processLine(String line) {
       line = line.trim().toLowerCase();
-
-      // Detect "non-response" or empty line?
-      // Standard writes whatever is typed.
 
       if (line.length > maxBytes - 2) {
         line = line.substring(0, maxBytes - 2);
@@ -1800,7 +1819,7 @@ class InterpreterV5 extends InterpreterV4 {
       log.fine("zChars:  $zChars");
       log.fine("textBuffer address: $textBuffer");
 
-      // Write text to Byte 2+
+      // Write text to Byte 2+ logic:
       int currentAddr = textBuffer;
       for (final c in zChars) {
         mem.storeb(currentAddr++, c);
@@ -1808,7 +1827,7 @@ class InterpreterV5 extends InterpreterV4 {
 
       // V5 has no null terminator for text buffer (length is explicit)
 
-      // Write Key (Length) to Byte 1 (V5 specific)
+      // Write Length to Byte 1 (V5 specific)
       mem.storeb(textBufferBase + 1, zChars.length);
 
       // Tokenise if parse buffer provided
@@ -1828,6 +1847,8 @@ class InterpreterV5 extends InterpreterV4 {
         // Write number of parsed words
         if (parsed.isNotEmpty) {
           mem.storeb(parseBuffer, parsed[0]);
+        } else {
+          mem.storeb(parseBuffer, 0); // Ensure 0 count if empty
         }
 
         // Write the words (parsed[1..])
@@ -1852,22 +1873,35 @@ class InterpreterV5 extends InterpreterV4 {
     log.finest("sending aread command");
 
     if (Z.isPumpMode) {
-      Z.requestLineInput((String l) {
-        if (l == '/!') {
-          Z.inBreak = true;
-          Debugger.debugStartAddr = programCounter - 1;
-          log.finest("aread() debug break");
-        } else {
-          log.finest("aread() processing input");
-          processLine(l);
-          log.fine("pc: $programCounter");
-        }
-      });
+      Z.requestLineInput(
+        (String l) {
+          if (l == '/!') {
+            Z.inBreak = true;
+            Debugger.debugStartAddr = programCounter - 1;
+            log.finest("aread() debug break");
+          } else {
+            log.finest("aread() processing input");
+            processLine(l);
+            log.fine("pc: $programCounter");
+          }
+        },
+        maxChars: maxBytes - 2,
+        initialText: initialText,
+        time: time,
+        routine: routine,
+      );
       return;
     }
 
     // Traditional mode
-    final l = await Z.sendIO({"command": IoCommands.read});
+    final l = await Z.sendIO({
+      "command": IoCommands.read,
+      "max_chars": maxBytes - 2,
+      if (initialText.isNotEmpty) "initial_text": initialText,
+      if (time != null) "time": time,
+      if (routine != null) "routine": routine,
+    });
+
     if (l == '/!') {
       Z.inBreak = true;
       Debugger.debugStartAddr = programCounter - 1;
@@ -1876,7 +1910,6 @@ class InterpreterV5 extends InterpreterV4 {
     } else {
       log.finest("aread() processing input");
       processLine(l);
-      log.fine("pc: $programCounter");
     }
   }
 }

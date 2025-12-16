@@ -88,9 +88,7 @@ class ZMachineTerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (_terminal.screen.window1Height < 1) {
@@ -102,7 +100,7 @@ class ZMachineTerminalProvider implements IoProvider {
         // And we want INVERSE VIDEO.
 
         // Enable White on Grey + Bold
-        _terminal.setStyle(2); // 2=Bold
+        _terminal.setStyle(3); // 3=Bold+Reverse
         _terminal.setColors(9, 10); // White on Grey
 
         // Move to top-left of Window 1
@@ -114,8 +112,7 @@ class ZMachineTerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = _terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -190,10 +187,7 @@ class ZMachineTerminalProvider implements IoProvider {
 
           final f = File(filename);
           if (!f.existsSync()) {
-            _terminal.showTempMessage(
-              'QuickSave File Not Found! Cannot Restore',
-              seconds: 3,
-            );
+            _terminal.showTempMessage('QuickSave File Not Found! Cannot Restore', seconds: 3);
             isAutorestoreMode = false;
             return null;
           }
