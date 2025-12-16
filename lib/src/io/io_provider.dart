@@ -14,7 +14,14 @@ abstract class IoProvider {
   /// - [Header.flag1V4BoldfaceAvail] - bold text support
   ///
   /// Default returns 0 (no capabilities advertised).
+  /// Default returns 0 (no capabilities advertised).
   int getFlags1() => 0;
+
+  /// Sends a Glulx Glk command.
+  ///
+  /// [selector] is the Glk function selector.
+  /// [args] is the list of arguments.
+  Future<int> glulxGlk(int selector, List<int> args) => Future.value(0);
 }
 
 /// Converts a string to an IO command.

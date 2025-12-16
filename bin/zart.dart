@@ -8,6 +8,7 @@ import 'package:zart/zart.dart' hide getPreamble;
 import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/settings_screen.dart';
 import 'package:zart/src/cli/ui/terminal_display.dart';
+import 'package:zart/src/glulx/interpreter.dart';
 
 /// A full-screen terminal-based console player for Z-Machine.
 /// Uses dart_console for cross-platform support.
@@ -50,10 +51,25 @@ void main(List<String> args) async {
     }
 
     if (fileType == GameFileType.glulx) {
-      stdout.writeln(
-        "Zart: Glulx not yet supported. Game file size: ${gameData.length / 1024}kb.",
-      );
-      exit(1);
+      stdout.writeln("Zart: Loading Glulx game...");
+
+      // Set IoProvider before loading
+      final terminal = TerminalDisplay();
+      terminal.config = config;
+      terminal.applySavedSettings();
+
+      // Create provider
+      final provider = ZMachineTerminalProvider(terminal, filename);
+
+      try {
+        final glulx = GlulxInterpreter(io: provider);
+        glulx.load(gameData);
+        await glulx.run();
+        exit(0);
+      } catch (e) {
+        stdout.writeln("Glulx Error: $e");
+        exit(1);
+      }
     }
 
     if (fileType == GameFileType.z) {
@@ -65,17 +81,12 @@ void main(List<String> args) async {
   }
 }
 
-Future<void> _runZMachineGame(
-  String fileName,
-  Uint8List gameData,
-  ConfigurationManager config,
-) async {
+Future<void> _runZMachineGame(String fileName, Uint8List gameData, ConfigurationManager config) async {
   var isGameRunning = false;
   final terminal = TerminalDisplay();
   terminal.config = config;
   terminal.applySavedSettings();
-  terminal.onOpenSettings = () =>
-      SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
+  terminal.onOpenSettings = () => SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
 
   // Disable debugging for clean display
   Debugger.enableDebug = false;
@@ -133,11 +144,7 @@ Future<void> _runZMachineGame(
             final line = await terminal.readLine();
             terminal.appendToWindow0('\n');
             // Split by '.' to support chained commands
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

@@ -94,9 +94,7 @@ class ZMachineTerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (_terminal.screen.window1Height < 1) {
@@ -120,8 +118,7 @@ class ZMachineTerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = _terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -196,10 +193,7 @@ class ZMachineTerminalProvider implements IoProvider {
 
           final f = File(filename);
           if (!f.existsSync()) {
-            _terminal.showTempMessage(
-              'QuickSave File Not Found! Cannot Restore',
-              seconds: 3,
-            );
+            _terminal.showTempMessage('QuickSave File Not Found! Cannot Restore', seconds: 3);
             isAutorestoreMode = false;
             return null;
           }
@@ -243,6 +237,25 @@ class ZMachineTerminalProvider implements IoProvider {
 
       default:
         break;
+    }
+  }
+
+  @override
+  Future<int> glulxGlk(int selector, List<int> args) {
+    switch (selector) {
+      case 0x80: // glk_put_char
+      case 0x81: // glk_put_char_stream (mapped to 0x81 in interpreter for now)
+        final charCode = args.length > 1 ? args[1] : args[0]; // Interp sends [0, char] for streamchar
+        // If args has 1 element, it's [char] (put_char). If 2, [stream, char].
+        // We ignore stream ID for now and write to main window.
+        // Check if char is printable?
+        if (charCode >= 0) {
+          _terminal.appendToWindow0(String.fromCharCode(charCode));
+        }
+        return Future.value(0);
+      default:
+        // TODO: Implement other Glk functions
+        return Future.value(0);
     }
   }
 }
