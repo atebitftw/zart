@@ -5,9 +5,9 @@ import 'dart:isolate';
 import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/terminal_colors.dart';
-import 'package:zart/src/logging.dart';
+import 'package:zart/src/z_machine/logging.dart';
 import 'package:zart/src/io/screen_model.dart';
-import 'package:zart/src/z_machine.dart';
+import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/cell.dart';
 
 const _zartBarText =

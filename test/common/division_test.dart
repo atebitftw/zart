@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/interpreters/interpreter_v3.dart';
+import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
 
 /// http://inform-fiction.org/zmachine/standards/z1point1/sect02.html3
 /// ref 2.4.3

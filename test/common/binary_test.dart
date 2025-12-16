@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/binary_helper.dart';
+import 'package:zart/src/z_machine/binary_helper.dart';
 
 void main() {
   group('Binary', () {

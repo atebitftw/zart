@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:zart/src/logging.dart';
+import 'package:zart/src/z_machine/logging.dart';
 
 /// Manages persistent configuration for Zart, including key bindings.
 class ConfigurationManager {

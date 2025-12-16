@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:zart/src/game_exception.dart';
-import 'package:zart/src/game_object.dart';
+import 'package:zart/src/z_machine/game_exception.dart';
+import 'package:zart/src/z_machine/game_object.dart';
 
 void objectTestsV8() {
   group('Objects>', () {

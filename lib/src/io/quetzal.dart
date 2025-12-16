@@ -1,10 +1,10 @@
 import 'dart:collection';
-import 'package:zart/src/io/iff.dart';
-import 'package:zart/src/binary_helper.dart';
-import 'package:zart/src/header.dart';
-import 'package:zart/src/interpreters/interpreter_v3.dart';
-import 'package:zart/src/memory_map.dart';
-import 'package:zart/src/z_machine.dart';
+import 'package:zart/src/loaders/iff.dart';
+import 'package:zart/src/z_machine/binary_helper.dart';
+import 'package:zart/src/z_machine/header.dart';
+import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
+import 'package:zart/src/z_machine/memory_map.dart';
+import 'package:zart/src/z_machine/z_machine.dart';
 
 /// Quetzal IFF Standard load/save implementation.
 ///

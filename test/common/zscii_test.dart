@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/zscii.dart';
+import 'package:zart/src/z_machine/zscii.dart';
 import 'package:zart/zart.dart';
 import '../test_utils.dart';
 

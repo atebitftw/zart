@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/game_object.dart';
+import 'package:zart/src/z_machine/game_object.dart';
 import '../test_utils.dart';
 
 void main() {

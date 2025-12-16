@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:zart/src/logging.dart' show log;
+import 'package:zart/src/z_machine/logging.dart' show log;
 import 'package:logging/logging.dart' show Level;
 import 'package:zart/zart.dart' hide getPreamble;
 import 'package:zart/src/cli/config/configuration_manager.dart';

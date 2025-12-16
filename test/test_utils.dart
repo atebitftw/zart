@@ -1,4 +1,4 @@
-import 'package:zart/src/interpreters/interpreter_v3.dart';
+import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
 import 'package:zart/zart.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';

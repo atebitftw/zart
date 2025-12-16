@@ -2,9 +2,9 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:zart/src/interpreters/interpreter_v3.dart';
-import 'package:zart/src/math_helper.dart';
-import 'package:zart/src/operand.dart';
+import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
+import 'package:zart/src/z_machine/math_helper.dart';
+import 'package:zart/src/z_machine/operand.dart';
 import 'package:zart/zart.dart'; // Added for Z
 import '../test_utils.dart';
 

@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/math_helper.dart';
+import 'package:zart/src/z_machine/math_helper.dart';
 
 void main() {
   group('Integers', () {

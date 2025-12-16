@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:zart/src/z_machine.dart';
+import 'package:zart/src/z_machine/z_machine.dart';
 import 'v8_object_tests.dart';
 
 void main() {

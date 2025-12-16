@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:test/test.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/src/game_object.dart';
+import 'package:zart/src/z_machine/game_object.dart';
 import '../mock_ui_provider.dart';
-import 'package:zart/src/z_machine.dart';
+import 'package:zart/src/z_machine/z_machine.dart';
 
 void loadGame(String path) {
   final f = File(path);

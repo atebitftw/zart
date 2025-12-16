@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:zart/src/io/io_provider.dart';
 import 'package:zart/src/io/screen_model.dart';
-import 'package:zart/src/z_machine.dart';
+import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/zart.dart' show IoCommands, Cell;
 
 /// Terminal display class for the CLI player.
