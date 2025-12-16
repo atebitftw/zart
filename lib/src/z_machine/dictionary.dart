@@ -1,4 +1,4 @@
-import 'package:zart/src/z_machine/logging.dart';
+import 'package:zart/src/logging.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/zart.dart';
 import 'package:zart/src/z_machine/zscii.dart';

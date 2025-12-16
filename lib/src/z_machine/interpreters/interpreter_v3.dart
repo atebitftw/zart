@@ -3,7 +3,7 @@ import 'package:zart/src/io/quetzal.dart';
 import 'package:zart/src/z_machine/binary_helper.dart';
 import 'package:zart/src/z_machine/dictionary.dart';
 import 'package:zart/src/z_machine/game_object.dart';
-import 'package:zart/src/z_machine/logging.dart' show log;
+import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/z_machine/math_helper.dart';
 import 'package:zart/src/z_machine/memory_map.dart';
 import 'package:zart/src/z_machine/operand.dart';

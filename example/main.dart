@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:zart/src/z_machine/logging.dart' show log;
+import 'package:zart/src/logging.dart' show log;
 import 'package:logging/logging.dart' show Level;
 import 'package:zart/zart.dart' hide getPreamble;
 import 'package:zart/src/cli/config/configuration_manager.dart';
@@ -49,7 +49,12 @@ void main(List<String> args) async {
 
   try {
     final bytes = f.readAsBytesSync();
-    final gameData = Blorb.getZData(bytes);
+    final (gameData, fileType) = Blorb.getStoryFileData(bytes);
+
+    if (fileType == GameFileType.glulx) {
+      stdout.writeln("Glulx not yet supported.");
+      exit(1);
+    }
 
     if (gameData == null) {
       stdout.writeln('Unable to load game.');

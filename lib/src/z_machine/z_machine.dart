@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:zart/src/z_machine/logging.dart' show log;
+import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/z_machine/memory_map.dart' show MemoryMap;
 import 'package:zart/src/z_machine/zscii.dart' show ZSCII;
 import 'package:zart/zart.dart';

@@ -116,8 +116,11 @@ class Chunk {
   /// The RIdx Blorb chunk.
   static const ridx = Chunk('RIdx');
 
-  /// The ZCOD Blorb chunk.
+  /// The z-machine game file chunk.
   static const zcod = Chunk('ZCOD');
+
+  /// The Glulx game file chunk.
+  static const glul = Chunk('GLUL');
 
   /// The Exec Blorb chunk.
   static const exec = Chunk('Exec');
@@ -126,7 +129,7 @@ class Chunk {
   /// The IFZS Quetzal chunk.
   static const ifzs = Chunk('IFZS');
 
-  /// The IFhd Quetzal chunk.
+  /// The IFhd Quetzal chunk (game identifier chunk).
   static const ifhd = Chunk('IFhd');
 
   /// The CMem Quetzal chunk.

@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
+import 'package:zart/src/cli/ui/terminal_display.dart';
+import 'package:zart/src/cli/ui/z_machine_terminal_provider.dart';
 import 'package:zart/zart.dart';
-import 'package:zart/src/cli/terminal_provider.dart';
 
 // Mock TerminalDisplay to capture calls
 class MockTerminalDisplay extends TerminalDisplay {
@@ -10,13 +11,6 @@ class MockTerminalDisplay extends TerminalDisplay {
   int cursorRow = 0;
   int cursorCol = 0;
   int splitLines = 0;
-
-  // Use inherited screen or override if needed.
-  // However, since we mock everything, we don't access _screen directly?
-  // TerminalProvider accesses window1Height via getter.
-
-  @override
-  int get window1Height => splitLines; // Mock return
 
   @override
   int get cols => 80;
@@ -66,10 +60,6 @@ class MockTerminalDisplay extends TerminalDisplay {
   void appendToWindow0(String text) {}
   @override
   void render() {}
-  @override
-  String readLine() => '';
-  @override
-  String readChar() => '';
 
   // Private members not needed for mock interface
   // Private members not needed for mock interface
@@ -80,50 +70,42 @@ class MockTerminalDisplay extends TerminalDisplay {
 void main() {
   group('TerminalProvider', () {
     late MockTerminalDisplay mockDisplay;
-    late TerminalProvider provider;
+    late ZMachineTerminalProvider provider;
 
     setUp(() {
       mockDisplay = MockTerminalDisplay();
-      provider = TerminalProvider(mockDisplay);
+      provider = ZMachineTerminalProvider(mockDisplay, 'Test Game');
     });
 
-    test(
-      'IoCommands.status renders correctly with Bold+Reverse style',
-      () async {
-        final command = {
-          'command': IoCommands.status,
-          'room_name': 'Kitchen',
-          'score_one': '10',
-          'score_two': '20',
-          'game_type': 'SCORE', // Score/Moves game
-        };
+    test('IoCommands.status renders correctly with Bold+Reverse style', () async {
+      final command = {
+        'command': IoCommands.status,
+        'room_name': 'Kitchen',
+        'score_one': '10',
+        'score_two': '20',
+        'game_type': 'SCORE', // Score/Moves game
+      };
 
-        await provider.command(command);
+      await provider.command(command);
 
-        // Verify Split Window forced (since default height 0)
-        expect(mockDisplay.splitLines, equals(1));
+      // Verify Split Window forced (since default height 0)
+      expect(mockDisplay.splitLines, equals(1));
 
-        // Verify Style was set to 3 (Bold + Reverse)
-        expect(mockDisplay.stylesSet, contains(3));
+      // Verify Style was set to 3 (Bold + Reverse)
+      expect(mockDisplay.stylesSet, contains(3));
 
-        // Verify Content Written
-        // Room Name
-        expect(mockDisplay.window1Writes, contains(' Kitchen'));
+      // Verify Content Written
+      // Room Name
+      expect(mockDisplay.window1Writes, contains(' Kitchen'));
 
-        // Padding (spaces)
-        expect(
-          mockDisplay.window1Writes.any(
-            (s) => s.trim().isEmpty && s.isNotEmpty,
-          ),
-          isTrue,
-        );
+      // Padding (spaces)
+      expect(mockDisplay.window1Writes.any((s) => s.trim().isEmpty && s.isNotEmpty), isTrue);
 
-        // Score
-        expect(mockDisplay.window1Writes, contains('Score: 10 Moves: 20 '));
+      // Score
+      expect(mockDisplay.window1Writes, contains('Score: 10 Moves: 20 '));
 
-        // Verify Reset Style
-        expect(mockDisplay.stylesSet.last, equals(0));
-      },
-    );
+      // Verify Reset Style
+      expect(mockDisplay.stylesSet.last, equals(0));
+    });
   });
 }

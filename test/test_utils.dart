@@ -11,7 +11,7 @@ void setupZMachine({InterpreterV3? engine}) {
 
   try {
     final rawBytes = f.readAsBytesSync();
-    final data = Blorb.getZData(rawBytes);
+    final (data, fileType) = Blorb.getStoryFileData(rawBytes);
     Z.load(data);
   } on Exception catch (fe) {
     stdout.writeln('$fe');
