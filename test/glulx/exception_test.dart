@@ -2,6 +2,9 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/src/glulx/glulx_opcodes.dart';
+import 'package:zart/zart.dart' show Debugger;
+
+final maxSteps = Debugger.maxSteps; // do not change this without getting permission from user.
 
 // Helper to create a minimal Glulx game file
 ByteData createGame(List<int> code, {int ramStart = 0x1000}) {
@@ -57,7 +60,7 @@ void main() {
         // 0x103: catch Ram[0x1200], Offset(9)
         // S1=RamOffset(Mode C), L1=Byte(Mode 1). 1C.
         // Length: 1+1+2+1 = 5 bytes. Ends 0x107.
-        GlulxOpcodes.catchEx, 0x1C,
+        GlulxOpcodes.catchEx, 0x1D,
         0x02, 0x00, // Dest Offset: 0x200 (RamStart 0x1000 + 0x200 = 0x1200)
         0x09, // Offset 9 (Target 0x10F: 108 + 9 - 2)
         // 0x108 (Next Inst): copy 99 Ram[0x1204]
@@ -65,25 +68,27 @@ void main() {
         // Op0=L1 (Src)=Mode 1. Op1=S1 (Dest)=Mode C.
         // Byte = (C << 4) | 1 = C1.
         // Length: 1+1+1+2 = 5 bytes. Ends 0x10C.
-        GlulxOpcodes.copy, 0xC1,
+        GlulxOpcodes.copy, 0xD1,
         99, // Source (Mode 1)
         0x02, 0x04, // Dest (Mode C Offset: 0x204)
         // 0x10D: return 0. Mode 00 (Zero).
+        // ret (0x31, 1-byte opcode). Mode byte 0x00.
         // Length: 1+1 = 2 bytes. Ends 0x10E.
-        GlulxOpcodes.ret, 0x00,
+        0x31, 0x00,
 
         // 0x10F (Jump Target): throw 1234 Ram[0x1200]
         // throw (0x33). Modes: L1(2-Short), L2(C-RamOffset). C2.
         // Length: 1+1+2+2 = 6 bytes. Ends 0x114.
-        GlulxOpcodes.throwEx, 0xC2,
+        GlulxOpcodes.throwEx, 0xD2,
         0x04, 0xD2, // 1234 (Mode 2)
         0x02, 0x00, // Token Addr Offset (Mode C reads from 0x1200)
-        // 0x115: return 88
-        GlulxOpcodes.ret, 0x03, 88,
+        // 0x114: return 88 (never reached)
+        // ret (0x31). Mode 0x01 (byte const).
+        0x31, 0x01, 88,
       ];
 
       interpreter.load(createGame(code, ramStart: 0x1000).buffer.asUint8List());
-      await interpreter.run(maxSteps: 1000);
+      await interpreter.run(maxSteps: maxSteps);
 
       // 1. Check thrown value (stored in Catch dest 0x1200)
       // Expect 1234.

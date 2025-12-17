@@ -1,7 +1,7 @@
 /// Glulx Opcode Constants
 class GlulxOpcodes {
   /// nop
-  static const int nop = 0x00; // implemented
+  static const int nop = 0x00; // implemented. unit tested
 
   /// add
   static const int add = 0x10; // implemented. unit tested
@@ -75,6 +75,12 @@ class GlulxOpcodes {
   /// jgeu
   static const int jgeu = 0x2B; // implemented. unit tested
 
+  /// jgtu
+  static const int jgtu = 0x2C; // implemented. unit tested
+
+  /// jleu
+  static const int jleu = 0x2D; // implemented. unit tested
+
   /// call
   static const int call = 0x30; // implemented. unit tested
 
@@ -115,7 +121,7 @@ class GlulxOpcodes {
   static const int aloadb = 0x4A; // implemented. unit tested
 
   /// aloadbit
-  static const int aloadbit = 0x4B;
+  static const int aloadbit = 0x4B; // implemented. unit tested
 
   /// astore
   static const int astore = 0x4C; // implemented. unit tested
@@ -127,7 +133,7 @@ class GlulxOpcodes {
   static const int astoreb = 0x4E; // implemented. unit tested
 
   /// astorebit
-  static const int astorebit = 0x4F;
+  static const int astorebit = 0x4F; // implemented. unit tested
 
   /// stkcount
   static const int stkcount = 0x50; // implemented. unit tested
@@ -148,55 +154,64 @@ class GlulxOpcodes {
   static const int streamchar = 0x70; // implemented. unit tested
 
   /// streamnum
-  static const int streamnum = 0x71;
+  static const int streamnum = 0x71; // implemented. unit tested
 
   /// streamstr
-  static const int streamstr = 0x72;
+  static const int streamstr = 0x72; // implemented. unit tested
+
+  /// streamunichar
+  static const int streamunichar = 0x73; // implemented. unit tested
 
   /// gestalt
-  static const int gestalt = 0x04;
+  static const int gestalt = 0x100; // implemented. unit tested
 
   /// debugtrap
-  static const int debugtrap = 0x05;
+  static const int debugtrap = 0x101; // implemented. unit tested
 
   /// getmemsize
-  static const int getmemsize = 0x08;
+  static const int getmemsize = 0x102; // implemented. unit tested
 
   /// setmemsize
-  static const int setmemsize = 0x09;
+  static const int setmemsize = 0x103; // implemented. unit tested
 
   /// jumpabs
-  static const int jumpabs = 0x0A;
+  static const int jumpabs = 0x104; // implemented. unit tested
 
   /// random
-  static const int random = 0x100;
+  static const int random = 0x110; // implemented. unit tested
 
   /// setrandom
-  static const int setrandom = 0x101;
+  static const int setrandom = 0x111; // implemented. unit tested
 
   /// quit
   static const int quit = 0x120; // implemented. unit tested
 
   /// verify
-  static const int verify = 0x128;
+  static const int verify = 0x121; // implemented (stub). unit tested
 
   /// restart
-  static const int restart = 0x129;
+  static const int restart = 0x122;
 
   /// save
-  static const int save = 0x12A;
+  static const int save = 0x123;
 
   /// restore
-  static const int restore = 0x12B;
+  static const int restore = 0x124;
 
   /// saveundo
-  static const int saveundo = 0x12C;
+  static const int saveundo = 0x125;
 
   /// restoreundo
-  static const int restoreundo = 0x12D;
+  static const int restoreundo = 0x126;
 
   /// protect
-  static const int protect = 0x12E;
+  static const int protect = 0x127;
+
+  /// hasundo
+  static const int hasundo = 0x128;
+
+  /// discardundo
+  static const int discardundo = 0x129;
 
   /// glk
   /// glk
@@ -209,10 +224,10 @@ class GlulxOpcodes {
   static const int setstringtbl = 0x141;
 
   /// getiosys
-  static const int getiosys = 0x148;
+  static const int getiosys = 0x148; // implemented. unit tested
 
   /// setiosys
-  static const int setiosys = 0x149;
+  static const int setiosys = 0x149; // implemented. unit tested
 
   /// linearsearch
   static const int linearsearch = 0x150;
@@ -224,123 +239,123 @@ class GlulxOpcodes {
   static const int linkedsearch = 0x152;
 
   /// callf
-  static const int callf = 0x160;
+  static const int callf = 0x160; // implemented. unit tested
 
   /// callfi
-  static const int callfi = 0x161;
+  static const int callfi = 0x161; // implemented. unit tested
 
   /// callfii
-  static const int callfii = 0x162;
+  static const int callfii = 0x162; // implemented. unit tested
 
   /// callfiii
-  static const int callfiii = 0x163;
+  static const int callfiii = 0x163; // implemented. unit tested
 
   // Note: 0x160 mzero in main list? Let me cross check with browser text.
   // Browser text said: mzero: 0x160.
   // Let me trust browser "mzero: 0x160".
 
   /// mzero
-  static const int mzero = 0x160;
+  static const int mzero = 0x170; // implemented. unit tested
 
   /// mcopy
-  static const int mcopy = 0x161;
+  static const int mcopy = 0x171; // implemented. unit tested
 
   /// malloc
-  static const int malloc = 0x168;
+  static const int malloc = 0x178;
 
   /// mfree
-  static const int mfree = 0x169;
+  static const int mfree = 0x179;
 
   /// accelfunc
-  static const int accelfunc = 0x170;
+  static const int accelfunc = 0x180;
 
   /// accelparam
-  static const int accelparam = 0x171;
+  static const int accelparam = 0x181;
 
   /// numtof
-  static const int numtof = 0x180;
+  static const int numtof = 0x190;
 
   /// ftonumz
-  static const int ftonumz = 0x181;
+  static const int ftonumz = 0x191;
 
   /// ftonumn
-  static const int ftonumn = 0x182;
+  static const int ftonumn = 0x192;
 
   /// ceil
-  static const int ceil = 0x188;
+  static const int ceil = 0x198;
 
   /// floor
-  static const int floor = 0x189;
+  static const int floor = 0x199;
 
   /// fadd
-  static const int fadd = 0x190;
+  static const int fadd = 0x1A0;
 
   /// fsub
-  static const int fsub = 0x191;
+  static const int fsub = 0x1A1;
 
   /// fmul
-  static const int fmul = 0x192;
+  static const int fmul = 0x1A2;
 
   /// fdiv
-  static const int fdiv = 0x193;
+  static const int fdiv = 0x1A3;
 
   /// fmod
-  static const int fmod = 0x194;
+  static const int fmod = 0x1A4;
 
   /// sqrt
-  static const int sqrt = 0x198;
+  static const int sqrt = 0x1A8;
 
   /// exp
-  static const int exp = 0x199;
+  static const int exp = 0x1A9;
 
   /// log
-  static const int log = 0x19A;
+  static const int log = 0x1AA;
 
   /// pow
-  static const int pow = 0x19B;
+  static const int pow = 0x1AB;
 
   /// sin
-  static const int sin = 0x1A0;
+  static const int sin = 0x1B0;
 
   /// cos
-  static const int cos = 0x1A1;
+  static const int cos = 0x1B1;
 
   /// tan
-  static const int tan = 0x1A2;
+  static const int tan = 0x1B2;
 
   /// asin
-  static const int asin = 0x1A3;
+  static const int asin = 0x1B3;
 
   /// acos
-  static const int acos = 0x1A4;
+  static const int acos = 0x1B4;
 
   /// atan
-  static const int atan = 0x1A5;
+  static const int atan = 0x1B5;
 
   /// atan2
-  static const int atan2 = 0x1A6;
+  static const int atan2 = 0x1B6;
 
   /// jfeq
-  static const int jfeq = 0x1B0;
+  static const int jfeq = 0x1C0;
 
   /// jfne
-  static const int jfne = 0x1B1;
+  static const int jfne = 0x1C1;
 
   /// jflt
-  static const int jflt = 0x1B2;
+  static const int jflt = 0x1C2;
 
   /// jfle
-  static const int jfle = 0x1B3;
+  static const int jfle = 0x1C3;
 
   /// jfgt
-  static const int jfgt = 0x1B4;
+  static const int jfgt = 0x1C4;
 
   /// jfge
-  static const int jfge = 0x1B5;
+  static const int jfge = 0x1C5;
 
   /// jisnan
-  static const int jisnan = 0x1B8;
+  static const int jisnan = 0x1C8;
 
   /// jisinf
-  static const int jisinf = 0x1B9;
+  static const int jisinf = 0x1C9;
 }

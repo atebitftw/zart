@@ -56,6 +56,11 @@ class GlulxInterpreter {
 
   bool _running = false;
 
+  // I/O system state
+  int _ioSysMode = 0; // 0=null, 1=filter, 2=glk
+  int _ioSysRock = 0;
+  int _stringTbl = 0; // String decoding table address
+
   Random _random_rng = Random();
 
   void _setRandom(int seed) {
@@ -279,12 +284,6 @@ class GlulxInterpreter {
         break;
       }
       // Debug Logging
-      // Always print for debugging this issue
-      int dbgOp = _memRead8(_pc);
-      if (true) {
-        // Force enable
-        print('PC: ${_pc.toRadixString(16)} Op: ${dbgOp.toRadixString(16)}');
-      }
       if (debugMode) {
         int nextOp = _memRead8(_pc);
         if ((nextOp & 0x80) == 0x80) {
@@ -370,6 +369,7 @@ class GlulxInterpreter {
 
         case GlulxOpcodes.ret: // return (0x31)
           _leaveFunction(operands[0]);
+          break;
 
         case GlulxOpcodes.catchEx: // catch (0x32)
           // catch(dest, branch)
@@ -770,6 +770,118 @@ class GlulxInterpreter {
         case GlulxOpcodes.quit: // quit
           _running = false;
           break;
+
+        // New opcodes - unsigned branch comparisons
+        case GlulxOpcodes.jgtu: // jgtu (unsigned >)
+          if ((operands[0] & 0xFFFFFFFF) > (operands[1] & 0xFFFFFFFF)) _branch(operands[2]);
+          break;
+        case GlulxOpcodes.jleu: // jleu (unsigned <=)
+          if ((operands[0] & 0xFFFFFFFF) <= (operands[1] & 0xFFFFFFFF)) _branch(operands[2]);
+          break;
+
+        // Bit operations
+        case GlulxOpcodes.aloadbit: // aloadbit L1 L2 S1
+          {
+            int baseAddr = operands[0];
+            int bitNum = operands[1].toSigned(32);
+            int addr = baseAddr + (bitNum ~/ 8);
+            int bit = bitNum % 8;
+            if (bit < 0) {
+              addr--;
+              bit += 8;
+            }
+            int byteVal = _memRead8(addr);
+            int result = (byteVal >> bit) & 1;
+            _storeResult(destTypes[2], operands[2], result);
+          }
+          break;
+        case GlulxOpcodes.astorebit: // astorebit L1 L2 L3
+          {
+            int baseAddr = operands[0];
+            int bitNum = operands[1].toSigned(32);
+            int addr = baseAddr + (bitNum ~/ 8);
+            int bit = bitNum % 8;
+            if (bit < 0) {
+              addr--;
+              bit += 8;
+            }
+            int byteVal = _memRead8(addr);
+            if (operands[2] != 0) {
+              byteVal |= (1 << bit); // Set bit
+            } else {
+              byteVal &= ~(1 << bit); // Clear bit
+            }
+            _memWrite8(addr, byteVal);
+          }
+          break;
+
+        // Unicode output
+        case GlulxOpcodes.streamunichar: // streamunichar L1
+          if (_ioSysMode == 2) {
+            // Glk mode - call put_char_uni (0x0080)
+            io?.glulxGlk(0x0080, [operands[0]]);
+          }
+          // In null mode (0) or filter mode (1 - not fully implemented), do nothing or handle differently
+          break;
+
+        // Direct function calls
+        case GlulxOpcodes.callf: // callf L1 S1
+          _enterFunction(operands[0], [], destTypes[1], operands[1]);
+          break;
+        case GlulxOpcodes.callfi: // callfi L1 L2 S1
+          _enterFunction(operands[0], [operands[1]], destTypes[2], operands[2]);
+          break;
+        case GlulxOpcodes.callfii: // callfii L1 L2 L3 S1
+          _enterFunction(operands[0], [operands[1], operands[2]], destTypes[3], operands[3]);
+          break;
+        case GlulxOpcodes.callfiii: // callfiii L1 L2 L3 L4 S1
+          _enterFunction(operands[0], [operands[1], operands[2], operands[3]], destTypes[4], operands[4]);
+          break;
+
+        // I/O system
+        case GlulxOpcodes.setiosys: // setiosys L1 L2
+          _ioSysMode = operands[0];
+          _ioSysRock = operands[1];
+          // Validate mode - default to null (0) if unsupported
+          if (_ioSysMode != 0 && _ioSysMode != 1 && _ioSysMode != 2) {
+            _ioSysMode = 0;
+          }
+          break;
+        case GlulxOpcodes.getiosys: // getiosys S1 S2
+          _storeResult(destTypes[0], operands[0], _ioSysMode);
+          _storeResult(destTypes[1], operands[1], _ioSysRock);
+          break;
+
+        // Block copy/clear opcodes
+        case GlulxOpcodes.mzero: // mzero L1 L2
+          {
+            // Write L1 zero bytes starting at address L2
+            int count = operands[0];
+            int addr = operands[1];
+            for (int i = 0; i < count; i++) {
+              _memWrite8(addr + i, 0);
+            }
+          }
+          break;
+        case GlulxOpcodes.mcopy: // mcopy L1 L2 L3
+          {
+            // Copy L1 bytes from address L2 to address L3
+            // Safe for overlapping regions
+            int count = operands[0];
+            int src = operands[1];
+            int dest = operands[2];
+            if (dest < src) {
+              for (int i = 0; i < count; i++) {
+                _memWrite8(dest + i, _memRead8(src + i));
+              }
+            } else {
+              for (int i = count - 1; i >= 0; i--) {
+                _memWrite8(dest + i, _memRead8(src + i));
+              }
+            }
+          }
+          break;
+
         default:
           throw GlulxException('Unimplemented Opcode: 0x${opcode.toRadixString(16)} (Length: $opLen)');
       }
@@ -806,64 +918,73 @@ class GlulxInterpreter {
         _pc += 4;
         break;
 
-      case 0x4: // Address 00-FF
+      case 0x5: // Address 00-FF
         value = _memRead8(_pc++);
         if (!isStore) value = _memRead32(value);
         break;
-      case 0x5: // Address 0000-FFFF
+      case 0x6: // Address 0000-FFFF
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0x6: // Address Any
+      case 0x7: // Address Any
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
         if (!isStore) value = _memRead32(value);
         break;
 
-      case 0x7: // Stack
+      case 0x8: // Stack
         if (!isStore)
           value = _pop();
         else
           value = 0;
         break;
 
-      case 0x8: // Local 00-FF
+      case 0x9: // Local 00-FF
         value = _memRead8(_pc++);
-        if (!isStore)
-          value = _stackRead32(_fp + value);
-        else
-          value = _fp + value; // Address for storing
+        {
+          int localsPos = _stackRead32(_fp + 4);
+          if (!isStore)
+            value = _stackRead32(_fp + localsPos + value);
+          else
+            value = _fp + localsPos + value; // Address for storing
+        }
         break;
-      case 0x9: // Local 0000-FFFF
+      case 0xA: // Local 0000-FFFF
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
-        if (!isStore)
-          value = _stackRead32(_fp + value);
-        else
-          value = _fp + value;
+        {
+          int localsPos = _stackRead32(_fp + 4);
+          if (!isStore)
+            value = _stackRead32(_fp + localsPos + value);
+          else
+            value = _fp + localsPos + value;
+        }
         break;
-      case 0xA: // Local Any
+      case 0xB: // Local Any
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
-        if (!isStore)
-          value = _stackRead32(_fp + value);
-        else
-          value = _fp + value;
+        {
+          int localsPos = _stackRead32(_fp + 4);
+          if (!isStore)
+            value = _stackRead32(_fp + localsPos + value);
+          else
+            value = _fp + localsPos + value;
+        }
         break;
 
-      case 0xB: // RAM 00-FF
+      case 0xC: // RAM 00-FF
         value = _memRead8(_pc++);
         value = _ramStart + value;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0xC: // RAM 0000-FFFF
+      case 0xD: // RAM 0000-FFFF
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
         value = _ramStart + value;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0xD: // RAM Any
+      case 0xE: // RAM Any
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
         value = (_ramStart + value) & 0xFFFFFFFF;
@@ -959,13 +1080,13 @@ class GlulxInterpreter {
     switch (mode) {
       case 0x0: // Discard
         break;
-      case 0x7: // Stack (Push)
+      case 0x8: // Stack (Push)
         _push(value);
         break;
 
-      case 0x8: // Local 00-FF
-      case 0x9: // Local 0000-FFFF
-      case 0xA: // Local Any
+      case 0x9: // Local 00-FF
+      case 0xA: // Local 0000-FFFF
+      case 0xB: // Local Any
         if (size == 1) {
           _stackWrite8(address, value);
         } else if (size == 2) {
@@ -975,12 +1096,12 @@ class GlulxInterpreter {
         }
         break;
 
-      case 0x4: // Address 00-FF
-      case 0x5: // Address 0000-FFFF
-      case 0x6: // Address Any
-      case 0xB: // RAM 00-FF
-      case 0xC: // RAM 0000-FFFF
-      case 0xD: // RAM Any
+      case 0x5: // Address 00-FF
+      case 0x6: // Address 0000-FFFF
+      case 0x7: // Address Any
+      case 0xC: // RAM 00-FF
+      case 0xD: // RAM 0000-FFFF
+      case 0xE: // RAM Any
         // address was calculated during decodeOperand
         if (size == 1) {
           _memWrite8(address, value);

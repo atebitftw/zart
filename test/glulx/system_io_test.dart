@@ -2,7 +2,11 @@ import 'dart:typed_data';
 
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_opcodes.dart';
 import 'package:zart/src/io/io_provider.dart';
+import 'package:zart/zart.dart' show Debugger;
+
+final maxSteps = Debugger.maxSteps; // do not change this without getting permission from user.
 
 class MockIo extends IoProvider {
   final StringBuffer buffer = StringBuffer();
@@ -29,7 +33,7 @@ void main() {
   // Helper to create a minimal Glulx game
   Uint8List createGame(
     List<int> instructions, {
-    int ramStart = 0x100,
+    int ramStart = 0,
     int extStart = 0x5000,
     int endMem = 0x10000,
     int stackSize = 0x1000,
@@ -98,15 +102,15 @@ void main() {
     // Operands: 0x80.
 
     final instructions = <int>[
-      0x04, 0x00, 0x0B, 0x80, // gestalt 0, 0 -> RAM:80
+      0x81, 0x00, 0x00, 0x0C, 0x80, // gestalt 0, 0 -> RAM:80 (opcode 0x100 = 2-byte: 0x81 0x00)
       // Let's use getmemsize first.
-      0x08, 0x0B, 0x84, // getmemsize -> RAM:84 (Mode 0: S1. Op0=B. Byte 0x0B. Op0 addr=0x84)
-      0x30, 0x00, // quit
+      0x81, 0x02, 0x0C, 0x84, // getmemsize -> RAM:84 (opcode 0x102 = 2-byte: 0x81 0x02)
+      0x81, 0x20, 0x00, // quit (opcode 0x120 = 2-byte: 0x81 0x20)
     ];
 
     Uint8List game = createGame(instructions);
     interpreter.load(game);
-    await interpreter.run(maxSteps: 100);
+    await interpreter.run(maxSteps: maxSteps);
 
     // Check RAM 0x80 for 0x00030103
     expect(interpreter.memRead32(0x80 + interpreter.ramStart), 0x00030103);
@@ -123,13 +127,13 @@ void main() {
     // Mode: L1. Op0=3 (Short Const). Byte 0x03.
     // Value: 12345 = 0x3039.
     final instructions = <int>[
-      0x71, 0x03, 0x30, 0x39, // streamnum 12345
-      0x30, 0x00,
+      0x71, 0x02, 0x30, 0x39, // streamnum 12345 (mode 2 = 2-byte const)
+      0x81, 0x20, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
     interpreter.load(game);
-    await interpreter.run(maxSteps: 100);
+    await interpreter.run(maxSteps: maxSteps);
 
     expect(mockIo.buffer.toString(), '12345');
   });
@@ -161,23 +165,23 @@ void main() {
       // Op0=1 (Const Byte), Op1=B (Ram Byte).
       // Op0=1, Op1=B => Byte 0xB1.
       // L1=E0. S1=80.
-      0x44, 0xB1, 0xE0, 0x80, // copyb 0xE0 -> RAM:80
-      0x44, 0xB1, 0x41, 0x81, // 'A'
-      0x44, 0xB1, 0x42, 0x82, // 'B'
-      0x44, 0xB1, 0x43, 0x83, // 'C'
-      0x44, 0xB1, 0x00, 0x84, // '\0'
+      GlulxOpcodes.copyb, 0xC1, 0xE0, 0x80, // copyb 0xE0 -> RAM:80
+      GlulxOpcodes.copyb, 0xC1, 0x41, 0x81, // 'A'
+      GlulxOpcodes.copyb, 0xC1, 0x42, 0x82, // 'B'
+      GlulxOpcodes.copyb, 0xC1, 0x43, 0x83, // 'C'
+      GlulxOpcodes.copyb, 0xC1, 0x00, 0x84, // '\0'
       // streamstr RAM:80 (Address relative to RAM start? No, absolute address.)
       // Absolute address = ramStart + 0x80. ramStart=0x100. -> 0x180.
       // streamstr 0x180.
       // Mode 0x02 (Short Const). Value 0x0180.
-      0x72, 0x02, 0x01, 0x80,
+      0x72, 0x02, 0x00, 0x80,
 
-      0x30, 0x00, // quit
+      0x81, 0x20, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
     interpreter.load(game);
-    await interpreter.run(maxSteps: 100);
+    await interpreter.run(maxSteps: maxSteps);
 
     expect(mockIo.buffer.toString(), 'ABC');
   });
@@ -207,16 +211,22 @@ void main() {
     // Instr 2: streamnum 1. 0x71 ...
 
     final instructions = <int>[
-      0x0A, 0x03, 0x00, 0x2E, // jumpabs 0x002E (46)
+      // jumpabs is 0x104 = 2-byte opcode: 0x81 0x04
+      // New address calculation:
+      // Header 36 + 3 (Func Header) = 39.
+      // jumpabs (4 bytes: 0x81 0x04 + 1 mode + 2 addr) = 5 bytes. 39 -> 44.
+      // streamnum 2 (3 bytes: opcode + mode + value) = 3 bytes. 44 -> 47.
+      // Target = 47.
+      0x81, 0x04, 0x02, 0x00, 0x2F, // jumpabs 0x002F (47)
       0x71, 0x01, 0x02, // streamnum 2 (Const Byte 2) -> "2" (Skipped)
-      // Addr 39+4 = 43. 43+3 = 46.
+      // Addr 39+5 = 44. 44+3 = 47.
       0x71, 0x01, 0x01, // streamnum 1 -> "1"
-      0x30, 0x00,
+      0x81, 0x20, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
     interpreter.load(game);
-    await interpreter.run(maxSteps: 100);
+    await interpreter.run(maxSteps: maxSteps);
 
     expect(mockIo.buffer.toString(), '1');
   });
@@ -227,16 +237,20 @@ void main() {
     // getmemsize -> RAM:8
 
     final instructions = <int>[
-      0x08, 0x0B, 0x00, // getmemsize -> RAM:00
-      0x09, 0xB2, 0x60, 0x00, 0x04, // setmemsize 0x6000 (Short 2) -> RAM:04 (B)
-      // Op0=2 (Short), Op1=B (RAM). Byte 0xB2.
-      0x08, 0x0B, 0x08, // getmemsize -> RAM:08
-      0x30, 0x00,
+      0x81, 0x02, 0x0C, 0x00, // getmemsize -> RAM:00 (opcode 0x102, mode C = 1-byte addr)
+      // setmemsize 0x20000 -> RAM:04
+      // opcode 0x103 = 2-byte: 0x81 0x03
+      // Op0=3 (4-byte const), Op1=C (RAM 1-byte addr). Mode byte 0xC3.
+      // Op0 value: 0x00020000
+      // Op1 value: 0x04 (1 byte)
+      0x81, 0x03, 0xC3, 0x00, 0x02, 0x00, 0x00, 0x04,
+      0x81, 0x02, 0x0C, 0x08, // getmemsize -> RAM:08 (opcode 0x102)
+      0x81, 0x20, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
     interpreter.load(game);
-    await interpreter.run(maxSteps: 100);
+    await interpreter.run(maxSteps: maxSteps);
 
     int size1 = interpreter.memRead32(interpreter.ramStart + 0);
     int res = interpreter.memRead32(interpreter.ramStart + 4);
@@ -244,8 +258,8 @@ void main() {
 
     expect(size1, 0x10000);
     expect(res, 0); // Success
-    expect(size2, 0x6000);
-    expect(interpreter.memory.lengthInBytes, 0x6000);
+    expect(size2, 0x20000);
+    expect(interpreter.memory.lengthInBytes, 0x20000);
   });
 
   test('random generates numbers', () async {
@@ -254,15 +268,16 @@ void main() {
     // random 0 -> RAM:8 (Any)
 
     final instructions2 = <int>[
-      0x81, 0x00, 0xB1, 0x0A, 0x00, // random 10
-      0x81, 0x00, 0xB1, 0xF6, 0x04, // random -10
-      0x81, 0x00, 0xB0, 0x08, // random 0
-      0x30, 0x00,
+      // random is 0x110 = 2-byte opcode: 0x81 0x10
+      0x81, 0x10, 0xC1, 0x0A, 0x00, // random 10
+      0x81, 0x10, 0xC1, 0xF6, 0x04, // random -10
+      0x81, 0x10, 0xC0, 0x08, // random 0
+      0x81, 0x20, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions2);
     interpreter.load(game);
-    await interpreter.run(maxSteps: 100);
+    await interpreter.run(maxSteps: maxSteps);
 
     int r1 = interpreter.memRead32(interpreter.ramStart + 0);
     int r2 = interpreter.memRead32(interpreter.ramStart + 4).toSigned(32);

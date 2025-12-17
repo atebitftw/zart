@@ -74,6 +74,20 @@ class OpcodeInfo {
     GlulxOpcodes.verify: OpcodeInfo(1, [true]), // verify S1
     GlulxOpcodes.catchEx: OpcodeInfo(2, [true, false]), // catch S1 L1
     GlulxOpcodes.throwEx: OpcodeInfo(2, [false, false]), // throw L1 L2
+    // New opcodes
+    GlulxOpcodes.jgtu: OpcodeInfo(3, [false, false, false]), // jgtu L1 L2 L3
+    GlulxOpcodes.jleu: OpcodeInfo(3, [false, false, false]), // jleu L1 L2 L3
+    GlulxOpcodes.aloadbit: OpcodeInfo(3, [false, false, true]), // aloadbit L1 L2 S1
+    GlulxOpcodes.astorebit: OpcodeInfo(3, [false, false, false]), // astorebit L1 L2 L3
+    GlulxOpcodes.streamunichar: OpcodeInfo(1, [false]), // streamunichar L1
+    GlulxOpcodes.callf: OpcodeInfo(2, [false, true]), // callf L1 S1
+    GlulxOpcodes.callfi: OpcodeInfo(3, [false, false, true]), // callfi L1 L2 S1
+    GlulxOpcodes.callfii: OpcodeInfo(4, [false, false, false, true]), // callfii L1 L2 L3 S1
+    GlulxOpcodes.callfiii: OpcodeInfo(5, [false, false, false, false, true]), // callfiii L1 L2 L3 L4 S1
+    GlulxOpcodes.setiosys: OpcodeInfo(2, [false, false]), // setiosys L1 L2
+    GlulxOpcodes.getiosys: OpcodeInfo(2, [true, true]), // getiosys S1 S2
+    GlulxOpcodes.mzero: OpcodeInfo(2, [false, false]), // mzero L1 L2
+    GlulxOpcodes.mcopy: OpcodeInfo(3, [false, false, false]), // mcopy L1 L2 L3
   };
 
   static OpcodeInfo get(int opcode) {
