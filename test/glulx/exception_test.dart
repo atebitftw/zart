@@ -75,7 +75,7 @@ void main() {
         // 0x10D: return 0. Mode 00 (Zero).
         // ret (0x31, 1-byte opcode). Mode byte 0x00.
         // Length: 1+1 = 2 bytes. Ends 0x10E.
-        0x31, 0x00,
+        GlulxOpcodes.ret, 0x00,
 
         // 0x10F (Jump Target): throw 1234 Ram[0x1200]
         // throw (0x33). Modes: L1(2-Short), L2(C-RamOffset). C2.
@@ -85,7 +85,7 @@ void main() {
         0x02, 0x00, // Token Addr Offset (Mode C reads from 0x1200)
         // 0x114: return 88 (never reached)
         // ret (0x31). Mode 0x01 (byte const).
-        0x31, 0x01, 88,
+        GlulxOpcodes.ret, 0x01, 88,
       ];
 
       interpreter.load(createGame(code, ramStart: 0x1000).buffer.asUint8List());

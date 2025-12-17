@@ -43,8 +43,8 @@ void main() {
         0xFF, 0xFF, 0xFF, 0xFF, // L1 = max unsigned
         0x00, 0x00, 0x00, 0x01, // L2 = 1
         0x05, // branch offset
-        0x81, 0x20, 0x00, // quit (skipped)
-        0x81, 0x20, 0x00, // quit (target)
+        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (skipped)
+        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (target)
       ];
       interpreter = GlulxInterpreter();
       interpreter.load(createGame(code));
@@ -59,8 +59,8 @@ void main() {
         0x00, 0x00, 0x00, 0x01, // L1 = 1
         0xFF, 0xFF, 0xFF, 0xFF, // L2 = max unsigned
         0x05,
-        0x81, 0x20, 0x00,
-        0x81, 0x20, 0x00,
+        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00,
+        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00,
       ];
       interpreter = GlulxInterpreter();
       interpreter.load(createGame(code));
@@ -71,9 +71,9 @@ void main() {
     // setiosys (0x149) / getiosys (0x148) - unit tested
     test('setiosys and getiosys work', () async {
       final code = [
-        0x81, 0x49, 0x11, 0x02, 0x7B, // setiosys 2, 123
-        0x81, 0x48, 0x88, // getiosys -> stack, stack
-        0x81, 0x20, 0x00, // quit
+        GlulxOpcodes.setiosys >> 8 | 0x80, GlulxOpcodes.setiosys & 0xFF, 0x11, 0x02, 0x7B, // setiosys 2, 123
+        GlulxOpcodes.getiosys >> 8 | 0x80, GlulxOpcodes.getiosys & 0xFF, 0x88, // getiosys -> stack, stack
+        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit
       ];
       interpreter = GlulxInterpreter();
       interpreter.load(createGame(code));
@@ -88,7 +88,7 @@ void main() {
         0x11, 0x80, // L1=const1, L2=const1, S1=stack
         0x50, // address
         0x00, // bit 0
-        0x81, 0x20, 0x00,
+        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00,
       ];
 
       final game = createGame(code);

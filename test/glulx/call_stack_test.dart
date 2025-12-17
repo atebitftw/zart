@@ -209,7 +209,7 @@ void main() {
         // Op3: RAM[0x200] (Mode E - RAM 0000-FFFF).
         // Modes: Op1(2), Op2(1) -> 0x12.
         // Byte 2: Op3(E) -> 0x0E.
-        0x30, 0x12, 0x0E,
+        GlulxOpcodes.call, 0x12, 0x0E,
         0x01, 0x00, // Address 0x100
         0, // 0 args (Byte const)
         0x00, 0x00, 0x05, 0x00, // Dest 0x500
@@ -221,7 +221,7 @@ void main() {
         0xC0, 0x00, 0x00, // Header
         // ret 42 (opcode 0x31, 1-byte)
         // Op1: 42 (Mode 1).
-        0x31, 0x01, 42,
+        GlulxOpcodes.ret, 0x01, 42,
       ];
 
       final functions = {0x40: mainFunc, 0x100: calledFunc};
@@ -244,7 +244,7 @@ void main() {
         // Op1(0x100) Mode 2. Op2(2) Mode 1. Op3(RAM 0x200) Mode E.
         // Byte 1: Op1(2) | Op2(1)<<4 = 0x12.
         // Byte 2: Op3(E) = 0x0E.
-        0x30, 0x12, 0x0E,
+        GlulxOpcodes.call, 0x12, 0x0E,
         0x01, 0x00, // Address 0x100
         2, // NumArgs
         0x00, 0x00, 0x05, 0x00, // Dest 0x500
@@ -266,7 +266,7 @@ void main() {
         // add Stack Stack -> Stack
         GlulxOpcodes.add, 0x88, 0x08,
         // ret Stack (opcode 0x31, 1-byte)
-        0x31, 0x08,
+        GlulxOpcodes.ret, 0x08,
       ];
 
       final functions = {0x40: mainFunc, 0x100: calledFunc};
