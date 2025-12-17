@@ -1,9 +1,12 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
+import 'package:zart/src/cli/ui/glulx_terminal_provider.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
-import 'package:zart/src/io/io_provider.dart';
+import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/zart.dart' show Debugger;
+
+import 'test_terminal_display.dart';
 
 final maxSteps = Debugger.maxSteps; // do not change this without getting permission from user.
 
@@ -144,6 +147,34 @@ void main() {
       // I'll assume success if it runs without exception for now.
       interpreter.load(createGame(code));
       await interpreter.run(maxSteps: maxSteps);
+
+      // We know from the code that 5 + 10 = 15 is stored at RAM address 0x80.
+      expect(interpreter.memRead32(0x80), equals(15));
+    });
+
+    test('add opcode with stack (indirect)', () async {
+      // Original test tried to read from stack but couldn't verify.
+      // We can pop the result from stack into RAM to verify.
+      final code = [
+        GlulxOp.add, // add
+        0x11, // Modes for L1, L2
+        0x08, // Mode for S1 (Stack)
+        5, // L1 val
+        10, // L2 val
+        // Now pop result from stack to RAM 0x80
+        // copy: L1 S1.
+        // L1: Stack (8). S1: RAM 0x80 (Mode 5, Byte 0x80).
+        // Mode Byte: 8 | (5<<4) = 0x58.
+        GlulxOp.copy, 0x58, 0x80,
+
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, // Quit
+      ];
+
+      interpreter = GlulxInterpreter();
+      interpreter.load(createGame(code));
+      await interpreter.run(maxSteps: maxSteps);
+
+      expect(interpreter.memRead32(0x80), equals(15));
     });
 
     test('jump opcode', () async {
@@ -368,6 +399,54 @@ void main() {
       expect(interpreter.memRead32(0xE0), equals(0));
     });
 
+    test('branch not taken', () async {
+      //Verify execution falls through when branch condition is false
+      final code = [
+        // jz 1 (False) -> +4. Fallthrough.
+        GlulxOp.jz, 0x11, 0x01, 0x04,
+        // Write 1 to RAM[80] (Success mark)
+        GlulxOp.copy, 0x51, 0x01, 0x80,
+
+        // jnz 0 (False) -> +4. Fallthrough.
+        GlulxOp.jnz, 0x11, 0x00, 0x04,
+        // Write 2 to RAM[84]
+        GlulxOp.copy, 0x51, 0x02, 0x84,
+
+        // jeq 5 6 (False) -> +4. Fallthrough.
+        GlulxOp.jeq, 0x11, 0x01, 0x05, 0x06, 0x04,
+        // Write 3 to RAM[88]
+        GlulxOp.copy, 0x51, 0x03, 0x88,
+
+        // jne 5 5 (False) -> +4. Fallthrough.
+        GlulxOp.jne, 0x11, 0x01, 0x05, 0x05, 0x04,
+        // Write 4 to RAM[8C]
+        GlulxOp.copy, 0x51, 0x04, 0x8C,
+
+        // jlt 10 5 (False) -> +4. Fallthrough.
+        GlulxOp.jlt, 0x11, 0x01, 0x0A, 0x05, 0x04,
+        // Write 5 to RAM[90]
+        GlulxOp.copy, 0x51, 0x05, 0x90,
+
+        // jge 5 10 (False) -> +4. Fallthrough.
+        GlulxOp.jge, 0x11, 0x01, 0x05, 0x0A, 0x04,
+        // Write 6 to RAM[94]
+        GlulxOp.copy, 0x51, 0x06, 0x94,
+
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
+      ];
+
+      interpreter = GlulxInterpreter();
+      interpreter.load(createGame(code));
+      await interpreter.run(maxSteps: maxSteps);
+
+      expect(interpreter.memRead32(0x80), equals(1));
+      expect(interpreter.memRead32(0x84), equals(2));
+      expect(interpreter.memRead32(0x88), equals(3));
+      expect(interpreter.memRead32(0x8C), equals(4));
+      expect(interpreter.memRead32(0x90), equals(5));
+      expect(interpreter.memRead32(0x94), equals(6));
+    });
+
     test('copy opcodes', () async {
       // copy 0x12345678 -> RAM[0x80]
       // copyb 0xFF -> RAM[0x84] (should only write byte)
@@ -420,68 +499,36 @@ void main() {
     });
 
     test('glk opcode', () async {
+      // Test glk opcode with production provider using real gestalt selector
       // glk(id, numargs) -> res
       // Arguments found on stack.
       // Opcode 0x130.
-      // Example: glk(0x123, 2). Stack: [Arg2, Arg1].
+      // We'll call gestalt(0, 0) which returns the Glk version 0x00070600
 
       final code = [
-        // Push args to stack: Arg 1 (10), Arg 2 (20).
-        // Spec: "First argument pushed last." -> So Arg 1 is top of stack?
-        // Wait. "Arguments are pushed in standard function-call order (first argument pushed last)."
-        // If func(a, b), we push b, then push a. Stack Top = a.
-        // So _pop() gets a (Arg 1). _pop() gets b (Arg 2).
+        // Push args to stack in reverse order: val=0, sel=0
+        // Push 0 (val)
+        GlulxOp.copy, 0x81, 0,
+        // Push 0 (sel = version)
+        GlulxOp.copy, 0x81, 0,
 
-        // Push 20 (Arg 2).
-        // Mode 8 (Stack) is Destination. Mode 1 (Const) is Source.
-        // Byte: Src(1) | Dest(8)<<4 = 0x81.
-        GlulxOp.copy, 0x81, 20,
-        // Push 10 (Arg 1).
-        GlulxOp.copy, 0x81, 10,
-
-        // glk 0x123, 2 -> 0x80
-        // Modes: Op1(3)|Op2(1)<<4 = 0x13. Op3(5) = 0x05.
-        // Mode byte 2 (for op3): Mode 5 (RAM byte? No, RAM 00-FF is D). Mode 5 is Address 00-FF.
-        // Wait. 0x80 is RAM address or just address?
-        // Mode 5 (Address 00-FF). Since isStore=true, it stores to RAM if it's RAM mode or...
-        // Wait. Mode 5 is "Address 00-FF". It reads from PC, gets byte. The value is the address.
-        // If destination, it writes to that address in memory.
-        // RAM starts at 0?
-        // _storeResult writes to _memWrite32(address).
-        // RAM usually mapped at start?
-        // Our test createGame makes RAM.
-        // So address 0x80 is valid.
-        // So Mode 5 (0x80) is "Address 0x80".
-        // Byte 2: Mode 5.
-
-        // 0x13, 0x05.
-        // Op1 (Const 4): 00 00 01 23.
-        // Op2 (Const 1): 02.
-        // Op3 (Addr 1): 80.
-
-        // Let's re-verify modes.
-        // L1 (op1) = 3 (const 4).
-        // S1 (op2) = 1 (const 1).
-        // Byte 1: 3 | (1 << 4) = 0x13.
-        // L2 (op3) = 5 (addr 1).
-        // S3 (op4) = 0.
-        // Byte 2: 5 | 0 = 0x05.
-        // glk 0x123, 2 -> 0x80
-        // Modes: Op1(3)|Op2(1)<<4 = 0x13. Op3(5) = 0x05.
+        // glk gestalt(4), 2 args -> RAM[0x80]
+        // Modes: Op1(1)|Op2(1)<<4 = 0x11. Op3(5) = 0x05.
         // Opcode 0x130 is 2 bytes: 0x81, 0x30.
-        GlulxOp.glk >> 8 | 0x80, GlulxOp.glk & 0xFF, 0x13, 0x05, 0x00, 0x00, 0x01, 0x23, 0x02, 0x80,
+        // Selector 4 (gestalt), 2 args
+        GlulxOp.glk >> 8 | 0x80, GlulxOp.glk & 0xFF, 0x11, 0x05, GlkIoSelectors.gestalt, 0x02, 0x80,
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
-      final mockIo = MockIoProvider();
-      interpreter = GlulxInterpreter(io: mockIo);
+      final testDisplay = TestTerminalDisplay();
+      final ioProvider = GlulxTerminalProvider(testDisplay);
+      interpreter = GlulxInterpreter(io: ioProvider);
       interpreter.load(createGame(code));
       await interpreter.run(maxSteps: maxSteps);
 
-      expect(mockIo.glkCalls.containsKey(0x123), isTrue);
-      expect(mockIo.glkCalls[0x123], equals([10, 20]));
-      expect(interpreter.memRead32(0x80), equals(42));
+      // Should return Glk version 0x00070600
+      expect(interpreter.memRead32(0x80), equals(0x00070600));
     });
 
     test('streamchar uses io provider', () async {
@@ -490,13 +537,14 @@ void main() {
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
-      final mockIo = MockIoProvider();
-      interpreter = GlulxInterpreter(io: mockIo);
+      final testDisplay = TestTerminalDisplay();
+      final ioProvider = GlulxTerminalProvider(testDisplay);
+      interpreter = GlulxInterpreter(io: ioProvider);
       interpreter.load(createGame(code));
       await interpreter.run(maxSteps: maxSteps);
 
-      expect(mockIo.glkCalls.containsKey(0x81), isTrue); // glk_put_char_stream
-      expect(mockIo.glkCalls[0x81], equals([0, 0x41]));
+      // Verify that 'A' was output through the production IO provider
+      expect(testDisplay.output, equals('A'));
     });
 
     test('shift opcodes', () async {
@@ -778,14 +826,14 @@ void main() {
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
-      final mockIo = MockIoProvider();
-      interpreter = GlulxInterpreter(io: mockIo);
+      final testDisplay = TestTerminalDisplay();
+      final ioProvider = GlulxTerminalProvider(testDisplay);
+      interpreter = GlulxInterpreter(io: ioProvider);
       interpreter.load(createGame(code));
       await interpreter.run(maxSteps: maxSteps);
 
-      // glk_put_char_uni is 0x0080
-      expect(mockIo.glkCalls.containsKey(0x0080), isTrue);
-      expect(mockIo.glkCalls[0x0080], equals([0x41]));
+      // Verify 'A' was output through production IO provider
+      expect(testDisplay.output, equals('A'));
     });
 
     test('debugtrap opcode', () async {
@@ -1016,28 +1064,4 @@ void main() {
       expect(interpreter.memRead32(0x50), equals(99));
     });
   });
-}
-
-class MockIoProvider extends IoProvider {
-  final List<String> log = [];
-  final Map<int, List<int>> glkCalls = {};
-
-  @override
-  Future<dynamic> command(Map<String, dynamic> commandMessage) async {
-    return null;
-  }
-
-  @override
-  int getFlags1() => 0;
-
-  @override
-  Future<int> glulxGlk(int selector, List<int> args) {
-    log.add('glk: $selector, args: $args');
-    glkCalls[selector] = args;
-    if (selector == 0x123) {
-      // Mock function 0x123
-      return Future.value(42); // Return 42
-    }
-    return Future.value(0);
-  }
 }

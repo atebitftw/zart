@@ -4,52 +4,44 @@ import 'dart:math' as math;
 import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
+import 'package:zart/src/glulx/glulx_stack.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
-import 'package:zart/src/io/io_provider.dart';
+import 'package:zart/src/io/glk/glk_io_provider.dart';
+import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/logging.dart';
-
-// /// Constants for the Glulx Header.
-// class GlulxHeader {
-//   static const int magicNumber = 0x00; // 'Glul'
-//   static const int version = 0x04;
-//   static const int ramStart = 0x08;
-//   static const int extStart = 0x0C;
-//   static const int endMem = 0x10;
-//   static const int stackSize = 0x14;
-//   static const int startFunc = 0x18;
-//   static const int decodingTbl = 0x1C;
-//   static const int checksum = 0x20;
-//   static const int size = 36;
-// }
 
 /// Glulx Interpreter
 class GlulxInterpreter {
   late ByteData _memory;
+
+  /// Currently public for unit testing.
   ByteData get memory => _memory;
   // We keep the raw Uint8List for easy resizing/copying if needed, unique to Glulx memory model
   late Uint8List _rawMemory;
 
   // Registers
   int _pc = 0; // Program Counter
-  int _sp = 0; // Stack Pointer
   int _fp = 0; // Frame Pointer
 
-  late int _stackStart; // Where the stack technically begins in memory?
-  // Glulx stack is separate from main memory in spec, but typically implemented as a separate array.
-  // "The stack is an array of values. It is not a part of main memory; the terp maintains it separately."
-  late ByteData _stack;
+  // The Stack
+  GlulxStack _stack = GlulxStack();
 
   // Header Info
   int _ramStart = 0;
   int _extStart = 0;
   int _endMem = 0;
 
+  /// Gets the ram start address.
   int get ramStart => _ramStart;
+
+  /// Gets the external memory start address.
   int get extStart => _extStart;
+
+  /// Gets the end of memory address.
   int get endMem => _endMem;
 
   /// IO provider for Glulx interpreter.
-  final IoProvider? io;
+  final GlkIoProvider? io;
 
   /// Debug mode flag.
   bool debugMode = false;
@@ -63,6 +55,8 @@ class GlulxInterpreter {
   // Float conversion buffers
   final Float32List _floatBuf = Float32List(1);
   late final Int32List _floatIntView = Int32List.view(_floatBuf.buffer);
+
+  // ignore: unused_field
   int _stringTbl = 0; // String decoding table address
 
   math.Random _random_rng = math.Random();
@@ -109,8 +103,7 @@ class GlulxInterpreter {
     _memory = ByteData.sublistView(_rawMemory);
 
     // Initialize Stack
-    _stack = ByteData(stackLen);
-    _sp = 0;
+    _stack = GlulxStack(size: stackLen);
     _fp = 0;
 
     // Set PC via _enterFunction to handle initial stack frame.
@@ -120,16 +113,9 @@ class GlulxInterpreter {
     _enterFunction(startFunc, [], 0, 0);
   }
 
-  void _pushCallStub(int destType, int destAddr, int pc, int framePtr) {
-    _push(destType);
-    _push(destAddr);
-    _push(pc);
-    _push(framePtr);
-  }
-
   void _enterFunction(int addr, List<int> args, int destType, int destAddr) {
     // 1. Push Call Stub
-    _pushCallStub(destType, destAddr, _pc, _fp);
+    _stack.pushCallStub(destType, destAddr, _pc, _fp);
 
     // 2. Read Function Header
     final funcType = _memRead8(addr);
@@ -150,59 +136,59 @@ class GlulxInterpreter {
       formatPtr += 2;
     }
 
-    final newFp = _sp;
+    final newFp = _stack.sp;
 
     // Locals Data starts...
-    _push(0); // Placeholder for FrameLen
-    _push(0); // Placeholder for LocalsPos
+    _stack.push(0); // Placeholder for FrameLen
+    _stack.push(0); // Placeholder for LocalsPos
 
     // Copy format bytes.
     int fPtr = localsPos;
-    int stackFormatStart = _sp;
+    int stackFormatStart = _stack.sp;
 
     while (true) {
       int lType = _memRead8(fPtr);
       int lCount = _memRead8(fPtr + 1);
       fPtr += 2;
 
-      _stackWrite8(_sp, lType);
-      _stackWrite8(_sp + 1, lCount);
-      _sp += 2;
+      _stack.write8(_stack.sp, lType);
+      _stack.write8(_stack.sp + 1, lCount);
+      _stack.sp += 2;
 
       if (lType == 0 && lCount == 0) break;
     }
 
     // Align Stack to 4 bytes
-    while ((_sp - newFp) % 4 != 0) {
-      _stackWrite8(_sp, 0);
-      _sp++;
+    while ((_stack.sp - newFp) % 4 != 0) {
+      _stack.write8(_stack.sp, 0);
+      _stack.sp++;
     }
 
     // Value of LocalsPos (offset from FP where locals data starts)
-    int localsDataStartOffset = _sp - newFp;
-    _stackWrite32(newFp + 4, localsDataStartOffset);
+    final localsDataStartOffset = _stack.sp - newFp;
+    _stack.write32(newFp + 4, localsDataStartOffset);
 
     // Now initialize locals.
     int currentArgIndex = 0;
     int formatReadPtr = stackFormatStart;
 
     while (true) {
-      int lType = _stackRead8(formatReadPtr);
-      int lCount = _stackRead8(formatReadPtr + 1);
+      int lType = _stack.read8(formatReadPtr);
+      int lCount = _stack.read8(formatReadPtr + 1);
       formatReadPtr += 2;
 
       if (lType == 0 && lCount == 0) break; // End of list
 
       // Align _sp according to lType
       if (lType == 2) {
-        while (_sp % 2 != 0) {
-          _stackWrite8(_sp, 0);
-          _sp++;
+        while (_stack.sp % 2 != 0) {
+          _stack.write8(_stack.sp, 0);
+          _stack.sp++;
         }
       } else if (lType == 4) {
-        while (_sp % 4 != 0) {
-          _stackWrite8(_sp, 0);
-          _sp++;
+        while (_stack.sp % 4 != 0) {
+          _stack.write8(_stack.sp, 0);
+          _stack.sp++;
         }
       }
 
@@ -214,27 +200,27 @@ class GlulxInterpreter {
         }
 
         if (lType == 1) {
-          _stackWrite8(_sp, val);
-          _sp += 1;
+          _stack.write8(_stack.sp, val);
+          _stack.sp += 1;
         } else if (lType == 2) {
-          _stackWrite16(_sp, val);
-          _sp += 2;
+          _stack.write16(_stack.sp, val);
+          _stack.sp += 2;
         } else if (lType == 4) {
-          _stackWrite32(_sp, val);
-          _sp += 4;
+          _stack.write32(_stack.sp, val);
+          _stack.sp += 4;
         }
       }
     }
 
     // Align end of frame to 4 bytes
-    while (_sp % 4 != 0) {
-      _stackWrite8(_sp, 0);
-      _sp++;
+    while (_stack.sp % 4 != 0) {
+      _stack.write8(_stack.sp, 0);
+      _stack.sp++;
     }
 
     // Set FrameLen
-    int frameLen = _sp - newFp;
-    _stackWrite32(newFp, frameLen);
+    int frameLen = _stack.sp - newFp;
+    _stack.write32(newFp, frameLen);
 
     // Set Registers
     _fp = newFp;
@@ -243,9 +229,9 @@ class GlulxInterpreter {
     // If type C0, push arguments to stack now.
     if (funcType == 0xC0) {
       for (int i = args.length - 1; i >= 0; i--) {
-        _push(args[i]);
+        _stack.push(args[i]);
       }
-      _push(args.length);
+      _stack.push(args.length);
     }
   }
 
@@ -257,17 +243,18 @@ class GlulxInterpreter {
     }
 
     // 1. Restore SP
-    _sp = _fp;
+    _stack.sp = _fp;
 
     // 2. Pop Call Stub
-    int framePtr = _pop();
-    int pc = _pop();
-    int destAddr = _pop();
-    int destType = _pop();
+    final stub = _stack.popCallStub();
+    final destType = stub[0];
+    final destAddr = stub[1];
+    final oldPc = stub[2];
+    final framePtr = stub[3];
 
     // 3. Restore Registers
     _fp = framePtr;
-    _pc = pc;
+    _pc = oldPc;
 
     if (_fp == 0) {
       _running = false;
@@ -297,17 +284,17 @@ class GlulxInterpreter {
             int op2 = _memRead8(_pc + 1);
             int fullOp = ((nextOp & 0x7F) << 8) | op2;
             log.info(
-              'PC: ${_pc.toRadixString(16)} SP: ${_sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: ${fullOp.toRadixString(16)}',
+              'PC: ${_pc.toRadixString(16)} SP: ${_stack.sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: ${fullOp.toRadixString(16)}',
             );
           } else {
             // 4 byte
             log.info(
-              'PC: ${_pc.toRadixString(16)} SP: ${_sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: 4-byte...',
+              'PC: ${_pc.toRadixString(16)} SP: ${_stack.sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: 4-byte...',
             );
           }
         } else {
           log.info(
-            'PC: ${_pc.toRadixString(16)} SP: ${_sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: ${nextOp.toRadixString(16)}',
+            'PC: ${_pc.toRadixString(16)} SP: ${_stack.sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: ${nextOp.toRadixString(16)}',
           );
         }
       }
@@ -366,7 +353,7 @@ class GlulxInterpreter {
           // Reads 'numArgs' arguments from the stack.
           List<int> funcArgs = [];
           for (int i = 0; i < numArgs; i++) {
-            funcArgs.add(_pop());
+            funcArgs.add(_stack.pop());
           }
           _enterFunction(funcAddr, funcArgs, destTypes[2], operands[2]);
           break;
@@ -381,10 +368,10 @@ class GlulxInterpreter {
           int nextPC = _pc;
 
           // Push Call Stub (DestType, DestAddr, NextPC, FP)
-          _pushCallStub(destTypes[0], operands[0], nextPC, _fp);
+          _stack.pushCallStub(destTypes[0], operands[0], nextPC, _fp);
 
           // Token is the value of SP after pushing the stub
-          int token = _sp;
+          int token = _stack.sp;
 
           // Store the Token in S1
           _storeResult(destTypes[0], operands[0], token);
@@ -404,16 +391,17 @@ class GlulxInterpreter {
           int token = operands[1];
 
           // Validation
-          if (_sp < token) throw GlulxException('throw: Invalid Token (SP < Token)');
+          if (_stack.sp < token) throw GlulxException('throw: Invalid Token (SP < Token)');
 
           // Unwind Stack to Token
-          _sp = token;
+          _stack.sp = token;
 
           // Pop Call Stub (LIFO: FP, PC, Addr, Type)
-          int oldFp = _pop();
-          int oldPc = _pop();
-          int destAddr = _pop();
-          int destType = _pop();
+          final stub = _stack.popCallStub();
+          final destType = stub[0];
+          final destAddr = stub[1];
+          final oldPc = stub[2];
+          final oldFp = stub[3];
 
           // Restore Registers
           _fp = oldFp;
@@ -455,28 +443,10 @@ class GlulxInterpreter {
 
         case GlulxOp.gestalt: // gestalt (0x04)
           // gestalt(selector, arg) -> val
-          int selector = operands[0];
           int val = 0;
-          switch (selector) {
-            case 0: // Glulx Version
-              val = 0x00030103; // Version 3.1.3
-              break;
-            case 1: // Terp Version
-              val = 0x00010000; // 1.0.0
-              break;
-            case 2: // ResizeMem
-              val = 1;
-              break;
-            case 3: // Undo
-              val = 1; // Support undo? Maybe later.
-              break;
-            case 4: // IOSystem
-              // Supports 0 (Null), 1 (Filter), 2 (Glk).
-              if (operands[1] == 0 || operands[1] == 1 || operands[1] == 2) val = 1;
-              break;
-            default:
-              val = 0;
-          }
+
+          val = await io!.glkDispatch(GlkIoSelectors.gestalt, operands);
+
           _storeResult(destTypes[2], operands[2], val);
           break;
 
@@ -502,7 +472,9 @@ class GlulxInterpreter {
                 Uint8List newRaw = Uint8List(newSize);
                 // Copy existing
                 int copyLen = math.min(_rawMemory.length, newSize);
-                for (int i = 0; i < copyLen; i++) newRaw[i] = _rawMemory[i];
+                for (int i = 0; i < copyLen; i++) {
+                  newRaw[i] = _rawMemory[i];
+                }
                 _rawMemory = newRaw;
                 _memory = ByteData.sublistView(_rawMemory);
               }
@@ -524,21 +496,23 @@ class GlulxInterpreter {
           int tNumArgs = operands[1];
           List<int> tArgs = [];
           for (int i = 0; i < tNumArgs; i++) {
-            tArgs.add(_pop());
+            tArgs.add(_stack.pop());
           }
 
           // Logic:
           // 1. Grab current Stub info (DestType/DestAddr/PC/FP) from the stack *below* current frame.
           // Unwind mechanism: _sp = _fp.
-          _sp = _fp; // Discard locals
+          _stack.sp = _fp; // Discard locals
 
           // Peek at stub (don't pop).
           // However, `_enterFunction` pushes a NEW stub.
           // So we must POP the old stub temporarily to get its values, then pass those to `_enterFunction`.
-          int oldFp = _pop();
-          int oldPc = _pop();
-          int oldDestAddr = _pop();
-          int oldDestType = _pop();
+          // Using popCallStub to get the list
+          final stub = _stack.popCallStub();
+          final oldDestType = stub[0];
+          final oldDestAddr = stub[1];
+          final oldPc = stub[2];
+          final oldFp = stub[3];
 
           // Temporarily set registers to old values so _enterFunction pushes them correctly?
           // No, _enterFunction pushes _pc and _fp.
@@ -554,27 +528,27 @@ class GlulxInterpreter {
         case GlulxOp.stkcount: // stkcount
           // Counts values on stack *above* the current call frame.
           // (_sp - (_fp + frameLen)) / 4
-          int frameLen = _stackRead32(_fp);
-          int val = (_sp - (_fp + frameLen)) ~/ 4;
-          _storeResult(destTypes[0], operands[0], val);
+          int frameLen = _stack.read32(_fp);
+          int countVal = (_stack.sp - (_fp + frameLen)) ~/ 4;
+          _storeResult(destTypes[0], operands[0], countVal);
           break;
 
         case GlulxOp.stkpeek: // stkpeek
           // stkpeek(pos, dest)
           int pos = operands[0];
-          if (_sp - 4 * (pos + 1) < _fp + _stackRead32(_fp)) {
+          if (_stack.sp - 4 * (pos + 1) < _fp + _stack.read32(_fp)) {
             throw GlulxException('stkpeek: Stack Underflow');
           }
-          int peekVal = _stackRead32(_sp - 4 * (pos + 1));
+          int peekVal = _stack.read32(_stack.sp - 4 * (pos + 1));
           _storeResult(destTypes[1], operands[1], peekVal);
           break;
 
         case GlulxOp.stkswap: // stkswap
-          if (_sp - 8 < _fp + _stackRead32(_fp)) throw GlulxException('stkswap: Stack Underflow');
-          int v1 = _pop();
-          int v2 = _pop();
-          _push(v1);
-          _push(v2);
+          if (_stack.sp - 8 < _fp + _stack.read32(_fp)) throw GlulxException('stkswap: Stack Underflow');
+          int v1 = _stack.pop();
+          int v2 = _stack.pop();
+          _stack.push(v1);
+          _stack.push(v2);
           break;
 
         case GlulxOp.stkroll: // stkroll
@@ -587,12 +561,14 @@ class GlulxInterpreter {
           if (dist < 0) dist += items;
 
           List<int> vals = [];
-          for (int i = 0; i < items; i++) vals.add(_pop());
+          for (int i = 0; i < items; i++) {
+            vals.add(_stack.pop());
+          }
 
           List<int> rotated = vals.sublist(items - dist) + vals.sublist(0, items - dist);
 
           for (int i = rotated.length - 1; i >= 0; i--) {
-            _push(rotated[i]);
+            _stack.push(rotated[i]);
           }
           break;
 
@@ -600,17 +576,17 @@ class GlulxInterpreter {
           int count = operands[0];
           List<int> vals = [];
           for (int i = 0; i < count; i++) {
-            vals.add(_memRead32(_sp - 4 * (i + 1)));
+            vals.add(_stack.read32(_stack.sp - 4 * (i + 1)));
           }
           for (int i = count - 1; i >= 0; i--) {
-            _push(vals[i]);
+            _stack.push(vals[i]);
           }
           break;
 
         case GlulxOp.streamchar: // streamchar
           final charCode = operands[0];
           if (io != null) {
-            await io!.glulxGlk(0x81, [0, charCode]);
+            await io!.glkDispatch(GlkIoSelectors.getCharStream, [0, charCode]);
           }
           break;
         case GlulxOp.add: // add
@@ -760,11 +736,11 @@ class GlulxInterpreter {
           final numArgs = operands[1];
           final args = <int>[];
           for (var i = 0; i < numArgs; i++) {
-            args.add(_pop());
+            args.add(_stack.pop());
           }
 
           if (io != null) {
-            final res = await io!.glulxGlk(id, args);
+            final res = await io!.glkDispatch(id, args);
             _storeResult(destTypes[2], operands[2], res);
           } else {
             _storeResult(destTypes[2], operands[2], 0);
@@ -823,7 +799,7 @@ class GlulxInterpreter {
         case GlulxOp.streamunichar: // streamunichar L1
           if (_ioSysMode == 2) {
             // Glk mode - call put_char_uni (0x0080)
-            io?.glulxGlk(0x0080, [operands[0]]);
+            io?.glkDispatch(GlkIoSelectors.putCharUni, [operands[0]]);
           }
           break;
 
@@ -1148,42 +1124,46 @@ class GlulxInterpreter {
         break;
 
       case 0x8: // Stack
-        if (!isStore)
-          value = _pop();
-        else
+        if (!isStore) {
+          value = _stack.pop();
+        } else {
           value = 0;
+        }
         break;
 
       case 0x9: // Local 00-FF
         value = _memRead8(_pc++);
         {
-          int localsPos = _stackRead32(_fp + 4);
-          if (!isStore)
-            value = _stackRead32(_fp + localsPos + value);
-          else
+          int localsPos = _stack.read32(_fp + 4);
+          if (!isStore) {
+            value = _stack.read32(_fp + localsPos + value);
+          } else {
             value = _fp + localsPos + value; // Address for storing
+          }
         }
         break;
       case 0xA: // Local 0000-FFFF
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
         {
-          int localsPos = _stackRead32(_fp + 4);
-          if (!isStore)
-            value = _stackRead32(_fp + localsPos + value);
-          else
+          int localsPos = _stack.read32(_fp + 4);
+          if (!isStore) {
+            value = _stack.read32(_fp + localsPos + value);
+          } else {
             value = _fp + localsPos + value;
+          }
         }
         break;
       case 0xB: // Local Any
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
         {
-          int localsPos = _stackRead32(_fp + 4);
-          if (!isStore)
-            value = _stackRead32(_fp + localsPos + value);
-          else
+          int localsPos = _stack.read32(_fp + 4);
+          if (!isStore) {
+            value = _stack.read32(_fp + localsPos + value);
+          } else {
             value = _fp + localsPos + value;
+          }
         }
         break;
 
@@ -1215,46 +1195,10 @@ class GlulxInterpreter {
     destTypes.add(isStore ? mode : -1);
   }
 
-  // Stack Helpers
-  int _pop() {
-    if (_sp == 0) throw GlulxException('Stack Underflow');
-    _sp -= 4;
-    return _stack.getUint32(_sp);
+  /// Read a 32-bit value from memory.  Left public for unit testing.
+  int memRead32(int addr) {
+    return _memRead32(addr);
   }
-
-  void _push(int value) {
-    if (_sp + 4 > _stack.lengthInBytes) throw GlulxException('Stack Overflow');
-    _stack.setUint32(_sp, value);
-    _sp += 4;
-  }
-
-  // Stack Memory Access
-  void _stackWrite8(int addr, int value) {
-    if (addr >= _stack.lengthInBytes) throw GlulxException('Stack Overflow (Access)');
-    _stack.setUint8(addr, value);
-  }
-
-  void _stackWrite16(int addr, int value) {
-    if (addr + 2 > _stack.lengthInBytes) throw GlulxException('Stack Overflow (Access)');
-    _stack.setUint16(addr, value);
-  }
-
-  void _stackWrite32(int addr, int value) {
-    if (addr + 4 > _stack.lengthInBytes) throw GlulxException('Stack Overflow (Access)');
-    _stack.setUint32(addr, value);
-  }
-
-  int _stackRead32(int addr) {
-    if (addr + 4 > _stack.lengthInBytes) throw GlulxException('Stack Access Out of Bounds');
-    return _stack.getUint32(addr);
-  }
-
-  int _stackRead8(int addr) {
-    if (addr >= _stack.lengthInBytes) throw GlulxException('Stack Access Out of Bounds');
-    return _stack.getUint8(addr);
-  }
-
-  int memRead32(int addr) => _memRead32(addr);
 
   // Memory Helper Methods
   int _memRead8(int addr) {
@@ -1295,18 +1239,18 @@ class GlulxInterpreter {
       case 0x0: // Discard
         break;
       case 0x8: // Stack (Push)
-        _push(value);
+        _stack.push(value);
         break;
 
       case 0x9: // Local 00-FF
       case 0xA: // Local 0000-FFFF
       case 0xB: // Local Any
         if (size == 1) {
-          _stackWrite8(address, value);
+          _stack.write8(address, value);
         } else if (size == 2) {
-          _stackWrite16(address, value);
+          _stack.write16(address, value);
         } else {
-          _stackWrite32(address, value);
+          _stack.write32(address, value);
         }
         break;
 
@@ -1345,7 +1289,7 @@ class GlulxInterpreter {
   void _streamNum(int val) {
     String s = val.toString();
     for (int char in s.runes) {
-      io?.glulxGlk(0x0080, [char]);
+      io?.glkDispatch(GlkIoSelectors.putChar, [char]);
     }
   }
 
@@ -1358,7 +1302,7 @@ class GlulxInterpreter {
       while (true) {
         int char = _memRead8(ptr);
         if (char == 0) break;
-        io?.glulxGlk(0x0080, [char]);
+        io?.glkDispatch(GlkIoSelectors.putChar, [char]);
         ptr++;
       }
     } else if (type == 0xE2) {
@@ -1367,16 +1311,17 @@ class GlulxInterpreter {
       while (true) {
         int char = _memRead32(ptr);
         if (char == 0) break;
-        io?.glulxGlk(0x0080, [char]);
+        io?.glkDispatch(GlkIoSelectors.putChar, [char]);
         ptr += 4;
       }
     } else if (type == 0xE1) {
       // Compressed
       // TODO: Implement compressed strings
       _streamNum(60); // <
-      _streamNum(69); // E
-      _streamNum(49); // 1
-      _streamNum(62); // >
+      // _streamNum(69); // E
+      // _streamNum(49); // 1
+      // _streamNum(62); // >
+      // Compressed string decoding logic would go here
     } else {
       // Unknown
     }

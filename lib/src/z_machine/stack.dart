@@ -2,7 +2,7 @@ import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
 import 'package:zart/src/z_machine/game_exception.dart';
 import 'package:zart/src/z_machine/math_helper.dart';
 
-/// Z-Machine Stack
+/// Interpreter Stack
 class Stack {
   /// The stack.
   final List<int> stack;
@@ -26,7 +26,7 @@ class Stack {
 
     //no Dart negative values should exist here
     //except the special stack-end flag 0x-10000
-    assert(v == InterpreterV3.stackMarker || v >= 0);
+    assert(v >= 0);
 
     return v;
   }
@@ -37,14 +37,14 @@ class Stack {
 
     //no Dart negative values should exist here
     //except the spcecial stack-end flag 0x-10000
-    assert(v == InterpreterV3.stackMarker || v >= 0);
+    assert(v >= 0);
 
     return v;
   }
 
   /// Sets the value at the specified index.
   void operator []=(int index, int value) {
-    if (value < 0 && value != InterpreterV3.stackMarker) {
+    if (value < 0) {
       value = MathHelper.dartSignedIntTo16BitSigned(value);
     }
 

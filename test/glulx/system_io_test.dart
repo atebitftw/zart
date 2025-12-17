@@ -1,34 +1,19 @@
 import 'dart:typed_data';
 
 import 'package:test/test.dart';
+import 'package:zart/src/cli/ui/glulx_terminal_provider.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
-import 'package:zart/src/io/io_provider.dart';
 import 'package:zart/zart.dart' show Debugger;
+
+import 'test_terminal_display.dart';
 
 final maxSteps = Debugger.maxSteps; // do not change this without getting permission from user.
 
-class MockIo extends IoProvider {
-  final StringBuffer buffer = StringBuffer();
-
-  @override
-  Future<dynamic> command(Map<String, dynamic> commandMessage) async {
-    return null;
-  }
-
-  @override
-  Future<int> glulxGlk(int selector, List<int> args) async {
-    if (selector == 0x0080) {
-      // put_char
-      buffer.writeCharCode(args[0]);
-    }
-    return 0;
-  }
-}
-
 void main() {
   late GlulxInterpreter interpreter;
-  late MockIo mockIo;
+  late TestTerminalDisplay testDisplay;
+  late GlulxTerminalProvider ioProvider;
 
   // Helper to create a minimal Glulx game
   Uint8List createGame(
@@ -65,8 +50,9 @@ void main() {
   }
 
   setUp(() {
-    mockIo = MockIo();
-    interpreter = GlulxInterpreter(io: mockIo);
+    testDisplay = TestTerminalDisplay();
+    ioProvider = GlulxTerminalProvider(testDisplay);
+    interpreter = GlulxInterpreter(io: ioProvider);
   });
 
   test('gestalt returns version info', () async {
@@ -119,8 +105,8 @@ void main() {
     interpreter.load(game);
     await interpreter.run(maxSteps: maxSteps);
 
-    // Check RAM 0x80 for 0x00030103
-    expect(interpreter.memRead32(0x80 + interpreter.ramStart), 0x00030103);
+    // Check RAM 0x80 for 0x00070600 (Glk API version 0.7.6)
+    expect(interpreter.memRead32(0x80 + interpreter.ramStart), 0x00070600);
     // Check RAM 0x84 for size. Size = extStart (0x5000) or file len?
     // Interpreter init: initialSize = gameBytes.length. But set to at least extStart?
     // "If initialSize < _extStart, initialSize = _extStart".
@@ -142,7 +128,7 @@ void main() {
     interpreter.load(game);
     await interpreter.run(maxSteps: maxSteps);
 
-    expect(mockIo.buffer.toString(), '12345');
+    expect(testDisplay.output, '12345');
   });
 
   test('streamstr writes E0 string to io', () async {
@@ -190,7 +176,40 @@ void main() {
     interpreter.load(game);
     await interpreter.run(maxSteps: maxSteps);
 
-    expect(mockIo.buffer.toString(), 'ABC');
+    expect(testDisplay.output, 'ABC');
+  });
+
+  test('streamstr writes E2 (Unicode) string to io', () async {
+    // Write 32-bit Unicode string to RAM.
+    // Type E2 at RAM[0x80].
+
+    final instructions = <int>[
+      // copyb E2 -> RAM[80]
+      GlulxOp.copyb, 0xC1, 0xE2, 0x80,
+
+      // We need to write 32-bit values.
+      // Char 'A' (0x41) at 0x84.
+      // copy 0x41 -> RAM 0x84 (Mode 1 -> Mode 5)
+      // Mode: 1 | (5<<4) = 0x51.
+      GlulxOp.copy, 0x51, 0x41, 0x84,
+
+      // Char 'B' (0x42) at 0x88.
+      GlulxOp.copy, 0x51, 0x42, 0x88,
+
+      // Char 0 (Null) at 0x8C.
+      GlulxOp.copy, 0x51, 0x00, 0x8C,
+
+      // streamstr 0x180 (ramStart + 0x80)
+      GlulxOp.streamstr, 0x02, 0x00, 0x80,
+
+      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00,
+    ];
+
+    Uint8List game = createGame(instructions);
+    interpreter.load(game);
+    await interpreter.run(maxSteps: maxSteps);
+
+    expect(testDisplay.output, 'AB');
   });
 
   test('jumpabs jumps to address', () async {
@@ -235,7 +254,7 @@ void main() {
     interpreter.load(game);
     await interpreter.run(maxSteps: maxSteps);
 
-    expect(mockIo.buffer.toString(), '1');
+    expect(testDisplay.output, '1');
   });
 
   test('setmemsize resizes memory', () async {
