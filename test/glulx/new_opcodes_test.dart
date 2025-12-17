@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
+import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/src/glulx/glulx_opcodes.dart';
 import 'package:zart/src/io/io_provider.dart';
@@ -15,13 +16,14 @@ void main() {
       final bytes = Uint8List(fileSize);
       final bd = ByteData.sublistView(bytes);
 
-      bd.setUint32(0, 0x476C756C);
-      bd.setUint32(4, 0x00030102);
-      bd.setUint32(8, ramStart);
-      bd.setUint32(12, fileSize);
-      bd.setUint32(16, fileSize);
-      bd.setUint32(20, 1024);
-      bd.setUint32(24, 0x40);
+      bd.setUint32(GlulxHeader.magicNumber, 0x476C756C);
+      bd.setUint32(GlulxHeader.version, 0x00030102);
+      bd.setUint32(GlulxHeader.ramStart, ramStart);
+      bd.setUint32(GlulxHeader.extStart, fileSize);
+      bd.setUint32(GlulxHeader.endMem, fileSize);
+      bd.setUint32(GlulxHeader.stackSize, 1024);
+      bd.setUint32(GlulxHeader.startFunc, 0x40);
+      bd.setUint32(GlulxHeader.checksum, 0);
 
       bytes[0x40] = 0xC0;
       bytes[0x41] = 0x00;

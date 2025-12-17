@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
@@ -59,15 +59,19 @@ class GlulxInterpreter {
   // I/O system state
   int _ioSysMode = 0; // 0=null, 1=filter, 2=glk
   int _ioSysRock = 0;
+
+  // Float conversion buffers
+  final Float32List _floatBuf = Float32List(1);
+  late final Int32List _floatIntView = Int32List.view(_floatBuf.buffer);
   int _stringTbl = 0; // String decoding table address
 
-  Random _random_rng = Random();
+  math.Random _random_rng = math.Random();
 
   void _setRandom(int seed) {
     if (seed == 0) {
-      _random_rng = Random();
+      _random_rng = math.Random();
     } else {
-      _random_rng = Random(seed);
+      _random_rng = math.Random(seed);
     }
   }
 
@@ -497,7 +501,7 @@ class GlulxInterpreter {
               if (newSize != _rawMemory.length) {
                 Uint8List newRaw = Uint8List(newSize);
                 // Copy existing
-                int copyLen = min(_rawMemory.length, newSize);
+                int copyLen = math.min(_rawMemory.length, newSize);
                 for (int i = 0; i < copyLen; i++) newRaw[i] = _rawMemory[i];
                 _rawMemory = newRaw;
                 _memory = ByteData.sublistView(_rawMemory);
@@ -821,7 +825,217 @@ class GlulxInterpreter {
             // Glk mode - call put_char_uni (0x0080)
             io?.glulxGlk(0x0080, [operands[0]]);
           }
-          // In null mode (0) or filter mode (1 - not fully implemented), do nothing or handle differently
+          break;
+
+        // Floating Point Operations
+        case GlulxOpcodes.numtof: // numtof L1 S1
+          _floatBuf[0] = operands[0].toDouble();
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.ftonumz: // ftonumz L1 S1
+          _floatIntView[0] = operands[0];
+          int valZ;
+          if (_floatBuf[0].isNaN || _floatBuf[0].isInfinite) {
+            valZ = _floatBuf[0] < 0 ? -2147483648 : 2147483647; // 0x80000000 or 0x7FFFFFFF
+          } else {
+            valZ = _floatBuf[0].truncate();
+          }
+          // Use raw 32-bit int cast for safety though .truncate() usually returns int
+          _storeResult(destTypes[1], operands[1], valZ & 0xFFFFFFFF);
+          break;
+        case GlulxOpcodes.ftonumn: // ftonumn L1 S1
+          _floatIntView[0] = operands[0];
+          int valN;
+          if (_floatBuf[0].isNaN || _floatBuf[0].isInfinite) {
+            valN = _floatBuf[0] < 0 ? -2147483648 : 2147483647;
+          } else {
+            valN = _floatBuf[0].round();
+          }
+          _storeResult(destTypes[1], operands[1], valN & 0xFFFFFFFF);
+          break;
+
+        case GlulxOpcodes.ceil: // ceil L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = _floatBuf[0].ceilToDouble();
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.floor: // floor L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = _floatBuf[0].floorToDouble();
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+
+        case GlulxOpcodes.fadd: // fadd L1 L2 S1
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          _floatBuf[0] = f1 + f2;
+          _storeResult(destTypes[2], operands[2], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.fsub: // fsub L1 L2 S1
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          _floatBuf[0] = f1 - f2;
+          _storeResult(destTypes[2], operands[2], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.fmul: // fmul L1 L2 S1
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          _floatBuf[0] = f1 * f2;
+          _storeResult(destTypes[2], operands[2], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.fdiv: // fdiv L1 L2 S1
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          _floatBuf[0] = f1 / f2;
+          _storeResult(destTypes[2], operands[2], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.fmod: // fmod L1 L2 S1
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          // fmod is remainder, typically f1 % f2 but for floats. Dart's % operator works on doubles.
+          // Spec says: "remainder of the division f1 / f2"
+          if (f2 == 0) {
+            _floatBuf[0] = double.nan; // Or implementation defined? Spec implies NaN or Inf for /0?
+            // Actually, modulo by zero is usually partial result or NaN. Dart % 0 is NaN.
+          } else {
+            _floatBuf[0] = f1 % f2;
+          }
+          _storeResult(destTypes[2], operands[2], _floatIntView[0]);
+          break;
+
+        case GlulxOpcodes.sqrt: // sqrt L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.sqrt(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.exp: // exp L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.exp(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.log: // log L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.log(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.pow: // pow L1 L2 S1
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          _floatBuf[0] = math.pow(f1, f2).toDouble();
+          _storeResult(destTypes[2], operands[2], _floatIntView[0]);
+          break;
+
+        case GlulxOpcodes.sin: // sin L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.sin(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.cos: // cos L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.cos(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.tan: // tan L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.tan(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.asin: // asin L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.asin(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.acos: // acos L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.acos(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.atan: // atan L1 S1
+          _floatIntView[0] = operands[0];
+          _floatBuf[0] = math.atan(_floatBuf[0]);
+          _storeResult(destTypes[1], operands[1], _floatIntView[0]);
+          break;
+        case GlulxOpcodes.atan2: // atan2 L1 L2 S1
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          _floatBuf[0] = math.atan2(f1, f2);
+          _storeResult(destTypes[2], operands[2], _floatIntView[0]);
+          break;
+
+        case GlulxOpcodes.jfeq: // jfeq L1 L2 L3
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          if (f1 == f2) {
+            _branch(operands[2]);
+          }
+          break;
+
+        case GlulxOpcodes.jfne: // jfne L1 L2 L3
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          if (f1 != f2) _branch(operands[2]);
+          break;
+
+        case GlulxOpcodes.jflt: // jflt L1 L2 L3
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          if (f1 < f2) _branch(operands[2]);
+          break;
+
+        case GlulxOpcodes.jfle: // jfle L1 L2 L3
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          if (f1 <= f2) _branch(operands[2]);
+          break;
+
+        case GlulxOpcodes.jfgt: // jfgt L1 L2 L3
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          if (f1 > f2) _branch(operands[2]);
+          break;
+
+        case GlulxOpcodes.jfge: // jfge L1 L2 L3
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          _floatIntView[0] = operands[1];
+          double f2 = _floatBuf[0];
+          if (f1 >= f2) _branch(operands[2]);
+          break;
+
+        case GlulxOpcodes.jisnan: // jisnan L1 L2
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          if (f1.isNaN) _branch(operands[1]);
+          break;
+
+        case GlulxOpcodes.jisinf: // jisinf L1 L2
+          _floatIntView[0] = operands[0];
+          double f1 = _floatBuf[0];
+          if (f1.isInfinite) _branch(operands[1]);
           break;
 
         // Direct function calls

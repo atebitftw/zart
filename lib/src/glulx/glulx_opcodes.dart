@@ -273,70 +273,70 @@ class GlulxOpcodes {
   static const int accelparam = 0x181;
 
   /// numtof
-  static const int numtof = 0x190;
+  static const int numtof = 0x190; // implemented. unit tested
 
   /// ftonumz
-  static const int ftonumz = 0x191;
+  static const int ftonumz = 0x191; // implemented. unit tested
 
   /// ftonumn
-  static const int ftonumn = 0x192;
+  static const int ftonumn = 0x192; // implemented. unit tested
 
   /// ceil
-  static const int ceil = 0x198;
+  static const int ceil = 0x198; // implemented. unit tested
 
   /// floor
-  static const int floor = 0x199;
+  static const int floor = 0x199; // implemented. unit tested
 
   /// fadd
-  static const int fadd = 0x1A0;
+  static const int fadd = 0x1A0; // implemented. unit tested
 
   /// fsub
-  static const int fsub = 0x1A1;
+  static const int fsub = 0x1A1; // implemented. unit tested
 
   /// fmul
-  static const int fmul = 0x1A2;
+  static const int fmul = 0x1A2; // implemented. unit tested
 
   /// fdiv
-  static const int fdiv = 0x1A3;
+  static const int fdiv = 0x1A3; // implemented. unit tested
 
   /// fmod
-  static const int fmod = 0x1A4;
+  static const int fmod = 0x1A4; // implemented. unit tested
 
   /// sqrt
-  static const int sqrt = 0x1A8;
+  static const int sqrt = 0x1A8; // implemented. unit tested
 
   /// exp
-  static const int exp = 0x1A9;
+  static const int exp = 0x1A9; // implemented. unit tested
 
   /// log
-  static const int log = 0x1AA;
+  static const int log = 0x1AA; // implemented. unit tested
 
   /// pow
-  static const int pow = 0x1AB;
+  static const int pow = 0x1AB; // implemented. unit tested
 
   /// sin
-  static const int sin = 0x1B0;
+  static const int sin = 0x1B0; // implemented. unit tested
 
   /// cos
-  static const int cos = 0x1B1;
+  static const int cos = 0x1B1; // implemented. unit tested
 
   /// tan
-  static const int tan = 0x1B2;
+  static const int tan = 0x1B2; // implemented. unit tested
 
   /// asin
-  static const int asin = 0x1B3;
+  static const int asin = 0x1B3; // implemented. unit tested
 
   /// acos
-  static const int acos = 0x1B4;
+  static const int acos = 0x1B4; // implemented. unit tested
 
   /// atan
-  static const int atan = 0x1B5;
+  static const int atan = 0x1B5; // implemented. unit tested
 
   /// atan2
-  static const int atan2 = 0x1B6;
+  static const int atan2 = 0x1B6; // implemented. unit tested
 
   /// jfeq
-  static const int jfeq = 0x1C0;
+  static const int jfeq = 0x1C0; // implemented. unit tested
 
   /// jfne
   static const int jfne = 0x1C1;

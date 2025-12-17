@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
+import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/src/glulx/glulx_opcodes.dart';
 import 'package:zart/zart.dart' show Debugger;
@@ -12,21 +13,21 @@ ByteData createGame(List<int> code, {int ramStart = 0x1000}) {
   final buffer = ByteData(fileSize);
 
   // Magic 47 6c 75 6c
-  buffer.setUint32(0, 0x476C756C);
+  buffer.setUint32(GlulxHeader.magicNumber, 0x476C756C);
   // RAM Start
-  buffer.setUint32(8, ramStart);
+  buffer.setUint32(GlulxHeader.ramStart, ramStart);
   // Extent (File Size)
-  buffer.setUint32(12, fileSize);
+  buffer.setUint32(GlulxHeader.extStart, fileSize);
   // End Mem
-  buffer.setUint32(16, fileSize * 2);
+  buffer.setUint32(GlulxHeader.endMem, fileSize * 2);
   // Stack Size
-  buffer.setUint32(20, 4096);
+  buffer.setUint32(GlulxHeader.stackSize, 4096);
   // Start Func
-  buffer.setUint32(24, 0x100); // Code starts at 0x100
+  buffer.setUint32(GlulxHeader.startFunc, 0x100); // Code starts at 0x100
   // Decoding Table
-  buffer.setUint32(28, 0);
+  buffer.setUint32(GlulxHeader.decodingTbl, 0);
   // Checksum
-  buffer.setUint32(32, 0);
+  buffer.setUint32(GlulxHeader.checksum, 0);
 
   // Write Code at 0x100
   for (int i = 0; i < code.length; i++) {

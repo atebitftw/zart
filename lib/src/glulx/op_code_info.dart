@@ -88,6 +88,36 @@ class OpcodeInfo {
     GlulxOpcodes.getiosys: OpcodeInfo(2, [true, true]), // getiosys S1 S2
     GlulxOpcodes.mzero: OpcodeInfo(2, [false, false]), // mzero L1 L2
     GlulxOpcodes.mcopy: OpcodeInfo(3, [false, false, false]), // mcopy L1 L2 L3
+    // Floating point math
+    GlulxOpcodes.numtof: OpcodeInfo(2, [false, true]), // numtof L1 S1
+    GlulxOpcodes.ftonumz: OpcodeInfo(2, [false, true]), // ftonumz L1 S1
+    GlulxOpcodes.ftonumn: OpcodeInfo(2, [false, true]), // ftonumn L1 S1
+    GlulxOpcodes.ceil: OpcodeInfo(2, [false, true]), // ceil L1 S1
+    GlulxOpcodes.floor: OpcodeInfo(2, [false, true]), // floor L1 S1
+    GlulxOpcodes.fadd: OpcodeInfo(3, [false, false, true]), // fadd L1 L2 S1
+    GlulxOpcodes.fsub: OpcodeInfo(3, [false, false, true]), // fsub L1 L2 S1
+    GlulxOpcodes.fmul: OpcodeInfo(3, [false, false, true]), // fmul L1 L2 S1
+    GlulxOpcodes.fdiv: OpcodeInfo(3, [false, false, true]), // fdiv L1 L2 S1
+    GlulxOpcodes.fmod: OpcodeInfo(3, [false, false, true]), // fmod L1 L2 S1
+    GlulxOpcodes.sqrt: OpcodeInfo(2, [false, true]), // sqrt L1 S1
+    GlulxOpcodes.exp: OpcodeInfo(2, [false, true]), // exp L1 S1
+    GlulxOpcodes.log: OpcodeInfo(2, [false, true]), // log L1 S1
+    GlulxOpcodes.pow: OpcodeInfo(3, [false, false, true]), // pow L1 L2 S1
+    GlulxOpcodes.sin: OpcodeInfo(2, [false, true]), // sin L1 S1
+    GlulxOpcodes.cos: OpcodeInfo(2, [false, true]), // cos L1 S1
+    GlulxOpcodes.tan: OpcodeInfo(2, [false, true]), // tan L1 S1
+    GlulxOpcodes.asin: OpcodeInfo(2, [false, true]), // asin L1 S1
+    GlulxOpcodes.acos: OpcodeInfo(2, [false, true]), // acos L1 S1
+    GlulxOpcodes.atan: OpcodeInfo(2, [false, true]), // atan L1 S1
+    GlulxOpcodes.atan2: OpcodeInfo(3, [false, false, true]), // atan2 L1 L2 S1
+    GlulxOpcodes.jfeq: OpcodeInfo(3, [false, false, false]), // jfeq L1 L2 L3
+    GlulxOpcodes.jfne: OpcodeInfo(3, [false, false, false]), // jfne L1 L2 L3
+    GlulxOpcodes.jflt: OpcodeInfo(3, [false, false, false]), // jflt L1 L2 L3
+    GlulxOpcodes.jfle: OpcodeInfo(3, [false, false, false]), // jfle L1 L2 L3
+    GlulxOpcodes.jfgt: OpcodeInfo(3, [false, false, false]), // jfgt L1 L2 L3
+    GlulxOpcodes.jfge: OpcodeInfo(3, [false, false, false]), // jfge L1 L2 L3
+    GlulxOpcodes.jisnan: OpcodeInfo(2, [false, false]), // jisnan L1 L2
+    GlulxOpcodes.jisinf: OpcodeInfo(2, [false, false]), // jisinf L1 L2
   };
 
   static OpcodeInfo get(int opcode) {
