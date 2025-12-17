@@ -339,23 +339,23 @@ class GlulxOpcodes {
   static const int jfeq = 0x1C0; // implemented. unit tested
 
   /// jfne
-  static const int jfne = 0x1C1;
+  static const int jfne = 0x1C1; // implemented. unit tested
 
   /// jflt
-  static const int jflt = 0x1C2;
+  static const int jflt = 0x1C2; // implemented. unit tested
 
   /// jfle
-  static const int jfle = 0x1C3;
+  static const int jfle = 0x1C3; // implemented. unit tested
 
   /// jfgt
-  static const int jfgt = 0x1C4;
+  static const int jfgt = 0x1C4; // implemented. unit tested
 
   /// jfge
-  static const int jfge = 0x1C5;
+  static const int jfge = 0x1C5; // implemented. unit tested
 
   /// jisnan
-  static const int jisnan = 0x1C8;
+  static const int jisnan = 0x1C8; // implemented. unit tested
 
   /// jisinf
-  static const int jisinf = 0x1C9;
+  static const int jisinf = 0x1C9; // implemented. unit tested
 }

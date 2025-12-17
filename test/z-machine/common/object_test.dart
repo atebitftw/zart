@@ -112,10 +112,7 @@ void main() {
       expect(0, equals(o1.getPropertyValue(5)));
 
       //throw on prop no exist
-      expect(
-        () => o1.setPropertyValue(13, 0xffff),
-        throwsA(isA<GameException>()),
-      );
+      expect(() => o1.setPropertyValue(13, 0xffff), throwsA(isA<GameException>()));
       // Expect.throws(
       //   () => o1.setPropertyValue(13, 0xffff),
       //     (e) => e is GameException);
@@ -126,10 +123,7 @@ void main() {
       // Expect.throws(
       //   () => o1.setPropertyValue(29, 0xffff),
       //     (e) => e is GameException);
-      expect(
-        () => o1.setPropertyValue(29, 0xffff),
-        throwsA(isA<GameException>()),
-      );
+      expect(() => o1.setPropertyValue(29, 0xffff), throwsA(isA<GameException>()));
     });
 
     test('attributes are set', () {
