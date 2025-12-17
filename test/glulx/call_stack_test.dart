@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:logging/logging.dart';
-import 'package:zart/src/glulx/glulx_opcodes.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/zart.dart' show Debugger;
 
@@ -91,13 +91,13 @@ void main() {
         // Function Header (Type C0, Locals Format 0,0)
         0xC0, 0x00, 0x00,
         // copy 10 push. Modes: Op1=1, Op2=8 -> 0x81
-        GlulxOpcodes.copy, 0x81, 10,
+        GlulxOp.copy, 0x81, 10,
         // copy 20 push. Modes: Op1=1, Op2=8 -> 0x81
-        GlulxOpcodes.copy, 0x81, 20,
+        GlulxOp.copy, 0x81, 20,
         // stkcount -> RAM[ramStart + 0x100]. Mode: Op0=E (RAM Any).
         // ModeByte=0x0E. Address offset 0x100.
-        GlulxOpcodes.stkcount, 0x0E, 0x00, 0x00, 0x01, 0x00,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.stkcount, 0x0E, 0x00, 0x00, 0x01, 0x00,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter.load(createGame(code));
@@ -115,17 +115,17 @@ void main() {
       final code = [
         0xC0, 0x00, 0x00,
         // Push 10
-        GlulxOpcodes.copy, 0x81, 10,
+        GlulxOp.copy, 0x81, 10,
         // Push 20
-        GlulxOpcodes.copy, 0x81, 20,
+        GlulxOp.copy, 0x81, 20,
         // stkpeek 0 -> RAM[ramStart + 0x100] (Should be 20)
         // Pos=0 (Mode 1 - Const Byte 0). Dest=RAM (Mode E - RAM Any).
         // Byte 1: Op0(1) | Op1(E)<<4 = 0xE1.
         // Op0 Value: 0. Op1 Value: 0x100.
-        GlulxOpcodes.stkpeek, 0xE1, 0x00, 0x00, 0x00, 0x01, 0x00,
+        GlulxOp.stkpeek, 0xE1, 0x00, 0x00, 0x00, 0x01, 0x00,
         // stkpeek 1 -> RAM[ramStart + 0x104] (Should be 10)
-        GlulxOpcodes.stkpeek, 0xE1, 0x01, 0x00, 0x00, 0x01, 0x04,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.stkpeek, 0xE1, 0x01, 0x00, 0x00, 0x01, 0x04,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter.load(createGame(code));
@@ -140,16 +140,16 @@ void main() {
     test('stkswap', () async {
       final code = [
         0xC0, 0x00, 0x00,
-        GlulxOpcodes.copy, 0x81, 10,
-        GlulxOpcodes.copy, 0x81, 20,
-        GlulxOpcodes.stkswap,
+        GlulxOp.copy, 0x81, 10,
+        GlulxOp.copy, 0x81, 20,
+        GlulxOp.stkswap,
         // Pop into RAM to verify order
         // Pop (Top) -> RAM[ramStart + 0x100]. Should be 10.
         // copy stack(8) -> RAM(E). Mode 0xE8.
-        GlulxOpcodes.copy, 0xE8, 0x00, 0x00, 0x01, 0x00,
+        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x00,
         // Pop (Next) -> RAM[ramStart + 0x104]. Should be 20.
-        GlulxOpcodes.copy, 0xE8, 0x00, 0x00, 0x01, 0x04,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x04,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter.load(createGame(code));
@@ -164,25 +164,25 @@ void main() {
       // stkroll 5 2 -> Rotate 5 items by 2 spots.
       final code = [
         0xC0, 0x00, 0x00,
-        GlulxOpcodes.copy, 0x81, 0xA,
-        GlulxOpcodes.copy, 0x81, 0xB,
-        GlulxOpcodes.copy, 0x81, 0xC,
-        GlulxOpcodes.copy, 0x81, 0xD,
-        GlulxOpcodes.copy, 0x81, 0xE,
+        GlulxOp.copy, 0x81, 0xA,
+        GlulxOp.copy, 0x81, 0xB,
+        GlulxOp.copy, 0x81, 0xC,
+        GlulxOp.copy, 0x81, 0xD,
+        GlulxOp.copy, 0x81, 0xE,
 
         // stkroll 5 2
         // Op1: 5 (Mode 1). Op2: 2 (Mode 1).
         // ModeByte: 0x11.
-        GlulxOpcodes.stkroll, 0x11, 5, 2,
+        GlulxOp.stkroll, 0x11, 5, 2,
 
         // Pop 5 items and store to RAM[ramStart + 0x100..0x114]
-        GlulxOpcodes.copy, 0xE8, 0x00, 0x00, 0x01, 0x00, // Top
-        GlulxOpcodes.copy, 0xE8, 0x00, 0x00, 0x01, 0x04,
-        GlulxOpcodes.copy, 0xE8, 0x00, 0x00, 0x01, 0x08,
-        GlulxOpcodes.copy, 0xE8, 0x00, 0x00, 0x01, 0x0C,
-        GlulxOpcodes.copy, 0xE8, 0x00, 0x00, 0x01, 0x10, // Bottom
+        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x00, // Top
+        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x04,
+        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x08,
+        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x0C,
+        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x10, // Bottom
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter.load(createGame(code));
@@ -209,19 +209,19 @@ void main() {
         // Op3: RAM[0x200] (Mode E - RAM 0000-FFFF).
         // Modes: Op1(2), Op2(1) -> 0x12.
         // Byte 2: Op3(E) -> 0x0E.
-        GlulxOpcodes.call, 0x12, 0x0E,
+        GlulxOp.call, 0x12, 0x0E,
         0x01, 0x00, // Address 0x100
         0, // 0 args (Byte const)
         0x00, 0x00, 0x05, 0x00, // Dest 0x500
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       final calledFunc = [
         0xC0, 0x00, 0x00, // Header
         // ret 42 (opcode 0x31, 1-byte)
         // Op1: 42 (Mode 1).
-        GlulxOpcodes.ret, 0x01, 42,
+        GlulxOp.ret, 0x01, 42,
       ];
 
       final functions = {0x40: mainFunc, 0x100: calledFunc};
@@ -236,20 +236,20 @@ void main() {
       final mainFunc = [
         0xC0, 0x00, 0x00, // Header
         // Push 10, 20
-        GlulxOpcodes.copy, 0x81, 10,
-        GlulxOpcodes.copy, 0x81, 20,
+        GlulxOp.copy, 0x81, 10,
+        GlulxOp.copy, 0x81, 20,
 
         // call 0x100 2 -> RAM[0x200]
         // call is opcode 0x30 (1-byte)
         // Op1(0x100) Mode 2. Op2(2) Mode 1. Op3(RAM 0x200) Mode E.
         // Byte 1: Op1(2) | Op2(1)<<4 = 0x12.
         // Byte 2: Op3(E) = 0x0E.
-        GlulxOpcodes.call, 0x12, 0x0E,
+        GlulxOp.call, 0x12, 0x0E,
         0x01, 0x00, // Address 0x100
         2, // NumArgs
         0x00, 0x00, 0x05, 0x00, // Dest 0x500
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       final calledFunc = [
@@ -260,13 +260,13 @@ void main() {
         // Op1: Local(0). Mode: 9 (Local byte). Val=0.
         // Op2: Stack(8). Mode: 8.
         // Byte: 0x89.
-        GlulxOpcodes.copy, 0x89, 0x00,
+        GlulxOp.copy, 0x89, 0x00,
         // Copy Local(4) -> Stack
-        GlulxOpcodes.copy, 0x89, 0x04,
+        GlulxOp.copy, 0x89, 0x04,
         // add Stack Stack -> Stack
-        GlulxOpcodes.add, 0x88, 0x08,
+        GlulxOp.add, 0x88, 0x08,
         // ret Stack (opcode 0x31, 1-byte)
-        GlulxOpcodes.ret, 0x08,
+        GlulxOp.ret, 0x08,
       ];
 
       final functions = {0x40: mainFunc, 0x100: calledFunc};

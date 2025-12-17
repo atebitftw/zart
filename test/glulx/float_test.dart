@@ -4,7 +4,7 @@ import 'package:zart/src/glulx/interpreter.dart';
 import 'dart:typed_data';
 
 import 'dart:math' as math;
-import 'package:zart/src/glulx/glulx_opcodes.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 
 // Helper to create a basic Glulx game with given opcodes
 GlulxInterpreter createInterpreter(List<int> code) {
@@ -63,12 +63,12 @@ void main() {
     test('numtof converts int to float', () {
       // numtof 42 (0x2A) -> RAM 100
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.numtof),
+        ...encodeOp(GlulxOp.numtof),
         0xD1, // Modes: L1=ConstByte(1), S1=ConstRAM(D=13)
         42, // L1 val
         // S1 addr (address 100)
         0, 100,
-        ...encodeOp(GlulxOpcodes.quit), // ret 0
+        ...encodeOp(GlulxOp.quit), // ret 0
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -83,11 +83,11 @@ void main() {
       int floatBits = floatToBits(42.7);
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.ftonumz),
+        ...encodeOp(GlulxOp.ftonumz),
         0xD3, // Modes: L1=ConstInt(3), S1=ConstRAM(D)
         (floatBits >> 24) & 0xFF, (floatBits >> 16) & 0xFF, (floatBits >> 8) & 0xFF, floatBits & 0xFF,
         0, 100, // Dest addr 100
-        ...encodeOp(GlulxOpcodes.quit), // ret 0
+        ...encodeOp(GlulxOp.quit), // ret 0
       ];
 
       final interp = createInterpreter(code);
@@ -102,14 +102,14 @@ void main() {
       int floatBits = floatToBits(-42.7);
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.ftonumz),
+        ...encodeOp(GlulxOp.ftonumz),
         0xD3,
         (floatBits >> 24) & 0xFF,
         (floatBits >> 16) & 0xFF,
         (floatBits >> 8) & 0xFF,
         floatBits & 0xFF,
         0, 100, // Dest addr 100
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
 
       final interp = createInterpreter(code);
@@ -124,7 +124,7 @@ void main() {
       int floatBits = floatToBits(42.7);
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.ftonumn),
+        ...encodeOp(GlulxOp.ftonumn),
         0xD3,
         (floatBits >> 24) & 0xFF,
         (floatBits >> 16) & 0xFF,
@@ -132,7 +132,7 @@ void main() {
         floatBits & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
 
       final interp = createInterpreter(code);
@@ -155,12 +155,12 @@ void main() {
       // Byte 1: 0x33. Byte 2: 0x0D.
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.fadd),
+        ...encodeOp(GlulxOp.fadd),
         0x33, 0x0D, // Modes
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         (f2 >> 24) & 0xFF, (f2 >> 16) & 0xFF, (f2 >> 8) & 0xFF, f2 & 0xFF,
         0, 100, // Addr 100
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
 
       final interp = createInterpreter(code);
@@ -178,11 +178,11 @@ void main() {
       // Modes: 0xD3 (L1=3, S1=D)
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.sqrt),
+        ...encodeOp(GlulxOp.sqrt),
         0xD3, // Modes
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         0, 100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
 
       final interp = createInterpreter(code);
@@ -200,7 +200,7 @@ void main() {
       // Modes: 0x33 0x0D
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.fmod),
+        ...encodeOp(GlulxOp.fmod),
         0x33,
         0x0D,
         (f1 >> 24) & 0xFF,
@@ -213,7 +213,7 @@ void main() {
         f2 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
 
       final interp = createInterpreter(code);
@@ -227,7 +227,7 @@ void main() {
       int f1 = floatToBits(0.0);
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.sin),
+        ...encodeOp(GlulxOp.sin),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -235,7 +235,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
 
       final interp = createInterpreter(code);
@@ -254,7 +254,7 @@ void main() {
       // floor 0x199
 
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.ceil),
+        ...encodeOp(GlulxOp.ceil),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -263,7 +263,7 @@ void main() {
         0,
         100,
 
-        ...encodeOp(GlulxOpcodes.floor),
+        ...encodeOp(GlulxOp.floor),
         0xD3,
         (f2 >> 24) & 0xFF,
         (f2 >> 16) & 0xFF,
@@ -272,7 +272,7 @@ void main() {
         0,
         104,
 
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
 
       final interp = createInterpreter(code);
@@ -285,7 +285,7 @@ void main() {
       int f1 = floatToBits(5.5);
       int f2 = floatToBits(2.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.fsub),
+        ...encodeOp(GlulxOp.fsub),
         0x33,
         0x0D,
         (f1 >> 24) & 0xFF,
@@ -298,7 +298,7 @@ void main() {
         f2 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -309,7 +309,7 @@ void main() {
       int f1 = floatToBits(2.0);
       int f2 = floatToBits(3.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.fmul),
+        ...encodeOp(GlulxOp.fmul),
         0x33,
         0x0D,
         (f1 >> 24) & 0xFF,
@@ -322,7 +322,7 @@ void main() {
         f2 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -333,7 +333,7 @@ void main() {
       int f1 = floatToBits(10.0);
       int f2 = floatToBits(2.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.fdiv),
+        ...encodeOp(GlulxOp.fdiv),
         0x33,
         0x0D,
         (f1 >> 24) & 0xFF,
@@ -346,7 +346,7 @@ void main() {
         f2 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -357,7 +357,7 @@ void main() {
       // exp(1.0) approx 2.71828
       int f1 = floatToBits(1.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.exp),
+        ...encodeOp(GlulxOp.exp),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -365,7 +365,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -375,7 +375,7 @@ void main() {
     test('log calculates natural log', () {
       int f1 = floatToBits(math.e);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.log),
+        ...encodeOp(GlulxOp.log),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -383,7 +383,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -394,7 +394,7 @@ void main() {
       int f1 = floatToBits(2.0);
       int f2 = floatToBits(3.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.pow),
+        ...encodeOp(GlulxOp.pow),
         0x33,
         0x0D,
         (f1 >> 24) & 0xFF,
@@ -407,7 +407,7 @@ void main() {
         f2 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -417,7 +417,7 @@ void main() {
     test('cos calculates cosine', () {
       int f1 = floatToBits(math.pi);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.cos),
+        ...encodeOp(GlulxOp.cos),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -425,7 +425,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -435,7 +435,7 @@ void main() {
     test('tan calculates tangent', () {
       int f1 = floatToBits(0.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.tan),
+        ...encodeOp(GlulxOp.tan),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -443,7 +443,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -453,7 +453,7 @@ void main() {
     test('asin calculates arc sine', () {
       int f1 = floatToBits(1.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.asin),
+        ...encodeOp(GlulxOp.asin),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -461,7 +461,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -471,7 +471,7 @@ void main() {
     test('acos calculates arc cosine', () {
       int f1 = floatToBits(1.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.acos),
+        ...encodeOp(GlulxOp.acos),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -479,7 +479,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -489,7 +489,7 @@ void main() {
     test('atan calculates arc tangent', () {
       int f1 = floatToBits(0.0);
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.atan),
+        ...encodeOp(GlulxOp.atan),
         0xD3,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
@@ -497,7 +497,7 @@ void main() {
         f1 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -509,7 +509,7 @@ void main() {
       int f1 = floatToBits(0.0); // y
       int f2 = floatToBits(1.0); // x
       final code = <int>[
-        ...encodeOp(GlulxOpcodes.atan2),
+        ...encodeOp(GlulxOp.atan2),
         0x33,
         0x0D,
         (f1 >> 24) & 0xFF,
@@ -522,7 +522,7 @@ void main() {
         f2 & 0xFF,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
@@ -541,18 +541,18 @@ void main() {
       // Total 7 bytes.
 
       final codeEqual = <int>[
-        ...encodeOp(GlulxOpcodes.jfeq),
+        ...encodeOp(GlulxOp.jfeq),
         0x33, 0x01, // L1=Int, L2=Int, L3=ConstByte
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         (f2 >> 24) & 0xFF, (f2 >> 16) & 0xFF, (f2 >> 8) & 0xFF, f2 & 0xFF,
         7, // Offset 7
         // Fail Block
-        ...encodeOp(GlulxOpcodes.copy), 0xD1, 0, 0, 100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.copy), 0xD1, 0, 0, 100,
+        ...encodeOp(GlulxOp.quit),
 
         // Success Block
-        ...encodeOp(GlulxOpcodes.copy), 0xD1, 1, 0, 100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.copy), 0xD1, 1, 0, 100,
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpEq = createInterpreter(codeEqual);
       interpEq.run(maxSteps: 5000);
@@ -560,19 +560,19 @@ void main() {
 
       // Not Equal
       final codeNotEq = <int>[
-        ...encodeOp(GlulxOpcodes.jfeq),
+        ...encodeOp(GlulxOp.jfeq),
         0x33, 0x01,
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         (f3 >> 24) & 0xFF, (f3 >> 16) & 0xFF, (f3 >> 8) & 0xFF, f3 & 0xFF,
         7,
 
         // Fail Block
-        ...encodeOp(GlulxOpcodes.copy), 0xD1, 0, 0, 100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.copy), 0xD1, 0, 0, 100,
+        ...encodeOp(GlulxOp.quit),
 
         // Success Block
-        ...encodeOp(GlulxOpcodes.copy), 0xD1, 1, 0, 100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.copy), 0xD1, 1, 0, 100,
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpNe = createInterpreter(codeNotEq);
       interpNe.run(maxSteps: 5000);
@@ -585,7 +585,7 @@ void main() {
 
       // Case 1: Not Equal (2.5 != 3.0) -> Branch Taken (1)
       final codeNe = <int>[
-        ...encodeOp(GlulxOpcodes.jfne),
+        ...encodeOp(GlulxOp.jfne),
         0x33,
         0x01,
         (f1 >> 24) & 0xFF,
@@ -597,18 +597,18 @@ void main() {
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpNe = createInterpreter(codeNe);
       interpNe.run(maxSteps: 5000);
@@ -616,7 +616,7 @@ void main() {
 
       // Case 2: Equal (2.5 == 2.5) -> Branch Not Taken (0)
       final codeEq = <int>[
-        ...encodeOp(GlulxOpcodes.jfne),
+        ...encodeOp(GlulxOp.jfne),
         0x33,
         0x01,
         (f1 >> 24) & 0xFF,
@@ -628,18 +628,18 @@ void main() {
         (f3 >> 8) & 0xFF,
         f3 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpEq = createInterpreter(codeEq);
       interpEq.run(maxSteps: 5000);
@@ -652,7 +652,7 @@ void main() {
 
       // 2.0 < 3.0 -> Taken
       final codeLt = <int>[
-        ...encodeOp(GlulxOpcodes.jflt),
+        ...encodeOp(GlulxOp.jflt),
         0x33,
         0x01,
         (f1 >> 24) & 0xFF,
@@ -664,18 +664,18 @@ void main() {
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpLt = createInterpreter(codeLt);
       interpLt.run(maxSteps: 5000);
@@ -683,7 +683,7 @@ void main() {
 
       // 3.0 < 2.0 -> Not Taken
       final codeGt = <int>[
-        ...encodeOp(GlulxOpcodes.jflt),
+        ...encodeOp(GlulxOp.jflt),
         0x33,
         0x01,
         (f2 >> 24) & 0xFF,
@@ -695,18 +695,18 @@ void main() {
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpGt = createInterpreter(codeGt);
       interpGt.run(maxSteps: 5000);
@@ -721,7 +721,7 @@ void main() {
       int f2 = floatToBits(2.0);
       // 2.0 <= 2.0 -> Taken
       final codeLe = <int>[
-        ...encodeOp(GlulxOpcodes.jfle),
+        ...encodeOp(GlulxOp.jfle),
         0x33,
         0x01,
         (f1 >> 24) & 0xFF,
@@ -733,18 +733,18 @@ void main() {
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpLe = createInterpreter(codeLe);
       interpLe.run(maxSteps: 5000);
@@ -756,7 +756,7 @@ void main() {
       int f2 = floatToBits(2.0);
       // 3.0 > 2.0 -> Taken
       final codeGt = <int>[
-        ...encodeOp(GlulxOpcodes.jfgt),
+        ...encodeOp(GlulxOp.jfgt),
         0x33,
         0x01,
         (f1 >> 24) & 0xFF,
@@ -768,18 +768,18 @@ void main() {
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpGt = createInterpreter(codeGt);
       interpGt.run(maxSteps: 5000);
@@ -791,7 +791,7 @@ void main() {
       int f2 = floatToBits(2.0);
       // 2.0 >= 2.0 -> Taken
       final codeGe = <int>[
-        ...encodeOp(GlulxOpcodes.jfge),
+        ...encodeOp(GlulxOp.jfge),
         0x33,
         0x01,
         (f1 >> 24) & 0xFF,
@@ -803,18 +803,18 @@ void main() {
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpGe = createInterpreter(codeGe);
       interpGe.run(maxSteps: 5000);
@@ -825,12 +825,12 @@ void main() {
       int f1 = floatToBits(double.nan);
       // NaN -> Taken
       final codeNan = <int>[
-        ...encodeOp(GlulxOpcodes.jisnan),
+        ...encodeOp(GlulxOp.jisnan),
         0x13, // L1=Const4 (float), L2=Const1 (Branch)
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy), 0xD1, 0, 0, 100, ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy), 0xD1, 1, 0, 100, ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.copy), 0xD1, 0, 0, 100, ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy), 0xD1, 1, 0, 100, ...encodeOp(GlulxOp.quit),
       ];
       final interpNan = createInterpreter(codeNan);
       interpNan.run(maxSteps: 5000);
@@ -839,25 +839,25 @@ void main() {
       // 1.0 -> Not Taken
       int f2 = floatToBits(1.0);
       final codeNum = <int>[
-        ...encodeOp(GlulxOpcodes.jisnan),
+        ...encodeOp(GlulxOp.jisnan),
         0x13,
         (f2 >> 24) & 0xFF,
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpNum = createInterpreter(codeNum);
       interpNum.run(maxSteps: 5000);
@@ -868,25 +868,25 @@ void main() {
       int f1 = floatToBits(double.infinity);
       // Inf -> Taken
       final codeInf = <int>[
-        ...encodeOp(GlulxOpcodes.jisinf),
+        ...encodeOp(GlulxOp.jisinf),
         0x13,
         (f1 >> 24) & 0xFF,
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
         7,
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         0,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
-        ...encodeOp(GlulxOpcodes.copy),
+        ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
         0,
         100,
-        ...encodeOp(GlulxOpcodes.quit),
+        ...encodeOp(GlulxOp.quit),
       ];
       final interpInf = createInterpreter(codeInf);
       interpInf.run(maxSteps: 5000);

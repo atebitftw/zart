@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/interpreter.dart';
-import 'package:zart/src/glulx/glulx_opcodes.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/io/io_provider.dart';
 import 'package:zart/zart.dart' show Debugger;
 
@@ -75,13 +75,13 @@ void main() {
       // Data: 5, 10
 
       final code = [
-        GlulxOpcodes.add, // add
+        GlulxOp.add, // add
         0x11, // Modes for L1, L2
         0x08, // Mode for S1
         5, // L1 val
         10, // L2 val
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, // Quit
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, // Quit
         // Opcode encoding:
         // 00..7F: 1 byte
         // 8000..BFFF: 2 bytes (big endian) -> (Op - 0x8000) ??
@@ -96,7 +96,7 @@ void main() {
         // So B0 should be 0x80 | (0x120 >> 8) = 0x81
         // B1 should be 0x120 & 0xFF = 0x20
         // So 0x81, 0x20.
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, // Quit
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, // Quit
       ];
 
       interpreter = GlulxInterpreter();
@@ -123,14 +123,14 @@ void main() {
     test('add opcode write to ram', () async {
       // add 5 10 -> RAM[0x80]
       final code = [
-        GlulxOpcodes.add, // add
+        GlulxOp.add, // add
         0x11, // Modes 1, 1
         0x05, // Mode 5 (RAM byte addr)
         5, // L1
         10, // L2
         0x80, // S1 addr
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, // quit
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, // quit
       ];
 
       interpreter = GlulxInterpreter();
@@ -170,9 +170,9 @@ void main() {
       // So instruction at 7 is executed.
 
       final code = [
-        GlulxOpcodes.jump, 0x01, 0x04, // jump 4
+        GlulxOp.jump, 0x01, 0x04, // jump 4
         0xFF, 0xFF, 0xFF, 0xFF, // Garbage
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, // quit (at index 7)
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, // quit (at index 7)
       ];
 
       interpreter = GlulxInterpreter();
@@ -187,36 +187,36 @@ void main() {
       // neg 5 -> RAM[0x90] (-5 via unsigned? 0xFFFFFFFB)
 
       final code = [
-        GlulxOpcodes.sub,
+        GlulxOp.sub,
         0x11,
         0x05,
         10,
         3,
         0x80,
-        GlulxOpcodes.mul,
+        GlulxOp.mul,
         0x11,
         0x05,
         4,
         4,
         0x84,
-        GlulxOpcodes.div,
+        GlulxOp.div,
         0x11,
         0x05,
         20,
         5,
         0x88,
-        GlulxOpcodes.mod,
+        GlulxOp.mod,
         0x11,
         0x05,
         10,
         3,
         0x8C,
-        GlulxOpcodes.neg,
+        GlulxOp.neg,
         0x51, // Mode1=1, Mode2=5. 1 | 5<<4 = 0x51.
         5,
         0x90,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80,
-        GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80,
+        GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -240,30 +240,30 @@ void main() {
       // bitnot 0x00 -> RAM[0x8C] (0xFFFFFFFF)
 
       final code = [
-        GlulxOpcodes.bitand,
+        GlulxOp.bitand,
         0x11,
         0x05,
         0x0F,
         0x03,
         0x80,
-        GlulxOpcodes.bitor,
+        GlulxOp.bitor,
         0x11,
         0x05,
         0x01,
         0x02,
         0x84,
-        GlulxOpcodes.bitxor,
+        GlulxOp.bitxor,
         0x11,
         0x05,
         0x03,
         0x01,
         0x88,
-        GlulxOpcodes.bitnot,
+        GlulxOp.bitnot,
         0x51, // Mode1=1, Mode2=5.
         0x00,
         0x8C,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80,
-        GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80,
+        GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -292,22 +292,22 @@ void main() {
       final code = [
         // jz: 2 ops. Mode 1 (const), Mode 1 (const). -> 0x11.
         // Val=0. Off=4.
-        GlulxOpcodes.jz, 0x11, 0x00, 0x04,
+        GlulxOp.jz, 0x11, 0x00, 0x04,
         // Fail block. copy 1 RAM[80].
         // Op 40. Mode 1, Mode 5 -> 0x51.
-        GlulxOpcodes.copy, 0x51, 0x01, 0x80,
+        GlulxOp.copy, 0x51, 0x01, 0x80,
 
         // jnz 1, 4. Mode 1, 1 -> 0x11.
-        GlulxOpcodes.jnz, 0x11, 0x01, 0x04,
+        GlulxOp.jnz, 0x11, 0x01, 0x04,
         // Fail block. copy 2 RAM[80].
-        GlulxOpcodes.copy, 0x51, 0x02, 0x80,
+        GlulxOp.copy, 0x51, 0x02, 0x80,
 
         // jeq 5 5 4. Mode 1, 1, 1. -> 0x11 0x01.
-        GlulxOpcodes.jeq, 0x11, 0x01, 0x05, 0x05, 0x04,
+        GlulxOp.jeq, 0x11, 0x01, 0x05, 0x05, 0x04,
         // Fail block. copy 3 RAM[80].
-        GlulxOpcodes.copy, 0x51, 0x03, 0x80,
+        GlulxOp.copy, 0x51, 0x03, 0x80,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -334,31 +334,31 @@ void main() {
 
       final code = [
         // jne 5 6 (True) -> +4.
-        GlulxOpcodes.jne, 0x11, 0x01, 5, 6, 4,
-        GlulxOpcodes.copy, 0x51, 0x01, 0xE0, // Error 1
+        GlulxOp.jne, 0x11, 0x01, 5, 6, 4,
+        GlulxOp.copy, 0x51, 0x01, 0xE0, // Error 1
         // jeq 5 5 (True) -> +4
-        GlulxOpcodes.jeq, 0x11, 0x01, 5, 5, 4,
-        GlulxOpcodes.copy, 0x51, 0x02, 0xE0, // Error 2
+        GlulxOp.jeq, 0x11, 0x01, 5, 5, 4,
+        GlulxOp.copy, 0x51, 0x02, 0xE0, // Error 2
         // jlt -1 10 (True) -> +4. (-1 < 10)
-        GlulxOpcodes.jlt, 0x11, 0x01, 0xFF, 10, 4,
-        GlulxOpcodes.copy, 0x51, 0x03, 0xE0, // Error 3
+        GlulxOp.jlt, 0x11, 0x01, 0xFF, 10, 4,
+        GlulxOp.copy, 0x51, 0x03, 0xE0, // Error 3
         // jle 10 10 (True) -> +4
-        GlulxOpcodes.jle, 0x11, 0x01, 10, 10, 4,
-        GlulxOpcodes.copy, 0x51, 0x04, 0xE0, // Error 4
+        GlulxOp.jle, 0x11, 0x01, 10, 10, 4,
+        GlulxOp.copy, 0x51, 0x04, 0xE0, // Error 4
         // jgt 10 -1 (True) -> +4 (10 > -1)
-        GlulxOpcodes.jgt, 0x11, 0x01, 10, 0xFF, 4,
-        GlulxOpcodes.copy, 0x51, 0x05, 0xE0, // Error 5
+        GlulxOp.jgt, 0x11, 0x01, 10, 0xFF, 4,
+        GlulxOp.copy, 0x51, 0x05, 0xE0, // Error 5
         // jge 10 10 (True) -> +4
-        GlulxOpcodes.jge, 0x11, 0x01, 10, 10, 4,
-        GlulxOpcodes.copy, 0x51, 0x06, 0xE0, // Error 6
+        GlulxOp.jge, 0x11, 0x01, 10, 10, 4,
+        GlulxOp.copy, 0x51, 0x06, 0xE0, // Error 6
         // jltu 10 255 (True) -> +4 (10 < 255 unsigned)
-        GlulxOpcodes.jltu, 0x11, 0x01, 10, 0xFF, 4,
-        GlulxOpcodes.copy, 0x51, 0x07, 0xE0, // Error 7
+        GlulxOp.jltu, 0x11, 0x01, 10, 0xFF, 4,
+        GlulxOp.copy, 0x51, 0x07, 0xE0, // Error 7
         // jgeu 255 10 (True) -> +4.
-        GlulxOpcodes.jgeu, 0x11, 0x01, 0xFF, 10, 4,
-        GlulxOpcodes.copy, 0x51, 0x08, 0xE0, // Error 8
+        GlulxOp.jgeu, 0x11, 0x01, 0xFF, 10, 4,
+        GlulxOp.copy, 0x51, 0x08, 0xE0, // Error 8
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -379,24 +379,24 @@ void main() {
 
       // wait, let's fix opcode construction
       final codeCorrect = [
-        GlulxOpcodes.copy,
+        GlulxOp.copy,
         0x53,
         0x12,
         0x34,
         0x56,
         0x78,
         0x80,
-        GlulxOpcodes.copyb,
+        GlulxOp.copyb,
         0x51,
         0xFF,
         0x84,
-        GlulxOpcodes.copys,
+        GlulxOp.copys,
         0x52,
         0xFF,
         0xFF,
         0x88,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80,
-        GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80,
+        GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -435,9 +435,9 @@ void main() {
         // Push 20 (Arg 2).
         // Mode 8 (Stack) is Destination. Mode 1 (Const) is Source.
         // Byte: Src(1) | Dest(8)<<4 = 0x81.
-        GlulxOpcodes.copy, 0x81, 20,
+        GlulxOp.copy, 0x81, 20,
         // Push 10 (Arg 1).
-        GlulxOpcodes.copy, 0x81, 10,
+        GlulxOp.copy, 0x81, 10,
 
         // glk 0x123, 2 -> 0x80
         // Modes: Op1(3)|Op2(1)<<4 = 0x13. Op3(5) = 0x05.
@@ -469,9 +469,9 @@ void main() {
         // glk 0x123, 2 -> 0x80
         // Modes: Op1(3)|Op2(1)<<4 = 0x13. Op3(5) = 0x05.
         // Opcode 0x130 is 2 bytes: 0x81, 0x30.
-        GlulxOpcodes.glk >> 8 | 0x80, GlulxOpcodes.glk & 0xFF, 0x13, 0x05, 0x00, 0x00, 0x01, 0x23, 0x02, 0x80,
+        GlulxOp.glk >> 8 | 0x80, GlulxOp.glk & 0xFF, 0x13, 0x05, 0x00, 0x00, 0x01, 0x23, 0x02, 0x80,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       final mockIo = MockIoProvider();
@@ -486,8 +486,8 @@ void main() {
 
     test('streamchar uses io provider', () async {
       final code = [
-        GlulxOpcodes.streamchar, 0x01, 0x41, // 'A'
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.streamchar, 0x01, 0x41, // 'A'
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       final mockIo = MockIoProvider();
@@ -502,19 +502,19 @@ void main() {
     test('shift opcodes', () async {
       final code = [
         // shiftl 1 1 -> RAM[0x80] (2)
-        GlulxOpcodes.shiftl, 0x11, 0x05, 1, 1, 0x80,
+        GlulxOp.shiftl, 0x11, 0x05, 1, 1, 0x80,
         // sshiftr -2 1 -> RAM[0x84] (-1)
         // -2 is 0xFFFFFFFE. >> 1 should be 0xFFFFFFFF (-1).
-        GlulxOpcodes.sshiftr, 0x11, 0x05, 0xFE, 1, 0x84,
+        GlulxOp.sshiftr, 0x11, 0x05, 0xFE, 1, 0x84,
         // Note: 0xFE as byte constant is -2 signed? Mode 1 is byte.
         // Interpreter logic: if (value > 127) value -= 256;
         // So 0xFE (254) becomes -2. Correct.
 
         // ushiftr -2 1 -> RAM[0x88]
         // -2 (0xFFFFFFFE) >>> 1 = 0x7FFFFFFF (2147483647).
-        GlulxOpcodes.ushiftr, 0x11, 0x05, 0xFE, 1, 0x88,
+        GlulxOp.ushiftr, 0x11, 0x05, 0xFE, 1, 0x88,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -527,19 +527,19 @@ void main() {
       expect(interpreter.memRead32(0x88), equals(0x7FFFFFFF));
     });
 
-    test('sex opcodes', () async {
+    test('sexs/sexb opcodes', () async {
       final code = [
         // sexb 0xFF -> RAM[0x80] (-1)
         // sexb L1(Const Byte - Mode 1) S1(Addr 0-FF - Mode 5)
         // Byte 1: 1 | (5 << 4) = 0x51.
-        GlulxOpcodes.sexb, 0x51, 0xFF, 0x80,
+        GlulxOp.sexb, 0x51, 0xFF, 0x80,
         // sexs 0xFFFF -> RAM[0x84] (-1)
         // Need to pass 0xFFFF. Mode 2 (short const) 0xFFFF.
         // Byte 1: Mode2=2. Mode2=5. -> 0x52.
         // Short: FF FF.
-        GlulxOpcodes.sexs, 0x52, 0xFF, 0xFF, 0x84,
+        GlulxOp.sexs, 0x52, 0xFF, 0xFF, 0x84,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -567,36 +567,36 @@ void main() {
         // Use Mode 2 for L1 (0x00C0).
         // Modes: L1(2), L2(1) -> 2 | 1<<4 = 0x12.
         // L3(3). -> 0x03.
-        GlulxOpcodes.astore, 0x12, 0x03, 0x00, 0xC0, 0x00,
+        GlulxOp.astore, 0x12, 0x03, 0x00, 0xC0, 0x00,
         0x10, 0x10, 0x10, 0x10, // Value 0x10101010
         // astore 0xC0 1 0x20202020
         // Addr = 0xC0 + 4*1 = 0xC4.
-        GlulxOpcodes.astore, 0x12, 0x03, 0x00, 0xC0, 0x01,
+        GlulxOp.astore, 0x12, 0x03, 0x00, 0xC0, 0x01,
         0x20, 0x20, 0x20, 0x20,
 
         // Now read back with aload
         // aload 0xC0 0 -> RAM[0xD0]
-        GlulxOpcodes.aload, 0x12, 0x05, 0x00, 0xC0, 0x00, 0xD0,
+        GlulxOp.aload, 0x12, 0x05, 0x00, 0xC0, 0x00, 0xD0,
 
         // aload 0xC0 1 -> RAM[0xD4]
-        GlulxOpcodes.aload, 0x12, 0x05, 0x00, 0xC0, 0x01, 0xD4,
+        GlulxOp.aload, 0x12, 0x05, 0x00, 0xC0, 0x01, 0xD4,
 
         // Test astores / aloads
         // astores 0xE0 0 0x3344
         // Mode 2 for E0.
-        GlulxOpcodes.astores, 0x12, 0x02, 0x00, 0xE0, 0x00, 0x33, 0x44,
+        GlulxOp.astores, 0x12, 0x02, 0x00, 0xE0, 0x00, 0x33, 0x44,
 
         // aloads 0xE0 0 -> RAM[0xD8]
-        GlulxOpcodes.aloads, 0x12, 0x05, 0x00, 0xE0, 0x00, 0xD8,
+        GlulxOp.aloads, 0x12, 0x05, 0x00, 0xE0, 0x00, 0xD8,
 
         // Test astoreb / aloadb
         // astoreb 0xF0 0 0x55
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xF0, 0x00, 0x55,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xF0, 0x00, 0x55,
 
         // aloadb 0xF0 0 -> RAM[0xDC]
-        GlulxOpcodes.aloadb, 0x12, 0x05, 0x00, 0xF0, 0x00, 0xDC,
+        GlulxOp.aloadb, 0x12, 0x05, 0x00, 0xF0, 0x00, 0xDC,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -627,20 +627,20 @@ void main() {
       // Then zero 4 bytes with mzero
       final code = [
         // Write 0xAA to RAM[0xC0]
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x00, 0xAA,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x00, 0xAA,
         // Write 0xBB to RAM[0xC1]
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x01, 0xBB,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x01, 0xBB,
         // Write 0xCC to RAM[0xC2]
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x02, 0xCC,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x02, 0xCC,
         // Write 0xDD to RAM[0xC3]
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
 
         // mzero 4 0xC0
         // Opcode 0x170 -> 2 bytes: 0x81, 0x70
         // Modes: L1(1), L2(2) -> 0x21
-        0x81, 0x70, 0x21, 4, 0x00, 0xC0,
+        GlulxOp.mzero >> 8 | 0x80, GlulxOp.mzero & 0xFF, 0x21, 4, 0x00, 0xC0,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -655,15 +655,15 @@ void main() {
       // Write 4 bytes to RAM[0xC0], copy to RAM[0xD0]
       final code = [
         // astore 0xC0 0 0x12345678
-        GlulxOpcodes.astore, 0x12, 0x03, 0x00, 0xC0, 0x00,
+        GlulxOp.astore, 0x12, 0x03, 0x00, 0xC0, 0x00,
         0x12, 0x34, 0x56, 0x78,
 
         // mcopy 4 0xC0 0xD0
         // Opcode 0x171 -> 2 bytes: 0x81, 0x71
         // Modes: L1(1), L2(2), L3(2) -> 0x21, 0x02
-        0x81, 0x71, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xD0,
+        GlulxOp.mcopy >> 8 | 0x80, GlulxOp.mcopy & 0xFF, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xD0,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -681,15 +681,15 @@ void main() {
       // RAM[0xC0..0xC3] = AA BB CC DD
       // mcopy 4, 0xC0, 0xBE (copies to 0xBE-0xC1, overlaps with source)
       final code = [
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x00, 0xAA,
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x01, 0xBB,
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x02, 0xCC,
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x00, 0xAA,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x01, 0xBB,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x02, 0xCC,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
 
         // mcopy 4 0xC0 0xBE
-        0x81, 0x71, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xBE,
+        GlulxOp.mcopy >> 8 | 0x80, GlulxOp.mcopy & 0xFF, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xBE,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -705,15 +705,15 @@ void main() {
       // RAM[0xC0..0xC3] = AA BB CC DD
       // mcopy 4, 0xC0, 0xC2 (dest > src, overlaps)
       final code = [
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x00, 0xAA,
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x01, 0xBB,
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x02, 0xCC,
-        GlulxOpcodes.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x00, 0xAA,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x01, 0xBB,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x02, 0xCC,
+        GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
 
         // mcopy 4 0xC0 0xC2
-        0x81, 0x71, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xC2,
+        GlulxOp.mcopy >> 8 | 0x80, GlulxOp.mcopy & 0xFF, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xC2,
 
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -727,9 +727,9 @@ void main() {
     test('nop opcode', () async {
       // nop should do nothing and continue execution
       final code = [
-        GlulxOpcodes.nop,
-        GlulxOpcodes.copy, 0x51, 42, 0x80, // copy 42 -> RAM[0x80]
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.nop,
+        GlulxOp.copy, 0x51, 42, 0x80, // copy 42 -> RAM[0x80]
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -747,10 +747,10 @@ void main() {
       // Use address 0x60 to avoid overwriting code which ends at 0x51
       final game = createGame([
         // astorebit 0x60 0 1 (set bit 0 at addr 0x60)
-        GlulxOpcodes.astorebit, 0x11, 0x01, 0x60, 0x00, 0x01,
+        GlulxOp.astorebit, 0x11, 0x01, 0x60, 0x00, 0x01,
         // astorebit 0x60 7 1 (set bit 7 at addr 0x60)
-        GlulxOpcodes.astorebit, 0x11, 0x01, 0x60, 0x07, 0x01,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.astorebit, 0x11, 0x01, 0x60, 0x07, 0x01,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
       // Pre-zero the target address
@@ -771,11 +771,11 @@ void main() {
         // setiosys 2 0 (Glk mode)
         // setiosys: 0x149 -> 0x81, 0x49
         // modes: L1=mode1, L2=mode0 -> 0x01
-        0x81, 0x49, 0x01, 0x02,
+        GlulxOp.setiosys >> 8 | 0x80, GlulxOp.setiosys & 0xFF, 0x01, 0x02,
         // streamunichar 0x41 ('A')
         // streamunichar: 0x73, mode1
-        GlulxOpcodes.streamunichar, 0x01, 0x41,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.streamunichar, 0x01, 0x41,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       final mockIo = MockIoProvider();
@@ -791,10 +791,10 @@ void main() {
     test('debugtrap opcode', () async {
       // debugtrap should not crash, just continue
       final code = [
-        GlulxOpcodes.debugtrap >> 8 & 0x7F | 0x80, GlulxOpcodes.debugtrap & 0xFF,
+        GlulxOp.debugtrap >> 8 & 0x7F | 0x80, GlulxOp.debugtrap & 0xFF,
         0x01, 0x42, // arg: 0x42
-        GlulxOpcodes.copy, 0x51, 99, 0x70, // write to 0x70 (< 0x80)
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.copy, 0x51, 99, 0x70, // write to 0x70 (< 0x80)
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -810,20 +810,20 @@ void main() {
         // setrandom 12345
         // setrandom: 0x111 -> 0x81, 0x11
         // mode 2 (16-bit const): 0x02
-        GlulxOpcodes.setrandom >> 8 & 0x7F | 0x80, GlulxOpcodes.setrandom & 0xFF,
+        GlulxOp.setrandom >> 8 & 0x7F | 0x80, GlulxOp.setrandom & 0xFF,
         0x02, 0x30, 0x39, // 0x3039 = 12345
         // random 100 -> RAM[0x70]
         // random: 0x110 -> 0x81, 0x10
         // modes: L1=mode1, S1=mode5 -> 0x51
-        GlulxOpcodes.random >> 8 & 0x7F | 0x80, GlulxOpcodes.random & 0xFF,
+        GlulxOp.random >> 8 & 0x7F | 0x80, GlulxOp.random & 0xFF,
         0x51, 100, 0x70,
         // setrandom 12345 again
-        GlulxOpcodes.setrandom >> 8 & 0x7F | 0x80, GlulxOpcodes.setrandom & 0xFF,
+        GlulxOp.setrandom >> 8 & 0x7F | 0x80, GlulxOp.setrandom & 0xFF,
         0x02, 0x30, 0x39,
         // random 100 -> RAM[0x74]
-        GlulxOpcodes.random >> 8 & 0x7F | 0x80, GlulxOpcodes.random & 0xFF,
+        GlulxOp.random >> 8 & 0x7F | 0x80, GlulxOp.random & 0xFF,
         0x51, 100, 0x74,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -837,9 +837,9 @@ void main() {
     test('verify opcode', () async {
       // verify always returns 0 (success) in our stub implementation
       final code = [
-        GlulxOpcodes.verify >> 8 & 0x7F | 0x80, GlulxOpcodes.verify & 0xFF,
+        GlulxOp.verify >> 8 & 0x7F | 0x80, GlulxOp.verify & 0xFF,
         0x05, 0x70, // S1 = RAM[0x70]
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
       interpreter = GlulxInterpreter();
@@ -855,8 +855,8 @@ void main() {
         // callf 0x70 -> RAM[0x60]
         // callf: 0x160 -> 0x81, 0x60
         // modes: L1=mode1, S1=mode5 -> 0x51
-        0x81, 0x60, 0x51, 0x70, 0x60,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.callf >> 8 | 0x80, GlulxOp.callf & 0xFF, 0x51, 0x70, 0x60,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
       // Place function at 0x70
@@ -864,7 +864,7 @@ void main() {
       game[0x71] = 0x00; // No locals
       game[0x72] = 0x00;
       // return 42
-      game[0x73] = GlulxOpcodes.ret;
+      game[0x73] = GlulxOp.ret;
       game[0x74] = 0x01; // mode 1 (const byte)
       game[0x75] = 42;
 
@@ -881,8 +881,8 @@ void main() {
         // callfi 0x70 5 -> RAM[0x60]
         // callfi: 0x161 -> 0x81, 0x61
         // modes: L1=mode1, L2=mode1, S1=mode5 -> 0x11, 0x05
-        0x81, 0x61, 0x11, 0x05, 0x70, 5, 0x60,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.callfi >> 8 | 0x80, GlulxOp.callfi & 0xFF, 0x11, 0x05, 0x70, 5, 0x60,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
       // Function at 0x70: Type C1, 1 local (4 bytes), add 10 to arg
@@ -892,12 +892,12 @@ void main() {
       game[0x73] = 0x00;
       game[0x74] = 0x00;
       // add local0 10 -> stack, then return
-      game[0x75] = GlulxOpcodes.add;
+      game[0x75] = GlulxOp.add;
       game[0x76] = 0x19; // mode 9 (local 0-FF), mode 1
       game[0x77] = 0x08; // mode 8 (stack)
       game[0x78] = 0x00; // local offset 0
       game[0x79] = 10; // const 10
-      game[0x7A] = GlulxOpcodes.ret;
+      game[0x7A] = GlulxOp.ret;
       game[0x7B] = 0x08; // pop from stack
 
       interpreter = GlulxInterpreter();
@@ -914,8 +914,8 @@ void main() {
         // callfii: 0x162 -> 0x81, 0x62
         // 4 operands: L1, L2, L3, S1
         // modes: L1=mode1 | L2=mode1<<4 = 0x11, L3=mode1 | S1=mode5<<4 = 0x51
-        0x81, 0x62, 0x11, 0x51, 0x70, 6, 7, 0x60,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.callfii >> 8 | 0x80, GlulxOp.callfii & 0xFF, 0x11, 0x51, 0x70, 6, 7, 0x60,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
       // Function at 0x70: 2 locals
@@ -925,12 +925,12 @@ void main() {
       game[0x73] = 0x00;
       game[0x74] = 0x00;
       // mul local0 local1 -> stack
-      game[0x75] = GlulxOpcodes.mul;
+      game[0x75] = GlulxOp.mul;
       game[0x76] = 0x99; // local, local
       game[0x77] = 0x08; // stack
       game[0x78] = 0x00; // local0
       game[0x79] = 0x04; // local1 (4 bytes offset)
-      game[0x7A] = GlulxOpcodes.ret;
+      game[0x7A] = GlulxOp.ret;
       game[0x7B] = 0x08; // mode 8 - pop from stack
 
       interpreter = GlulxInterpreter();
@@ -946,8 +946,8 @@ void main() {
         // callfiii 0x70 10 20 12 -> RAM[0x60]
         // callfiii: 0x163 -> 0x81, 0x63
         // modes: L1=mode1, L2=mode1, L3=mode1, L4=mode1, S1=mode5 -> 0x11, 0x11, 0x05
-        0x81, 0x63, 0x11, 0x11, 0x05, 0x70, 10, 20, 12, 0x60,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.callfiii >> 8 | 0x80, GlulxOp.callfiii & 0xFF, 0x11, 0x11, 0x05, 0x70, 10, 20, 12, 0x60,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
       // Function at 0x70: 3 locals
@@ -957,17 +957,17 @@ void main() {
       game[0x73] = 0x00;
       game[0x74] = 0x00;
       // add local0 local1 -> stack
-      game[0x75] = GlulxOpcodes.add;
+      game[0x75] = GlulxOp.add;
       game[0x76] = 0x99;
       game[0x77] = 0x08;
       game[0x78] = 0x00;
       game[0x79] = 0x04;
       // add stack local2 -> stack
-      game[0x7A] = GlulxOpcodes.add;
+      game[0x7A] = GlulxOp.add;
       game[0x7B] = 0x98;
       game[0x7C] = 0x08;
       game[0x7D] = 0x08;
-      game[0x7E] = GlulxOpcodes.ret;
+      game[0x7E] = GlulxOp.ret;
       game[0x7F] = 0x08;
 
       interpreter = GlulxInterpreter();
@@ -981,12 +981,12 @@ void main() {
       // Main calls func1 at 0x60, func1 tailcalls func2 at 0x70, func2 returns 99
       final game = createGame([
         // Push arg 5, then call 0x60 with 1 arg -> RAM[0x50]
-        GlulxOpcodes.copy, 0x81, 5, // push 5
+        GlulxOp.copy, 0x81, 5, // push 5
         // call 0x60 1 -> RAM[0x50]
         // call: 0x30
         // modes: L1=mode1, L2=mode1, S1=mode5 -> 0x11, 0x05
-        GlulxOpcodes.call, 0x11, 0x05, 0x60, 1, 0x50,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF,
+        GlulxOp.call, 0x11, 0x05, 0x60, 1, 0x50,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
       // func1 at 0x60: tailcall to 0x70
@@ -996,7 +996,7 @@ void main() {
       // tailcall 0x70 1
       // tailcall: 0x34
       // modes: L1=mode1, L2=mode1 -> 0x11
-      game[0x63] = GlulxOpcodes.tailcall;
+      game[0x63] = GlulxOp.tailcall;
       game[0x64] = 0x11;
       game[0x65] = 0x70;
       game[0x66] = 1;
@@ -1005,7 +1005,7 @@ void main() {
       game[0x70] = 0xC0;
       game[0x71] = 0x00;
       game[0x72] = 0x00;
-      game[0x73] = GlulxOpcodes.ret;
+      game[0x73] = GlulxOp.ret;
       game[0x74] = 0x01;
       game[0x75] = 99;
 

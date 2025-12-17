@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/interpreter.dart';
-import 'package:zart/src/glulx/glulx_opcodes.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/io/io_provider.dart';
 import 'package:zart/zart.dart' show Debugger;
 
@@ -102,17 +102,17 @@ void main() {
     // Operands: 0x80.
 
     final instructions = <int>[
-      GlulxOpcodes.gestalt >> 8 | 0x80,
-      GlulxOpcodes.gestalt & 0xFF,
+      GlulxOp.gestalt >> 8 | 0x80,
+      GlulxOp.gestalt & 0xFF,
       0x00,
       0x0C,
       0x80, // gestalt 0, 0 -> RAM:80 (opcode 0x100 = 2-byte: 0x81 0x00)
       // Let's use getmemsize first.
-      GlulxOpcodes.getmemsize >> 8 | 0x80,
-      GlulxOpcodes.getmemsize & 0xFF,
+      GlulxOp.getmemsize >> 8 | 0x80,
+      GlulxOp.getmemsize & 0xFF,
       0x0C,
       0x84, // getmemsize -> RAM:84 (opcode 0x102 = 2-byte: 0x81 0x02)
-      GlulxOpcodes.quit >> 8 | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (opcode 0x120 = 2-byte: 0x81 0x20)
+      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120 = 2-byte: 0x81 0x20)
     ];
 
     Uint8List game = createGame(instructions);
@@ -134,8 +134,8 @@ void main() {
     // Mode: L1. Op0=3 (Short Const). Byte 0x03.
     // Value: 12345 = 0x3039.
     final instructions = <int>[
-      GlulxOpcodes.streamnum, 0x02, 0x30, 0x39, // streamnum 12345 (mode 2 = 2-byte const)
-      GlulxOpcodes.quit >> 8 | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.streamnum, 0x02, 0x30, 0x39, // streamnum 12345 (mode 2 = 2-byte const)
+      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -172,18 +172,18 @@ void main() {
       // Op0=1 (Const Byte), Op1=B (Ram Byte).
       // Op0=1, Op1=B => Byte 0xB1.
       // L1=E0. S1=80.
-      GlulxOpcodes.copyb, 0xC1, 0xE0, 0x80, // copyb 0xE0 -> RAM:80
-      GlulxOpcodes.copyb, 0xC1, 0x41, 0x81, // 'A'
-      GlulxOpcodes.copyb, 0xC1, 0x42, 0x82, // 'B'
-      GlulxOpcodes.copyb, 0xC1, 0x43, 0x83, // 'C'
-      GlulxOpcodes.copyb, 0xC1, 0x00, 0x84, // '\0'
+      GlulxOp.copyb, 0xC1, 0xE0, 0x80, // copyb 0xE0 -> RAM:80
+      GlulxOp.copyb, 0xC1, 0x41, 0x81, // 'A'
+      GlulxOp.copyb, 0xC1, 0x42, 0x82, // 'B'
+      GlulxOp.copyb, 0xC1, 0x43, 0x83, // 'C'
+      GlulxOp.copyb, 0xC1, 0x00, 0x84, // '\0'
       // streamstr RAM:80 (Address relative to RAM start? No, absolute address.)
       // Absolute address = ramStart + 0x80. ramStart=0x100. -> 0x180.
       // streamstr 0x180.
       // Mode 0x02 (Short Const). Value 0x0180.
-      GlulxOpcodes.streamstr, 0x02, 0x00, 0x80,
+      GlulxOp.streamstr, 0x02, 0x00, 0x80,
 
-      GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -224,11 +224,11 @@ void main() {
       // jumpabs (4 bytes: 0x81 0x04 + 1 mode + 2 addr) = 5 bytes. 39 -> 44.
       // streamnum 2 (3 bytes: opcode + mode + value) = 3 bytes. 44 -> 47.
       // Target = 47.
-      GlulxOpcodes.jumpabs >> 8 | 0x80, GlulxOpcodes.jumpabs & 0xFF, 0x02, 0x00, 0x2F, // jumpabs 0x002F (47)
-      GlulxOpcodes.streamnum, 0x01, 0x02, // streamnum 2 (Const Byte 2) -> "2" (Skipped)
+      GlulxOp.jumpabs >> 8 | 0x80, GlulxOp.jumpabs & 0xFF, 0x02, 0x00, 0x2F, // jumpabs 0x002F (47)
+      GlulxOp.streamnum, 0x01, 0x02, // streamnum 2 (Const Byte 2) -> "2" (Skipped)
       // Addr 39+5 = 44. 44+3 = 47.
-      GlulxOpcodes.streamnum, 0x01, 0x01, // streamnum 1 -> "1"
-      GlulxOpcodes.quit >> 8 | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.streamnum, 0x01, 0x01, // streamnum 1 -> "1"
+      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -244,8 +244,8 @@ void main() {
     // getmemsize -> RAM:8
 
     final instructions = <int>[
-      GlulxOpcodes.getmemsize >> 8 | 0x80,
-      GlulxOpcodes.getmemsize & 0xFF,
+      GlulxOp.getmemsize >> 8 | 0x80,
+      GlulxOp.getmemsize & 0xFF,
       0x0C,
       0x00, // getmemsize -> RAM:00 (opcode 0x102, mode C = 1-byte addr)
       // setmemsize 0x20000 -> RAM:04
@@ -253,12 +253,12 @@ void main() {
       // Op0=3 (4-byte const), Op1=C (RAM 1-byte addr). Mode byte 0xC3.
       // Op0 value: 0x00020000
       // Op1 value: 0x04 (1 byte)
-      GlulxOpcodes.setmemsize >> 8 | 0x80, GlulxOpcodes.setmemsize & 0xFF, 0xC3, 0x00, 0x02, 0x00, 0x00, 0x04,
-      GlulxOpcodes.getmemsize >> 8 | 0x80,
-      GlulxOpcodes.getmemsize & 0xFF,
+      GlulxOp.setmemsize >> 8 | 0x80, GlulxOp.setmemsize & 0xFF, 0xC3, 0x00, 0x02, 0x00, 0x00, 0x04,
+      GlulxOp.getmemsize >> 8 | 0x80,
+      GlulxOp.getmemsize & 0xFF,
       0x0C,
       0x08, // getmemsize -> RAM:08 (opcode 0x102)
-      GlulxOpcodes.quit >> 8 | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -282,10 +282,10 @@ void main() {
 
     final instructions2 = <int>[
       // random is 0x110 = 2-byte opcode: 0x81 0x10
-      GlulxOpcodes.random >> 8 | 0x80, GlulxOpcodes.random & 0xFF, 0xC1, 0x0A, 0x00, // random 10
-      GlulxOpcodes.random >> 8 | 0x80, GlulxOpcodes.random & 0xFF, 0xC1, 0xF6, 0x04, // random -10
-      GlulxOpcodes.random >> 8 | 0x80, GlulxOpcodes.random & 0xFF, 0xC0, 0x08, // random 0
-      GlulxOpcodes.quit >> 8 | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.random >> 8 | 0x80, GlulxOp.random & 0xFF, 0xC1, 0x0A, 0x00, // random 10
+      GlulxOp.random >> 8 | 0x80, GlulxOp.random & 0xFF, 0xC1, 0xF6, 0x04, // random -10
+      GlulxOp.random >> 8 | 0x80, GlulxOp.random & 0xFF, 0xC0, 0x08, // random 0
+      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions2);

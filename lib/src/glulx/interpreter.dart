@@ -3,7 +3,7 @@ import 'dart:math' as math;
 
 import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
-import 'package:zart/src/glulx/glulx_opcodes.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
 import 'package:zart/src/io/io_provider.dart';
 import 'package:zart/src/logging.dart';
@@ -356,10 +356,10 @@ class GlulxInterpreter {
 
       // Execute Opcode
       switch (opcode) {
-        case GlulxOpcodes.nop: // nop
+        case GlulxOp.nop: // nop
           break;
 
-        case GlulxOpcodes.call: // call
+        case GlulxOp.call: // call
           // call(func, numArgs, dest)
           int funcAddr = operands[0];
           int numArgs = operands[1];
@@ -371,11 +371,11 @@ class GlulxInterpreter {
           _enterFunction(funcAddr, funcArgs, destTypes[2], operands[2]);
           break;
 
-        case GlulxOpcodes.ret: // return (0x31)
+        case GlulxOp.ret: // return (0x31)
           _leaveFunction(operands[0]);
           break;
 
-        case GlulxOpcodes.catchEx: // catch (0x32)
+        case GlulxOp.catchEx: // catch (0x32)
           // catch(dest, branch)
           int branchOffset = operands[1]; // L1
           int nextPC = _pc;
@@ -398,7 +398,7 @@ class GlulxInterpreter {
           }
           break;
 
-        case GlulxOpcodes.throwEx: // throw (0x33)
+        case GlulxOp.throwEx: // throw (0x33)
           // throw(val, token)
           int val = operands[0];
           int token = operands[1];
@@ -423,7 +423,7 @@ class GlulxInterpreter {
           _storeResult(destType, destAddr, val);
           break;
 
-        case GlulxOpcodes.random: // random (0x100)
+        case GlulxOp.random: // random (0x100)
           int range = operands[0];
           int result = 0;
           if (range == 0) {
@@ -436,24 +436,24 @@ class GlulxInterpreter {
           _storeResult(destTypes[1], operands[1], result);
           break;
 
-        case GlulxOpcodes.setrandom: // setrandom (0x101)
+        case GlulxOp.setrandom: // setrandom (0x101)
           _setRandom(operands[0]);
           break;
 
-        case GlulxOpcodes.verify: // verify (0x128)
+        case GlulxOp.verify: // verify (0x128)
           // Stub: Always pass. Real verification requires original file checksumming.
           _storeResult(destTypes[0], operands[0], 0);
           break;
 
-        case GlulxOpcodes.streamnum: // streamnum (0x71)
+        case GlulxOp.streamnum: // streamnum (0x71)
           _streamNum(operands[0]);
           break;
 
-        case GlulxOpcodes.streamstr: // streamstr (0x72)
+        case GlulxOp.streamstr: // streamstr (0x72)
           _streamString(operands[0]);
           break;
 
-        case GlulxOpcodes.gestalt: // gestalt (0x04)
+        case GlulxOp.gestalt: // gestalt (0x04)
           // gestalt(selector, arg) -> val
           int selector = operands[0];
           int val = 0;
@@ -480,17 +480,17 @@ class GlulxInterpreter {
           _storeResult(destTypes[2], operands[2], val);
           break;
 
-        case GlulxOpcodes.debugtrap: // debugtrap (0x05)
+        case GlulxOp.debugtrap: // debugtrap (0x05)
           if (debugMode) {
             print('Glulx Debug Trap at 0x${(_pc - opLen).toRadixString(16)}');
           }
           break;
 
-        case GlulxOpcodes.getmemsize: // getmemsize (0x08)
+        case GlulxOp.getmemsize: // getmemsize (0x08)
           _storeResult(destTypes[0], operands[0], _memory.lengthInBytes);
           break;
 
-        case GlulxOpcodes.setmemsize: // setmemsize (0x09)
+        case GlulxOp.setmemsize: // setmemsize (0x09)
           int newSize = operands[0];
           int result = 0; // 0 Success, 1 Fail
 
@@ -514,11 +514,11 @@ class GlulxInterpreter {
           _storeResult(destTypes[1], operands[1], result);
           break;
 
-        case GlulxOpcodes.jumpabs: // jumpabs (0x0A)
+        case GlulxOp.jumpabs: // jumpabs (0x0A)
           _pc = operands[0];
           break;
 
-        case GlulxOpcodes.tailcall: // tailcall
+        case GlulxOp.tailcall: // tailcall
           // tailcall(func, numArgs)
           int tFuncAddr = operands[0];
           int tNumArgs = operands[1];
@@ -551,7 +551,7 @@ class GlulxInterpreter {
           _enterFunction(tFuncAddr, tArgs, oldDestType, oldDestAddr);
           break;
 
-        case GlulxOpcodes.stkcount: // stkcount
+        case GlulxOp.stkcount: // stkcount
           // Counts values on stack *above* the current call frame.
           // (_sp - (_fp + frameLen)) / 4
           int frameLen = _stackRead32(_fp);
@@ -559,7 +559,7 @@ class GlulxInterpreter {
           _storeResult(destTypes[0], operands[0], val);
           break;
 
-        case GlulxOpcodes.stkpeek: // stkpeek
+        case GlulxOp.stkpeek: // stkpeek
           // stkpeek(pos, dest)
           int pos = operands[0];
           if (_sp - 4 * (pos + 1) < _fp + _stackRead32(_fp)) {
@@ -569,7 +569,7 @@ class GlulxInterpreter {
           _storeResult(destTypes[1], operands[1], peekVal);
           break;
 
-        case GlulxOpcodes.stkswap: // stkswap
+        case GlulxOp.stkswap: // stkswap
           if (_sp - 8 < _fp + _stackRead32(_fp)) throw GlulxException('stkswap: Stack Underflow');
           int v1 = _pop();
           int v2 = _pop();
@@ -577,7 +577,7 @@ class GlulxInterpreter {
           _push(v2);
           break;
 
-        case GlulxOpcodes.stkroll: // stkroll
+        case GlulxOp.stkroll: // stkroll
           int items = operands[0];
           int dist = operands[1];
           if (items == 0) break;
@@ -596,7 +596,7 @@ class GlulxInterpreter {
           }
           break;
 
-        case GlulxOpcodes.stkcopy: // stkcopy
+        case GlulxOp.stkcopy: // stkcopy
           int count = operands[0];
           List<int> vals = [];
           for (int i = 0; i < count; i++) {
@@ -607,154 +607,154 @@ class GlulxInterpreter {
           }
           break;
 
-        case GlulxOpcodes.streamchar: // streamchar
+        case GlulxOp.streamchar: // streamchar
           final charCode = operands[0];
           if (io != null) {
             await io!.glulxGlk(0x81, [0, charCode]);
           }
           break;
-        case GlulxOpcodes.add: // add
+        case GlulxOp.add: // add
           var val = (operands[0] + operands[1]) & 0xFFFFFFFF;
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.sub: // sub
+        case GlulxOp.sub: // sub
           var val = (operands[0] - operands[1]) & 0xFFFFFFFF;
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.mul: // mul
+        case GlulxOp.mul: // mul
           var val = (operands[0] * operands[1]) & 0xFFFFFFFF;
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.div: // div
+        case GlulxOp.div: // div
           if (operands[1] == 0) throw GlulxException('Division by zero');
           int op1 = operands[0].toSigned(32);
           int op2 = operands[1].toSigned(32);
           var val = (op1 ~/ op2);
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.mod: // mod
+        case GlulxOp.mod: // mod
           int op1 = operands[0].toSigned(32);
           int op2 = operands[1].toSigned(32);
           if (op2 == 0) throw GlulxException('Division by zero');
           var val = op1.remainder(op2);
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.neg: // neg
+        case GlulxOp.neg: // neg
           var val = (-operands[0]) & 0xFFFFFFFF;
           _storeResult(destTypes[1], operands[1], val);
           break;
-        case GlulxOpcodes.copy: // copy
+        case GlulxOp.copy: // copy
           _storeResult(destTypes[1], operands[1], operands[0]);
           break;
-        case GlulxOpcodes.copys: // copys
+        case GlulxOp.copys: // copys
           _storeResult(destTypes[1], operands[1], operands[0] & 0xFFFF, size: 2);
           break;
-        case GlulxOpcodes.copyb: // copyb
+        case GlulxOp.copyb: // copyb
           _storeResult(destTypes[1], operands[1], operands[0] & 0xFF, size: 1);
           break;
 
-        case GlulxOpcodes.bitand: // bitand
+        case GlulxOp.bitand: // bitand
           var val = (operands[0] & operands[1]) & 0xFFFFFFFF;
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.bitor: // bitor
+        case GlulxOp.bitor: // bitor
           var val = (operands[0] | operands[1]) & 0xFFFFFFFF;
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.bitxor: // bitxor
+        case GlulxOp.bitxor: // bitxor
           var val = (operands[0] ^ operands[1]) & 0xFFFFFFFF;
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.bitnot: // bitnot
+        case GlulxOp.bitnot: // bitnot
           var val = (~operands[0]) & 0xFFFFFFFF;
           _storeResult(destTypes[1], operands[1], val);
           break;
 
-        case GlulxOpcodes.jump: // jump
+        case GlulxOp.jump: // jump
           _branch(operands[0]);
           break;
-        case GlulxOpcodes.jz: // jz
+        case GlulxOp.jz: // jz
           if (operands[0] == 0) _branch(operands[1]);
           break;
-        case GlulxOpcodes.jnz: // jnz
+        case GlulxOp.jnz: // jnz
           if (operands[0] != 0) _branch(operands[1]);
           break;
-        case GlulxOpcodes.jeq: // jeq
+        case GlulxOp.jeq: // jeq
           if (operands[0] == operands[1]) _branch(operands[2]);
           break;
-        case GlulxOpcodes.jne: // jne
+        case GlulxOp.jne: // jne
           if (operands[0] != operands[1]) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.jlt: // jlt (signed)
+        case GlulxOp.jlt: // jlt (signed)
           if (operands[0].toSigned(32) < operands[1].toSigned(32)) _branch(operands[2]);
           break;
-        case GlulxOpcodes.jge: // jge (signed)
+        case GlulxOp.jge: // jge (signed)
           if (operands[0].toSigned(32) >= operands[1].toSigned(32)) _branch(operands[2]);
           break;
-        case GlulxOpcodes.jgt: // jgt
+        case GlulxOp.jgt: // jgt
           if (operands[0].toSigned(32) > operands[1].toSigned(32)) _branch(operands[2]);
           break;
-        case GlulxOpcodes.jle: // jle
+        case GlulxOp.jle: // jle
           if (operands[0].toSigned(32) <= operands[1].toSigned(32)) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.jltu: // jltu (unsigned)
+        case GlulxOp.jltu: // jltu (unsigned)
           if ((operands[0] & 0xFFFFFFFF) < (operands[1] & 0xFFFFFFFF)) _branch(operands[2]);
           break;
-        case GlulxOpcodes.jgeu: // jgeu (unsigned)
+        case GlulxOp.jgeu: // jgeu (unsigned)
           if ((operands[0] & 0xFFFFFFFF) >= (operands[1] & 0xFFFFFFFF)) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.shiftl: // shiftl
+        case GlulxOp.shiftl: // shiftl
           int val = (operands[0] << operands[1]) & 0xFFFFFFFF;
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.sshiftr: // sshiftr (Arithmetic)
+        case GlulxOp.sshiftr: // sshiftr (Arithmetic)
           int val = operands[0].toSigned(32) >> operands[1];
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.ushiftr: // ushiftr (Logical)
+        case GlulxOp.ushiftr: // ushiftr (Logical)
           int val = (operands[0] & 0xFFFFFFFF) >> operands[1];
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.sexs: // sexs
+        case GlulxOp.sexs: // sexs
           int val = operands[0].toSigned(16) & 0xFFFFFFFF;
           _storeResult(destTypes[1], operands[1], val);
           break;
-        case GlulxOpcodes.sexb: // sexb
+        case GlulxOp.sexb: // sexb
           int val = operands[0].toSigned(8) & 0xFFFFFFFF;
           _storeResult(destTypes[1], operands[1], val);
           break;
-        case GlulxOpcodes.aload: // aload
+        case GlulxOp.aload: // aload
           int addr = operands[0] + 4 * operands[1];
           int val = _memRead32(addr);
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.aloads: // aloads
+        case GlulxOp.aloads: // aloads
           int addr = operands[0] + 2 * operands[1];
           int val = _memRead16(addr); // Zero extended
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.aloadb: // aloadb
+        case GlulxOp.aloadb: // aloadb
           int addr = operands[0] + operands[1];
           int val = _memRead8(addr);
           _storeResult(destTypes[2], operands[2], val);
           break;
-        case GlulxOpcodes.astore: // astore
+        case GlulxOp.astore: // astore
           int addr = operands[0] + 4 * operands[1];
           _memWrite32(addr, operands[2]);
           break;
-        case GlulxOpcodes.astores: // astores
+        case GlulxOp.astores: // astores
           int addr = operands[0] + 2 * operands[1];
           _memWrite16(addr, operands[2]);
           break;
-        case GlulxOpcodes.astoreb: // astoreb
+        case GlulxOp.astoreb: // astoreb
           int addr = operands[0] + operands[1];
           _memWrite8(addr, operands[2]);
           break;
 
-        case GlulxOpcodes.glk: // glk
+        case GlulxOp.glk: // glk
           // glk(id, numargs) -> res
           final id = operands[0];
           final numArgs = operands[1];
@@ -771,20 +771,20 @@ class GlulxInterpreter {
           }
           break;
 
-        case GlulxOpcodes.quit: // quit
+        case GlulxOp.quit: // quit
           _running = false;
           break;
 
         // New opcodes - unsigned branch comparisons
-        case GlulxOpcodes.jgtu: // jgtu (unsigned >)
+        case GlulxOp.jgtu: // jgtu (unsigned >)
           if ((operands[0] & 0xFFFFFFFF) > (operands[1] & 0xFFFFFFFF)) _branch(operands[2]);
           break;
-        case GlulxOpcodes.jleu: // jleu (unsigned <=)
+        case GlulxOp.jleu: // jleu (unsigned <=)
           if ((operands[0] & 0xFFFFFFFF) <= (operands[1] & 0xFFFFFFFF)) _branch(operands[2]);
           break;
 
         // Bit operations
-        case GlulxOpcodes.aloadbit: // aloadbit L1 L2 S1
+        case GlulxOp.aloadbit: // aloadbit L1 L2 S1
           {
             int baseAddr = operands[0];
             int bitNum = operands[1].toSigned(32);
@@ -799,7 +799,7 @@ class GlulxInterpreter {
             _storeResult(destTypes[2], operands[2], result);
           }
           break;
-        case GlulxOpcodes.astorebit: // astorebit L1 L2 L3
+        case GlulxOp.astorebit: // astorebit L1 L2 L3
           {
             int baseAddr = operands[0];
             int bitNum = operands[1].toSigned(32);
@@ -820,7 +820,7 @@ class GlulxInterpreter {
           break;
 
         // Unicode output
-        case GlulxOpcodes.streamunichar: // streamunichar L1
+        case GlulxOp.streamunichar: // streamunichar L1
           if (_ioSysMode == 2) {
             // Glk mode - call put_char_uni (0x0080)
             io?.glulxGlk(0x0080, [operands[0]]);
@@ -828,11 +828,11 @@ class GlulxInterpreter {
           break;
 
         // Floating Point Operations
-        case GlulxOpcodes.numtof: // numtof L1 S1
+        case GlulxOp.numtof: // numtof L1 S1
           _floatBuf[0] = operands[0].toDouble();
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.ftonumz: // ftonumz L1 S1
+        case GlulxOp.ftonumz: // ftonumz L1 S1
           _floatIntView[0] = operands[0];
           int valZ;
           if (_floatBuf[0].isNaN || _floatBuf[0].isInfinite) {
@@ -843,7 +843,7 @@ class GlulxInterpreter {
           // Use raw 32-bit int cast for safety though .truncate() usually returns int
           _storeResult(destTypes[1], operands[1], valZ & 0xFFFFFFFF);
           break;
-        case GlulxOpcodes.ftonumn: // ftonumn L1 S1
+        case GlulxOp.ftonumn: // ftonumn L1 S1
           _floatIntView[0] = operands[0];
           int valN;
           if (_floatBuf[0].isNaN || _floatBuf[0].isInfinite) {
@@ -854,18 +854,18 @@ class GlulxInterpreter {
           _storeResult(destTypes[1], operands[1], valN & 0xFFFFFFFF);
           break;
 
-        case GlulxOpcodes.ceil: // ceil L1 S1
+        case GlulxOp.ceil: // ceil L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = _floatBuf[0].ceilToDouble();
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.floor: // floor L1 S1
+        case GlulxOp.floor: // floor L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = _floatBuf[0].floorToDouble();
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
 
-        case GlulxOpcodes.fadd: // fadd L1 L2 S1
+        case GlulxOp.fadd: // fadd L1 L2 S1
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -873,7 +873,7 @@ class GlulxInterpreter {
           _floatBuf[0] = f1 + f2;
           _storeResult(destTypes[2], operands[2], _floatIntView[0]);
           break;
-        case GlulxOpcodes.fsub: // fsub L1 L2 S1
+        case GlulxOp.fsub: // fsub L1 L2 S1
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -881,7 +881,7 @@ class GlulxInterpreter {
           _floatBuf[0] = f1 - f2;
           _storeResult(destTypes[2], operands[2], _floatIntView[0]);
           break;
-        case GlulxOpcodes.fmul: // fmul L1 L2 S1
+        case GlulxOp.fmul: // fmul L1 L2 S1
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -889,7 +889,7 @@ class GlulxInterpreter {
           _floatBuf[0] = f1 * f2;
           _storeResult(destTypes[2], operands[2], _floatIntView[0]);
           break;
-        case GlulxOpcodes.fdiv: // fdiv L1 L2 S1
+        case GlulxOp.fdiv: // fdiv L1 L2 S1
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -897,7 +897,7 @@ class GlulxInterpreter {
           _floatBuf[0] = f1 / f2;
           _storeResult(destTypes[2], operands[2], _floatIntView[0]);
           break;
-        case GlulxOpcodes.fmod: // fmod L1 L2 S1
+        case GlulxOp.fmod: // fmod L1 L2 S1
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -913,22 +913,22 @@ class GlulxInterpreter {
           _storeResult(destTypes[2], operands[2], _floatIntView[0]);
           break;
 
-        case GlulxOpcodes.sqrt: // sqrt L1 S1
+        case GlulxOp.sqrt: // sqrt L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.sqrt(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.exp: // exp L1 S1
+        case GlulxOp.exp: // exp L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.exp(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.log: // log L1 S1
+        case GlulxOp.log: // log L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.log(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.pow: // pow L1 L2 S1
+        case GlulxOp.pow: // pow L1 L2 S1
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -937,37 +937,37 @@ class GlulxInterpreter {
           _storeResult(destTypes[2], operands[2], _floatIntView[0]);
           break;
 
-        case GlulxOpcodes.sin: // sin L1 S1
+        case GlulxOp.sin: // sin L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.sin(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.cos: // cos L1 S1
+        case GlulxOp.cos: // cos L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.cos(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.tan: // tan L1 S1
+        case GlulxOp.tan: // tan L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.tan(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.asin: // asin L1 S1
+        case GlulxOp.asin: // asin L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.asin(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.acos: // acos L1 S1
+        case GlulxOp.acos: // acos L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.acos(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.atan: // atan L1 S1
+        case GlulxOp.atan: // atan L1 S1
           _floatIntView[0] = operands[0];
           _floatBuf[0] = math.atan(_floatBuf[0]);
           _storeResult(destTypes[1], operands[1], _floatIntView[0]);
           break;
-        case GlulxOpcodes.atan2: // atan2 L1 L2 S1
+        case GlulxOp.atan2: // atan2 L1 L2 S1
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -976,7 +976,7 @@ class GlulxInterpreter {
           _storeResult(destTypes[2], operands[2], _floatIntView[0]);
           break;
 
-        case GlulxOpcodes.jfeq: // jfeq L1 L2 L3
+        case GlulxOp.jfeq: // jfeq L1 L2 L3
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -986,7 +986,7 @@ class GlulxInterpreter {
           }
           break;
 
-        case GlulxOpcodes.jfne: // jfne L1 L2 L3
+        case GlulxOp.jfne: // jfne L1 L2 L3
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -994,7 +994,7 @@ class GlulxInterpreter {
           if (f1 != f2) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.jflt: // jflt L1 L2 L3
+        case GlulxOp.jflt: // jflt L1 L2 L3
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -1002,7 +1002,7 @@ class GlulxInterpreter {
           if (f1 < f2) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.jfle: // jfle L1 L2 L3
+        case GlulxOp.jfle: // jfle L1 L2 L3
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -1010,7 +1010,7 @@ class GlulxInterpreter {
           if (f1 <= f2) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.jfgt: // jfgt L1 L2 L3
+        case GlulxOp.jfgt: // jfgt L1 L2 L3
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -1018,7 +1018,7 @@ class GlulxInterpreter {
           if (f1 > f2) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.jfge: // jfge L1 L2 L3
+        case GlulxOp.jfge: // jfge L1 L2 L3
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           _floatIntView[0] = operands[1];
@@ -1026,34 +1026,34 @@ class GlulxInterpreter {
           if (f1 >= f2) _branch(operands[2]);
           break;
 
-        case GlulxOpcodes.jisnan: // jisnan L1 L2
+        case GlulxOp.jisnan: // jisnan L1 L2
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           if (f1.isNaN) _branch(operands[1]);
           break;
 
-        case GlulxOpcodes.jisinf: // jisinf L1 L2
+        case GlulxOp.jisinf: // jisinf L1 L2
           _floatIntView[0] = operands[0];
           double f1 = _floatBuf[0];
           if (f1.isInfinite) _branch(operands[1]);
           break;
 
         // Direct function calls
-        case GlulxOpcodes.callf: // callf L1 S1
+        case GlulxOp.callf: // callf L1 S1
           _enterFunction(operands[0], [], destTypes[1], operands[1]);
           break;
-        case GlulxOpcodes.callfi: // callfi L1 L2 S1
+        case GlulxOp.callfi: // callfi L1 L2 S1
           _enterFunction(operands[0], [operands[1]], destTypes[2], operands[2]);
           break;
-        case GlulxOpcodes.callfii: // callfii L1 L2 L3 S1
+        case GlulxOp.callfii: // callfii L1 L2 L3 S1
           _enterFunction(operands[0], [operands[1], operands[2]], destTypes[3], operands[3]);
           break;
-        case GlulxOpcodes.callfiii: // callfiii L1 L2 L3 L4 S1
+        case GlulxOp.callfiii: // callfiii L1 L2 L3 L4 S1
           _enterFunction(operands[0], [operands[1], operands[2], operands[3]], destTypes[4], operands[4]);
           break;
 
         // I/O system
-        case GlulxOpcodes.setiosys: // setiosys L1 L2
+        case GlulxOp.setiosys: // setiosys L1 L2
           _ioSysMode = operands[0];
           _ioSysRock = operands[1];
           // Validate mode - default to null (0) if unsupported
@@ -1061,13 +1061,13 @@ class GlulxInterpreter {
             _ioSysMode = 0;
           }
           break;
-        case GlulxOpcodes.getiosys: // getiosys S1 S2
+        case GlulxOp.getiosys: // getiosys S1 S2
           _storeResult(destTypes[0], operands[0], _ioSysMode);
           _storeResult(destTypes[1], operands[1], _ioSysRock);
           break;
 
         // Block copy/clear opcodes
-        case GlulxOpcodes.mzero: // mzero L1 L2
+        case GlulxOp.mzero: // mzero L1 L2
           {
             // Write L1 zero bytes starting at address L2
             int count = operands[0];
@@ -1077,7 +1077,7 @@ class GlulxInterpreter {
             }
           }
           break;
-        case GlulxOpcodes.mcopy: // mcopy L1 L2 L3
+        case GlulxOp.mcopy: // mcopy L1 L2 L3
           {
             // Copy L1 bytes from address L2 to address L3
             // Safe for overlapping regions

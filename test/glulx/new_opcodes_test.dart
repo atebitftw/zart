@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/interpreter.dart';
-import 'package:zart/src/glulx/glulx_opcodes.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/io/io_provider.dart';
 import 'package:zart/zart.dart' show Debugger;
 
@@ -39,12 +39,12 @@ void main() {
     // jgtu (0x2C) - unit tested
     test('jgtu branches on unsigned greater than', () async {
       final code = [
-        GlulxOpcodes.jgtu, 0x33, 0x10,
+        GlulxOp.jgtu, 0x33, 0x10,
         0xFF, 0xFF, 0xFF, 0xFF, // L1 = max unsigned
         0x00, 0x00, 0x00, 0x01, // L2 = 1
         0x05, // branch offset
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (skipped)
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit (target)
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (skipped)
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (target)
       ];
       interpreter = GlulxInterpreter();
       interpreter.load(createGame(code));
@@ -55,12 +55,12 @@ void main() {
     // jleu (0x2D) - unit tested
     test('jleu branches on unsigned less or equal', () async {
       final code = [
-        GlulxOpcodes.jleu, 0x33, 0x10,
+        GlulxOp.jleu, 0x33, 0x10,
         0x00, 0x00, 0x00, 0x01, // L1 = 1
         0xFF, 0xFF, 0xFF, 0xFF, // L2 = max unsigned
         0x05,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00,
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00,
       ];
       interpreter = GlulxInterpreter();
       interpreter.load(createGame(code));
@@ -71,9 +71,9 @@ void main() {
     // setiosys (0x149) / getiosys (0x148) - unit tested
     test('setiosys and getiosys work', () async {
       final code = [
-        GlulxOpcodes.setiosys >> 8 | 0x80, GlulxOpcodes.setiosys & 0xFF, 0x11, 0x02, 0x7B, // setiosys 2, 123
-        GlulxOpcodes.getiosys >> 8 | 0x80, GlulxOpcodes.getiosys & 0xFF, 0x88, // getiosys -> stack, stack
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00, // quit
+        GlulxOp.setiosys >> 8 | 0x80, GlulxOp.setiosys & 0xFF, 0x11, 0x02, 0x7B, // setiosys 2, 123
+        GlulxOp.getiosys >> 8 | 0x80, GlulxOp.getiosys & 0xFF, 0x88, // getiosys -> stack, stack
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit
       ];
       interpreter = GlulxInterpreter();
       interpreter.load(createGame(code));
@@ -84,11 +84,11 @@ void main() {
     // aloadbit (0x4B) - unit tested
     test('aloadbit reads a bit', () async {
       final code = [
-        GlulxOpcodes.aloadbit,
+        GlulxOp.aloadbit,
         0x11, 0x80, // L1=const1, L2=const1, S1=stack
         0x50, // address
         0x00, // bit 0
-        GlulxOpcodes.quit >> 8 & 0x7F | 0x80, GlulxOpcodes.quit & 0xFF, 0x00,
+        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00,
       ];
 
       final game = createGame(code);
