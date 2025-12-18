@@ -1,3 +1,4 @@
+import 'package:zart/src/glulx/glulx_exception.dart';
 import 'package:zart/src/glulx/glulx_memory_map.dart';
 
 /// Spec Section 1.4: "structured objects in Glulx main memory follow a simple convention:
@@ -58,6 +59,40 @@ abstract class GlulxTypable {
     if (address == 0) return GlulxTypableType.nullObject;
     final typeByte = memory.readByte(address);
     return GlulxTypableType.fromByte(typeByte);
+  }
+
+  /// Validates that the type at the given address is a valid typable object.
+  ///
+  /// Throws [GlulxException] if the type is reserved, null, or unknown.
+  /// Spec Section 1.4.3: "Type 00 is also reserved; it indicates 'no object',
+  /// and should not be used by any typable object."
+  static void validateType(GlulxMemoryMap memory, int address) {
+    final type = getType(memory, address);
+    final typeByte = address == 0 ? 0 : memory.readByte(address);
+
+    switch (type) {
+      case GlulxTypableType.nullObject:
+        // Spec Section 1.4.3: "Type 00 is also reserved; it indicates 'no object',
+        // and should not be used by any typable object."
+        throw GlulxException(
+          'Invalid typable object: Type 00 indicates "no object" and cannot be used '
+          '(Spec Section 1.4.3) at address 0x${address.toRadixString(16).toUpperCase()}',
+        );
+      case GlulxTypableType.reserved:
+        // Spec Section 1.4.3: "Type 80 to BF are reserved for future expansion."
+        throw GlulxException(
+          'Invalid typable object: Type 0x${typeByte.toRadixString(16).toUpperCase()} is reserved '
+          'for future expansion (Spec Section 1.4.3) at address 0x${address.toRadixString(16).toUpperCase()}',
+        );
+      case GlulxTypableType.unknown:
+        throw GlulxException(
+          'Invalid typable object: Unknown type 0x${typeByte.toRadixString(16).toUpperCase()} '
+          'at address 0x${address.toRadixString(16).toUpperCase()}',
+        );
+      default:
+        // Valid types: stringE0, stringE1, stringE2, functionC0, functionC1, userDefined
+        break;
+    }
   }
 }
 
