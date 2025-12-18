@@ -106,7 +106,8 @@ abstract class GlulxString extends GlulxTypable {
 class UnencodedString extends GlulxString {
   final List<int> bytes;
 
-  UnencodedString(int address, this.bytes) : super(address, GlulxTypableType.stringE0);
+  UnencodedString(int address, this.bytes)
+    : super(address, GlulxTypableType.stringE0);
 
   static UnencodedString parse(GlulxMemoryMap memory, int address) {
     final bytes = <int>[];
@@ -127,7 +128,8 @@ class UnencodedString extends GlulxString {
 class UnencodedUnicodeString extends GlulxString {
   final List<int> characters;
 
-  UnencodedUnicodeString(int address, this.characters) : super(address, GlulxTypableType.stringE2);
+  UnencodedUnicodeString(int address, this.characters)
+    : super(address, GlulxTypableType.stringE2);
 
   static UnencodedUnicodeString parse(GlulxMemoryMap memory, int address) {
     final characters = <int>[];

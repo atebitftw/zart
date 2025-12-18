@@ -27,7 +27,10 @@ void main() {
         expect(GlulxFloat.fromInt32(GlulxFloat.toInt32(-0.5)), equals(-0.5));
 
         // These values can't be represented exactly in single-precision
-        expect(GlulxFloat.fromInt32(GlulxFloat.toInt32(3.14159)), closeTo(3.14159, 1e-5));
+        expect(
+          GlulxFloat.fromInt32(GlulxFloat.toInt32(3.14159)),
+          closeTo(3.14159, 1e-5),
+        );
       });
 
       test('detects +Inf correctly', () {
@@ -41,7 +44,10 @@ void main() {
         /// Spec Section 1.6: "-Inf is FF800000"
         expect(GlulxFloat.isInf32(0xFF800000), isTrue);
         expect(GlulxFloat.isNaN32(0xFF800000), isFalse);
-        expect(GlulxFloat.fromInt32(0xFF800000), equals(double.negativeInfinity));
+        expect(
+          GlulxFloat.fromInt32(0xFF800000),
+          equals(double.negativeInfinity),
+        );
       });
 
       test('detects NaN correctly', () {

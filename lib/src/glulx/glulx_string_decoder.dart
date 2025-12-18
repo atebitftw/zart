@@ -5,7 +5,9 @@ import 'package:zart/src/glulx/typable_objects.dart';
 class CompressedString extends GlulxString {
   final int bitStreamAddress;
 
-  CompressedString(int address) : bitStreamAddress = address + 1, super(address, GlulxTypableType.stringE1);
+  CompressedString(int address)
+    : bitStreamAddress = address + 1,
+      super(address, GlulxTypableType.stringE1);
 }
 
 /// Spec Section 1.4.1.4: The String-Decoding Table
@@ -16,7 +18,13 @@ class HuffmanTable {
   final int rootAddress;
   final Map<int, HuffmanNode> nodes;
 
-  HuffmanTable(this.address, this.length, this.nodeCount, this.rootAddress, this.nodes);
+  HuffmanTable(
+    this.address,
+    this.length,
+    this.nodeCount,
+    this.rootAddress,
+    this.nodes,
+  );
 
   static HuffmanTable parse(GlulxMemoryMap memory, int address) {
     final length = memory.readWord(address);
@@ -39,7 +47,10 @@ abstract class HuffmanNode {
     final type = memory.readByte(address);
     switch (type) {
       case 0x00:
-        return BranchNode(memory.readWord(address + 1), memory.readWord(address + 5));
+        return BranchNode(
+          memory.readWord(address + 1),
+          memory.readWord(address + 5),
+        );
       case 0x01:
         return TerminatorNode();
       case 0x02:
@@ -86,7 +97,9 @@ abstract class HuffmanNode {
         }
         return DoubleIndirectArgsNode(addr, args);
       default:
-        throw Exception('Unknown Huffman node type: 0x${type.toRadixString(16)} at 0x${address.toRadixString(16)}');
+        throw Exception(
+          'Unknown Huffman node type: 0x${type.toRadixString(16)} at 0x${address.toRadixString(16)}',
+        );
     }
   }
 }

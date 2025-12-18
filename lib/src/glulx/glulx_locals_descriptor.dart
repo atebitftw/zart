@@ -25,7 +25,8 @@ class GlulxLocalsDescriptor {
   /// The original format bytes, used when pushing frames.
   final Uint8List formatBytes;
 
-  GlulxLocalsDescriptor(this.locals, this.localsSize, this.formatBytes) : totalSizeWithPadding = (localsSize + 3) & ~3;
+  GlulxLocalsDescriptor(this.locals, this.localsSize, this.formatBytes)
+    : totalSizeWithPadding = (localsSize + 3) & ~3;
 
   /// Parses the "Format of Locals" descriptor from the function header.
   ///

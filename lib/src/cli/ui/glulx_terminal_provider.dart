@@ -1,7 +1,8 @@
 import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
-import 'package:zart/src/io/glk/glk_gestalt_selectors.dart' show GlkGestaltSelectors;
+import 'package:zart/src/io/glk/glk_gestalt_selectors.dart'
+    show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/logging.dart' show log;
@@ -122,7 +123,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       default:
-        throw GlulxException('GlulxTerminalProvider -> Unknown selector: 0x${selector.toRadixString(16)}');
+        throw GlulxException(
+          'GlulxTerminalProvider -> Unknown selector: 0x${selector.toRadixString(16)}',
+        );
     }
   }
 

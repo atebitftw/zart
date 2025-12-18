@@ -57,7 +57,10 @@ class GlulxDebugger {
     final endMem = memory.getUint32(GlulxHeader.endMemOffset, Endian.big);
     final stackSize = memory.getUint32(GlulxHeader.stackSizeOffset, Endian.big);
     final startFunc = memory.getUint32(GlulxHeader.startFuncOffset, Endian.big);
-    final decodingTbl = memory.getUint32(GlulxHeader.decodingTblOffset, Endian.big);
+    final decodingTbl = memory.getUint32(
+      GlulxHeader.decodingTblOffset,
+      Endian.big,
+    );
     final checksum = memory.getUint32(GlulxHeader.checksumOffset, Endian.big);
 
     // Format version as major.minor.patch
@@ -66,21 +69,32 @@ class GlulxDebugger {
     final patch = version & 0xFF;
 
     log.info('=== Glulx Header ===');
-    log.info('Magic:       0x${magic.toRadixString(16).padLeft(8, '0')} (${_magicToString(magic)})');
+    log.info(
+      'Magic:       0x${magic.toRadixString(16).padLeft(8, '0')} (${_magicToString(magic)})',
+    );
     log.info('Version:     $major.$minor.$patch');
     log.info('RAMSTART:    0x${ramStart.toRadixString(16).padLeft(8, '0')}');
     log.info('EXTSTART:    0x${extStart.toRadixString(16).padLeft(8, '0')}');
     log.info('ENDMEM:      0x${endMem.toRadixString(16).padLeft(8, '0')}');
-    log.info('Stack Size:  0x${stackSize.toRadixString(16).padLeft(8, '0')} ($stackSize bytes)');
+    log.info(
+      'Stack Size:  0x${stackSize.toRadixString(16).padLeft(8, '0')} ($stackSize bytes)',
+    );
     log.info('Start Func:  0x${startFunc.toRadixString(16).padLeft(8, '0')}');
-    log.info('Decoding Tbl: 0x${decodingTbl.toRadixString(16).padLeft(8, '0')}');
+    log.info(
+      'Decoding Tbl: 0x${decodingTbl.toRadixString(16).padLeft(8, '0')}',
+    );
     log.info('Checksum:    0x${checksum.toRadixString(16).padLeft(8, '0')}');
     log.info('====================');
   }
 
   /// Converts a magic number to its ASCII string representation.
   String _magicToString(int magic) {
-    return String.fromCharCodes([(magic >> 24) & 0xFF, (magic >> 16) & 0xFF, (magic >> 8) & 0xFF, magic & 0xFF]);
+    return String.fromCharCodes([
+      (magic >> 24) & 0xFF,
+      (magic >> 16) & 0xFF,
+      (magic >> 8) & 0xFF,
+      magic & 0xFF,
+    ]);
   }
 
   /// Logs the current interpreter state.
@@ -89,7 +103,9 @@ class GlulxDebugger {
       return;
     }
     if (!_isInBounds(pc)) {
-      log.warning('PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}');
+      log.warning(
+        'PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}',
+      );
       return;
     }
 
@@ -123,7 +139,9 @@ class GlulxDebugger {
     }
 
     if (!_isInBounds(pc)) {
-      log.warning('PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}');
+      log.warning(
+        'PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}',
+      );
       return;
     }
 
@@ -135,7 +153,9 @@ class GlulxDebugger {
     final buffer = StringBuffer();
 
     // Format: 0x00001234: @opname op1 op2 op3
-    buffer.write('(Step: $step) 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName');
+    buffer.write(
+      '(Step: $step) 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName',
+    );
 
     for (int i = 0; i < operands.length; i++) {
       buffer.write(' ');
@@ -159,11 +179,15 @@ class GlulxDebugger {
       return;
     }
     if (!_isInBounds(startAddr)) {
-      log.warning('PC out of bounds: 0x${startAddr.toRadixString(16).padLeft(8, '0')}');
+      log.warning(
+        'PC out of bounds: 0x${startAddr.toRadixString(16).padLeft(8, '0')}',
+      );
       return;
     }
 
-    final hexBytes = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    final hexBytes = bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join(' ');
     log.info('  $label [0x${startAddr.toRadixString(16)}]: $hexBytes');
   }
 
@@ -173,7 +197,9 @@ class GlulxDebugger {
     if (!_isInBounds(oldPC)) return;
 
     final delta = newPC - oldPC;
-    log.info('  PC: 0x${oldPC.toRadixString(16)} -> 0x${newPC.toRadixString(16)} (+$delta bytes) [$reason]');
+    log.info(
+      '  PC: 0x${oldPC.toRadixString(16)} -> 0x${newPC.toRadixString(16)} (+$delta bytes) [$reason]',
+    );
   }
 
   /// Logs addressing modes for operands.
@@ -247,7 +273,9 @@ class GlulxDebugger {
         if (rawValue != null && !isStore) {
           return '[0x${rawValue.toRadixString(16)}]';
         }
-        return isStore ? '*0x${value.toRadixString(16)}' : '[0x${value.toRadixString(16)}]';
+        return isStore
+            ? '*0x${value.toRadixString(16)}'
+            : '[0x${value.toRadixString(16)}]';
       case 8: // Stack push/pop
         return isStore ? '-(sp)' : '(sp)+';
       case 9: // Local (1 byte offset)
@@ -263,7 +291,9 @@ class GlulxDebugger {
         if (rawValue != null && !isStore) {
           return '[ram+0x${rawValue.toRadixString(16)}]';
         }
-        return isStore ? '*ram+0x${value.toRadixString(16)}' : '[ram+0x${value.toRadixString(16)}]';
+        return isStore
+            ? '*ram+0x${value.toRadixString(16)}'
+            : '[ram+0x${value.toRadixString(16)}]';
       default:
         // Unknown mode, just show value
         return value.toString();
@@ -302,7 +332,13 @@ class GlulxDebugger {
 
     for (int i = 0; i < operands.length; i++) {
       buffer.write(' ');
-      buffer.write(_formatOperand(operands[i], operandModes.length > i ? operandModes[i] : 0, opInfo.isStore(i)));
+      buffer.write(
+        _formatOperand(
+          operands[i],
+          operandModes.length > i ? operandModes[i] : 0,
+          opInfo.isStore(i),
+        ),
+      );
     }
 
     _flightRecorder.add(buffer.toString());
@@ -316,7 +352,9 @@ class GlulxDebugger {
     if (!enabled || !showFlightRecorder) {
       return;
     }
-    log.info('--- Flight Recorder (Last $_flightRecorderMaxSize Instructions) ---');
+    log.info(
+      '--- Flight Recorder (Last $_flightRecorderMaxSize Instructions) ---',
+    );
     for (final line in _flightRecorder) {
       log.info(line);
     }

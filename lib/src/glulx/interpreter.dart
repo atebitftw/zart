@@ -117,7 +117,9 @@ class GlulxInterpreter {
           throw Exception('Division by zero (Spec Section 2.4.1)');
         }
         if (l1 == -0x80000000 && l2 == -1) {
-          throw Exception('Division overflow: -0x80000000 / -1 (Spec Section 2.4.1)');
+          throw Exception(
+            'Division overflow: -0x80000000 / -1 (Spec Section 2.4.1)',
+          );
         }
         _performStore(dest, (l1 ~/ l2) & 0xFFFFFFFF);
         break;
@@ -135,7 +137,9 @@ class GlulxInterpreter {
           throw Exception('Modulo by zero (Spec Section 2.4.1)');
         }
         if (l1 == -0x80000000 && l2 == -1) {
-          throw Exception('Modulo overflow: -0x80000000 % -1 (Spec Section 2.4.1)');
+          throw Exception(
+            'Modulo overflow: -0x80000000 % -1 (Spec Section 2.4.1)',
+          );
         }
         _performStore(dest, l1.remainder(l2) & 0xFFFFFFFF);
         break;
@@ -842,5 +846,6 @@ class GlulxInterpreterTestingHarness {
   int readOpCode() => interpreter._readOpCode();
 
   /// Exposes [_readAddressingModes] for testing.
-  List<int> readAddressingModes(int count) => interpreter._readAddressingModes(count);
+  List<int> readAddressingModes(int count) =>
+      interpreter._readAddressingModes(count);
 }
