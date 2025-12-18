@@ -4,20 +4,43 @@ import 'package:zart/src/glulx/glulx_exception.dart';
 import 'package:zart/src/glulx/glulx_locals_descriptor.dart';
 
 /// The Glulx stack.
+///
+/// Spec: "The stack consists of a set of call frames, one for each function
+/// in the current chain. When a function is called, a new stack frame is
+/// pushed, containing the function's local variables. The function can then
+/// push or pull 32-bit values on top of that, to store intermediate computations."
+///
+/// Spec: "The stack pointer starts at zero, and the stack grows upward.
+/// The maximum size of the stack is determined by a constant value in the
+/// game-file header. For convenience, this must be a multiple of 256."
 class GlulxStack {
   final Uint8List _data;
   late final ByteData _view;
 
   /// The stack pointer.
+  /// Spec: "The stack pointer counts in bytes."
   int _sp = 0;
 
   /// The call-frame pointer.
+  /// Spec: "FramePtr is the current value of FramePtr – the stack position
+  /// of the call frame of the function."
   int _fp = 0;
 
+  /// The base of the value stack within the current frame.
+  /// This is _fp + frameLen (cached for performance, like C interpreter's valstackbase).
+  int _valstackbase = 0;
+
+  /// The base of locals within the current frame.
+  /// This is _fp + localsPos (cached for performance, like C interpreter's localsbase).
+  int _localsbase = 0;
+
   /// Creates a new Glulx stack of the given size.
+  ///
+  /// Spec: "The maximum size of the stack is determined by a constant value
+  /// in the game-file header. For convenience, this must be a multiple of 256."
   GlulxStack(int size) : _data = Uint8List(size) {
     if (size % 256 != 0) {
-      throw GlulxException('Stack size must be a multiple of 256 (Spec Line 64)');
+      throw GlulxException('Stack size must be a multiple of 256');
     }
     _view = ByteData.view(_data.buffer);
   }
@@ -31,7 +54,15 @@ class GlulxStack {
   /// The maximum size of the stack.
   int get maxSize => _data.length;
 
+  /// The base of the value stack within the current frame.
+  int get valstackbase => _valstackbase;
+
+  /// The base of locals within the current frame.
+  int get localsbase => _localsbase;
+
   /// Pushes a 32-bit value onto the stack.
+  ///
+  /// Spec: "If you push a 32-bit value on the stack, the pointer increases by four."
   void push32(int value) {
     if (_sp + 4 > maxSize) {
       throw GlulxException('Stack overflow');
@@ -50,10 +81,12 @@ class GlulxStack {
   }
 
   /// Pops a 32-bit value from the stack.
+  ///
+  /// Spec: "It is illegal to pop back beyond the original FramePtr+FrameLen boundary."
   int pop32() {
-    final limit = _fp + frameLen;
-    if (_sp <= limit) {
-      throw GlulxException('Illegal pop beyond frame boundary (Spec Line 89)');
+    // Spec: "It is illegal to pop back beyond the original FramePtr+FrameLen boundary."
+    if (_sp < _valstackbase + 4) {
+      throw GlulxException('Stack underflow in operand');
     }
     return _rawPop32();
   }
@@ -67,12 +100,18 @@ class GlulxStack {
     return _view.getUint32(_sp, Endian.big);
   }
 
-  /// Peeks at the 32-bit value at the given offset from the stack pointer.
-  int peek32(int offset) {
-    final addr = _sp - 4 - offset;
-    if (addr < 0 || addr > maxSize - 4) {
-      throw GlulxException('Invalid stack access');
+  /// Peeks at the 32-bit value at the given index from the top of the stack.
+  ///
+  /// [index] is the zero-based index from the top (0 = top element).
+  /// Spec: "Peek at the Lth value on the stack, without actually popping anything."
+  /// Reference: exec.c op_stkpeek - validates index against valstackbase.
+  int peek32(int index) {
+    final offset = index * 4;
+    // Bounds check per reference interpreter: exec.c lines 479-481
+    if (offset < 0 || offset >= (_sp - _valstackbase)) {
+      throw GlulxException('Stkpeek outside current stack range');
     }
+    final addr = _sp - (offset + 4);
     return _view.getUint32(addr, Endian.big);
   }
 
@@ -93,6 +132,9 @@ class GlulxStack {
   }
 
   /// Pushes a call stub onto the stack.
+  ///
+  /// Spec: "The values are pushed on the stack in the following order
+  /// (FramePtr pushed last): DestType, DestAddr, PC, FramePtr"
   void pushCallStub(int destType, int destAddr, int pc, int fp) {
     _rawPush32(destType);
     _rawPush32(destAddr);
@@ -101,7 +143,9 @@ class GlulxStack {
   }
 
   /// Pops a call stub from the stack.
+  ///
   /// Returns a list of [destType, destAddr, pc, fp].
+  /// Also recomputes valstackbase and localsbase from the restored frame.
   List<int> popCallStub() {
     final oldFp = _rawPop32();
     final oldPc = _rawPop32();
@@ -113,6 +157,9 @@ class GlulxStack {
   /// Pushes a new call frame onto the stack.
   ///
   /// [format] is the "Format of Locals" descriptor from the function header.
+  ///
+  /// Spec: "A call frame looks like this: FrameLen (4 bytes), LocalsPos (4 bytes),
+  /// Format of Locals (2*n bytes), Padding (0 or 2 bytes), Locals, Padding, Values"
   void pushFrame(Uint8List format) {
     final descriptor = GlulxLocalsDescriptor.parse(format);
 
@@ -122,13 +169,15 @@ class GlulxStack {
     final frameLenValue = localsPosValue + descriptor.totalSizeWithPadding;
 
     if (_sp + frameLenValue > maxSize) {
-      throw GlulxException('Stack overflow during frame construction');
+      throw GlulxException('Stack overflow in function call');
     }
 
     final newFp = _sp;
 
     // Write header
+    // Spec: "FrameLen: The distance from FramePtr to (FramePtr+FrameLen), in bytes."
     _view.setUint32(newFp, frameLenValue, Endian.big);
+    // Spec: "LocalsPos: The distance from FramePtr to the locals segment."
     _view.setUint32(newFp + 4, localsPosValue, Endian.big);
 
     // Write format descriptor
@@ -137,10 +186,14 @@ class GlulxStack {
     }
 
     // Fill padding and locals with zero
+    // Spec: "The locals are zero when the function starts executing."
     _data.fillRange(newFp + 8 + format.length, newFp + frameLenValue, 0);
 
     _fp = newFp;
-    _sp = _fp + frameLenValue;
+    // Update cached bases (mirrors funcs.c lines 105-106)
+    _localsbase = _fp + localsPosValue;
+    _valstackbase = _fp + frameLenValue;
+    _sp = _valstackbase;
   }
 
   /// Pops the current call frame from the stack and restores the previous state.
@@ -150,35 +203,80 @@ class GlulxStack {
     _sp = _fp;
     final stub = popCallStub();
     _fp = stub[3];
+    // Recompute valstackbase and localsbase from restored frame
+    // Reference: funcs.c lines 240-241
+    _updateCachedBases();
     return stub;
+  }
+
+  /// Updates the cached _valstackbase and _localsbase from the current frame.
+  void _updateCachedBases() {
+    if (_fp >= 0 && _fp <= maxSize - 8) {
+      final frameLenValue = _view.getUint32(_fp, Endian.big);
+      final localsPosValue = _view.getUint32(_fp + 4, Endian.big);
+      _valstackbase = _fp + frameLenValue;
+      _localsbase = _fp + localsPosValue;
+    } else {
+      _valstackbase = 0;
+      _localsbase = 0;
+    }
   }
 
   /// Stores a result value according to a call stub's destination.
   ///
   /// [type] and [addr] are the DestType and DestAddr from the call stub.
   /// [onMemoryWrite] is called if the result should be stored in main memory (Type 1).
-  void storeResult(int value, int type, int addr, {void Function(int addr, int val)? onMemoryWrite}) {
+  ///
+  /// Spec: "DestType and DestAddr describe a location in which to store a result."
+  void storeResult(
+    int value,
+    int type,
+    int addr, {
+    void Function(int addr, int val)? onMemoryWrite,
+  }) {
     switch (type) {
-      case 0: // Do not store. The result value is discarded. (Spec Line 125)
+      case 0:
+        // Spec: "Do not store. The result value is discarded. DestAddr should be zero."
         break;
-      case 1: // Store in main memory. (Spec Line 126)
+      case 1:
+        // Spec: "Store in main memory. The result value is stored in the
+        // main-memory address given by DestAddr."
         onMemoryWrite?.call(addr, value);
         break;
-      case 2: // Store in local variable. (Spec Line 127)
+      case 2:
+        // Spec: "Store in a call-frame local. The result value is stored in the
+        // call-frame local whose address is given by DestAddr."
         writeLocal32(addr, value);
         break;
-      case 3: // Push on stack. (Spec Line 129)
+      case 3:
+        // Spec: "Push on stack. The result value is pushed on the stack.
+        // DestAddr should be zero."
         push32(value);
         break;
-      case 10: // Resume printing a compressed string. (Spec Line 133)
-      case 11: // Resume executing function code after a string completes. (Spec Line 135)
-      case 12: // Resume printing a signed decimal integer. (Spec Line 137)
-      case 13: // Resume printing a C-style string. (Spec Line 140)
-      case 14: // Resume printing a Unicode string. (Spec Line 141)
-        // For all string-decoding types, the function's return value is discarded. (Spec Line 166)
+      case 0x10:
+        // Spec: "Resume printing a compressed (E1) string."
+        // Return value discarded - string resumption handled by interpreter
+        break;
+      case 0x11:
+        // Spec: "Resume executing function code after a string completes."
+        // Reference: funcs.c lines 245-247 - this is fatal in function return context
+        throw GlulxException(
+          'String-terminator call stub at end of function call',
+        );
+      case 0x12:
+        // Spec: "Resume printing a signed decimal integer."
+        // Return value discarded - handled by interpreter
+        break;
+      case 0x13:
+        // Spec: "Resume printing a C-style (E0) string."
+        // Return value discarded - handled by interpreter
+        break;
+      case 0x14:
+        // Spec: "Resume printing a Unicode (E2) string."
+        // Return value discarded - handled by interpreter
         break;
       default:
-        throw GlulxException('Unknown or reserved DestType: $type (Spec Lines 123-145)');
+        throw GlulxException('Unknown or reserved DestType: $type');
     }
   }
 
@@ -227,48 +325,55 @@ class GlulxStack {
 
   /// Read an 8-bit local at the given offset.
   int readLocal8(int offset) {
-    final addr = _fp + localsPos + offset;
+    final addr = _localsbase + offset;
     return _data[addr];
   }
 
   /// Write an 8-bit local at the given offset.
   void writeLocal8(int offset, int value) {
-    final addr = _fp + localsPos + offset;
+    final addr = _localsbase + offset;
     _data[addr] = value & 0xFF;
   }
 
   /// Read a 16-bit local at the given offset.
   int readLocal16(int offset) {
-    final addr = _fp + localsPos + offset;
+    final addr = _localsbase + offset;
     return _view.getUint16(addr, Endian.big);
   }
 
   /// Write a 16-bit local at the given offset.
   void writeLocal16(int offset, int value) {
-    final addr = _fp + localsPos + offset;
+    final addr = _localsbase + offset;
     _view.setUint16(addr, value & 0xFFFF, Endian.big);
   }
 
   /// Read a 32-bit local at the given offset.
   int readLocal32(int offset) {
-    final addr = _fp + localsPos + offset;
+    final addr = _localsbase + offset;
     return _view.getUint32(addr, Endian.big);
   }
 
   /// Write a 32-bit local at the given offset.
   void writeLocal32(int offset, int value) {
-    final addr = _fp + localsPos + offset;
+    final addr = _localsbase + offset;
     _view.setUint32(addr, value & 0xFFFFFFFF, Endian.big);
   }
 
   /// Returns the number of 32-bit values above the current frame.
+  ///
+  /// Spec: "Store a count of the number of values on the stack.
+  /// This counts only values above the current call-frame."
   int get stkCount {
-    return (_sp - (_fp + frameLen)) ~/ 4;
+    return (_sp - _valstackbase) ~/ 4;
   }
 
   /// Swaps the top two 32-bit values on the stack.
+  ///
+  /// Spec: "Swap the top two values on the stack.
+  /// The current stack-count must be at least two."
   void stkSwap() {
-    if (stkCount < 2) {
+    // Reference: exec.c lines 486-487
+    if (_sp < _valstackbase + 8) {
       throw GlulxException('Stack underflow in stkswap');
     }
     final v1 = pop32();
@@ -278,37 +383,86 @@ class GlulxStack {
   }
 
   /// Rolls the top [count] values by [shift] positions.
+  ///
+  /// Spec: "Rotate the top L1 values on the stack. They are rotated up or down
+  /// L2 places, with positive values meaning up and negative meaning down."
   void stkRoll(int count, int shift) {
-    if (count < 0) return;
+    // Reference: exec.c lines 514-515 - negative count is an error
+    if (count < 0) {
+      throw GlulxException('Negative operand in stkroll');
+    }
+    // Reference: exec.c lines 518-519 - zero count is no-op
+    if (count == 0) return;
+
+    // Bounds check
     if (stkCount < count) {
       throw GlulxException('Stack underflow in stkroll');
     }
     if (count <= 1) return;
 
-    shift %= count;
+    // Normalize shift: Reference exec.c lines 525-531
+    // Convert positive shift to equivalent negative for easier implementation
+    if (shift > 0) {
+      shift = shift % count;
+      shift = count - shift;
+    } else {
+      shift = (-shift) % count;
+    }
     if (shift == 0) return;
 
-    final values = List<int>.generate(count, (_) => pop32()).reversed.toList();
-    final shifted = List<int>.filled(count, 0);
+    // Reference: exec.c lines 534-542 - in-place rotate algorithm
+    final baseAddr = _sp - count * 4;
 
-    for (var i = 0; i < count; i++) {
-      shifted[(i + shift) % count] = values[i];
+    // Copy the first 'shift' values to temp space above current stack
+    for (var i = 0; i < shift; i++) {
+      final value = _view.getUint32(baseAddr + i * 4, Endian.big);
+      _view.setUint32(_sp + i * 4, value, Endian.big);
     }
 
-    for (final v in shifted) {
-      push32(v);
+    // Shift remaining values down
+    for (var i = 0; i < count; i++) {
+      final value = _view.getUint32(baseAddr + (shift + i) * 4, Endian.big);
+      _view.setUint32(baseAddr + i * 4, value, Endian.big);
     }
   }
 
   /// Copies the top [count] values and pushes them.
+  ///
+  /// Spec: "Peek at the top L1 values in the stack, and push duplicates onto
+  /// the stack in the same order."
   void stkCopy(int count) {
-    if (count < 0) return;
+    // Reference: exec.c lines 496-497 - negative count is an error
+    if (count < 0) {
+      throw GlulxException('Negative operand in stkcopy');
+    }
+    if (count == 0) return;
+
+    // Bounds check
     if (stkCount < count) {
       throw GlulxException('Stack underflow in stkcopy');
     }
-    final values = List<int>.generate(count, (i) => peek32(i * 4)).reversed.toList();
-    for (final v in values) {
-      push32(v);
+    // Overflow check
+    if (_sp + count * 4 > maxSize) {
+      throw GlulxException('Stack overflow in stkcopy');
     }
+
+    // Reference: exec.c lines 504-509 - copy in order from bottom to top
+    final baseAddr = _sp - count * 4;
+    for (var i = 0; i < count; i++) {
+      final value = _view.getUint32(baseAddr + i * 4, Endian.big);
+      _view.setUint32(_sp + i * 4, value, Endian.big);
+    }
+    _sp += count * 4;
+  }
+
+  /// Provides read access to the raw stack data for serialization.
+  Uint8List get rawData => _data;
+
+  /// Resets the stack to initial state.
+  void reset() {
+    _sp = 0;
+    _fp = 0;
+    _valstackbase = 0;
+    _localsbase = 0;
   }
 }
