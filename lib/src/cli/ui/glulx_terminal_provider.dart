@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
-import 'package:zart/src/io/glk/glk_gestalt_selectors.dart'
-    show GlkGestaltSelectors;
+import 'package:zart/src/io/glk/glk_gestalt_selectors.dart' show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/logging.dart' show log;
@@ -44,15 +44,17 @@ class GlulxTerminalProvider implements GlkIoProvider {
   }
 
   @override
-  Future<int> glkDispatch(int selector, List<int> args) async {
+  FutureOr<int> glkDispatch(int selector, List<int> args) {
     switch (selector) {
       case GlkIoSelectors.tick:
         // yield back to Dart's event loop, per the Glk spec
-        await Future.delayed(const Duration(milliseconds: 1));
-        _tickCount++;
-        return 0;
+        return Future.delayed(const Duration(milliseconds: 1)).then((_) {
+          _tickCount++;
+          return 0;
+        });
       case GlkIoSelectors.gestalt:
-        return await _gestaltHandler(args[0], args.sublist(1));
+        final gestaltArgs = args.length > 1 ? args.sublist(1) : <int>[];
+        return _gestaltHandler(args[0], gestaltArgs);
       case GlkIoSelectors.putChar:
         // glk_put_char(ch) - output single character
         terminal.appendToWindow0(String.fromCharCode(args[0]));
@@ -109,6 +111,40 @@ class GlulxTerminalProvider implements GlkIoProvider {
         _writeEventStruct(args[0], GlkEventTypes.none, 0, 0, 0);
         return 0;
 
+      case GlkIoSelectors.windowIterate:
+        // glk_window_iterate(win, rockptr) -> next_win
+        // For now, only return window 1 once
+        if (args[0] == 0) {
+          if (args[1] != 0) writeMemory(args[1], 100, size: 4); // window rock
+          return 1;
+        }
+        return 0;
+
+      case GlkIoSelectors.streamIterate:
+        // glk_stream_iterate(str, rockptr) -> next_str
+        // For now, only return stream 1 once
+        if (args[0] == 0) {
+          if (args[1] != 0) writeMemory(args[1], 200, size: 4); // stream rock
+          return 1;
+        }
+        return 0;
+
+      case GlkIoSelectors.filerefIterate:
+        // glk_fileref_iterate(fref, rockptr) -> next_fref
+        // No files yet
+        return 0;
+
+      case GlkIoSelectors.filerefCreateByPrompt:
+      case GlkIoSelectors.filerefCreateByPromptUni:
+        // glk_fileref_create_by_prompt(usage, fmode, rock) -> fref
+        // Not supporting actual file prompts yet
+        return 0;
+
+      case GlkIoSelectors.schannelIterate:
+        // glk_schannel_iterate(chan, rockptr) -> next_chan
+        // No sound channels yet
+        return 0;
+
       case GlkIoSelectors.stylehintSet:
       case GlkIoSelectors.stylehintClear:
         // Stub: do nothing
@@ -123,9 +159,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       default:
-        throw GlulxException(
-          'GlulxTerminalProvider -> Unknown selector: 0x${selector.toRadixString(16)}',
-        );
+        throw GlulxException('GlulxTerminalProvider -> Unknown selector: 0x${selector.toRadixString(16)}');
     }
   }
 
@@ -138,14 +172,15 @@ class GlulxTerminalProvider implements GlkIoProvider {
     writeMemory(addr + 12, val2, size: 4);
   }
 
-  Future<int> _gestaltHandler(int gestaltSelector, List<int> args) async {
+  FutureOr<int> _gestaltHandler(int gestaltSelector, List<int> args) {
     switch (gestaltSelector) {
       case GlkGestaltSelectors.version:
         // We will try to support the latest version at the time of this implementation.
         // The current version of the API is: 0.7.6 (0x00070600)
         return 0x00070600;
       case GlkGestaltSelectors.mouseInput:
-        return 1;
+        // no mouse support just yet
+        return 0;
       case GlkGestaltSelectors.lineInput:
         // We support line input for all characters
         return 1;

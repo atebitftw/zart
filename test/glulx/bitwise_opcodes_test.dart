@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
-import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
 void main() {
@@ -71,7 +71,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0x0F00));
     });
@@ -92,7 +92,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0xFFFF));
     });
@@ -113,7 +113,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0x00FF));
     });
@@ -133,7 +133,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0xFFFFFFFF));
     });
@@ -150,7 +150,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0x55555555));
     });
@@ -171,7 +171,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(16));
     });
@@ -189,7 +189,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0));
     });
@@ -211,7 +211,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0x08000000));
     });
@@ -229,7 +229,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0));
     });
@@ -251,7 +251,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0x07FFFFFF));
     });
@@ -269,7 +269,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0xF8000000));
     });
@@ -288,7 +288,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0));
     });
@@ -306,7 +306,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0xFFFFFFFF));
     });
@@ -324,7 +324,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0xDEADBEEF));
     });

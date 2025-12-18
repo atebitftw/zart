@@ -276,12 +276,6 @@ class GlulxOp {
   /// ftonumn
   static const int ftonumn = 0x192;
 
-  /// ceil
-  static const int ceil = 0x198;
-
-  /// floor
-  static const int floor = 0x199;
-
   /// fadd
   static const int fadd = 0x1A0;
 
@@ -297,17 +291,32 @@ class GlulxOp {
   /// fmod
   static const int fmod = 0x1A4;
 
+  /// frem
+  static const int frem = 0x1A5;
+
+  /// fgetround
+  static const int fgetround = 0x1B8;
+
+  /// fsetround
+  static const int fsetround = 0x1B9;
+
+  /// ceil
+  static const int ceil = 0x1A8;
+
+  /// floor
+  static const int floor = 0x1A9;
+
   /// sqrt
-  static const int sqrt = 0x1A8;
+  static const int sqrt = 0x1AA;
 
   /// exp
-  static const int exp = 0x1A9;
+  static const int exp = 0x1AB;
 
   /// log
-  static const int log = 0x1AA;
+  static const int log = 0x1AC;
 
   /// pow
-  static const int pow = 0x1AB;
+  static const int pow = 0x1AD;
 
   /// sin
   static const int sin = 0x1B0;
@@ -330,125 +339,131 @@ class GlulxOp {
   /// atan2
   static const int atan2 = 0x1B6;
 
-  /// jfeq
-  static const int jfeq = 0x1C0;
-
-  /// jfne
-  static const int jfne = 0x1C1;
-
-  /// jflt
-  static const int jflt = 0x1C2;
-
-  /// jfle
-  static const int jfle = 0x1C3;
-
-  /// jfgt
-  static const int jfgt = 0x1C4;
-
-  /// jfge
-  static const int jfge = 0x1C5;
-
   /// jisnan
-  static const int jisnan = 0x1C8;
+  static const int jisnan = 0x1C0;
 
   /// jisinf
-  static const int jisinf = 0x1C9;
+  static const int jisinf = 0x1C1;
 
-  // Double-Precision Opcodes (Spec Section 2.4.6)
+  /// jfeq
+  static const int jfeq = 0x1C2;
+
+  /// jfne
+  static const int jfne = 0x1C3;
+
+  /// jflt
+  static const int jflt = 0x1C4;
+
+  /// jfle
+  static const int jfle = 0x1C5;
+
+  /// jfgt
+  static const int jfgt = 0x1C6;
+
+  /// jfge
+  static const int jfge = 0x1C7;
+
+  // Double-Precision Opcodes (Spec Section 2.13.1)
 
   /// numtod
-  static const int numtod = 0x200;
+  static const int numtod = 0x1D0;
 
   /// dtonumz
-  static const int dtonumz = 0x201;
+  static const int dtonumz = 0x1D1;
 
   /// dtonumn
-  static const int dtonumn = 0x202;
+  static const int dtonumn = 0x1D2;
 
   /// ftod
-  static const int ftod = 0x203;
+  static const int ftod = 0x1D3;
 
   /// dtof
-  static const int dtof = 0x204;
-
-  /// dceil
-  static const int dceil = 0x208;
-
-  /// dfloor
-  static const int dfloor = 0x209;
+  static const int dtof = 0x1D4;
 
   /// dadd
-  static const int dadd = 0x210;
+  static const int dadd = 0x1E0;
 
   /// dsub
-  static const int dsub = 0x211;
+  static const int dsub = 0x1E1;
 
   /// dmul
-  static const int dmul = 0x212;
+  static const int dmul = 0x1E2;
 
   /// ddiv
-  static const int ddiv = 0x213;
+  static const int ddiv = 0x1E3;
 
   /// dmodr
-  static const int dmodr = 0x214;
+  static const int dmodr = 0x1E4;
 
   /// dmodq
-  static const int dmodq = 0x215;
+  static const int dmodq = 0x1E5;
 
   /// dsqrt
-  static const int dsqrt = 0x218;
+  static const int dsqrt = 0x1E8;
 
   /// dexp
-  static const int dexp = 0x219;
+  static const int dexp = 0x1E9;
 
   /// dlog
-  static const int dlog = 0x21A;
+  static const int dlog = 0x1EA;
 
   /// dpow
-  static const int dpow = 0x21B;
+  static const int dpow = 0x1EB;
 
   /// dsin
-  static const int dsin = 0x220;
+  static const int dsin = 0x1F0;
 
   /// dcos
-  static const int dcos = 0x221;
+  static const int dcos = 0x1F1;
 
   /// dtan
-  static const int dtan = 0x222;
+  static const int dtan = 0x1F2;
 
   /// dasin
-  static const int dasin = 0x223;
+  static const int dasin = 0x1F3;
 
   /// dacos
-  static const int dacos = 0x224;
+  static const int dacos = 0x1F4;
 
   /// datan
-  static const int datan = 0x225;
+  static const int datan = 0x1F5;
 
   /// datan2
-  static const int datan2 = 0x226;
+  static const int datan2 = 0x1F6;
 
-  /// jdeq
-  static const int jdeq = 0x230;
+  /// dceil
+  static const int dceil = 0x1F8;
 
-  /// jdne
-  static const int jdne = 0x231;
+  /// dfloor
+  static const int dfloor = 0x1F9;
 
-  /// jdlt
-  static const int jdlt = 0x232;
+  /// dgetround
+  static const int dgetround = 0x1FA;
 
-  /// jdle
-  static const int jdle = 0x233;
-
-  /// jdgt
-  static const int jdgt = 0x234;
-
-  /// jdge
-  static const int jdge = 0x235;
+  /// dsetround
+  static const int dsetround = 0x1FB;
 
   /// jdisnan
-  static const int jdisnan = 0x238;
+  static const int jdisnan = 0x200;
 
   /// jdisinf
-  static const int jdisinf = 0x239;
+  static const int jdisinf = 0x201;
+
+  /// jdeq
+  static const int jdeq = 0x202;
+
+  /// jdne
+  static const int jdne = 0x203;
+
+  /// jdlt
+  static const int jdlt = 0x204;
+
+  /// jdle
+  static const int jdle = 0x205;
+
+  /// jdgt
+  static const int jdgt = 0x206;
+
+  /// jdge
+  static const int jdge = 0x207;
 }

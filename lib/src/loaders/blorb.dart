@@ -31,12 +31,38 @@ class Blorb {
     return true;
   }
 
+  /// Checks if the file is a raw Z-machine game file.
+  /// Z-machine files start with a version byte (1-8), not a magic string.
+  static bool _isZGameFile(Uint8List fileBytes) {
+    if (fileBytes.isEmpty) return false;
+    // Z-machine version is the first byte, valid versions are 1-8
+    final version = fileBytes[0];
+    return version >= 1 && version <= 8;
+  }
+
+  /// Checks if the file is a raw Glulx game file.
+  /// Glulx files start with magic bytes 'Glul' (0x47, 0x6C, 0x75, 0x6C).
+  static bool _isGlulxGameFile(Uint8List fileBytes) {
+    if (fileBytes.length < 4) return false;
+    // Glulx magic number: ASCII "Glul" = 0x47 0x6C 0x75 0x6C
+    return fileBytes[0] == 0x47 && // 'G'
+        fileBytes[1] == 0x6C && // 'l'
+        fileBytes[2] == 0x75 && // 'u'
+        fileBytes[3] == 0x6C; // 'l'
+  }
+
   /// Returns a game file (if found) and the type of game file.
   static (Uint8List?, GameFileType?) getStoryFileData(Uint8List fileBytes) {
     if (!isBlorbFile(fileBytes)) {
-      // Not a blorb file, then we assume it's a old-school game file (.z3, .dat, etc)
-      // and just return the bytes.
-      return (fileBytes, GameFileType.z);
+      if (_isGlulxGameFile(fileBytes)) {
+        return (fileBytes, GameFileType.glulx);
+      }
+
+      if (_isZGameFile(fileBytes)) {
+        return (fileBytes, GameFileType.z);
+      }
+
+      return (null, null);
     }
     // Use a growable list for stream processing (Uint8List is fixed-length)
     var stream = List<int>.from(fileBytes);
@@ -169,9 +195,7 @@ class Blorb {
                       fileBytes[start + 7];
 
                   if (start + 8 + len <= fileBytes.length) {
-                    return Uint8List.fromList(
-                      fileBytes.sublist(start + 8, start + 8 + len),
-                    );
+                    return Uint8List.fromList(fileBytes.sublist(start + 8, start + 8 + len));
                   }
                 } else {
                   log.warning("GLUL chunk not found.");
@@ -249,9 +273,7 @@ class Blorb {
                       fileBytes[start + 7];
 
                   if (start + 8 + len <= fileBytes.length) {
-                    return Uint8List.fromList(
-                      fileBytes.sublist(start + 8, start + 8 + len),
-                    );
+                    return Uint8List.fromList(fileBytes.sublist(start + 8, start + 8 + len));
                   }
                 } else {
                   log.warning("ZCOD chunk not found.");

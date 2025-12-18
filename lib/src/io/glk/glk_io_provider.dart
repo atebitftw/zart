@@ -1,3 +1,5 @@
+import 'dart:async';
+
 // Reference: packages/ifarchive-if-specs/glk-spec.md
 // The reference is written assuming C-style code.  It is also written to the
 // perspective of the interpreter developer.  Since we are building our own
@@ -10,7 +12,7 @@
 /// asynchronous operations if needed.
 abstract class GlkIoProvider {
   /// Gestalt returns 0 for everything right now, and will expand as we implement more features.
-  Future<int> glkDispatch(int selector, List<int> args);
+  FutureOr<int> glkDispatch(int selector, List<int> args);
 
   /// Write a value to game memory. Override to provide memory access.
   void writeMemory(int addr, int value, {int size = 1}) {}

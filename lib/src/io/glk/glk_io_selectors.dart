@@ -213,6 +213,15 @@ class GlkIoSelectors {
   /// Select with polling.
   static const int selectPoll = 0xC1;
 
+  /// Create a file reference by file (Unicode).
+  static const int filerefCreateByFileUni = 0xC7;
+
+  /// Create a file reference by name (Unicode).
+  static const int filerefCreateByNameUni = 0xC8;
+
+  /// Create a file reference by prompt (Unicode).
+  static const int filerefCreateByPromptUni = 0xC9;
+
   /// Request a line event.
   static const int requestLineEvent = 0xD0;
 

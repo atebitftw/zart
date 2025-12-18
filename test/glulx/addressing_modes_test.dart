@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
 class MockGlkIoProvider extends GlkIoProvider {

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
-import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
 void main() {
@@ -71,7 +71,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // PC after opcode read: 0x103, then + 10 - 2 = 0x10B
       expect(interpreter.pc, equals(0x10B));
@@ -89,7 +89,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // PC after opcode read: 0x103, then + (-5) - 2 = 0xFC
       expect(interpreter.pc, equals(0xFC));
@@ -109,7 +109,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // L1=0, so branch taken: PC = 0x103 + 10 - 2 = 0x10B
       expect(interpreter.pc, equals(0x10B));
@@ -127,7 +127,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // L1 != 0, so no branch: PC stays at end of instruction (0x104)
       expect(interpreter.pc, equals(0x104));
@@ -148,7 +148,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // L1 != 0, branch taken: PC = 0x104 + 10 - 2 = 0x10C
       expect(interpreter.pc, equals(0x10C));
@@ -165,7 +165,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // L1 == 0, no branch
       expect(interpreter.pc, equals(0x103));
@@ -187,7 +187,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // L1 == L2, branch taken: PC = 0x106 + 10 - 2 = 0x10E
       expect(interpreter.pc, equals(0x10E));
@@ -206,7 +206,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // L1 != L2, no branch
       expect(interpreter.pc, equals(0x106));
@@ -228,7 +228,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // L1 != L2, branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -250,7 +250,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // -5 < 5, branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -269,7 +269,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 5 >= -5, no branch
       expect(interpreter.pc, equals(0x106));
@@ -292,7 +292,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 5 < 255 (unsigned), branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -312,7 +312,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 0x7FFFFFFF < 0x80000000 (unsigned), branch taken
       // PC after instruction: 0x100 + 1(op) + 2(modes) + 4(L1) + 4(L2) + 1(L3) = 0x10C
@@ -335,7 +335,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 5 >= 5, branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -356,7 +356,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 10 > 5, branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -377,7 +377,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 3 <= 5, branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -398,7 +398,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 255 >= 5 (unsigned), branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -419,7 +419,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 255 > 5 (unsigned), branch taken
       expect(interpreter.pc, equals(0x10E));
@@ -440,7 +440,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // 5 <= 255 (unsigned), branch taken
       expect(interpreter.pc, equals(0x10E));

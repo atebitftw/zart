@@ -10,7 +10,7 @@ import 'package:zart/zart.dart' hide getPreamble;
 import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/settings_screen.dart';
 import 'package:zart/src/cli/ui/terminal_display.dart';
-import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_interpreter.dart';
 
 // dart run zart.dart ../assets/games/monkey.gblorb -d --showheader --startstep=0 --endstep=1000 --showinstructions
 
@@ -18,40 +18,15 @@ import 'package:zart/src/glulx/interpreter.dart';
 /// Uses dart_console for cross-platform support.
 void main(List<String> args) async {
   final parser = ArgParser()
-    ..addFlag(
-      'debug',
-      abbr: 'd',
-      help: 'Enable Glulx debugger',
-      defaultsTo: false,
-    )
+    ..addFlag('debug', abbr: 'd', help: 'Enable Glulx debugger', defaultsTo: false)
     ..addOption('startstep', help: 'Start step for debugger output')
     ..addOption('endstep', help: 'End step for debugger output')
     ..addFlag('showheader', help: 'Show Glulx header info', defaultsTo: false)
-    ..addFlag(
-      'showbytes',
-      help: 'Show raw bytes (requires --debug)',
-      defaultsTo: false,
-    )
-    ..addFlag(
-      'showmodes',
-      help: 'Show addressing modes (requires --debug)',
-      defaultsTo: false,
-    )
-    ..addFlag(
-      'showinstructions',
-      help: 'Show instructions (requires --debug)',
-      defaultsTo: false,
-    )
-    ..addFlag(
-      'showpc',
-      help: 'Show PC advancement (requires --debug)',
-      defaultsTo: false,
-    )
-    ..addFlag(
-      'flight-recorder',
-      help: 'Enable flight recorder (last 100 instructions)',
-      defaultsTo: false,
-    );
+    ..addFlag('showbytes', help: 'Show raw bytes (requires --debug)', defaultsTo: false)
+    ..addFlag('showmodes', help: 'Show addressing modes (requires --debug)', defaultsTo: false)
+    ..addFlag('showinstructions', help: 'Show instructions (requires --debug)', defaultsTo: false)
+    ..addFlag('showpc', help: 'Show PC advancement (requires --debug)', defaultsTo: false)
+    ..addFlag('flight-recorder', help: 'Enable flight recorder (last 100 instructions)', defaultsTo: false);
 
   ArgResults results;
   try {
@@ -110,10 +85,7 @@ void main(List<String> args) async {
       if (results['startstep'] != null) {
         startStepVal = int.tryParse(results['startstep']);
         if (startStepVal == null && results['startstep'].startsWith('0x')) {
-          startStepVal = int.tryParse(
-            results['startstep'].substring(2),
-            radix: 16,
-          );
+          startStepVal = int.tryParse(results['startstep'].substring(2), radix: 16);
         }
       }
 
@@ -174,10 +146,7 @@ Future<void> _runGlulxGame(
   f.writeAsStringSync("", mode: FileMode.write);
 
   log.onRecord.listen((record) {
-    f.writeAsStringSync(
-      "${record.level.name}: ${record.message}\n",
-      mode: FileMode.append,
-    );
+    f.writeAsStringSync("${record.level.name}: ${record.message}\n", mode: FileMode.append);
     //terminal.appendToWindow0("${record.level.name}: ${record.message}\n");
   });
 
@@ -209,7 +178,7 @@ Future<void> _runGlulxGame(
     log.warning('Game started');
     // keeping maxSteps here for now to handle infinite loops, etc.
     await glulx.run(maxStep: 1000);
-    log.warning('Game ended. Tick Count: ${provider.tickCount}');
+    log.warning('Game ended. Tick Count: ${provider.tickCount}. Step Count: ${glulx.step}');
     // Render what we have so far
     terminal.render();
 
@@ -220,24 +189,20 @@ Future<void> _runGlulxGame(
 
     terminal.exitFullScreen();
     exit(0);
-  } catch (e) {
+  } catch (e, stackTrace) {
     terminal.exitFullScreen();
     stdout.writeln("Glulx Error: $e");
+    stdout.writeln("Stack Trace:\n$stackTrace");
     exit(1);
   }
 }
 
-Future<void> _runZMachineGame(
-  String fileName,
-  Uint8List gameData,
-  ConfigurationManager config,
-) async {
+Future<void> _runZMachineGame(String fileName, Uint8List gameData, ConfigurationManager config) async {
   var isGameRunning = false;
   final terminal = TerminalDisplay();
   terminal.config = config;
   terminal.applySavedSettings();
-  terminal.onOpenSettings = () =>
-      SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
+  terminal.onOpenSettings = () => SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
 
   // Disable debugging for clean display
   Debugger.enableDebug = false;
@@ -295,11 +260,7 @@ Future<void> _runZMachineGame(
             final line = await terminal.readLine();
             terminal.appendToWindow0('\n');
             // Split by '.' to support chained commands
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

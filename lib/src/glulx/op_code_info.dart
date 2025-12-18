@@ -59,6 +59,131 @@ class OpcodeInfo {
     GlulxOp.tailcall: OpcodeInfo(2, [false, false]),
     GlulxOp.catchEx: OpcodeInfo(2, [true, false]),
     GlulxOp.throwEx: OpcodeInfo(2, [false, false]),
+
+    // Miscellaneous Opcodes
+    GlulxOp.quit: OpcodeInfo(0, []),
+    GlulxOp.gestalt: OpcodeInfo(3, [false, false, true]),
+
+    // I/O System Opcodes
+    GlulxOp.setiosys: OpcodeInfo(2, [false, false]),
+    GlulxOp.getiosys: OpcodeInfo(2, [true, true]),
+
+    // Copy Opcodes
+    GlulxOp.copy: OpcodeInfo(2, [false, true]),
+    GlulxOp.copys: OpcodeInfo(2, [false, true]),
+    GlulxOp.copyb: OpcodeInfo(2, [false, true]),
+
+    // Array: L1 L2 S1
+    GlulxOp.aload: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.aloads: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.aloadb: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.aloadbit: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.astore: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.astores: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.astoreb: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.astorebit: OpcodeInfo(3, [false, false, false]),
+
+    // Stack: L1 S1 (except stkswap which is 0, stkcopy/stkroll which are L1/L1 L2)
+    GlulxOp.stkcount: OpcodeInfo(1, [true]),
+    GlulxOp.stkpeek: OpcodeInfo(2, [false, true]),
+    GlulxOp.stkswap: OpcodeInfo(0, []),
+    GlulxOp.stkroll: OpcodeInfo(2, [false, false]),
+    GlulxOp.stkcopy: OpcodeInfo(1, [false]),
+
+    // Memory: S1/L1 S1
+    GlulxOp.getmemsize: OpcodeInfo(1, [true]),
+    GlulxOp.setmemsize: OpcodeInfo(2, [false, true]),
+    GlulxOp.mzero: OpcodeInfo(2, [false, false]),
+    GlulxOp.mcopy: OpcodeInfo(3, [false, false, false]),
+
+    // System / Random
+    GlulxOp.random: OpcodeInfo(2, [false, true]),
+    GlulxOp.setrandom: OpcodeInfo(1, [false]),
+    GlulxOp.verify: OpcodeInfo(1, [true]),
+    GlulxOp.restart: OpcodeInfo(0, []),
+    GlulxOp.getstringtbl: OpcodeInfo(1, [true]),
+    GlulxOp.setstringtbl: OpcodeInfo(1, [false]),
+
+    // Stream: L1
+    GlulxOp.streamchar: OpcodeInfo(1, [false]),
+    GlulxOp.streamnum: OpcodeInfo(1, [false]),
+    GlulxOp.streamstr: OpcodeInfo(1, [false]),
+    GlulxOp.streamunichar: OpcodeInfo(1, [false]),
+
+    // Search: (many operands)
+    GlulxOp.linearsearch: OpcodeInfo(8, [false, false, false, false, false, false, false, true]),
+    GlulxOp.binarysearch: OpcodeInfo(8, [false, false, false, false, false, false, false, true]),
+    GlulxOp.linkedsearch: OpcodeInfo(7, [false, false, false, false, false, false, true]),
+
+    // Floating Point: L1 L2 S1 / L1 S1
+    GlulxOp.fadd: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.fsub: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.fmul: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.fdiv: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.fmod: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.frem: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.sqrt: OpcodeInfo(2, [false, true]),
+    GlulxOp.exp: OpcodeInfo(2, [false, true]),
+    GlulxOp.log: OpcodeInfo(2, [false, true]),
+    GlulxOp.pow: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.sin: OpcodeInfo(2, [false, true]),
+    GlulxOp.cos: OpcodeInfo(2, [false, true]),
+    GlulxOp.tan: OpcodeInfo(2, [false, true]),
+    GlulxOp.asin: OpcodeInfo(2, [false, true]),
+    GlulxOp.acos: OpcodeInfo(2, [false, true]),
+    GlulxOp.atan: OpcodeInfo(2, [false, true]),
+    GlulxOp.atan2: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.ceil: OpcodeInfo(2, [false, true]),
+    GlulxOp.floor: OpcodeInfo(2, [false, true]),
+    GlulxOp.numtof: OpcodeInfo(2, [false, true]),
+    GlulxOp.ftonumz: OpcodeInfo(2, [false, true]),
+    GlulxOp.ftonumn: OpcodeInfo(2, [false, true]),
+    GlulxOp.jfeq: OpcodeInfo(4, [false, false, false, false]),
+    GlulxOp.jfne: OpcodeInfo(4, [false, false, false, false]),
+    GlulxOp.jflt: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jfge: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jfgt: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jfle: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jisnan: OpcodeInfo(2, [false, false]),
+    GlulxOp.jisinf: OpcodeInfo(2, [false, false]),
+    GlulxOp.fgetround: OpcodeInfo(1, [true]),
+    GlulxOp.fsetround: OpcodeInfo(1, [false]),
+
+    // Double Precision: (same as float but mostly 64-bit operands)
+    GlulxOp.dadd: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.dsub: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.dmul: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.ddiv: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.dmodr: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.dmodq: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.dsqrt: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dexp: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dlog: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dpow: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.dsin: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dcos: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dtan: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dasin: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dacos: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.datan: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.datan2: OpcodeInfo(6, [false, false, false, false, true, true]),
+    GlulxOp.dceil: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.dfloor: OpcodeInfo(4, [false, false, true, true]),
+    GlulxOp.numtod: OpcodeInfo(3, [false, true, true]),
+    GlulxOp.dtonumz: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.ftod: OpcodeInfo(2, [false, true, true]),
+    GlulxOp.dtof: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.jdeq: OpcodeInfo(7, [false, false, false, false, false, false, false]),
+    GlulxOp.jdne: OpcodeInfo(7, [false, false, false, false, false, false, false]),
+    GlulxOp.jdlt: OpcodeInfo(5, [false, false, false, false, false]),
+    GlulxOp.jdge: OpcodeInfo(5, [false, false, false, false, false]),
+    GlulxOp.jdgt: OpcodeInfo(5, [false, false, false, false, false]),
+    GlulxOp.jdle: OpcodeInfo(5, [false, false, false, false, false]),
+    GlulxOp.jdisnan: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jdisinf: OpcodeInfo(3, [false, false, false]),
+
+    // Glk Opcode
+    GlulxOp.glk: OpcodeInfo(3, [false, false, true]),
   };
 
   static OpcodeInfo get(int opcode) {

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
-import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
 void main() {
@@ -63,7 +63,7 @@ void main() {
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // PC should advance past the opcode
       expect(interpreter.pc, equals(0x101));
@@ -84,7 +84,7 @@ void main() {
       // Push a dummy call frame since stack operations need it
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(12));
     });
@@ -104,7 +104,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(0));
     });
@@ -118,7 +118,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(7));
     });
@@ -132,7 +132,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(42));
     });
@@ -146,7 +146,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(5));
     });
@@ -160,7 +160,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(() => interpreter.executeInstruction(), throwsException);
+      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
     });
 
     test('div throws on -0x80000000 / -1', () async {
@@ -177,7 +177,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(() => interpreter.executeInstruction(), throwsException);
+      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
     });
 
     test('div handles negative numbers correctly', () async {
@@ -193,7 +193,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // Result is -5 as unsigned 32-bit
       expect(interpreter.stack.pop32().toSigned(32), equals(-5));
@@ -208,7 +208,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(3));
     });
@@ -222,7 +222,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(() => interpreter.executeInstruction(), throwsException);
+      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
     });
 
     test('neg computes -L1', () async {
@@ -234,7 +234,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       // -5 as unsigned 32-bit
       expect(interpreter.stack.pop32(), equals((-5) & 0xFFFFFFFF));
@@ -276,7 +276,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32().toSigned(32), equals(-2));
     });
@@ -294,7 +294,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32().toSigned(32), equals(2));
     });
@@ -313,7 +313,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32().toSigned(32), equals(-1));
     });
@@ -331,7 +331,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32().toSigned(32), equals(1));
     });
@@ -349,7 +349,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32().toSigned(32), equals(-1));
     });

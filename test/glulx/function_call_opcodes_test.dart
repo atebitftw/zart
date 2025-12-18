@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
-import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
 void main() {
@@ -110,9 +110,9 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
       // Execute callf
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
       // Execute ret
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(99));
     });
@@ -136,11 +136,11 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
       // Execute callfi
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
       expect(interpreter.pc, equals(0x205)); // entry point
 
       // Execute ret in function
-      interpreter.executeInstruction();
+      await interpreter.executeInstruction();
 
       expect(interpreter.stack.pop32(), equals(42));
     });
@@ -164,9 +164,9 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction(); // callfii
-      interpreter.executeInstruction(); // add
-      interpreter.executeInstruction(); // ret
+      await interpreter.executeInstruction(); // callfii
+      await interpreter.executeInstruction(); // add
+      await interpreter.executeInstruction(); // ret
 
       expect(interpreter.stack.pop32(), equals(42));
     });
@@ -190,8 +190,8 @@ void main() {
       // Push argument
       interpreter.stack.push32(77);
 
-      interpreter.executeInstruction(); // call
-      interpreter.executeInstruction(); // ret
+      await interpreter.executeInstruction(); // call
+      await interpreter.executeInstruction(); // ret
 
       expect(interpreter.stack.pop32(), equals(77));
     });
@@ -214,11 +214,11 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction(); // callf
-      interpreter.executeInstruction(); // ret
+      await interpreter.executeInstruction(); // callf
+      await interpreter.executeInstruction(); // ret
       expect(interpreter.pc, equals(0x105)); // back to add
 
-      interpreter.executeInstruction(); // add
+      await interpreter.executeInstruction(); // add
 
       expect(interpreter.stack.pop32(), equals(8));
       expect(interpreter.stack.pop32(), equals(99));
@@ -241,7 +241,7 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction(); // catch
+      await interpreter.executeInstruction(); // catch
 
       expect(interpreter.pc, equals(0x107));
       final token = interpreter.stack.pop32();
@@ -271,9 +271,9 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      interpreter.executeInstruction(); // callfii
-      interpreter.executeInstruction(); // add
-      interpreter.executeInstruction(); // ret
+      await interpreter.executeInstruction(); // callfii
+      await interpreter.executeInstruction(); // add
+      await interpreter.executeInstruction(); // ret
 
       // Should return 12 (count=2 + firstArg=10), not 101 (count=2 + secondArg=99)
       expect(interpreter.stack.pop32(), equals(12));
