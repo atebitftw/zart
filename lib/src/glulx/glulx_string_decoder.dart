@@ -5,9 +5,7 @@ import 'package:zart/src/glulx/typable_objects.dart';
 class CompressedString extends GlulxString {
   final int bitStreamAddress;
 
-  CompressedString(int address)
-    : bitStreamAddress = address + 1,
-      super(address, GlulxTypableType.stringE1);
+  CompressedString(int address) : bitStreamAddress = address + 1, super(address, GlulxTypableType.stringE1);
 }
 
 /// Spec Section 1.4.1.4: The String-Decoding Table
@@ -18,13 +16,7 @@ class HuffmanTable {
   final int rootAddress;
   final Map<int, HuffmanNode> nodes;
 
-  HuffmanTable(
-    this.address,
-    this.length,
-    this.nodeCount,
-    this.rootAddress,
-    this.nodes,
-  );
+  HuffmanTable(this.address, this.length, this.nodeCount, this.rootAddress, this.nodes);
 
   static HuffmanTable parse(GlulxMemoryMap memory, int address) {
     final length = memory.readWord(address);
@@ -46,15 +38,19 @@ abstract class HuffmanNode {
   static HuffmanNode parse(GlulxMemoryMap memory, int address) {
     final type = memory.readByte(address);
     switch (type) {
+      /// Spec 1.4.1.4: "Branch (non-leaf node) | Type: 00 | Left (0) Node | Right (1) Node"
       case 0x00:
-        return BranchNode(
-          memory.readWord(address + 1),
-          memory.readWord(address + 5),
-        );
+        return BranchNode(memory.readWord(address + 1), memory.readWord(address + 5));
+
+      /// Spec 1.4.1.4: "String terminator | Type: 01 | This ends the string-decoding process."
       case 0x01:
         return TerminatorNode();
+
+      /// Spec 1.4.1.4: "Single character | Type: 02 | Character (1 byte)"
       case 0x02:
         return SingleCharNode(memory.readByte(address + 1));
+
+      /// Spec 1.4.1.4: "C-style string | Type: 03 | Characters... | NUL: 00"
       case 0x03:
         final bytes = <int>[];
         int current = address + 1;
@@ -64,8 +60,12 @@ abstract class HuffmanNode {
           bytes.add(b);
         }
         return StringNode(bytes);
+
+      /// Spec 1.4.1.4: "Single Unicode character | Type: 04 | Character (4 bytes)"
       case 0x04:
         return UnicodeCharNode(memory.readWord(address + 1));
+
+      /// Spec 1.4.1.4: "C-style Unicode string | Type: 05 | Characters... | NUL: 00000000"
       case 0x05:
         final chars = <int>[];
         int current = address + 1;
@@ -76,10 +76,16 @@ abstract class HuffmanNode {
           chars.add(c);
         }
         return UnicodeStringNode(chars);
+
+      /// Spec 1.4.1.4: "Indirect reference | Type: 08 | Address (4 bytes)"
       case 0x08:
         return IndirectNode(memory.readWord(address + 1));
+
+      /// Spec 1.4.1.4: "Double-indirect reference | Type: 09 | Address (4 bytes)"
       case 0x09:
         return DoubleIndirectNode(memory.readWord(address + 1));
+
+      /// Spec 1.4.1.4: "Indirect reference with arguments | Type: 0A | Address | Count | Args..."
       case 0x0A:
         final addr = memory.readWord(address + 1);
         final count = memory.readWord(address + 5);
@@ -88,6 +94,8 @@ abstract class HuffmanNode {
           args.add(memory.readWord(address + 9 + (i * 4)));
         }
         return IndirectArgsNode(addr, args);
+
+      /// Spec 1.4.1.4: "Double-indirect reference with arguments | Type: 0B | Address | Count | Args..."
       case 0x0B:
         final addr = memory.readWord(address + 1);
         final count = memory.readWord(address + 5);
@@ -97,9 +105,7 @@ abstract class HuffmanNode {
         }
         return DoubleIndirectArgsNode(addr, args);
       default:
-        throw Exception(
-          'Unknown Huffman node type: 0x${type.toRadixString(16)} at 0x${address.toRadixString(16)}',
-        );
+        throw Exception('Unknown Huffman node type: 0x${type.toRadixString(16)} at 0x${address.toRadixString(16)}');
     }
   }
 }
