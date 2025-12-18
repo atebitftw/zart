@@ -50,15 +50,15 @@ class GlulxDebugger {
   void logHeader(ByteData memory) {
     if (!enabled || !showHeader) return;
 
-    final magic = memory.getUint32(GlulxHeader.magicNumber);
-    final version = memory.getUint32(GlulxHeader.version);
-    final ramStart = memory.getUint32(GlulxHeader.ramStart);
-    final extStart = memory.getUint32(GlulxHeader.extStart);
-    final endMem = memory.getUint32(GlulxHeader.endMem);
-    final stackSize = memory.getUint32(GlulxHeader.stackSize);
-    final startFunc = memory.getUint32(GlulxHeader.startFunc);
-    final decodingTbl = memory.getUint32(GlulxHeader.decodingTbl);
-    final checksum = memory.getUint32(GlulxHeader.checksum);
+    final magic = memory.getUint32(GlulxHeader.magicNumberOffset, Endian.big);
+    final version = memory.getUint32(GlulxHeader.versionOffset, Endian.big);
+    final ramStart = memory.getUint32(GlulxHeader.ramStartOffset, Endian.big);
+    final extStart = memory.getUint32(GlulxHeader.extStartOffset, Endian.big);
+    final endMem = memory.getUint32(GlulxHeader.endMemOffset, Endian.big);
+    final stackSize = memory.getUint32(GlulxHeader.stackSizeOffset, Endian.big);
+    final startFunc = memory.getUint32(GlulxHeader.startFuncOffset, Endian.big);
+    final decodingTbl = memory.getUint32(GlulxHeader.decodingTblOffset, Endian.big);
+    final checksum = memory.getUint32(GlulxHeader.checksumOffset, Endian.big);
 
     // Format version as major.minor.patch
     final major = (version >> 16) & 0xFFFF;
@@ -78,6 +78,7 @@ class GlulxDebugger {
     log.info('====================');
   }
 
+  /// Converts a magic number to its ASCII string representation.
   String _magicToString(int magic) {
     return String.fromCharCodes([(magic >> 24) & 0xFF, (magic >> 16) & 0xFF, (magic >> 8) & 0xFF, magic & 0xFF]);
   }
@@ -322,6 +323,7 @@ class GlulxDebugger {
     log.info('-------------------------------------------');
   }
 
+  /// Dumps the current debug settings to the log.
   void dumpDebugSettings() {
     log.info('=== Glulx Debugger Settings ===');
     log.info('  Enabled: $enabled');

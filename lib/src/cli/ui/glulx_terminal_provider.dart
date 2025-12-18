@@ -1,11 +1,11 @@
 import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
-import 'package:zart/src/io/glk/glk_gestalt_selectors.dart'
-    show GlkGestaltSelectors;
+import 'package:zart/src/io/glk/glk_gestalt_selectors.dart' show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/logging.dart' show log;
+// GlkEventTypes is in glk_io_selectors.dart
 
 /// IO provider for Glulx interpreter.
 class GlulxTerminalProvider implements GlkIoProvider {
@@ -18,15 +18,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
   int _tickCount = 0;
 
   int get tickCount => _tickCount;
-
-  // --- Input State Tracking ---
-  // Pending line input request
-  int? _pendingLineInputWindow;
-  int? _pendingLineInputBuffer;
-  int? _pendingLineInputMaxLen;
-
-  // Pending char input request
-  int? _pendingCharInputWindow;
 
   // Memory access callbacks (set by interpreter)
   void Function(int addr, int value, {int size})? _writeMemory;
@@ -81,7 +72,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
         terminal.appendToWindow0(String.fromCharCode(args[1]));
         if (args[1] == 10) terminal.render(); // Render on newline
         return 0;
-      // ...
+
       case GlkGestaltSelectors.unicode:
         // We support unicode (Dart strings do)
         return 1;
@@ -96,97 +87,19 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
       // --- Input Handling ---
       case GlkIoSelectors.requestLineEvent:
-        // glk_request_line_event(win, buf, maxlen, initlen)
-        // args[0] = window, args[1] = buffer addr, args[2] = maxlen, args[3] = initlen
-        _pendingLineInputWindow = args[0];
-        _pendingLineInputBuffer = args[1];
-        _pendingLineInputMaxLen = args[2];
-        // initlen is ignored for now (could pre-fill buffer)
-        return 0;
+        throw GlulxException("requestLineEvent not implemented");
 
       case GlkIoSelectors.requestCharEvent:
-        // glk_request_char_event(win)
-        _pendingCharInputWindow = args[0];
-        return 0;
+        throw GlulxException("requestCharEvent not implemented");
 
       case GlkIoSelectors.cancelLineEvent:
-        // glk_cancel_line_event(win, event) - cancel pending line input
-        // args[0] = window, args[1] = event address (may be 0/null)
-        if (_pendingLineInputWindow != null) {
-          // If event address provided, fill it with evtype_None
-          if (args.length > 1 && args[1] != 0) {
-            _writeEventStruct(args[1], GlkEventTypes.none, 0, 0, 0);
-          }
-          _pendingLineInputWindow = null;
-          _pendingLineInputBuffer = null;
-          _pendingLineInputMaxLen = null;
-        }
-        return 0;
+        throw GlulxException("cancelLineEvent not implemented");
 
       case GlkIoSelectors.cancelCharEvent:
-        // glk_cancel_char_event(win) - cancel pending char input
-        _pendingCharInputWindow = null;
-        return 0;
+        throw GlulxException("cancelCharEvent not implemented");
 
       case GlkIoSelectors.select:
-        // glk_select(event) - BLOCKING wait for input
-        // args[0] = event structure address
-        final eventAddr = args[0];
-
-        // Render the terminal before waiting for input
-        terminal.render();
-
-        if (_pendingLineInputWindow != null) {
-          // Wait for line input
-          final line = await terminal.readLine();
-
-          // Write line bytes to game memory at buffer address
-          final bufAddr = _pendingLineInputBuffer!;
-          final maxLen = _pendingLineInputMaxLen!;
-          final lineLen = line.length > maxLen ? maxLen : line.length;
-
-          for (int i = 0; i < lineLen; i++) {
-            writeMemory(bufAddr + i, line.codeUnitAt(i), size: 1);
-          }
-
-          // Fill event structure: type=lineInput(3), win, val1=charCount, val2=0
-          _writeEventStruct(
-            eventAddr,
-            GlkEventTypes.lineInput,
-            _pendingLineInputWindow!,
-            lineLen,
-            0,
-          );
-
-          // Echo the input line to the display
-          terminal.appendToWindow0('$line\n');
-
-          // Clear pending request
-          _pendingLineInputWindow = null;
-          _pendingLineInputBuffer = null;
-          _pendingLineInputMaxLen = null;
-        } else if (_pendingCharInputWindow != null) {
-          // Wait for character input
-          final charStr = await terminal.readChar();
-          final charCode = charStr.isNotEmpty ? charStr.codeUnitAt(0) : 0;
-
-          // Fill event structure: type=charInput(2), win, val1=charCode, val2=0
-          _writeEventStruct(
-            eventAddr,
-            GlkEventTypes.charInput,
-            _pendingCharInputWindow!,
-            charCode,
-            0,
-          );
-
-          // Clear pending request
-          _pendingCharInputWindow = null;
-        } else {
-          // No input pending - return evtype_None (shouldn't normally happen)
-          log.warning('glk_select called with no pending input request');
-          _writeEventStruct(eventAddr, GlkEventTypes.none, 0, 0, 0);
-        }
-        return 0;
+        throw GlulxException("select not implemented");
 
       case GlkIoSelectors.selectPoll:
         // glk_select_poll(event) - non-blocking check for events
@@ -209,9 +122,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       default:
-        throw GlulxException(
-          'GlulxTerminalProvider -> Unknown selector: 0x${selector.toRadixString(16)}',
-        );
+        throw GlulxException('GlulxTerminalProvider -> Unknown selector: 0x${selector.toRadixString(16)}');
     }
   }
 
