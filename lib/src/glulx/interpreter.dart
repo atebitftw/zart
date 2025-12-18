@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/glulx/glulx_memory_map.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_stack.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
@@ -66,10 +67,86 @@ class GlulxInterpreter {
     final opcode = _readOpCode();
     final info = OpcodeInfo.get(opcode);
     final modes = _readAddressingModes(info.operandCount);
-    // ignore: unused_local_variable
     final operands = _fetchOperands(opcode, info, modes);
 
-    // Opcode dispatch would happen here.
+    _executeOpcode(opcode, operands);
+  }
+
+  /// Executes the given opcode with the provided operands.
+  void _executeOpcode(int opcode, List<Object> operands) {
+    switch (opcode) {
+      /// Spec Section 2.4: "nop: Do nothing."
+      case GlulxOp.nop:
+        break;
+
+      /// Spec Section 2.4.1: "add L1 L2 S1: Add L1 and L2, using standard 32-bit addition.
+      /// Truncate the result to 32 bits if necessary. Store the result in S1."
+      case GlulxOp.add:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        _performStore(dest, (l1 + l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.1: "sub L1 L2 S1: Compute (L1 - L2), and store the result in S1."
+      case GlulxOp.sub:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        _performStore(dest, (l1 - l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.1: "mul L1 L2 S1: Compute (L1 * L2), and store the result in S1.
+      /// Truncate the result to 32 bits if necessary."
+      case GlulxOp.mul:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        _performStore(dest, (l1 * l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.1: "div L1 L2 S1: Compute (L1 / L2), and store the result in S1.
+      /// This is signed integer division. Division by zero is of course an error.
+      /// So is dividing the value -0x80000000 by -1."
+      case GlulxOp.div:
+        final l1 = (operands[0] as int).toSigned(32);
+        final l2 = (operands[1] as int).toSigned(32);
+        final dest = operands[2] as _StoreOperand;
+        if (l2 == 0) {
+          throw Exception('Division by zero (Spec Section 2.4.1)');
+        }
+        if (l1 == -0x80000000 && l2 == -1) {
+          throw Exception('Division overflow: -0x80000000 / -1 (Spec Section 2.4.1)');
+        }
+        _performStore(dest, (l1 ~/ l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.1: "mod L1 L2 S1: Compute (L1 % L2), and store the result in S1.
+      /// This is the remainder from signed integer division.
+      /// As with division, taking the remainder modulo zero is an error, as is -0x80000000 % -1."
+      case GlulxOp.mod:
+        final l1 = (operands[0] as int).toSigned(32);
+        final l2 = (operands[1] as int).toSigned(32);
+        final dest = operands[2] as _StoreOperand;
+        if (l2 == 0) {
+          throw Exception('Modulo by zero (Spec Section 2.4.1)');
+        }
+        if (l1 == -0x80000000 && l2 == -1) {
+          throw Exception('Modulo overflow: -0x80000000 % -1 (Spec Section 2.4.1)');
+        }
+        _performStore(dest, (l1 % l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.1: "neg L1 S1: Compute the negative of L1."
+      case GlulxOp.neg:
+        final l1 = operands[0] as int;
+        final dest = operands[1] as _StoreOperand;
+        _performStore(dest, (-l1) & 0xFFFFFFFF);
+        break;
+
+      default:
+        throw Exception('Unimplemented opcode: 0x${opcode.toRadixString(16)}');
+    }
   }
 
   /// Reads an opcode from the current PC.
