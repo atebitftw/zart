@@ -22,7 +22,10 @@ class GlulxLocalsDescriptor {
   /// The total length of the locals section including trailing padding to align the stack values (4-byte boundary).
   final int totalSizeWithPadding;
 
-  GlulxLocalsDescriptor(this.locals, this.localsSize) : totalSizeWithPadding = (localsSize + 3) & ~3;
+  /// The original format bytes, used when pushing frames.
+  final Uint8List formatBytes;
+
+  GlulxLocalsDescriptor(this.locals, this.localsSize, this.formatBytes) : totalSizeWithPadding = (localsSize + 3) & ~3;
 
   /// Parses the "Format of Locals" descriptor from the function header.
   ///
@@ -50,6 +53,6 @@ class GlulxLocalsDescriptor {
       }
     }
 
-    return GlulxLocalsDescriptor(locals, currentOffset);
+    return GlulxLocalsDescriptor(locals, currentOffset, format);
   }
 }

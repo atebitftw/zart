@@ -48,6 +48,17 @@ class OpcodeInfo {
     GlulxOp.jgeu: OpcodeInfo(3, [false, false, false]),
     GlulxOp.jgtu: OpcodeInfo(3, [false, false, false]),
     GlulxOp.jleu: OpcodeInfo(3, [false, false, false]),
+
+    // Function Call Opcodes
+    GlulxOp.call: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.callf: OpcodeInfo(2, [false, true]),
+    GlulxOp.callfi: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.callfii: OpcodeInfo(4, [false, false, false, true]),
+    GlulxOp.callfiii: OpcodeInfo(5, [false, false, false, false, true]),
+    GlulxOp.ret: OpcodeInfo(1, [false]),
+    GlulxOp.tailcall: OpcodeInfo(2, [false, false]),
+    GlulxOp.catchEx: OpcodeInfo(2, [true, false]),
+    GlulxOp.throwEx: OpcodeInfo(2, [false, false]),
   };
 
   static OpcodeInfo get(int opcode) {

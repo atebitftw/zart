@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:zart/src/glulx/glulx_debugger.dart';
+import 'package:zart/src/glulx/glulx_function.dart';
 import 'package:zart/src/glulx/glulx_memory_map.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_stack.dart';
@@ -350,6 +351,118 @@ class GlulxInterpreter {
         }
         break;
 
+      // ========== Function Call Opcodes (Spec Section 2.4.4) ==========
+
+      /// Spec Section 2.4.4: "call L1 L2 S1: Call function whose address is L1,
+      /// passing in L2 arguments, and store the return result at S1."
+      case GlulxOp.call:
+        final address = operands[0] as int;
+        final argCount = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        // Pop args from stack (pushed in reverse order by caller)
+        final args = <int>[];
+        for (var i = 0; i < argCount; i++) {
+          args.add(stack.pop32());
+        }
+        _callFunction(address, args.reversed.toList(), dest);
+        break;
+
+      /// Spec Section 2.4.4: "callf L1 S1: Call function with 0 arguments."
+      case GlulxOp.callf:
+        final address = operands[0] as int;
+        final dest = operands[1] as _StoreOperand;
+        _callFunction(address, [], dest);
+        break;
+
+      /// Spec Section 2.4.4: "callfi L1 L2 S1: Call function with 1 argument."
+      case GlulxOp.callfi:
+        final address = operands[0] as int;
+        final arg1 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        _callFunction(address, [arg1], dest);
+        break;
+
+      /// Spec Section 2.4.4: "callfii L1 L2 L3 S1: Call function with 2 arguments."
+      case GlulxOp.callfii:
+        final address = operands[0] as int;
+        final arg1 = operands[1] as int;
+        final arg2 = operands[2] as int;
+        final dest = operands[3] as _StoreOperand;
+        _callFunction(address, [arg1, arg2], dest);
+        break;
+
+      /// Spec Section 2.4.4: "callfiii L1 L2 L3 L4 S1: Call function with 3 arguments."
+      case GlulxOp.callfiii:
+        final address = operands[0] as int;
+        final arg1 = operands[1] as int;
+        final arg2 = operands[2] as int;
+        final arg3 = operands[3] as int;
+        final dest = operands[4] as _StoreOperand;
+        _callFunction(address, [arg1, arg2, arg3], dest);
+        break;
+
+      /// Spec Section 2.4.4: "return L1: Return from the current function."
+      case GlulxOp.ret:
+        final value = operands[0] as int;
+        _returnValue(value);
+        break;
+
+      /// Spec Section 2.4.4: "tailcall L1 L2: Call function, passing return result out."
+      case GlulxOp.tailcall:
+        final address = operands[0] as int;
+        final argCount = operands[1] as int;
+        // Pop args from stack
+        final args = <int>[];
+        for (var i = 0; i < argCount; i++) {
+          args.add(stack.pop32());
+        }
+        // Pop current frame first
+        final stub = stack.popFrame();
+        // Dest is inherited from the call stub we just popped
+        final dest = _StoreOperand(stub[0], stub[1]);
+        // Restore old PC temporarily (will be overwritten)
+        _pc = stub[2];
+        // Now call new function with same destination
+        _callFunction(address, args.reversed.toList(), dest);
+        break;
+
+      /// Spec Section 2.4.4: "catch S1 L1: Generate catch token, branch to L1."
+      case GlulxOp.catchEx:
+        final dest = operands[0] as _StoreOperand;
+        final offset = operands[1] as int;
+        // Push call stub (for throw to restore)
+        stack.pushCallStub(dest.mode, dest.addr, _pc, stack.fp);
+        // Token is current SP after pushing the stub
+        final token = stack.sp;
+        // Store token in destination
+        _performStore(dest, token);
+        // Branch to offset
+        _performBranch(offset);
+        break;
+
+      /// Spec Section 2.4.4: "throw L1 L2: Jump back to catch with value L1, token L2."
+      case GlulxOp.throwEx:
+        final value = operands[0] as int;
+        final token = operands[1] as int;
+        // Pop stack down to token
+        while (stack.sp > token) {
+          stack.pop32();
+        }
+        // Pop call stub
+        final stub = stack.popCallStub();
+        // Store thrown value in destination
+        stack.storeResult(
+          value,
+          stub[0],
+          stub[1],
+          onMemoryWrite: (addr, val) {
+            memoryMap.writeWord(addr, val);
+          },
+        );
+        // Continue with instruction after catch
+        _pc = stub[2];
+        break;
+
       default:
         throw Exception('Unimplemented opcode: 0x${opcode.toRadixString(16)}');
     }
@@ -577,14 +690,128 @@ class GlulxInterpreter {
   void _performBranch(int offset) {
     if (offset == 0 || offset == 1) {
       // Spec: "The special offset values 0 and 1 are interpreted as 'return 0' and 'return 1'"
-      // This requires function return logic which needs call stub handling.
-      // For now, we'll implement a simplified version that just flags the condition.
-      // Full implementation will be done with call/return opcodes.
-      throw Exception('Branch return ($offset) not yet implemented - needs call stub handling');
+      _returnValue(offset);
     } else {
       // Spec: "The actual destination address of the branch is computed as (Addr + Offset - 2)"
       // _pc is already at the instruction AFTER the branch, so we apply the offset directly.
       _pc = _pc + offset.toSigned(32) - 2;
+    }
+  }
+
+  /// Calls a function at the given address with arguments.
+  ///
+  /// Spec Section 2.4.4: "call L1 L2 S1: Call function whose address is L1,
+  /// passing in L2 arguments, and store the return result at S1."
+  void _callFunction(int address, List<int> args, _StoreOperand dest) {
+    // Parse function header
+    final func = GlulxFunction.parse(memoryMap, address);
+
+    // Convert addressing mode to call stub DestType/DestAddr
+    // Spec Section 1.4.1: DestType 0=discard, 1=memory, 2=local, 3=stack
+    final destType = _modeToDestType(dest.mode);
+    final destAddr = _modeToDestAddr(dest.mode, dest.addr);
+
+    // Push call stub: destType, destAddr, PC, FP
+    stack.pushCallStub(destType, destAddr, _pc, stack.fp);
+
+    // Push new frame using function's format
+    stack.pushFrame(func.localsDescriptor.formatBytes);
+
+    // Handle arguments based on function type
+    if (func is StackArgsFunction) {
+      // C0: Push arg count, then args in order (first arg on top after count)
+      stack.push32(args.length);
+      for (var i = args.length - 1; i >= 0; i--) {
+        stack.push32(args[i]);
+      }
+    } else {
+      // C1: Copy args into locals
+      for (var i = 0; i < args.length; i++) {
+        stack.setArgument(i, args[i]);
+      }
+    }
+
+    // Jump to entry point
+    _pc = func.entryPoint;
+  }
+
+  /// Returns from the current function with the given value.
+  ///
+  /// Spec Section 2.4.4: "return L1: Return from the current function, with the given return value."
+  void _returnValue(int value) {
+    // Pop frame and get call stub
+    final stub = stack.popFrame();
+    final destType = stub[0];
+    final destAddr = stub[1];
+    final oldPc = stub[2];
+
+    // Store result
+    stack.storeResult(
+      value,
+      destType,
+      destAddr,
+      onMemoryWrite: (addr, val) {
+        memoryMap.writeWord(addr, val);
+      },
+    );
+
+    // Restore PC
+    _pc = oldPc;
+
+    // Note: If FP was 0, this was the top-level function and execution should end.
+    // This is handled by the main execution loop checking for quit conditions.
+  }
+
+  /// Converts an addressing mode to a call stub DestType.
+  ///
+  /// Spec Section 1.4.1: DestType values:
+  /// 0 = Do not store (discard)
+  /// 1 = Store in main memory at DestAddr
+  /// 2 = Store in local variable at DestAddr offset
+  /// 3 = Push on stack
+  int _modeToDestType(int mode) {
+    switch (mode) {
+      case 0:
+        return 0; // Discard
+      case 5:
+      case 6:
+      case 7:
+        return 1; // Memory
+      case 8:
+        return 3; // Stack push
+      case 0x9:
+      case 0xA:
+      case 0xB:
+        return 2; // Local
+      case 0xD:
+      case 0xE:
+      case 0xF:
+        return 1; // RAM (still memory)
+      default:
+        throw Exception('Cannot convert addressing mode $mode to DestType');
+    }
+  }
+
+  /// Converts an addressing mode and address to a call stub DestAddr.
+  int _modeToDestAddr(int mode, int addr) {
+    switch (mode) {
+      case 0:
+      case 8:
+        return 0; // Discard/stack: addr not used
+      case 5:
+      case 6:
+      case 7:
+        return addr; // Memory: direct address
+      case 0x9:
+      case 0xA:
+      case 0xB:
+        return addr; // Local: offset
+      case 0xD:
+      case 0xE:
+      case 0xF:
+        return memoryMap.ramStart + addr; // RAM-relative
+      default:
+        return addr;
     }
   }
 }
