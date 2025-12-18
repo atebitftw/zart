@@ -224,6 +224,132 @@ class GlulxInterpreter {
         }
         break;
 
+      // ========== Branch Opcodes (Spec Section 2.4.3) ==========
+
+      /// Spec Section 2.4.3: "jump L1: Branch unconditionally to offset L1."
+      case GlulxOp.jump:
+        final offset = operands[0] as int;
+        _performBranch(offset);
+        break;
+
+      /// Spec Section 2.4.3: "jz L1 L2: If L1 is equal to zero, branch to L2."
+      case GlulxOp.jz:
+        final l1 = operands[0] as int;
+        final offset = operands[1] as int;
+        if (l1 == 0) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jnz L1 L2: If L1 is not equal to zero, branch to L2."
+      case GlulxOp.jnz:
+        final l1 = operands[0] as int;
+        final offset = operands[1] as int;
+        if (l1 != 0) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jeq L1 L2 L3: If L1 is equal to L2, branch to L3."
+      case GlulxOp.jeq:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final offset = operands[2] as int;
+        if (l1 == l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jne L1 L2 L3: If L1 is not equal to L2, branch to L3."
+      case GlulxOp.jne:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final offset = operands[2] as int;
+        if (l1 != l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jlt L1 L2 L3: Branch if L1 < L2 (signed)"
+      case GlulxOp.jlt:
+        final l1 = (operands[0] as int).toSigned(32);
+        final l2 = (operands[1] as int).toSigned(32);
+        final offset = operands[2] as int;
+        if (l1 < l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jge L1 L2 L3: Branch if L1 >= L2 (signed)"
+      case GlulxOp.jge:
+        final l1 = (operands[0] as int).toSigned(32);
+        final l2 = (operands[1] as int).toSigned(32);
+        final offset = operands[2] as int;
+        if (l1 >= l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jgt L1 L2 L3: Branch if L1 > L2 (signed)"
+      case GlulxOp.jgt:
+        final l1 = (operands[0] as int).toSigned(32);
+        final l2 = (operands[1] as int).toSigned(32);
+        final offset = operands[2] as int;
+        if (l1 > l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jle L1 L2 L3: Branch if L1 <= L2 (signed)"
+      case GlulxOp.jle:
+        final l1 = (operands[0] as int).toSigned(32);
+        final l2 = (operands[1] as int).toSigned(32);
+        final offset = operands[2] as int;
+        if (l1 <= l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jltu L1 L2 L3: Branch if L1 < L2 (unsigned)"
+      case GlulxOp.jltu:
+        final l1 = (operands[0] as int) & 0xFFFFFFFF;
+        final l2 = (operands[1] as int) & 0xFFFFFFFF;
+        final offset = operands[2] as int;
+        if (l1 < l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jgeu L1 L2 L3: Branch if L1 >= L2 (unsigned)"
+      case GlulxOp.jgeu:
+        final l1 = (operands[0] as int) & 0xFFFFFFFF;
+        final l2 = (operands[1] as int) & 0xFFFFFFFF;
+        final offset = operands[2] as int;
+        if (l1 >= l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jgtu L1 L2 L3: Branch if L1 > L2 (unsigned)"
+      case GlulxOp.jgtu:
+        final l1 = (operands[0] as int) & 0xFFFFFFFF;
+        final l2 = (operands[1] as int) & 0xFFFFFFFF;
+        final offset = operands[2] as int;
+        if (l1 > l2) {
+          _performBranch(offset);
+        }
+        break;
+
+      /// Spec Section 2.4.3: "jleu L1 L2 L3: Branch if L1 <= L2 (unsigned)"
+      case GlulxOp.jleu:
+        final l1 = (operands[0] as int) & 0xFFFFFFFF;
+        final l2 = (operands[1] as int) & 0xFFFFFFFF;
+        final offset = operands[2] as int;
+        if (l1 <= l2) {
+          _performBranch(offset);
+        }
+        break;
+
       default:
         throw Exception('Unimplemented opcode: 0x${opcode.toRadixString(16)}');
     }
@@ -440,6 +566,25 @@ class GlulxInterpreter {
       case 0xF:
         memoryMap.writeWord(memoryMap.ramStart + dest.addr, value);
         break;
+    }
+  }
+
+  /// Performs a branch with the given offset.
+  ///
+  /// Spec Section 2.4.3: "The actual destination address of the branch is computed as
+  /// (Addr + Offset - 2), where Addr is the address of the instruction *after* the branch opcode.
+  /// The special offset values 0 and 1 are interpreted as 'return 0' and 'return 1' respectively."
+  void _performBranch(int offset) {
+    if (offset == 0 || offset == 1) {
+      // Spec: "The special offset values 0 and 1 are interpreted as 'return 0' and 'return 1'"
+      // This requires function return logic which needs call stub handling.
+      // For now, we'll implement a simplified version that just flags the condition.
+      // Full implementation will be done with call/return opcodes.
+      throw Exception('Branch return ($offset) not yet implemented - needs call stub handling');
+    } else {
+      // Spec: "The actual destination address of the branch is computed as (Addr + Offset - 2)"
+      // _pc is already at the instruction AFTER the branch, so we apply the offset directly.
+      _pc = _pc + offset.toSigned(32) - 2;
     }
   }
 }

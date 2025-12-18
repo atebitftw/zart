@@ -33,6 +33,21 @@ class OpcodeInfo {
     GlulxOp.shiftl: OpcodeInfo(3, [false, false, true]),
     GlulxOp.sshiftr: OpcodeInfo(3, [false, false, true]),
     GlulxOp.ushiftr: OpcodeInfo(3, [false, false, true]),
+
+    // Branch Opcodes
+    GlulxOp.jump: OpcodeInfo(1, [false]),
+    GlulxOp.jz: OpcodeInfo(2, [false, false]),
+    GlulxOp.jnz: OpcodeInfo(2, [false, false]),
+    GlulxOp.jeq: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jne: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jlt: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jge: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jgt: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jle: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jltu: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jgeu: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jgtu: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jleu: OpcodeInfo(3, [false, false, false]),
   };
 
   static OpcodeInfo get(int opcode) {
