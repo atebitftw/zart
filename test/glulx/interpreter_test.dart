@@ -8,7 +8,8 @@ import 'package:zart/zart.dart' show Debugger;
 
 import 'test_terminal_display.dart';
 
-final maxSteps = Debugger.maxSteps; // do not change this without getting permission from user.
+final maxSteps = Debugger
+    .maxSteps; // do not change this without getting permission from user.
 
 void main() {
   group('GlulxInterpreter', () {
@@ -201,9 +202,10 @@ void main() {
       // So instruction at 7 is executed.
 
       final code = [
-        GlulxOp.jump, 0x01, 0x04, // jump 4
+        GlulxOp.jump, 0x01, 0x06, // jump 4
         0xFF, 0xFF, 0xFF, 0xFF, // Garbage
-        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, // quit (at index 7)
+        GlulxOp.quit >> 8 & 0x7F | 0x80,
+        GlulxOp.quit & 0xFF, // quit (at index 7)
       ];
 
       interpreter = GlulxInterpreter();
@@ -323,20 +325,20 @@ void main() {
       final code = [
         // jz: 2 ops. Mode 1 (const), Mode 1 (const). -> 0x11.
         // Val=0. Off=4.
-        GlulxOp.jz, 0x11, 0x00, 0x04,
+        GlulxOp.jz, 0x11, 0x00, 0x06,
         // Fail block. copy 1 RAM[80].
         // Op 40. Mode 1, Mode 5 -> 0x51.
         GlulxOp.copy, 0x51, 0x01, 0x80,
 
         // jnz 1, 4. Mode 1, 1 -> 0x11.
-        GlulxOp.jnz, 0x11, 0x01, 0x04,
+        GlulxOp.jnz, 0x11, 0x01, 0x06,
         // Fail block. copy 2 RAM[80].
         GlulxOp.copy, 0x51, 0x02, 0x80,
 
         // jeq 5 5 4. Mode 1, 1, 1. -> 0x11 0x01.
-        GlulxOp.jeq, 0x11, 0x01, 0x05, 0x05, 0x04,
+        GlulxOp.jeq, 0x11, 0x01, 0x05, 0x05, 0x06,
         // Fail block. copy 3 RAM[80].
-        GlulxOp.copy, 0x51, 0x03, 0x80,
+        GlulxOp.copy, 0x51, 0x05, 0x80,
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
@@ -365,28 +367,28 @@ void main() {
 
       final code = [
         // jne 5 6 (True) -> +4.
-        GlulxOp.jne, 0x11, 0x01, 5, 6, 4,
+        GlulxOp.jne, 0x11, 0x01, 5, 6, 6,
         GlulxOp.copy, 0x51, 0x01, 0xE0, // Error 1
         // jeq 5 5 (True) -> +4
-        GlulxOp.jeq, 0x11, 0x01, 5, 5, 4,
+        GlulxOp.jeq, 0x11, 0x01, 5, 5, 6,
         GlulxOp.copy, 0x51, 0x02, 0xE0, // Error 2
         // jlt -1 10 (True) -> +4. (-1 < 10)
-        GlulxOp.jlt, 0x11, 0x01, 0xFF, 10, 4,
-        GlulxOp.copy, 0x51, 0x03, 0xE0, // Error 3
+        GlulxOp.jlt, 0x11, 0x01, 0xFF, 10, 6,
+        GlulxOp.copy, 0x51, 0x05, 0xE0, // Error 3
         // jle 10 10 (True) -> +4
-        GlulxOp.jle, 0x11, 0x01, 10, 10, 4,
-        GlulxOp.copy, 0x51, 0x04, 0xE0, // Error 4
+        GlulxOp.jle, 0x11, 0x01, 10, 10, 6,
+        GlulxOp.copy, 0x51, 0x06, 0xE0, // Error 4
         // jgt 10 -1 (True) -> +4 (10 > -1)
-        GlulxOp.jgt, 0x11, 0x01, 10, 0xFF, 4,
+        GlulxOp.jgt, 0x11, 0x01, 10, 0xFF, 6,
         GlulxOp.copy, 0x51, 0x05, 0xE0, // Error 5
         // jge 10 10 (True) -> +4
-        GlulxOp.jge, 0x11, 0x01, 10, 10, 4,
+        GlulxOp.jge, 0x11, 0x01, 10, 10, 6,
         GlulxOp.copy, 0x51, 0x06, 0xE0, // Error 6
         // jltu 10 255 (True) -> +4 (10 < 255 unsigned)
-        GlulxOp.jltu, 0x11, 0x01, 10, 0xFF, 4,
+        GlulxOp.jltu, 0x11, 0x01, 10, 0xFF, 6,
         GlulxOp.copy, 0x51, 0x07, 0xE0, // Error 7
         // jgeu 255 10 (True) -> +4.
-        GlulxOp.jgeu, 0x11, 0x01, 0xFF, 10, 4,
+        GlulxOp.jgeu, 0x11, 0x01, 0xFF, 10, 6,
         GlulxOp.copy, 0x51, 0x08, 0xE0, // Error 8
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
@@ -403,32 +405,32 @@ void main() {
       //Verify execution falls through when branch condition is false
       final code = [
         // jz 1 (False) -> +4. Fallthrough.
-        GlulxOp.jz, 0x11, 0x01, 0x04,
+        GlulxOp.jz, 0x11, 0x01, 0x06,
         // Write 1 to RAM[80] (Success mark)
         GlulxOp.copy, 0x51, 0x01, 0x80,
 
         // jnz 0 (False) -> +4. Fallthrough.
-        GlulxOp.jnz, 0x11, 0x00, 0x04,
+        GlulxOp.jnz, 0x11, 0x00, 0x06,
         // Write 2 to RAM[84]
         GlulxOp.copy, 0x51, 0x02, 0x84,
 
         // jeq 5 6 (False) -> +4. Fallthrough.
-        GlulxOp.jeq, 0x11, 0x01, 0x05, 0x06, 0x04,
+        GlulxOp.jeq, 0x11, 0x01, 0x05, 0x06, 0x06,
         // Write 3 to RAM[88]
         GlulxOp.copy, 0x51, 0x03, 0x88,
 
         // jne 5 5 (False) -> +4. Fallthrough.
-        GlulxOp.jne, 0x11, 0x01, 0x05, 0x05, 0x04,
+        GlulxOp.jne, 0x11, 0x01, 0x05, 0x05, 0x06,
         // Write 4 to RAM[8C]
         GlulxOp.copy, 0x51, 0x04, 0x8C,
 
         // jlt 10 5 (False) -> +4. Fallthrough.
-        GlulxOp.jlt, 0x11, 0x01, 0x0A, 0x05, 0x04,
+        GlulxOp.jlt, 0x11, 0x01, 0x0A, 0x05, 0x06,
         // Write 5 to RAM[90]
         GlulxOp.copy, 0x51, 0x05, 0x90,
 
         // jge 5 10 (False) -> +4. Fallthrough.
-        GlulxOp.jge, 0x11, 0x01, 0x05, 0x0A, 0x04,
+        GlulxOp.jge, 0x11, 0x01, 0x05, 0x0A, 0x06,
         // Write 6 to RAM[94]
         GlulxOp.copy, 0x51, 0x06, 0x94,
 
@@ -516,7 +518,13 @@ void main() {
         // Modes: Op1(1)|Op2(1)<<4 = 0x11. Op3(5) = 0x05.
         // Opcode 0x130 is 2 bytes: 0x81, 0x30.
         // Selector 4 (gestalt), 2 args
-        GlulxOp.glk >> 8 | 0x80, GlulxOp.glk & 0xFF, 0x11, 0x05, GlkIoSelectors.gestalt, 0x02, 0x80,
+        GlulxOp.glk >> 8 | 0x80,
+        GlulxOp.glk & 0xFF,
+        0x11,
+        0x05,
+        GlkIoSelectors.gestalt,
+        0x02,
+        0x80,
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
@@ -709,7 +717,15 @@ void main() {
         // mcopy 4 0xC0 0xD0
         // Opcode 0x171 -> 2 bytes: 0x81, 0x71
         // Modes: L1(1), L2(2), L3(2) -> 0x21, 0x02
-        GlulxOp.mcopy >> 8 | 0x80, GlulxOp.mcopy & 0xFF, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xD0,
+        GlulxOp.mcopy >> 8 | 0x80,
+        GlulxOp.mcopy & 0xFF,
+        0x21,
+        0x02,
+        4,
+        0x00,
+        0xC0,
+        0x00,
+        0xD0,
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
@@ -735,7 +751,15 @@ void main() {
         GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
 
         // mcopy 4 0xC0 0xBE
-        GlulxOp.mcopy >> 8 | 0x80, GlulxOp.mcopy & 0xFF, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xBE,
+        GlulxOp.mcopy >> 8 | 0x80,
+        GlulxOp.mcopy & 0xFF,
+        0x21,
+        0x02,
+        4,
+        0x00,
+        0xC0,
+        0x00,
+        0xBE,
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
@@ -759,7 +783,15 @@ void main() {
         GlulxOp.astoreb, 0x12, 0x01, 0x00, 0xC0, 0x03, 0xDD,
 
         // mcopy 4 0xC0 0xC2
-        GlulxOp.mcopy >> 8 | 0x80, GlulxOp.mcopy & 0xFF, 0x21, 0x02, 4, 0x00, 0xC0, 0x00, 0xC2,
+        GlulxOp.mcopy >> 8 | 0x80,
+        GlulxOp.mcopy & 0xFF,
+        0x21,
+        0x02,
+        4,
+        0x00,
+        0xC0,
+        0x00,
+        0xC2,
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
@@ -929,7 +961,13 @@ void main() {
         // callfi 0x70 5 -> RAM[0x60]
         // callfi: 0x161 -> 0x81, 0x61
         // modes: L1=mode1, L2=mode1, S1=mode5 -> 0x11, 0x05
-        GlulxOp.callfi >> 8 | 0x80, GlulxOp.callfi & 0xFF, 0x11, 0x05, 0x70, 5, 0x60,
+        GlulxOp.callfi >> 8 | 0x80,
+        GlulxOp.callfi & 0xFF,
+        0x11,
+        0x05,
+        0x70,
+        5,
+        0x60,
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
@@ -962,7 +1000,14 @@ void main() {
         // callfii: 0x162 -> 0x81, 0x62
         // 4 operands: L1, L2, L3, S1
         // modes: L1=mode1 | L2=mode1<<4 = 0x11, L3=mode1 | S1=mode5<<4 = 0x51
-        GlulxOp.callfii >> 8 | 0x80, GlulxOp.callfii & 0xFF, 0x11, 0x51, 0x70, 6, 7, 0x60,
+        GlulxOp.callfii >> 8 | 0x80,
+        GlulxOp.callfii & 0xFF,
+        0x11,
+        0x51,
+        0x70,
+        6,
+        7,
+        0x60,
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 
@@ -994,7 +1039,16 @@ void main() {
         // callfiii 0x70 10 20 12 -> RAM[0x60]
         // callfiii: 0x163 -> 0x81, 0x63
         // modes: L1=mode1, L2=mode1, L3=mode1, L4=mode1, S1=mode5 -> 0x11, 0x11, 0x05
-        GlulxOp.callfiii >> 8 | 0x80, GlulxOp.callfiii & 0xFF, 0x11, 0x11, 0x05, 0x70, 10, 20, 12, 0x60,
+        GlulxOp.callfiii >> 8 | 0x80,
+        GlulxOp.callfiii & 0xFF,
+        0x11,
+        0x11,
+        0x05,
+        0x70,
+        10,
+        20,
+        12,
+        0x60,
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ]);
 

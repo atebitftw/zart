@@ -8,7 +8,8 @@ import 'package:zart/zart.dart' show Debugger;
 
 import 'test_terminal_display.dart';
 
-final maxSteps = Debugger.maxSteps; // do not change this without getting permission from user.
+final maxSteps = Debugger
+    .maxSteps; // do not change this without getting permission from user.
 
 void main() {
   late GlulxInterpreter interpreter;
@@ -26,14 +27,30 @@ void main() {
     final bytes = BytesBuilder();
 
     // Header (36 bytes)
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, 0x476C756C)); // Magic
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, 0x00030103)); // Version
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, ramStart)); // RAM Start
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, extStart)); // Ext Start
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, endMem)); // End Mem
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, stackSize)); // Stack Size
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, 0x00000024)); // Start Func (after header)
-    bytes.add(Uint8List(4)..buffer.asByteData().setUint32(0, 0)); // Decoding Table
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, 0x476C756C),
+    ); // Magic
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, 0x00030103),
+    ); // Version
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, ramStart),
+    ); // RAM Start
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, extStart),
+    ); // Ext Start
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, endMem),
+    ); // End Mem
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, stackSize),
+    ); // Stack Size
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, 0x00000024),
+    ); // Start Func (after header)
+    bytes.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, 0),
+    ); // Decoding Table
     bytes.add(Uint8List(4)); // Checksum (placeholder)
 
     // Instructions (function body)
@@ -91,14 +108,16 @@ void main() {
       GlulxOp.gestalt >> 8 | 0x80,
       GlulxOp.gestalt & 0xFF,
       0x00,
-      0x0C,
+      0x0D,
       0x80, // gestalt 0, 0 -> RAM:80 (opcode 0x100 = 2-byte: 0x81 0x00)
       // Let's use getmemsize first.
       GlulxOp.getmemsize >> 8 | 0x80,
       GlulxOp.getmemsize & 0xFF,
-      0x0C,
+      0x0D,
       0x84, // getmemsize -> RAM:84 (opcode 0x102 = 2-byte: 0x81 0x02)
-      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120 = 2-byte: 0x81 0x20)
+      GlulxOp.quit >> 8 | 0x80,
+      GlulxOp.quit & 0xFF,
+      0x00, // quit (opcode 0x120 = 2-byte: 0x81 0x20)
     ];
 
     Uint8List game = createGame(instructions);
@@ -106,7 +125,7 @@ void main() {
     await interpreter.run(maxSteps: maxSteps);
 
     // Check RAM 0x80 for 0x00070600 (Glk API version 0.7.6)
-    expect(interpreter.memRead32(0x80 + interpreter.ramStart), 0x00070600);
+    expect(interpreter.memRead32(0x80 + interpreter.ramStart), 0x00030103);
     // Check RAM 0x84 for size. Size = extStart (0x5000) or file len?
     // Interpreter init: initialSize = gameBytes.length. But set to at least extStart?
     // "If initialSize < _extStart, initialSize = _extStart".
@@ -120,8 +139,13 @@ void main() {
     // Mode: L1. Op0=3 (Short Const). Byte 0x03.
     // Value: 12345 = 0x3039.
     final instructions = <int>[
-      GlulxOp.streamnum, 0x02, 0x30, 0x39, // streamnum 12345 (mode 2 = 2-byte const)
-      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.streamnum,
+      0x02,
+      0x30,
+      0x39, // streamnum 12345 (mode 2 = 2-byte const)
+      GlulxOp.quit >> 8 | 0x80,
+      GlulxOp.quit & 0xFF,
+      0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -158,18 +182,20 @@ void main() {
       // Op0=1 (Const Byte), Op1=B (Ram Byte).
       // Op0=1, Op1=B => Byte 0xB1.
       // L1=E0. S1=80.
-      GlulxOp.copyb, 0xC1, 0xE0, 0x80, // copyb 0xE0 -> RAM:80
-      GlulxOp.copyb, 0xC1, 0x41, 0x81, // 'A'
-      GlulxOp.copyb, 0xC1, 0x42, 0x82, // 'B'
-      GlulxOp.copyb, 0xC1, 0x43, 0x83, // 'C'
-      GlulxOp.copyb, 0xC1, 0x00, 0x84, // '\0'
+      GlulxOp.copyb, 0xD1, 0xE0, 0x80, // copyb 0xE0 -> RAM:80
+      GlulxOp.copyb, 0xD1, 0x41, 0x81, // 'A'
+      GlulxOp.copyb, 0xD1, 0x42, 0x82, // 'B'
+      GlulxOp.copyb, 0xD1, 0x43, 0x83, // 'C'
+      GlulxOp.copyb, 0xD1, 0x00, 0x84, // '\0'
       // streamstr RAM:80 (Address relative to RAM start? No, absolute address.)
       // Absolute address = ramStart + 0x80. ramStart=0x100. -> 0x180.
       // streamstr 0x180.
       // Mode 0x02 (Short Const). Value 0x0180.
       GlulxOp.streamstr, 0x02, 0x00, 0x80,
 
-      GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.quit >> 8 & 0x7F | 0x80,
+      GlulxOp.quit & 0xFF,
+      0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -185,7 +211,7 @@ void main() {
 
     final instructions = <int>[
       // copyb E2 -> RAM[80]
-      GlulxOp.copyb, 0xC1, 0xE2, 0x80,
+      GlulxOp.copyb, 0xD1, 0xE2, 0x80,
 
       // We need to write 32-bit values.
       // Char 'A' (0x41) at 0x84.
@@ -243,11 +269,19 @@ void main() {
       // jumpabs (4 bytes: 0x81 0x04 + 1 mode + 2 addr) = 5 bytes. 39 -> 44.
       // streamnum 2 (3 bytes: opcode + mode + value) = 3 bytes. 44 -> 47.
       // Target = 47.
-      GlulxOp.jumpabs >> 8 | 0x80, GlulxOp.jumpabs & 0xFF, 0x02, 0x00, 0x2F, // jumpabs 0x002F (47)
-      GlulxOp.streamnum, 0x01, 0x02, // streamnum 2 (Const Byte 2) -> "2" (Skipped)
+      GlulxOp.jumpabs >> 8 | 0x80,
+      GlulxOp.jumpabs & 0xFF,
+      0x02,
+      0x00,
+      0x2F, // jumpabs 0x002F (47)
+      GlulxOp.streamnum,
+      0x01,
+      0x02, // streamnum 2 (Const Byte 2) -> "2" (Skipped)
       // Addr 39+5 = 44. 44+3 = 47.
       GlulxOp.streamnum, 0x01, 0x01, // streamnum 1 -> "1"
-      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.quit >> 8 | 0x80,
+      GlulxOp.quit & 0xFF,
+      0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -265,19 +299,28 @@ void main() {
     final instructions = <int>[
       GlulxOp.getmemsize >> 8 | 0x80,
       GlulxOp.getmemsize & 0xFF,
-      0x0C,
+      0x0D,
       0x00, // getmemsize -> RAM:00 (opcode 0x102, mode C = 1-byte addr)
       // setmemsize 0x20000 -> RAM:04
       // opcode 0x103 = 2-byte: 0x81 0x03
       // Op0=3 (4-byte const), Op1=C (RAM 1-byte addr). Mode byte 0xC3.
       // Op0 value: 0x00020000
       // Op1 value: 0x04 (1 byte)
-      GlulxOp.setmemsize >> 8 | 0x80, GlulxOp.setmemsize & 0xFF, 0xC3, 0x00, 0x02, 0x00, 0x00, 0x04,
+      GlulxOp.setmemsize >> 8 | 0x80,
+      GlulxOp.setmemsize & 0xFF,
+      0xD3,
+      0x00,
+      0x02,
+      0x00,
+      0x00,
+      0x04,
       GlulxOp.getmemsize >> 8 | 0x80,
       GlulxOp.getmemsize & 0xFF,
-      0x0C,
+      0x0D,
       0x08, // getmemsize -> RAM:08 (opcode 0x102)
-      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.quit >> 8 | 0x80,
+      GlulxOp.quit & 0xFF,
+      0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions);
@@ -301,10 +344,20 @@ void main() {
 
     final instructions2 = <int>[
       // random is 0x110 = 2-byte opcode: 0x81 0x10
-      GlulxOp.random >> 8 | 0x80, GlulxOp.random & 0xFF, 0xC1, 0x0A, 0x00, // random 10
-      GlulxOp.random >> 8 | 0x80, GlulxOp.random & 0xFF, 0xC1, 0xF6, 0x04, // random -10
-      GlulxOp.random >> 8 | 0x80, GlulxOp.random & 0xFF, 0xC0, 0x08, // random 0
-      GlulxOp.quit >> 8 | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (opcode 0x120)
+      GlulxOp.random >> 8 | 0x80,
+      GlulxOp.random & 0xFF,
+      0xD1,
+      0x0A,
+      0x00, // random 10
+      GlulxOp.random >> 8 | 0x80,
+      GlulxOp.random & 0xFF,
+      0xD1,
+      0xF6,
+      0x04, // random -10
+      GlulxOp.random >> 8 | 0x80, GlulxOp.random & 0xFF, 0xD0, 0x08, // random 0
+      GlulxOp.quit >> 8 | 0x80,
+      GlulxOp.quit & 0xFF,
+      0x00, // quit (opcode 0x120)
     ];
 
     Uint8List game = createGame(instructions2);

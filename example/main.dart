@@ -394,7 +394,4 @@ class TerminalProvider implements IoProvider {
         break;
     }
   }
-
-  @override
-  Future<int> glulxGlk(int selector, List<int> args) => Future.value(0);
 }

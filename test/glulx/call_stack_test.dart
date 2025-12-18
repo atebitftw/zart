@@ -5,7 +5,8 @@ import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/zart.dart' show Debugger;
 
-final maxSteps = Debugger.maxSteps; // do not change this without getting permission from user.
+final maxSteps = Debugger
+    .maxSteps; // do not change this without getting permission from user.
 
 // Helper to create a Glulx game file with code
 Uint8List createGame(List<int> code, {int ramStart = 0x400}) {
@@ -46,7 +47,10 @@ Uint8List createGame(List<int> code, {int ramStart = 0x400}) {
 }
 
 // Extension to write functions at specific addresses
-Uint8List createGameWithFunctions(Map<int, List<int>> functions, {int startFuncAddr = 0x40}) {
+Uint8List createGameWithFunctions(
+  Map<int, List<int>> functions, {
+  int startFuncAddr = 0x40,
+}) {
   final fileSize = 2048;
   final buffer = ByteData(fileSize);
 
@@ -96,7 +100,7 @@ void main() {
         GlulxOp.copy, 0x81, 20,
         // stkcount -> RAM[ramStart + 0x100]. Mode: Op0=E (RAM Any).
         // ModeByte=0x0E. Address offset 0x100.
-        GlulxOp.stkcount, 0x0E, 0x00, 0x00, 0x01, 0x00,
+        GlulxOp.stkcount, 0x0F, 0x00, 0x00, 0x01, 0x00,
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
@@ -122,9 +126,9 @@ void main() {
         // Pos=0 (Mode 1 - Const Byte 0). Dest=RAM (Mode E - RAM Any).
         // Byte 1: Op0(1) | Op1(E)<<4 = 0xE1.
         // Op0 Value: 0. Op1 Value: 0x100.
-        GlulxOp.stkpeek, 0xE1, 0x00, 0x00, 0x00, 0x01, 0x00,
+        GlulxOp.stkpeek, 0xF1, 0x00, 0x00, 0x00, 0x01, 0x00,
         // stkpeek 1 -> RAM[ramStart + 0x104] (Should be 10)
-        GlulxOp.stkpeek, 0xE1, 0x01, 0x00, 0x00, 0x01, 0x04,
+        GlulxOp.stkpeek, 0xF1, 0x01, 0x00, 0x00, 0x01, 0x04,
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
@@ -146,9 +150,9 @@ void main() {
         // Pop into RAM to verify order
         // Pop (Top) -> RAM[ramStart + 0x100]. Should be 10.
         // copy stack(8) -> RAM(E). Mode 0xE8.
-        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x00,
+        GlulxOp.copy, 0xF8, 0x00, 0x00, 0x01, 0x00,
         // Pop (Next) -> RAM[ramStart + 0x104]. Should be 20.
-        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x04,
+        GlulxOp.copy, 0xF8, 0x00, 0x00, 0x01, 0x04,
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
 
@@ -176,11 +180,11 @@ void main() {
         GlulxOp.stkroll, 0x11, 5, 2,
 
         // Pop 5 items and store to RAM[ramStart + 0x100..0x114]
-        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x00, // Top
-        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x04,
-        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x08,
-        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x0C,
-        GlulxOp.copy, 0xE8, 0x00, 0x00, 0x01, 0x10, // Bottom
+        GlulxOp.copy, 0xF8, 0x00, 0x00, 0x01, 0x00, // Top
+        GlulxOp.copy, 0xF8, 0x00, 0x00, 0x01, 0x04,
+        GlulxOp.copy, 0xF8, 0x00, 0x00, 0x01, 0x08,
+        GlulxOp.copy, 0xF8, 0x00, 0x00, 0x01, 0x0C,
+        GlulxOp.copy, 0xF8, 0x00, 0x00, 0x01, 0x10, // Bottom
 
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF,
       ];
@@ -209,7 +213,7 @@ void main() {
         // Op3: RAM[0x200] (Mode E - RAM 0000-FFFF).
         // Modes: Op1(2), Op2(1) -> 0x12.
         // Byte 2: Op3(E) -> 0x0E.
-        GlulxOp.call, 0x12, 0x0E,
+        GlulxOp.call, 0x12, 0x0F,
         0x01, 0x00, // Address 0x100
         0, // 0 args (Byte const)
         0x00, 0x00, 0x05, 0x00, // Dest 0x500
@@ -244,7 +248,7 @@ void main() {
         // Op1(0x100) Mode 2. Op2(2) Mode 1. Op3(RAM 0x200) Mode E.
         // Byte 1: Op1(2) | Op2(1)<<4 = 0x12.
         // Byte 2: Op3(E) = 0x0E.
-        GlulxOp.call, 0x12, 0x0E,
+        GlulxOp.call, 0x12, 0x0F,
         0x01, 0x00, // Address 0x100
         2, // NumArgs
         0x00, 0x00, 0x05, 0x00, // Dest 0x500
@@ -253,7 +257,11 @@ void main() {
       ];
 
       final calledFunc = [
-        0xC1, 0x04, 0x02, 0x00, 0x00, // Header: C1 (Locals), 2 Locals of 4 bytes
+        0xC1,
+        0x04,
+        0x02,
+        0x00,
+        0x00, // Header: C1 (Locals), 2 Locals of 4 bytes
         // stack aligned to 4 bytes in interpreter.
         // Copy Local(0) -> Stack
         // Locals start at 0 (first), 4 (second).

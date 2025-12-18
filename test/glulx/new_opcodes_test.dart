@@ -12,7 +12,11 @@ void main() {
   group('New Glulx Opcodes', () {
     late GlulxInterpreter interpreter;
 
-    Uint8List createGame(List<int> code, {int ramStart = 0x40, int fileSize = 512}) {
+    Uint8List createGame(
+      List<int> code, {
+      int ramStart = 0x40,
+      int fileSize = 512,
+    }) {
       final bytes = Uint8List(fileSize);
       final bd = ByteData.sublistView(bytes);
 
@@ -43,8 +47,12 @@ void main() {
         0xFF, 0xFF, 0xFF, 0xFF, // L1 = max unsigned
         0x00, 0x00, 0x00, 0x01, // L2 = 1
         0x05, // branch offset
-        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (skipped)
-        GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit (target)
+        GlulxOp.quit >> 8 & 0x7F | 0x80,
+        GlulxOp.quit & 0xFF,
+        0x00, // quit (skipped)
+        GlulxOp.quit >> 8 & 0x7F | 0x80,
+        GlulxOp.quit & 0xFF,
+        0x00, // quit (target)
       ];
       interpreter = GlulxInterpreter();
       interpreter.load(createGame(code));
@@ -71,8 +79,14 @@ void main() {
     // setiosys (0x149) / getiosys (0x148) - unit tested
     test('setiosys and getiosys work', () async {
       final code = [
-        GlulxOp.setiosys >> 8 | 0x80, GlulxOp.setiosys & 0xFF, 0x11, 0x02, 0x7B, // setiosys 2, 123
-        GlulxOp.getiosys >> 8 | 0x80, GlulxOp.getiosys & 0xFF, 0x88, // getiosys -> stack, stack
+        GlulxOp.setiosys >> 8 | 0x80,
+        GlulxOp.setiosys & 0xFF,
+        0x11,
+        0x02,
+        0x7B, // setiosys 2, 123
+        GlulxOp.getiosys >> 8 | 0x80,
+        GlulxOp.getiosys & 0xFF,
+        0x88, // getiosys -> stack, stack
         GlulxOp.quit >> 8 & 0x7F | 0x80, GlulxOp.quit & 0xFF, 0x00, // quit
       ];
       interpreter = GlulxInterpreter();

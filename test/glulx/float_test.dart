@@ -67,7 +67,7 @@ void main() {
         0xD1, // Modes: L1=ConstByte(1), S1=ConstRAM(D=13)
         42, // L1 val
         // S1 addr (address 100)
-        0, 100,
+        100,
         ...encodeOp(GlulxOp.quit), // ret 0
       ];
       final interp = createInterpreter(code);
@@ -85,8 +85,11 @@ void main() {
       final code = <int>[
         ...encodeOp(GlulxOp.ftonumz),
         0xD3, // Modes: L1=ConstInt(3), S1=ConstRAM(D)
-        (floatBits >> 24) & 0xFF, (floatBits >> 16) & 0xFF, (floatBits >> 8) & 0xFF, floatBits & 0xFF,
-        0, 100, // Dest addr 100
+        (floatBits >> 24) & 0xFF,
+        (floatBits >> 16) & 0xFF,
+        (floatBits >> 8) & 0xFF,
+        floatBits & 0xFF,
+        100, // Dest addr 100
         ...encodeOp(GlulxOp.quit), // ret 0
       ];
 
@@ -108,7 +111,7 @@ void main() {
         (floatBits >> 16) & 0xFF,
         (floatBits >> 8) & 0xFF,
         floatBits & 0xFF,
-        0, 100, // Dest addr 100
+        100, // Dest addr 100
         ...encodeOp(GlulxOp.quit),
       ];
 
@@ -130,7 +133,6 @@ void main() {
         (floatBits >> 16) & 0xFF,
         (floatBits >> 8) & 0xFF,
         floatBits & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -159,7 +161,7 @@ void main() {
         0x33, 0x0D, // Modes
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         (f2 >> 24) & 0xFF, (f2 >> 16) & 0xFF, (f2 >> 8) & 0xFF, f2 & 0xFF,
-        0, 100, // Addr 100
+        100, // Addr 100
         ...encodeOp(GlulxOp.quit),
       ];
 
@@ -181,7 +183,7 @@ void main() {
         ...encodeOp(GlulxOp.sqrt),
         0xD3, // Modes
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
-        0, 100,
+        100,
         ...encodeOp(GlulxOp.quit),
       ];
 
@@ -211,7 +213,6 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -233,7 +234,6 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -260,7 +260,6 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
 
         ...encodeOp(GlulxOp.floor),
@@ -269,7 +268,6 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        0,
         104,
 
         ...encodeOp(GlulxOp.quit),
@@ -296,7 +294,6 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -320,7 +317,6 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -344,7 +340,6 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -363,13 +358,15 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
-      expect(bitsToFloat(interp.memory.getUint32(100)), closeTo(2.71828, 0.0001));
+      expect(
+        bitsToFloat(interp.memory.getUint32(100)),
+        closeTo(2.71828, 0.0001),
+      );
     });
 
     test('log calculates natural log', () {
@@ -381,7 +378,6 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -405,7 +401,6 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -423,7 +418,6 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -441,7 +435,6 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -459,13 +452,15 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
       final interp = createInterpreter(code);
       interp.run(maxSteps: 5000);
-      expect(bitsToFloat(interp.memory.getUint32(100)), closeTo(math.pi / 2, 0.0001));
+      expect(
+        bitsToFloat(interp.memory.getUint32(100)),
+        closeTo(math.pi / 2, 0.0001),
+      );
     });
 
     test('acos calculates arc cosine', () {
@@ -477,7 +472,6 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -495,7 +489,6 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -520,7 +513,6 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -535,23 +527,21 @@ void main() {
       int f3 = floatToBits(3.0);
 
       // Branch offset calculation:
-      // Fail Block: copy (0x40) + modes + L1 + S1 + quit (0x120 + modes)
-      // copy: 0x40 0x91 00 00 64 -> 5 bytes.
-      // quit: 0x81 0x20 -> 2 bytes.
-      // Total 7 bytes.
+      // Fail Block: copy(1)+D1(1)+0(1)+100(1)+quit(1) = 5 bytes.
+      // Offset = 5 + 2 = 7.
 
       final codeEqual = <int>[
         ...encodeOp(GlulxOp.jfeq),
         0x33, 0x01, // L1=Int, L2=Int, L3=ConstByte
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         (f2 >> 24) & 0xFF, (f2 >> 16) & 0xFF, (f2 >> 8) & 0xFF, f2 & 0xFF,
-        7, // Offset 7
+        8,
         // Fail Block
-        ...encodeOp(GlulxOp.copy), 0xD1, 0, 0, 100,
+        ...encodeOp(GlulxOp.copy), 0xD1, 0, 100,
         ...encodeOp(GlulxOp.quit),
 
         // Success Block
-        ...encodeOp(GlulxOp.copy), 0xD1, 1, 0, 100,
+        ...encodeOp(GlulxOp.copy), 0xD1, 1, 100,
         ...encodeOp(GlulxOp.quit),
       ];
       final interpEq = createInterpreter(codeEqual);
@@ -564,14 +554,14 @@ void main() {
         0x33, 0x01,
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
         (f3 >> 24) & 0xFF, (f3 >> 16) & 0xFF, (f3 >> 8) & 0xFF, f3 & 0xFF,
-        7,
+        8,
 
         // Fail Block
-        ...encodeOp(GlulxOp.copy), 0xD1, 0, 0, 100,
+        ...encodeOp(GlulxOp.copy), 0xD1, 0, 100,
         ...encodeOp(GlulxOp.quit),
 
         // Success Block
-        ...encodeOp(GlulxOp.copy), 0xD1, 1, 0, 100,
+        ...encodeOp(GlulxOp.copy), 0xD1, 1, 100,
         ...encodeOp(GlulxOp.quit),
       ];
       final interpNe = createInterpreter(codeNotEq);
@@ -596,17 +586,15 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -627,17 +615,15 @@ void main() {
         (f3 >> 16) & 0xFF,
         (f3 >> 8) & 0xFF,
         f3 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -663,17 +649,15 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -694,17 +678,15 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -712,9 +694,6 @@ void main() {
       interpGt.run(maxSteps: 5000);
       expect(interpGt.memory.getUint32(100), equals(0));
     });
-
-    // Skipping extensive tests for jfle, jfgt, jfge to avoid huge file,
-    // assuming logic is similar. But I should add at least one simple check for each.
 
     test('jfle branches on less or equal', () {
       int f1 = floatToBits(2.0);
@@ -732,17 +711,15 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -767,17 +744,15 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -802,17 +777,15 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -828,9 +801,9 @@ void main() {
         ...encodeOp(GlulxOp.jisnan),
         0x13, // L1=Const4 (float), L2=Const1 (Branch)
         (f1 >> 24) & 0xFF, (f1 >> 16) & 0xFF, (f1 >> 8) & 0xFF, f1 & 0xFF,
-        7,
-        ...encodeOp(GlulxOp.copy), 0xD1, 0, 0, 100, ...encodeOp(GlulxOp.quit),
-        ...encodeOp(GlulxOp.copy), 0xD1, 1, 0, 100, ...encodeOp(GlulxOp.quit),
+        8,
+        ...encodeOp(GlulxOp.copy), 0xD1, 0, 100, ...encodeOp(GlulxOp.quit),
+        ...encodeOp(GlulxOp.copy), 0xD1, 1, 100, ...encodeOp(GlulxOp.quit),
       ];
       final interpNan = createInterpreter(codeNan);
       interpNan.run(maxSteps: 5000);
@@ -845,17 +818,15 @@ void main() {
         (f2 >> 16) & 0xFF,
         (f2 >> 8) & 0xFF,
         f2 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];
@@ -874,17 +845,15 @@ void main() {
         (f1 >> 16) & 0xFF,
         (f1 >> 8) & 0xFF,
         f1 & 0xFF,
-        7,
+        8,
         ...encodeOp(GlulxOp.copy),
         0xD1,
-        0,
         0,
         100,
         ...encodeOp(GlulxOp.quit),
         ...encodeOp(GlulxOp.copy),
         0xD1,
         1,
-        0,
         100,
         ...encodeOp(GlulxOp.quit),
       ];

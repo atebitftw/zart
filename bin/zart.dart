@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:args/args.dart';
 import 'package:zart/src/cli/ui/glulx_terminal_provider.dart';
 import 'package:zart/src/cli/ui/z_machine_terminal_provider.dart';
 import 'package:zart/src/logging.dart' show log;
@@ -10,22 +11,73 @@ import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/settings_screen.dart';
 import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/glulx/interpreter.dart';
+import 'package:zart/src/glulx/glulx_debugger.dart';
+
+// dart run zart.dart ../assets/games/monkey.gblorb -d --showheader --startstep=0 --endstep=1000 --showinstructions
 
 /// A full-screen terminal-based console player for Z-Machine.
 /// Uses dart_console for cross-platform support.
 void main(List<String> args) async {
-  log.level = Level.WARNING;
+  final parser = ArgParser()
+    ..addFlag(
+      'debug',
+      abbr: 'd',
+      help: 'Enable Glulx debugger',
+      defaultsTo: false,
+    )
+    ..addOption('startstep', help: 'Start step for debugger output')
+    ..addOption('endstep', help: 'End step for debugger output')
+    ..addFlag('showheader', help: 'Show Glulx header info', defaultsTo: false)
+    ..addFlag(
+      'showbytes',
+      help: 'Show raw bytes (requires --debug)',
+      defaultsTo: false,
+    )
+    ..addFlag(
+      'showmodes',
+      help: 'Show addressing modes (requires --debug)',
+      defaultsTo: false,
+    )
+    ..addFlag(
+      'showinstructions',
+      help: 'Show instructions (requires --debug)',
+      defaultsTo: false,
+    )
+    ..addFlag(
+      'showpc',
+      help: 'Show PC advancement (requires --debug)',
+      defaultsTo: false,
+    )
+    ..addFlag(
+      'flight-recorder',
+      help: 'Enable flight recorder (last 100 instructions)',
+      defaultsTo: false,
+    );
 
-  log.onRecord.listen((record) {
-    print("${record.level.name}: ${record.message}");
-  });
-
-  if (args.isEmpty) {
-    stdout.writeln('Usage: zart <game>');
+  ArgResults results;
+  try {
+    results = parser.parse(args);
+  } catch (e) {
+    stdout.writeln('Error parsing arguments: $e');
+    stdout.writeln(parser.usage);
     exit(1);
   }
 
-  final filename = args.first;
+  if (results.rest.isEmpty) {
+    stdout.writeln('Usage: zart <game> [options]');
+    stdout.writeln(parser.usage);
+    exit(1);
+  }
+
+  final filename = results.rest.first;
+  final enableDebug = results['debug'] as bool;
+
+  if (enableDebug) {
+    log.level = Level.INFO;
+  } else {
+    log.level = Level.WARNING;
+  }
+
   final f = File(filename);
 
   if (!f.existsSync()) {
@@ -55,7 +107,39 @@ void main(List<String> args) async {
       stdout.writeln("Zart: Loading Glulx game...");
 
       // Set IoProvider before loading
-      await _runGlulxGame(filename, gameData, config);
+      int? startStepVal;
+      if (results['startstep'] != null) {
+        startStepVal = int.tryParse(results['startstep']);
+        if (startStepVal == null && results['startstep'].startsWith('0x')) {
+          startStepVal = int.tryParse(
+            results['startstep'].substring(2),
+            radix: 16,
+          );
+        }
+      }
+
+      int? endStepVal;
+      if (results['endstep'] != null) {
+        endStepVal = int.tryParse(results['endstep']);
+        if (endStepVal == null && results['endstep'].startsWith('0x')) {
+          endStepVal = int.tryParse(results['endstep'].substring(2), radix: 16);
+        }
+      }
+
+      await _runGlulxGame(
+        filename,
+        gameData,
+        config,
+        enableDebug: enableDebug,
+        startStep: startStepVal,
+        endStep: endStepVal,
+        showHeader: results['showheader'] as bool,
+        showBytes: results['showbytes'] as bool,
+        showModes: results['showmodes'] as bool,
+        showPCAdvancement: results['showpc'] as bool,
+        enableFlightRecorder: results['flight-recorder'] as bool,
+        showInstructions: results['showinstructions'] as bool,
+      );
       exit(0);
     }
 
@@ -69,31 +153,92 @@ void main(List<String> args) async {
   }
 }
 
-Future<void> _runGlulxGame(String fileName, Uint8List gameData, ConfigurationManager config) async {
+Future<void> _runGlulxGame(
+  String fileName,
+  Uint8List gameData,
+  ConfigurationManager config, {
+  bool enableDebug = false,
+  int? startStep,
+  int? endStep,
+  bool showHeader = false,
+  bool showBytes = false,
+  bool showModes = false,
+  bool showPCAdvancement = false,
+  bool enableFlightRecorder = false,
+  bool showInstructions = false,
+}) async {
   final terminal = TerminalDisplay();
   terminal.config = config;
   terminal.applySavedSettings();
+
+  final f = File("debug.log");
+  f.writeAsStringSync("", mode: FileMode.write);
+
+  log.onRecord.listen((record) {
+    f.writeAsStringSync(
+      "${record.level.name}: ${record.message}\n",
+      mode: FileMode.append,
+    );
+    //terminal.appendToWindow0("${record.level.name}: ${record.message}\n");
+  });
 
   // Create provider
   final provider = GlulxTerminalProvider(terminal);
 
   try {
     final glulx = GlulxInterpreter(io: provider);
+
+    if (enableDebug || enableFlightRecorder) {
+      glulx.debugger = GlulxDebugger()
+        ..enabled = enableDebug
+        ..showHeader = showHeader
+        ..showBytes = showBytes
+        ..showModes = showModes
+        ..showPCAdvancement = showPCAdvancement
+        ..startStep = startStep
+        ..endStep = endStep
+        ..showInstructions = showInstructions
+        ..showFlightRecorder = enableFlightRecorder;
+    }
+
+    glulx.debugger?.dumpDebugSettings();
+
     glulx.load(gameData);
-    await glulx.run();
+
+    // Enter full-screen mode to show the game display
+    terminal.enterFullScreen();
+    log.warning('Game started');
+    // keeping maxSteps here for now to handle infinite loops, etc.
+    await glulx.run(maxSteps: 10000000);
+    log.warning('Game ended. Tick Count: ${provider.tickCount}');
+    // Render what we have so far
+    terminal.render();
+
+    // Wait for keypress before exiting
+    terminal.appendToWindow0('\n[Press any key to exit]');
+    terminal.render();
+    await terminal.readChar();
+
+    terminal.exitFullScreen();
     exit(0);
   } catch (e) {
+    terminal.exitFullScreen();
     stdout.writeln("Glulx Error: $e");
     exit(1);
   }
 }
 
-Future<void> _runZMachineGame(String fileName, Uint8List gameData, ConfigurationManager config) async {
+Future<void> _runZMachineGame(
+  String fileName,
+  Uint8List gameData,
+  ConfigurationManager config,
+) async {
   var isGameRunning = false;
   final terminal = TerminalDisplay();
   terminal.config = config;
   terminal.applySavedSettings();
-  terminal.onOpenSettings = () => SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
+  terminal.onOpenSettings = () =>
+      SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
 
   // Disable debugging for clean display
   Debugger.enableDebug = false;
@@ -151,7 +296,11 @@ Future<void> _runZMachineGame(String fileName, Uint8List gameData, Configuration
             final line = await terminal.readLine();
             terminal.appendToWindow0('\n');
             // Split by '.' to support chained commands
-            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+            final commands = line
+                .split('.')
+                .map((c) => c.trim())
+                .where((c) => c.isNotEmpty)
+                .toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'dart:math' as math;
+import 'glulx_accelerator.dart';
 
+import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/glulx/glulx_header.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
@@ -12,6 +14,9 @@ import 'package:zart/src/logging.dart';
 
 /// Glulx Interpreter
 class GlulxInterpreter {
+  // Accelerator
+  late final GlulxAccelerator accelerator;
+
   late ByteData _memory;
 
   /// Currently public for unit testing.
@@ -25,6 +30,7 @@ class GlulxInterpreter {
 
   // The Stack
   GlulxStack _stack = GlulxStack();
+  GlulxStack get stack => _stack;
 
   // Header Info
   int _ramStart = 0;
@@ -43,7 +49,10 @@ class GlulxInterpreter {
   /// IO provider for Glulx interpreter.
   final GlkIoProvider? io;
 
-  /// Debug mode flag.
+  /// Debugger for the Glulx interpreter.
+  GlulxDebugger? debugger;
+
+  /// Debug mode flag (legacy, use debugger instead).
   bool debugMode = false;
 
   bool _running = false;
@@ -70,7 +79,9 @@ class GlulxInterpreter {
   }
 
   /// Create a new Glulx interpreter.
-  GlulxInterpreter({this.io});
+  GlulxInterpreter({this.io}) {
+    accelerator = GlulxAccelerator(this);
+  }
 
   /// Load a Glulx game file into memory.
   void load(Uint8List gameBytes) {
@@ -84,6 +95,12 @@ class GlulxInterpreter {
     final magic = header.getUint32(GlulxHeader.magicNumber);
     if (magic != 0x476C756C) {
       throw GlulxException('Invalid Magic Number: ${magic.toRadixString(16)}');
+    }
+
+    final version = header.getUint32(GlulxHeader.version);
+    // My interpreter supports 3.1.3 (0x00030103)
+    if (version > 0x00030103) {
+      log.warning('Game version ${version.toRadixString(16)} is newer than interpreter (3.1.3). Errors may occur.');
     }
 
     _ramStart = header.getUint32(GlulxHeader.ramStart);
@@ -106,6 +123,28 @@ class GlulxInterpreter {
     _stack = GlulxStack(size: stackLen);
     _fp = 0;
 
+    // Configure IO provider memory access
+    io?.setMemoryAccess(
+      write: (addr, value, {size = 1}) {
+        if (size == 1) {
+          _memWrite8(addr, value);
+        } else if (size == 2) {
+          _memWrite16(addr, value);
+        } else if (size == 4) {
+          _memWrite32(addr, value);
+        }
+      },
+      read: (addr, {size = 1}) {
+        if (size == 1) return _memRead8(addr);
+        if (size == 2) return _memRead16(addr);
+        if (size == 4) return _memRead32(addr);
+        return 0;
+      },
+    );
+
+    // Log header if debugger is enabled
+    debugger?.logHeader(_memory);
+
     // Set PC via _enterFunction to handle initial stack frame.
     // Spec: "Execution commences by calling this function."
     // DestType 0 (discard), DestAddr 0.
@@ -114,6 +153,24 @@ class GlulxInterpreter {
   }
 
   void _enterFunction(int addr, List<int> args, int destType, int destAddr) {
+    // Check acceleration
+    final accId = accelerator.getFunctionId(addr);
+    if (accId != 0) {
+      // Accelerated!
+      try {
+        final result = accelerator.execute(accId, args);
+        if (result != null) {
+          _storeResult(destType, destAddr, result);
+          return;
+        }
+        // Fallback to VM execution if result is null
+      } catch (e) {
+        // Log error and fallback? Or crash?
+        // For development, crash to see bugs.
+        rethrow;
+      }
+    }
+
     // 1. Push Call Stub
     _stack.pushCallStub(destType, destAddr, _pc, _fp);
 
@@ -264,70 +321,82 @@ class GlulxInterpreter {
     _storeResult(destType, destAddr, result);
   }
 
+  /// Run the interpreter.
   Future<void> run({int maxSteps = -1}) async {
     _running = true;
 
     int steps = 0;
     while (_running) {
-      if (maxSteps > 0 && steps++ >= maxSteps) {
-        print('Aborting: Max steps reached ($maxSteps)');
+      steps++;
+      if (maxSteps > 0 && steps >= maxSteps) {
+        log.warning('Aborting: Max steps reached ($maxSteps)');
+        debugger?.dumpFlightRecorder();
         _running = false;
         break;
       }
-      // Debug Logging
-      if (debugMode) {
-        int nextOp = _memRead8(_pc);
-        if ((nextOp & 0x80) == 0x80) {
-          // Multi-byte
-          if ((nextOp & 0x40) == 0) {
-            // 2 byte
-            int op2 = _memRead8(_pc + 1);
-            int fullOp = ((nextOp & 0x7F) << 8) | op2;
-            log.info(
-              'PC: ${_pc.toRadixString(16)} SP: ${_stack.sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: ${fullOp.toRadixString(16)}',
-            );
-          } else {
-            // 4 byte
-            log.info(
-              'PC: ${_pc.toRadixString(16)} SP: ${_stack.sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: 4-byte...',
-            );
-          }
-        } else {
-          log.info(
-            'PC: ${_pc.toRadixString(16)} SP: ${_stack.sp.toRadixString(16)} FP: ${_fp.toRadixString(16)} Op: ${nextOp.toRadixString(16)}',
-          );
-        }
+
+      if (debugger?.endStep != null && steps >= (debugger?.endStep ?? -1)) {
+        log.warning('Aborting: Debugger.endStep reached or exceeded(${debugger?.endStep})');
+        debugger?.dumpFlightRecorder();
+        _running = false;
+        break;
+      }
+
+      // Yield to event loop periodically to allow UI updates
+      if (steps % 10000 == 0) {
+        await Future.delayed(Duration.zero);
       }
 
       // Fetch Opcode
+      final instrPC = _pc; // Save instruction PC for debugger
       int opcode = _memRead8(_pc);
+
       int opLen = 1;
 
       if ((opcode & 0x80) == 0) {
         // 1 byte
+        debugger?.logBytes('Opcode', instrPC, [opcode]);
         _pc += 1;
+        debugger?.logPCAdvancement(instrPC, _pc, 'opcode (1 byte)');
       } else if ((opcode & 0x40) == 0) {
         // 2 bytes
-        opcode = ((opcode & 0x7F) << 8) | _memRead8(_pc + 1);
+        final byte2 = _memRead8(_pc + 1);
+        debugger?.logBytes('Opcode', instrPC, [opcode, byte2]);
+        opcode = ((opcode & 0x7F) << 8) | byte2;
         opLen = 2;
         _pc += 2;
+        debugger?.logPCAdvancement(instrPC, _pc, 'opcode (2 bytes)');
       } else {
         // 4 bytes
-        opcode = ((opcode & 0x3F) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
+        final bytes = [opcode, _memRead8(_pc + 1), _memRead8(_pc + 2), _memRead8(_pc + 3)];
+        debugger?.logBytes('Opcode', instrPC, bytes);
+        opcode = ((opcode & 0x3F) << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
         opLen = 4;
         _pc += 4;
+        debugger?.logPCAdvancement(instrPC, _pc, 'opcode (4 bytes)');
       }
 
       // Decode Operands
       final opInfo = OpcodeInfo.get(opcode);
       final operands = <int>[];
       final destTypes = <int>[]; // Store types for store operands, 0 for load
+      final operandModes = <int>[]; // Track modes for debugger
+      final rawOperands = <int>[]; // Track raw operand values for debugger
 
       if (opInfo.operandCount > 0) {
         // Mode bytes are stored contiguously after opcode
         int numModeBytes = (opInfo.operandCount + 1) ~/ 2;
         int modeStart = _pc; // Start of mode bytes
+
+        // Log mode bytes
+        if (debugger?.showBytes == true) {
+          final modeBytes = List.generate(numModeBytes, (i) => _memRead8(modeStart + i));
+          debugger?.logBytes('Modes', modeStart, modeBytes);
+        }
+
+        final pcBeforeModes = _pc;
         _pc += numModeBytes; // PC now points to start of operand data
+        debugger?.logPCAdvancement(pcBeforeModes, _pc, 'mode bytes ($numModeBytes bytes)');
 
         for (int i = 0; i < opInfo.operandCount; i++) {
           int modeByte = _memRead8(modeStart + (i ~/ 2));
@@ -337,9 +406,29 @@ class GlulxInterpreter {
           } else {
             mode = (modeByte >> 4) & 0x0F;
           }
-          _decodeOperand(mode, operands, destTypes, i, opInfo);
+          operandModes.add(mode);
+          final pcBeforeOperand = _pc;
+          _decodeOperand(mode, operands, destTypes, i, opInfo, rawOperands);
+          if (_pc != pcBeforeOperand) {
+            debugger?.logPCAdvancement(pcBeforeOperand, _pc, 'operand $i');
+          }
         }
+
+        debugger?.logModes(operandModes);
       }
+
+      // Log instruction if debugger is enabled
+      debugger?.logInstruction(
+        instrPC,
+        opcode,
+        operands,
+        destTypes,
+        opInfo,
+        operandModes,
+        steps,
+        rawOperands: rawOperands,
+      );
+      debugger?.recordInstruction(instrPC, opcode, operands, destTypes, opInfo, operandModes, rawOperands);
 
       // Execute Opcode
       switch (opcode) {
@@ -439,15 +528,6 @@ class GlulxInterpreter {
 
         case GlulxOp.streamstr: // streamstr (0x72)
           _streamString(operands[0]);
-          break;
-
-        case GlulxOp.gestalt: // gestalt (0x04)
-          // gestalt(selector, arg) -> val
-          int val = 0;
-
-          val = await io!.glkDispatch(GlkIoSelectors.gestalt, operands);
-
-          _storeResult(destTypes[2], operands[2], val);
           break;
 
         case GlulxOp.debugtrap: // debugtrap (0x05)
@@ -730,6 +810,66 @@ class GlulxInterpreter {
           _memWrite8(addr, operands[2]);
           break;
 
+        case GlulxOp.gestalt: // gestalt L1 L2 S1
+          {
+            int selector = operands[0];
+            int arg = operands[1];
+            int res = 0;
+            switch (selector) {
+              case 0: // GlulxVersion
+                res = 0x00030103; // 3.1.3
+                break;
+              case 1: // TerpVersion
+                res = 0x00010000; // 1.0.0
+                break;
+              case 2: // ResizeMem
+                res = 1;
+                break;
+              case 3: // Undo
+                res = 0; // Not yet
+                break;
+              case 4: // IOSystem
+                // 0=Null, 1=Filter, 2=Glk
+                if (arg == 0 || arg == 2)
+                  res = 1;
+                else if (arg == 1)
+                  res = 0; // Filter unsupported
+                break;
+              case 5: // Unicode
+                res = 1;
+                break;
+              case 6: // MemCopy
+                res = 1;
+                break;
+              case 7: // Malloc
+                res = 1;
+                break;
+              case 8: // MallocHeap
+                res = 1;
+                break;
+              case 9: // Acceleration
+                res = 1;
+                break;
+              case 10: // AccelFunc
+                res = 1;
+                break;
+              case 11: // Float
+                res = 1;
+                break;
+              case 12: // Double
+                res = 0;
+                break;
+              case 13: // ExtUndo
+                res = 0; // Not yet
+                break;
+              default:
+                res = 0;
+                break;
+            }
+            _storeResult(destTypes[2], operands[2], res);
+          }
+          break;
+
         case GlulxOp.glk: // glk
           // glk(id, numargs) -> res
           final id = operands[0];
@@ -764,13 +904,12 @@ class GlulxInterpreter {
           {
             int baseAddr = operands[0];
             int bitNum = operands[1].toSigned(32);
-            int addr = baseAddr + (bitNum ~/ 8);
-            int bit = bitNum % 8;
-            if (bit < 0) {
-              addr--;
-              bit += 8;
-            }
+            int addr = baseAddr + (bitNum >> 3);
+            int bit = bitNum & 7;
             int byteVal = _memRead8(addr);
+            print(
+              'DEBUG_ALOADBIT: base=$baseAddr bitNum=${operands[1]} addr=${addr.toRadixString(16)} bit=$bit byteVal=${byteVal.toRadixString(16)}',
+            );
             int result = (byteVal >> bit) & 1;
             _storeResult(destTypes[2], operands[2], result);
           }
@@ -779,12 +918,8 @@ class GlulxInterpreter {
           {
             int baseAddr = operands[0];
             int bitNum = operands[1].toSigned(32);
-            int addr = baseAddr + (bitNum ~/ 8);
-            int bit = bitNum % 8;
-            if (bit < 0) {
-              addr--;
-              bit += 8;
-            }
+            int addr = baseAddr + (bitNum >> 3);
+            int bit = bitNum & 7;
             int byteVal = _memRead8(addr);
             if (operands[2] != 0) {
               byteVal |= (1 << bit); // Set bit
@@ -1072,13 +1207,73 @@ class GlulxInterpreter {
           }
           break;
 
+        // Search opcodes
+        case GlulxOp.linearsearch: // linearsearch L1 L2 L3 L4 L5 L6 L7 S1
+          {
+            // L1: Key, L2: KeySize, L3: Start, L4: StructSize, L5: NumStructs, L6: KeyOffset, L7: Options
+            final result = _linearSearch(
+              operands[0],
+              operands[1],
+              operands[2],
+              operands[3],
+              operands[4],
+              operands[5],
+              operands[6],
+            );
+            _storeResult(destTypes[7], operands[7], result);
+          }
+          break;
+
+        case GlulxOp.binarysearch: // binarysearch L1 L2 L3 L4 L5 L6 L7 S1
+          {
+            // L1: Key, L2: KeySize, L3: Start, L4: StructSize, L5: NumStructs, L6: KeyOffset, L7: Options
+            final result = _binarySearch(
+              operands[0],
+              operands[1],
+              operands[2],
+              operands[3],
+              operands[4],
+              operands[5],
+              operands[6],
+            );
+            _storeResult(destTypes[7], operands[7], result);
+          }
+          break;
+
+        case GlulxOp.linkedsearch: // linkedsearch L1 L2 L3 L4 L5 L6 S1
+          {
+            // L1: Key, L2: KeySize, L3: Start, L4: KeyOffset, L5: NextOffset, L6: Options
+            final result = _linkedSearch(operands[0], operands[1], operands[2], operands[3], operands[4], operands[5]);
+            _storeResult(destTypes[6], operands[6], result);
+          }
+          break;
+
+        case GlulxOp.accelfunc:
+          log.warning('Accelerating function ID ${operands[1]} at ${operands[0]}');
+          accelerator.setFunction(operands[0], operands[1]);
+          break;
+
+        case GlulxOp.accelparam:
+          log.warning('Setting accelerator param ${operands[0]} to ${operands[1]}');
+          accelerator.setParam(operands[0], operands[1]);
+          break;
+
         default:
-          throw GlulxException('Unimplemented Opcode: 0x${opcode.toRadixString(16)} (Length: $opLen)');
+          throw GlulxException(
+            'Unimplemented Opcode: PC: 0x${_pc.toRadixString(16)}, Opcode: 0x${opcode.toRadixString(16)} (Length: $opLen)',
+          );
       }
     }
   }
 
-  void _decodeOperand(int mode, List<int> operands, List<int> destTypes, int opSkip, OpcodeInfo opInfo) {
+  void _decodeOperand(
+    int mode,
+    List<int> operands,
+    List<int> destTypes,
+    int opSkip,
+    OpcodeInfo opInfo,
+    List<int> rawOperands,
+  ) {
     // For store operands, we need to know if this specific operand index is a store.
     // OpcodeInfo needs to tell us which operands are stores.
     // However, the addressing mode determines how we read/write.
@@ -1088,42 +1283,51 @@ class GlulxInterpreter {
     bool isStore = opInfo.isStore(opSkip);
 
     int value = 0;
+    int rawValue = 0; // The raw operand data (index, offset, or immediate value)
 
     switch (mode) {
       case 0x0: // Constant zero / Discard (store)
         value = 0;
+        rawValue = 0;
         break;
       case 0x1: // Constant 1 byte
         value = _memRead8(_pc);
         if (value > 127) value -= 256; // Sign extend
+        rawValue = value; // Constant is its own raw value
         _pc++;
         break;
       case 0x2: // Constant 2 bytes
         value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         if (value > 32767) value -= 65536; // Sign extend
+        rawValue = value;
         _pc += 2;
         break;
       case 0x3: // Constant 4 bytes
         value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
+        rawValue = value;
         _pc += 4;
         break;
 
       case 0x5: // Address 00-FF
-        value = _memRead8(_pc++);
+        rawValue = _memRead8(_pc++);
+        value = rawValue;
         if (!isStore) value = _memRead32(value);
         break;
       case 0x6: // Address 0000-FFFF
-        value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
+        rawValue = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
+        value = rawValue;
         if (!isStore) value = _memRead32(value);
         break;
       case 0x7: // Address Any
-        value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
+        rawValue = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
+        value = rawValue;
         if (!isStore) value = _memRead32(value);
         break;
 
       case 0x8: // Stack
+        rawValue = 0; // Stack push/pop has no explicit operand data
         if (!isStore) {
           value = _stack.pop();
         } else {
@@ -1132,7 +1336,8 @@ class GlulxInterpreter {
         break;
 
       case 0x9: // Local 00-FF
-        value = _memRead8(_pc++);
+        rawValue = _memRead8(_pc++);
+        value = rawValue;
         {
           int localsPos = _stack.read32(_fp + 4);
           if (!isStore) {
@@ -1143,8 +1348,9 @@ class GlulxInterpreter {
         }
         break;
       case 0xA: // Local 0000-FFFF
-        value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
+        rawValue = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
+        value = rawValue;
         {
           int localsPos = _stack.read32(_fp + 4);
           if (!isStore) {
@@ -1155,8 +1361,9 @@ class GlulxInterpreter {
         }
         break;
       case 0xB: // Local Any
-        value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
+        rawValue = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
+        value = rawValue;
         {
           int localsPos = _stack.read32(_fp + 4);
           if (!isStore) {
@@ -1167,38 +1374,43 @@ class GlulxInterpreter {
         }
         break;
 
-      case 0xC: // RAM 00-FF
-        value = _memRead8(_pc++);
-        value = _ramStart + value;
+      case 0xC: // Unused
+        throw GlulxException('Unsupported Addressing Mode: $mode (0xC is unused)');
+      case 0xD: // RAM 00-FF (One byte)
+        rawValue = _memRead8(_pc++);
+        value = _ramStart + rawValue;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0xD: // RAM 0000-FFFF
-        value = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
+      case 0xE: // RAM 0000-FFFF (Two bytes)
+        rawValue = (_memRead8(_pc) << 8) | _memRead8(_pc + 1);
         _pc += 2;
-        value = _ramStart + value;
+        value = _ramStart + rawValue;
         if (!isStore) value = _memRead32(value);
         break;
-      case 0xE: // RAM Any
-        value = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
+      case 0xF: // RAM Any (Four bytes)
+        rawValue = (_memRead8(_pc) << 24) | (_memRead8(_pc + 1) << 16) | (_memRead8(_pc + 2) << 8) | _memRead8(_pc + 3);
         _pc += 4;
-        value = (_ramStart + value) & 0xFFFFFFFF;
+        value = _ramStart + rawValue;
         if (!isStore) value = _memRead32(value);
         break;
 
       default:
-        throw GlulxException('Unsupported Addressing Mode: $mode');
+        throw GlulxException('Unknown Addressing Mode: $mode');
     }
 
-    // If it's a store operand, we push the "address" (or indicator) to operands.
-    // If it's a load operand, we pushed the value.
     operands.add(value);
-    destTypes.add(isStore ? mode : -1);
+    destTypes.add(isStore ? mode : 0);
+    rawOperands.add(rawValue);
   }
 
-  /// Read a 32-bit value from memory.  Left public for unit testing.
-  int memRead32(int addr) {
-    return _memRead32(addr);
-  }
+  /// Public memory access for testing and acceleration
+  int memRead32(int addr) => _memRead32(addr);
+  int memRead16(int addr) => _memRead16(addr);
+  int memRead8(int addr) => _memRead8(addr);
+
+  void memWrite32(int addr, int value) => _memWrite32(addr, value);
+  void memWrite16(int addr, int value) => _memWrite16(addr, value);
+  void memWrite8(int addr, int value) => _memWrite8(addr, value);
 
   // Memory Helper Methods
   int _memRead8(int addr) {
@@ -1257,9 +1469,9 @@ class GlulxInterpreter {
       case 0x5: // Address 00-FF
       case 0x6: // Address 0000-FFFF
       case 0x7: // Address Any
-      case 0xC: // RAM 00-FF
-      case 0xD: // RAM 0000-FFFF
-      case 0xE: // RAM Any
+      case 0xD: // RAM 00-FF
+      case 0xE: // RAM 0000-FFFF
+      case 0xF: // RAM Any
         // address was calculated during decodeOperand
         if (size == 1) {
           _memWrite8(address, value);
@@ -1275,15 +1487,162 @@ class GlulxInterpreter {
     }
   }
 
+  // Search option flags
+  static const int _optKeyIndirect = 0x01;
+  static const int _optZeroKeyTerminates = 0x02;
+  static const int _optReturnIndex = 0x04;
+
   void _branch(int offset) {
     // Offset 0 and 1 are special returns
     if (offset == 0 || offset == 1) {
       // Return from function with value 0 or 1
       _leaveFunction(offset); // Correctly allow returning 0/1 from branch
     } else {
-      // Offset is from instruction *after* branch.
-      _pc += offset.toSigned(32);
+      // Per Glulx spec section "Branches": destination = (Addr + Offset - 2)
+      // where Addr is the address after the branch instruction (i.e., current _pc)
+      _pc += offset.toSigned(32) - 2;
     }
+  }
+
+  /// Compare a key from memory against the search key.
+  /// Returns <0 if keyAtAddr < searchKey, 0 if equal, >0 if keyAtAddr > searchKey.
+  int _compareKey(int keyAddr, int searchKey, int keySize, bool keyIndirect) {
+    // Get the key bytes to compare against
+    int compareKey;
+    if (keyIndirect) {
+      // searchKey is the address of the key
+      compareKey = 0;
+      for (int i = 0; i < keySize; i++) {
+        compareKey = (compareKey << 8) | _memRead8(searchKey + i);
+      }
+    } else {
+      // searchKey is the key value itself
+      compareKey = searchKey & ((1 << (keySize * 8)) - 1);
+    }
+
+    // Get the key at the given address
+    int keyAtAddr = 0;
+    for (int i = 0; i < keySize; i++) {
+      keyAtAddr = (keyAtAddr << 8) | _memRead8(keyAddr + i);
+    }
+
+    // Compare as unsigned big-endian integers
+    if (keyAtAddr < compareKey) return -1;
+    if (keyAtAddr > compareKey) return 1;
+    return 0;
+  }
+
+  /// Check if key at address is all zeros.
+  bool _isZeroKey(int keyAddr, int keySize) {
+    for (int i = 0; i < keySize; i++) {
+      if (_memRead8(keyAddr + i) != 0) return false;
+    }
+    return true;
+  }
+
+  /// Linear search through an array of structures.
+  int _linearSearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
+    final keyIndirect = (options & _optKeyIndirect) != 0;
+    final zeroKeyTerminates = (options & _optZeroKeyTerminates) != 0;
+    final returnIndex = (options & _optReturnIndex) != 0;
+
+    // numStructs of -1 (0xFFFFFFFF) means no limit
+    final unlimited = (numStructs & 0xFFFFFFFF) == 0xFFFFFFFF;
+    final count = unlimited ? 0x7FFFFFFF : numStructs;
+
+    for (int i = 0; i < count; i++) {
+      final structAddr = start + i * structSize;
+      final keyAddr = structAddr + keyOffset;
+
+      // Check for zero key terminator
+      if (zeroKeyTerminates && _isZeroKey(keyAddr, keySize)) {
+        // But first check if we're searching for a zero key
+        int cmp = _compareKey(keyAddr, key, keySize, keyIndirect);
+        if (cmp == 0) {
+          return returnIndex ? i : structAddr;
+        }
+        // Zero key found, stop searching
+        break;
+      }
+
+      if (_compareKey(keyAddr, key, keySize, keyIndirect) == 0) {
+        return returnIndex ? i : structAddr;
+      }
+    }
+
+    // Not found
+    return returnIndex ? 0xFFFFFFFF : 0;
+  }
+
+  /// Public binary search for acceleration
+  int binarySearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
+    return _binarySearch(key, keySize, start, structSize, numStructs, keyOffset, options);
+  }
+
+  /// Binary search through a sorted array of structures.
+  int _binarySearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
+    final keyIndirect = (options & _optKeyIndirect) != 0;
+    final returnIndex = (options & _optReturnIndex) != 0;
+    // Note: ZeroKeyTerminates is not valid for binary search
+
+    if (numStructs == 0) {
+      return returnIndex ? 0xFFFFFFFF : 0;
+    }
+
+    int low = 0;
+    int high = numStructs - 1;
+
+    while (low <= high) {
+      final mid = (low + high) ~/ 2;
+      final structAddr = start + mid * structSize;
+      final keyAddr = structAddr + keyOffset;
+      final cmp = _compareKey(keyAddr, key, keySize, keyIndirect);
+
+      if (cmp < 0) {
+        low = mid + 1;
+      } else if (cmp > 0) {
+        high = mid - 1;
+      } else {
+        // Found!
+        return returnIndex ? mid : structAddr;
+      }
+    }
+
+    // Not found
+    return returnIndex ? 0xFFFFFFFF : 0;
+  }
+
+  /// Linked list search.
+  int _linkedSearch(int key, int keySize, int start, int keyOffset, int nextOffset, int options) {
+    final keyIndirect = (options & _optKeyIndirect) != 0;
+    final zeroKeyTerminates = (options & _optZeroKeyTerminates) != 0;
+    // Note: ReturnIndex is not particularly useful for linked lists, but is supported
+
+    int current = start;
+    while (current != 0) {
+      final keyAddr = current + keyOffset;
+
+      // Check for zero key terminator
+      if (zeroKeyTerminates && _isZeroKey(keyAddr, keySize)) {
+        // But first check if we're searching for a zero key
+        int cmp = _compareKey(keyAddr, key, keySize, keyIndirect);
+        if (cmp == 0) {
+          return current;
+        }
+        // Zero key found, stop searching
+        break;
+      }
+
+      if (_compareKey(keyAddr, key, keySize, keyIndirect) == 0) {
+        return current;
+      }
+
+      // Move to next node
+      current = _memRead32(current + nextOffset);
+    }
+
+    // Not found
+    return 0;
   }
 
   void _streamNum(int val) {

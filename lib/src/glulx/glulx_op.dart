@@ -1,4 +1,4 @@
-/// Glulx Opcode Constants
+/// Glulx Opcode Constants.  DO NOT CHANGE
 class GlulxOp {
   /// nop
   static const int nop = 0x00; // implemented. unit tested

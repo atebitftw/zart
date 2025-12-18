@@ -38,6 +38,9 @@ class OpcodeInfo {
     GlulxOp.jltu: OpcodeInfo(3, [false, false, false]), // jltu
     GlulxOp.jgeu: OpcodeInfo(3, [false, false, false]), // jgeu
     GlulxOp.call: OpcodeInfo(3, [false, false, true]), // call
+    GlulxOp.accelfunc: OpcodeInfo(2, [false, false]), // accelfunc L1 L2
+    GlulxOp.accelparam: OpcodeInfo(2, [false, false]), // accelparam L1 L2
+    GlulxOp.mfree: OpcodeInfo(1, [false]), // mfree L1
     GlulxOp.ret: OpcodeInfo(1, [false]), // return
     GlulxOp.copy: OpcodeInfo(2, [false, true]), // copy
     GlulxOp.copys: OpcodeInfo(2, [false, true]), // copys
@@ -78,16 +81,61 @@ class OpcodeInfo {
     GlulxOp.jgtu: OpcodeInfo(3, [false, false, false]), // jgtu L1 L2 L3
     GlulxOp.jleu: OpcodeInfo(3, [false, false, false]), // jleu L1 L2 L3
     GlulxOp.aloadbit: OpcodeInfo(3, [false, false, true]), // aloadbit L1 L2 S1
-    GlulxOp.astorebit: OpcodeInfo(3, [false, false, false]), // astorebit L1 L2 L3
+    GlulxOp.astorebit: OpcodeInfo(3, [
+      false,
+      false,
+      false,
+    ]), // astorebit L1 L2 L3
     GlulxOp.streamunichar: OpcodeInfo(1, [false]), // streamunichar L1
     GlulxOp.callf: OpcodeInfo(2, [false, true]), // callf L1 S1
     GlulxOp.callfi: OpcodeInfo(3, [false, false, true]), // callfi L1 L2 S1
-    GlulxOp.callfii: OpcodeInfo(4, [false, false, false, true]), // callfii L1 L2 L3 S1
-    GlulxOp.callfiii: OpcodeInfo(5, [false, false, false, false, true]), // callfiii L1 L2 L3 L4 S1
+    GlulxOp.callfii: OpcodeInfo(4, [
+      false,
+      false,
+      false,
+      true,
+    ]), // callfii L1 L2 L3 S1
+    GlulxOp.callfiii: OpcodeInfo(5, [
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]), // callfiii L1 L2 L3 L4 S1
     GlulxOp.setiosys: OpcodeInfo(2, [false, false]), // setiosys L1 L2
     GlulxOp.getiosys: OpcodeInfo(2, [true, true]), // getiosys S1 S2
     GlulxOp.mzero: OpcodeInfo(2, [false, false]), // mzero L1 L2
     GlulxOp.mcopy: OpcodeInfo(3, [false, false, false]), // mcopy L1 L2 L3
+    // Search opcodes
+    GlulxOp.linearsearch: OpcodeInfo(8, [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]), // linearsearch L1 L2 L3 L4 L5 L6 L7 S1
+    GlulxOp.binarysearch: OpcodeInfo(8, [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]), // binarysearch L1 L2 L3 L4 L5 L6 L7 S1
+    GlulxOp.linkedsearch: OpcodeInfo(7, [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]), // linkedsearch L1 L2 L3 L4 L5 L6 S1
     // Floating point math
     GlulxOp.numtof: OpcodeInfo(2, [false, true]), // numtof L1 S1
     GlulxOp.ftonumz: OpcodeInfo(2, [false, true]), // ftonumz L1 S1

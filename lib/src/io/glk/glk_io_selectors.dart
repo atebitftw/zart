@@ -1,3 +1,36 @@
+/// Glk event types (for glk_select event structure).
+class GlkEventTypes {
+  /// No event.
+  static const int none = 0;
+
+  /// Timer event.
+  static const int timer = 1;
+
+  /// Character input event.
+  static const int charInput = 2;
+
+  /// Line input event.
+  static const int lineInput = 3;
+
+  /// Mouse input event.
+  static const int mouseInput = 4;
+
+  /// Window arrange event.
+  static const int arrange = 5;
+
+  /// Window redraw event.
+  static const int redraw = 6;
+
+  /// Sound notify event.
+  static const int soundNotify = 7;
+
+  /// Hyperlink event.
+  static const int hyperlink = 8;
+
+  /// Volume notify event.
+  static const int volumeNotify = 9;
+}
+
 /// Defines the IO selectors for Glk.
 class GlkIoSelectors {
   /// Exit the program.
