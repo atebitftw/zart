@@ -719,11 +719,14 @@ class GlulxInterpreter {
 
     // Handle arguments based on function type
     if (func is StackArgsFunction) {
-      // C0: Push arg count, then args in order (first arg on top after count)
-      stack.push32(args.length);
+      // C0: Spec says "last argument pushed first, first argument topmost.
+      // Then the number of arguments is pushed on top of that."
+      // So we push: args[n-1], args[n-2], ..., args[0], then count.
+      // Result: first arg (args[0]) is topmost of args, count is at very top.
       for (var i = args.length - 1; i >= 0; i--) {
         stack.push32(args[i]);
       }
+      stack.push32(args.length);
     } else {
       // C1: Copy args into locals
       for (var i = 0; i < args.length; i++) {

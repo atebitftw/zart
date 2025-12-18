@@ -68,6 +68,23 @@ void main() {
       data[0x22A] = GlulxOp.ret;
       data[0x22B] = 0x08; // mode 8 (pop)
 
+      // ===== Function at 0x230: C0, adds count+firstArg to verify order =====
+      // C0 means args are on stack: [lastArg, firstArg, count] bottom->top
+      // add(pop, pop) will add count and firstArg
+      // For args [10, 99]: correct stack is [99, 10, 2]
+      //   add pops 2 and 10, pushes 12, ret returns 12
+      // If wrong order [10, 99, 2]: add pops 2 and 99, pushes 101, ret returns 101
+      data[0x230] = 0xC0; // type C0
+      data[0x231] = 0x00;
+      data[0x232] = 0x00; // no locals
+      // Entry at 0x233: add pop pop -> push
+      data[0x233] = GlulxOp.add;
+      data[0x234] = 0x88; // L1=mode 8 (pop), L2=mode 8 (pop)
+      data[0x235] = 0x08; // S1=mode 8 (push)
+      // ret pop (return the sum)
+      data[0x236] = GlulxOp.ret;
+      data[0x237] = 0x08; // mode 8 (pop)
+
       return data;
     }
 
@@ -229,6 +246,37 @@ void main() {
       expect(interpreter.pc, equals(0x107));
       final token = interpreter.stack.pop32();
       expect(token, greaterThan(0));
+    });
+
+    // ========== C0 function stack argument order test ==========
+
+    test('C0 function receives first arg as topmost (below count)', () async {
+      /// Spec: "last argument pushed first, first argument topmost.
+      /// Then the number of arguments is pushed on top of that."
+      // callfii 0x230, 10, 99 -> stack
+      // Function 0x230 adds top two stack values (count + first arg)
+      // With args [10, 99], correct stack is: [99, 10, 2] bottom->top
+      // add pops 2 and 10, pushes 12, ret returns 12
+      // Wrong order would give different result (e.g., 101)
+      final opcodes = [
+        ...op2(GlulxOp.callfii), // 0x81, 0x62
+        0x12, 0x81, // L1=mode 2, L2=mode 1, L3=mode 1, S1=mode 8
+        0x02, 0x30, // L1 = 0x230 (C0 function)
+        0x0A, // L2 = 10 (first arg)
+        0x63, // L3 = 99 (second arg)
+      ];
+      gameData = createGameData(opcodes);
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      interpreter.executeInstruction(); // callfii
+      interpreter.executeInstruction(); // add
+      interpreter.executeInstruction(); // ret
+
+      // Should return 12 (count=2 + firstArg=10), not 101 (count=2 + secondArg=99)
+      expect(interpreter.stack.pop32(), equals(12));
     });
   });
 }
