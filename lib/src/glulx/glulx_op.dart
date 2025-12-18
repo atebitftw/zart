@@ -353,4 +353,102 @@ class GlulxOp {
 
   /// jisinf
   static const int jisinf = 0x1C9;
+
+  // Double-Precision Opcodes (Spec Section 2.4.6)
+
+  /// numtod
+  static const int numtod = 0x200;
+
+  /// dtonumz
+  static const int dtonumz = 0x201;
+
+  /// dtonumn
+  static const int dtonumn = 0x202;
+
+  /// ftod
+  static const int ftod = 0x203;
+
+  /// dtof
+  static const int dtof = 0x204;
+
+  /// dceil
+  static const int dceil = 0x208;
+
+  /// dfloor
+  static const int dfloor = 0x209;
+
+  /// dadd
+  static const int dadd = 0x210;
+
+  /// dsub
+  static const int dsub = 0x211;
+
+  /// dmul
+  static const int dmul = 0x212;
+
+  /// ddiv
+  static const int ddiv = 0x213;
+
+  /// dmodr
+  static const int dmodr = 0x214;
+
+  /// dmodq
+  static const int dmodq = 0x215;
+
+  /// dsqrt
+  static const int dsqrt = 0x218;
+
+  /// dexp
+  static const int dexp = 0x219;
+
+  /// dlog
+  static const int dlog = 0x21A;
+
+  /// dpow
+  static const int dpow = 0x21B;
+
+  /// dsin
+  static const int dsin = 0x220;
+
+  /// dcos
+  static const int dcos = 0x221;
+
+  /// dtan
+  static const int dtan = 0x222;
+
+  /// dasin
+  static const int dasin = 0x223;
+
+  /// dacos
+  static const int dacos = 0x224;
+
+  /// datan
+  static const int datan = 0x225;
+
+  /// datan2
+  static const int datan2 = 0x226;
+
+  /// jdeq
+  static const int jdeq = 0x230;
+
+  /// jdne
+  static const int jdne = 0x231;
+
+  /// jdlt
+  static const int jdlt = 0x232;
+
+  /// jdle
+  static const int jdle = 0x233;
+
+  /// jdgt
+  static const int jdgt = 0x234;
+
+  /// jdge
+  static const int jdge = 0x235;
+
+  /// jdisnan
+  static const int jdisnan = 0x238;
+
+  /// jdisinf
+  static const int jdisinf = 0x239;
 }

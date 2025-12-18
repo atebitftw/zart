@@ -124,6 +124,8 @@ class GlulxInterpreter {
       /// Spec Section 2.4.1: "mod L1 L2 S1: Compute (L1 % L2), and store the result in S1.
       /// This is the remainder from signed integer division.
       /// As with division, taking the remainder modulo zero is an error, as is -0x80000000 % -1."
+      /// Note: Dart's % operator is Euclidean modulo (sign of divisor).
+      /// Glulx/C uses truncated remainder (sign matches dividend). Use .remainder().
       case GlulxOp.mod:
         final l1 = (operands[0] as int).toSigned(32);
         final l2 = (operands[1] as int).toSigned(32);
@@ -134,7 +136,7 @@ class GlulxInterpreter {
         if (l1 == -0x80000000 && l2 == -1) {
           throw Exception('Modulo overflow: -0x80000000 % -1 (Spec Section 2.4.1)');
         }
-        _performStore(dest, (l1 % l2) & 0xFFFFFFFF);
+        _performStore(dest, l1.remainder(l2) & 0xFFFFFFFF);
         break;
 
       /// Spec Section 2.4.1: "neg L1 S1: Compute the negative of L1."
@@ -142,6 +144,84 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final dest = operands[1] as _StoreOperand;
         _performStore(dest, (-l1) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.2: "bitand L1 L2 S1: Compute the bitwise AND of L1 and L2."
+      case GlulxOp.bitand:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        _performStore(dest, (l1 & l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.2: "bitor L1 L2 S1: Compute the bitwise OR of L1 and L2."
+      case GlulxOp.bitor:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        _performStore(dest, (l1 | l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.2: "bitxor L1 L2 S1: Compute the bitwise XOR of L1 and L2."
+      case GlulxOp.bitxor:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        _performStore(dest, (l1 ^ l2) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.2: "bitnot L1 S1: Compute the bitwise negation of L1."
+      case GlulxOp.bitnot:
+        final l1 = operands[0] as int;
+        final dest = operands[1] as _StoreOperand;
+        _performStore(dest, (~l1) & 0xFFFFFFFF);
+        break;
+
+      /// Spec Section 2.4.2: "shiftl L1 L2 S1: Shift the bits of L1 to the left by L2 places.
+      /// If L2 is 32 or more, the result is always zero."
+      case GlulxOp.shiftl:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        // L2 is treated as unsigned per spec
+        final shift = l2 & 0xFFFFFFFF;
+        if (shift >= 32) {
+          _performStore(dest, 0);
+        } else {
+          _performStore(dest, (l1 << shift) & 0xFFFFFFFF);
+        }
+        break;
+
+      /// Spec Section 2.4.2: "ushiftr L1 L2 S1: Shift the bits of L1 to the right by L2 places.
+      /// The top L2 bits are filled with zeroes. If L2 is 32 or more, the result is always zero."
+      case GlulxOp.ushiftr:
+        final l1 = operands[0] as int;
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        final shift = l2 & 0xFFFFFFFF;
+        if (shift >= 32) {
+          _performStore(dest, 0);
+        } else {
+          // Ensure unsigned shift by masking l1 to 32 bits
+          _performStore(dest, ((l1 & 0xFFFFFFFF) >> shift) & 0xFFFFFFFF);
+        }
+        break;
+
+      /// Spec Section 2.4.2: "sshiftr L1 L2 S1: Shift the bits of L1 to the right by L2 places.
+      /// The top L2 bits are filled with copies of the top bit of L1.
+      /// If L2 is 32 or more, the result is always zero or FFFFFFFF, depending on the top bit of L1."
+      case GlulxOp.sshiftr:
+        final l1 = (operands[0] as int).toSigned(32);
+        final l2 = operands[1] as int;
+        final dest = operands[2] as _StoreOperand;
+        final shift = l2 & 0xFFFFFFFF;
+        if (shift >= 32) {
+          // Result depends on sign bit
+          _performStore(dest, (l1 < 0) ? 0xFFFFFFFF : 0);
+        } else {
+          // Dart's >> on signed int does sign extension
+          _performStore(dest, (l1 >> shift) & 0xFFFFFFFF);
+        }
         break;
 
       default:

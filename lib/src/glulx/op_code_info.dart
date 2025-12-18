@@ -23,12 +23,16 @@ class OpcodeInfo {
     GlulxOp.mul: OpcodeInfo(3, [false, false, true]),
     GlulxOp.div: OpcodeInfo(3, [false, false, true]),
     GlulxOp.mod: OpcodeInfo(3, [false, false, true]),
-
-    // Integer Math: L1 S1
     GlulxOp.neg: OpcodeInfo(2, [false, true]),
 
-    // Data Movement: L1 S1
-    GlulxOp.copy: OpcodeInfo(2, [false, true]),
+    // Bitwise Operations: L1 L2 S1 (except bitnot which is L1 S1)
+    GlulxOp.bitand: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.bitor: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.bitxor: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.bitnot: OpcodeInfo(2, [false, true]),
+    GlulxOp.shiftl: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.sshiftr: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.ushiftr: OpcodeInfo(3, [false, false, true]),
   };
 
   static OpcodeInfo get(int opcode) {

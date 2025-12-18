@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
+import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
@@ -57,7 +58,7 @@ void main() {
     test('nop does nothing', () async {
       /// Spec Section 2.4: "nop: Do nothing."
       // Opcode: 0x00 (nop), no operands
-      gameData = createGameData([0x00]);
+      gameData = createGameData([GlulxOp.nop]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -75,7 +76,7 @@ void main() {
       // Modes byte 1: 0x11 -> L1=mode 1 (low nibble), L2=mode 1 (high nibble)
       // Modes byte 2: 0x08 -> S1=mode 8 (push to stack)
       // Operands: L1=5, L2=7 -> result 12 pushed to stack
-      gameData = createGameData([0x10, 0x11, 0x08, 0x05, 0x07]);
+      gameData = createGameData([GlulxOp.add, 0x11, 0x08, 0x05, 0x07]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -92,7 +93,7 @@ void main() {
       /// Spec Section 2.4.1: "Truncate the result to 32 bits if necessary."
       // 0xFFFFFFFF + 1 = 0x100000000, truncated to 0x00000000
       gameData = createGameData([
-        0x10, // add
+        GlulxOp.add, // add
         0x33, // L1=mode 3 (4-byte const), L2=mode 3 (4-byte const)
         0x08, // S1=mode 8 (push to stack)
         0xFF, 0xFF, 0xFF, 0xFF, // L1 = 0xFFFFFFFF
@@ -111,7 +112,7 @@ void main() {
     test('sub computes L1 - L2', () async {
       /// Spec Section 2.4.1: "sub L1 L2 S1: Compute (L1 - L2), and store the result in S1."
       // 10 - 3 = 7
-      gameData = createGameData([0x11, 0x11, 0x08, 0x0A, 0x03]);
+      gameData = createGameData([GlulxOp.sub, 0x11, 0x08, 0x0A, 0x03]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -125,7 +126,7 @@ void main() {
     test('mul computes L1 * L2', () async {
       /// Spec Section 2.4.1: "mul L1 L2 S1: Compute (L1 * L2), and store the result in S1."
       // 6 * 7 = 42
-      gameData = createGameData([0x12, 0x11, 0x08, 0x06, 0x07]);
+      gameData = createGameData([GlulxOp.mul, 0x11, 0x08, 0x06, 0x07]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -139,7 +140,7 @@ void main() {
     test('div computes signed L1 / L2', () async {
       /// Spec Section 2.4.1: "div L1 L2 S1: Compute (L1 / L2)... This is signed integer division."
       // 11 / 2 = 5
-      gameData = createGameData([0x13, 0x11, 0x08, 0x0B, 0x02]);
+      gameData = createGameData([GlulxOp.div, 0x11, 0x08, 0x0B, 0x02]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -153,7 +154,7 @@ void main() {
     test('div throws on division by zero', () async {
       /// Spec Section 2.4.1: "Division by zero is of course an error."
       // L1=10, L2=0 -> div by zero
-      gameData = createGameData([0x13, 0x01, 0x08, 0x0A, 0x00]);
+      gameData = createGameData([GlulxOp.div, 0x01, 0x08, 0x0A, 0x00]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -165,7 +166,7 @@ void main() {
     test('div throws on -0x80000000 / -1', () async {
       /// Spec Section 2.4.1: "So is dividing the value -0x80000000 by -1."
       gameData = createGameData([
-        0x13, // div
+        GlulxOp.div, // div
         0x33, // L1=mode 3 (4-byte const), L2=mode 3 (4-byte const)
         0x08, // S1=mode 8 (push)
         0x80, 0x00, 0x00, 0x00, // L1 = -0x80000000
@@ -182,7 +183,7 @@ void main() {
     test('div handles negative numbers correctly', () async {
       /// Spec Section 2.4.1: "-11 / 2 = -5"
       gameData = createGameData([
-        0x13, // div
+        GlulxOp.div, // div
         0x11, 0x08, // L1=mode 1, L2=mode 1, S1=mode 8
         0xF5, // L1 = -11 (signed 1-byte)
         0x02, // L2 = 2
@@ -201,7 +202,7 @@ void main() {
     test('mod computes signed L1 % L2', () async {
       /// Spec Section 2.4.1: "mod L1 L2 S1: Compute (L1 % L2)..."
       // 13 % 5 = 3
-      gameData = createGameData([0x14, 0x11, 0x08, 0x0D, 0x05]);
+      gameData = createGameData([GlulxOp.mod, 0x11, 0x08, 0x0D, 0x05]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -215,7 +216,7 @@ void main() {
     test('mod throws on modulo by zero', () async {
       /// Spec Section 2.4.1: "...taking the remainder modulo zero is an error..."
       // L1=10, L2=0 -> mod by zero
-      gameData = createGameData([0x14, 0x01, 0x08, 0x0A, 0x00]);
+      gameData = createGameData([GlulxOp.mod, 0x01, 0x08, 0x0A, 0x00]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -227,7 +228,7 @@ void main() {
     test('neg computes -L1', () async {
       /// Spec Section 2.4.1: "neg L1 S1: Compute the negative of L1."
       // neg 5 -> -5 (0xFFFFFFFB as unsigned)
-      gameData = createGameData([0x15, 0x81, 0x05]);
+      gameData = createGameData([GlulxOp.neg, 0x81, 0x05]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -237,6 +238,120 @@ void main() {
 
       // -5 as unsigned 32-bit
       expect(interpreter.stack.pop32(), equals((-5) & 0xFFFFFFFF));
+    });
+
+    // Signed Division Edge Cases (per C reference exec.c behavior)
+    // These test cases verify Dart's signed integer division matches the spec.
+
+    test('div: -7 / 3 = -2 (truncates toward zero)', () async {
+      /// Spec Section 2.4.1: Signed integer division truncates toward zero.
+      /// C reference: -7 / 3 = -2 (not -3)
+      gameData = createGameData([
+        GlulxOp.div, // div
+        0x11, 0x08, // L1=mode 1, L2=mode 1, S1=mode 8
+        0xF9, // L1 = -7 (signed 1-byte)
+        0x03, // L2 = 3
+      ]);
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      interpreter.executeInstruction();
+
+      expect(interpreter.stack.pop32().toSigned(32), equals(-2));
+    });
+
+    test('div: 7 / -3 = -2 (truncates toward zero)', () async {
+      /// Spec Section 2.4.1: Signed integer division truncates toward zero.
+      /// C reference: 7 / -3 = -2 (not -3)
+      gameData = createGameData([
+        GlulxOp.div, // div
+        0x11, 0x08,
+        0x07, // L1 = 7
+        0xFD, // L2 = -3 (signed 1-byte)
+      ]);
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      interpreter.executeInstruction();
+
+      expect(interpreter.stack.pop32().toSigned(32), equals(-2));
+    });
+
+    test('div: -7 / -3 = 2 (both negative)', () async {
+      /// C reference: -7 / -3 = 2
+      gameData = createGameData([
+        GlulxOp.div, // div
+        0x11, 0x08,
+        0xF9, // L1 = -7
+        0xFD, // L2 = -3
+      ]);
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      interpreter.executeInstruction();
+
+      expect(interpreter.stack.pop32().toSigned(32), equals(2));
+    });
+
+    test('mod: -7 % 3 = -1 (remainder has sign of dividend)', () async {
+      /// Spec Section 2.4.1: Remainder from signed integer division.
+      /// C reference: -7 % 3 = -1 (sign matches dividend)
+      gameData = createGameData([
+        GlulxOp.mod, // mod
+        0x11, 0x08,
+        0xF9, // L1 = -7
+        0x03, // L2 = 3
+      ]);
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      interpreter.executeInstruction();
+
+      expect(interpreter.stack.pop32().toSigned(32), equals(-1));
+    });
+
+    test('mod: 7 % -3 = 1 (sign matches dividend, not divisor)', () async {
+      /// C reference: 7 % -3 = 1 (sign matches dividend)
+      gameData = createGameData([
+        GlulxOp.mod, // mod
+        0x11, 0x08,
+        0x07, // L1 = 7
+        0xFD, // L2 = -3
+      ]);
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      interpreter.executeInstruction();
+
+      expect(interpreter.stack.pop32().toSigned(32), equals(1));
+    });
+
+    test('mod: -7 % -3 = -1 (both negative)', () async {
+      /// C reference: -7 % -3 = -1
+      gameData = createGameData([
+        GlulxOp.mod, // mod
+        0x11, 0x08,
+        0xF9, // L1 = -7
+        0xFD, // L2 = -3
+      ]);
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      interpreter.executeInstruction();
+
+      expect(interpreter.stack.pop32().toSigned(32), equals(-1));
     });
   });
 }
