@@ -14,7 +14,7 @@ import 'package:zart/src/logging.dart';
 /// instruction disassembly to the logging system.
 class GlulxDebugger {
   /// Maximum size of the flight recorder.
-  final int maxFlightRecorderSize = 100;
+  int flightRecorderSize = 100;
 
   /// Master switch for debugging output.
   bool enabled = false;
@@ -295,55 +295,12 @@ class GlulxDebugger {
   final List<String> _flightRecorder = [];
 
   /// Records an event or message to the flight recorder.
-  void recordEvent(String message) {
+  void flightRecorderEvent(String message) {
     if (!enabled || !showFlightRecorder) {
       return;
     }
-    _flightRecorder.add('[$step] EVENT: $message');
-    if (_flightRecorder.length > maxFlightRecorderSize) {
-      _flightRecorder.removeAt(0);
-    }
-  }
-
-  /// Records an instruction to the flight recorder (circular buffer).
-  void recordInstruction(
-    int pc,
-    int opcode,
-    List<Object> operands,
-    List<int> destTypes,
-    OpcodeInfo opInfo,
-    List<int> operandModes,
-    List<int> rawOperands,
-  ) {
-    if (!enabled || !showFlightRecorder) {
-      return;
-    }
-
-    // Generate instruction string
-    final opName = getOpcodeName(opcode);
-    final buffer = StringBuffer();
-    buffer.write('[$step] 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName');
-
-    for (int i = 0; i < operands.length; i++) {
-      buffer.write(' ');
-      if (operands[i] is StoreOperand) {
-        buffer.write(
-          _formatOperand(
-            (operands[i] as StoreOperand).addr,
-            operandModes.length > i ? operandModes[i] : 0,
-            opInfo.isStore(i),
-            rawValue: (operands[i] as StoreOperand).addr,
-          ),
-        );
-      } else {
-        buffer.write(
-          _formatOperand(operands[i] as int, operandModes.length > i ? operandModes[i] : 0, opInfo.isStore(i)),
-        );
-      }
-    }
-
-    _flightRecorder.add(buffer.toString());
-    if (_flightRecorder.length > maxFlightRecorderSize) {
+    _flightRecorder.add('[$step] $message');
+    if (_flightRecorder.length > flightRecorderSize) {
       _flightRecorder.removeAt(0);
     }
   }
@@ -353,7 +310,7 @@ class GlulxDebugger {
     if (!enabled || !showFlightRecorder) {
       return;
     }
-    bufferedLog('--- Flight Recorder (Last $maxFlightRecorderSize Instructions) ---');
+    bufferedLog('--- Flight Recorder (Last $flightRecorderSize Instructions) ---');
     for (final line in _flightRecorder) {
       bufferedLog(line);
     }

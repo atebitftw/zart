@@ -176,10 +176,15 @@ class GlulxInterpreter {
     final modes = _readAddressingModes(info.operandCount);
     final operands = _fetchOperands(opcode, info, modes);
 
-    debugger.recordInstruction(pc, opcode, operands, modes, info, modes, []);
     if (debugger.enabled && debugger.showInstructions) {
       debugger.bufferedLog(
         'Interpreter -> PC=0x${pc.toRadixString(16)}, step=$step: $opcode(${GlulxDebugger.getOpcodeName(opcode)}) operands: [${operands.join(', ')}] ($info)',
+      );
+    }
+
+    if (debugger.enabled && debugger.showFlightRecorder) {
+      debugger.flightRecorderEvent(
+        'Interpreter -> PC=0x${pc.toRadixString(16)}, $opcode(${GlulxDebugger.getOpcodeName(opcode)}) operands: [${operands.join(', ')}] ($info)',
       );
     }
 
@@ -464,6 +469,13 @@ class GlulxInterpreter {
         }
         break;
 
+      /// Spec: "jumpabs L1: Branch unconditionally to address L1."
+      /// Unlike jump, this uses an absolute address rather than a relative offset.
+      case GlulxOp.jumpabs:
+        final address = operands[0] as int;
+        _pc = address;
+        break;
+
       // ========== Function Call Opcodes (Spec Section 2.4.4) ==========
 
       /// Spec Section 2.4.4: "call L1 L2 S1: Call function whose address is L1,
@@ -477,7 +489,7 @@ class GlulxInterpreter {
         for (var i = 0; i < argCount; i++) {
           args.add(stack.pop32());
         }
-        _callFunction(address, args.reversed.toList(), dest);
+        _callFunction(address, args, dest);
         break;
 
       /// Spec Section 2.4.4: "callf L1 S1: Call function with 0 arguments."
@@ -540,15 +552,19 @@ class GlulxInterpreter {
         // 3. Enter the new function at the same stack position.
         // The call stub below FP remains unchanged and will be used when the
         // tailcalled function eventually returns.
-        _enterFunction(address, args.reversed.toList());
+        _enterFunction(address, args);
         break;
 
       /// Spec Section 2.4.4: "catch S1 L1: Generate catch token, branch to L1."
       case GlulxOp.catchEx:
         final dest = operands[0] as StoreOperand;
         final offset = operands[1] as int;
+        // Convert addressing mode to call stub DestType/DestAddr
+        // Spec Section 1.4.1: DestType 0=discard, 1=memory, 2=local, 3=stack
+        final destType = _modeToDestType(dest.mode);
+        final destAddr = _modeToDestAddr(dest.mode, dest.addr);
         // Push call stub (for throw to restore)
-        stack.pushCallStub(dest.mode, dest.addr, _pc, stack.fp);
+        stack.pushCallStub(destType, destAddr, _pc, stack.fp);
         // Token is current SP after pushing the stub
         final token = stack.sp;
         // Store token in destination
@@ -561,10 +577,8 @@ class GlulxInterpreter {
       case GlulxOp.throwEx:
         final value = operands[0] as int;
         final token = operands[1] as int;
-        // Pop stack down to token
-        while (stack.sp > token) {
-          stack.pop32();
-        }
+        // Restore stack pointer to the token position (per C reference: stackptr = token)
+        stack.sp = token;
         // Pop call stub
         final stub = stack.popCallStub();
         // Store thrown value in destination
@@ -585,6 +599,9 @@ class GlulxInterpreter {
       /// Spec Section 2.4.5: "quit: Exit the program immediately."
       case GlulxOp.quit:
         _quit = true;
+        if (debugger.enabled && debugger.showFlightRecorder) {
+          debugger.dumpFlightRecorder();
+        }
         break;
 
       /// Spec Section 2.4.5: "gestalt L1 L2 S1: Query capability L1."
@@ -1321,10 +1338,11 @@ class GlulxInterpreter {
         final argCount = operands[1] as int;
         final dest = operands[2] as StoreOperand;
 
-        // Pop arguments from stack (they were pushed in order, so pop them into a list in reverse)
+        // Pop arguments from stack. Per spec, args are pushed backward (last first),
+        // so popping yields them in forward order (first arg first).
         final args = <int>[];
         for (var i = 0; i < argCount; i++) {
-          args.insert(0, stack.pop32());
+          args.add(stack.pop32());
         }
 
         if (debugger.enabled && debugger.showInstructions) {
@@ -1354,9 +1372,9 @@ class GlulxInterpreter {
         if (debugger.enabled) {
           if (debugger.showInstructions) {
             debugger.bufferedLog('Interpreter -> Glk selector: 0x${selector.toRadixString(16)} ret: $val');
-          }
-          if (debugger.showFlightRecorder) {
-            debugger.recordEvent('Glk(0x${selector.toRadixString(16)})$args -> $val');
+            if (debugger.showFlightRecorder) {
+              debugger.flightRecorderEvent('Glk(0x${selector.toRadixString(16)})$args -> $val');
+            }
           }
         }
         return val;
@@ -1365,9 +1383,9 @@ class GlulxInterpreter {
     if (debugger.enabled) {
       if (debugger.showInstructions) {
         debugger.bufferedLog('Interpreter -> Glk selector: 0x${selector.toRadixString(16)} ret: $res');
-      }
-      if (debugger.showFlightRecorder) {
-        debugger.recordEvent('Glk(0x${selector.toRadixString(16)})$args -> $res');
+        if (debugger.showFlightRecorder) {
+          debugger.flightRecorderEvent('Glk(0x${selector.toRadixString(16)})$args -> $res');
+        }
       }
     }
     return res;
@@ -1604,7 +1622,7 @@ class GlulxInterpreter {
         debugger.bufferedLog('[${debugger.step}]   StoreWord: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
       if (debugger.showFlightRecorder) {
-        debugger.recordEvent('StoreWord: $dest value: 0x${value.toRadixString(16)} ($value)');
+        debugger.flightRecorderEvent('StoreWord: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
     }
     switch (dest.mode) {
@@ -1651,7 +1669,7 @@ class GlulxInterpreter {
         debugger.bufferedLog('[${debugger.step}]   StoreShort: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
       if (debugger.showFlightRecorder) {
-        debugger.recordEvent('StoreShort: $dest value: 0x${value.toRadixString(16)} ($value)');
+        debugger.flightRecorderEvent('StoreShort: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
     }
     switch (dest.mode) {
@@ -1687,7 +1705,7 @@ class GlulxInterpreter {
         debugger.bufferedLog('[${debugger.step}]   StoreByte: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
       if (debugger.showFlightRecorder) {
-        debugger.recordEvent('StoreByte: $dest value: 0x${value.toRadixString(16)} ($value)');
+        debugger.flightRecorderEvent('StoreByte: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
     }
     switch (dest.mode) {

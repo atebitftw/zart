@@ -12,8 +12,6 @@ import 'package:zart/src/cli/ui/settings_screen.dart';
 import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 
-// dart run zart.dart ../assets/games/monkey.gblorb -d --showheader --startstep=0 --endstep=1000 --showinstructions
-
 /// A full-screen terminal-based console player for Z-Machine.
 /// Uses dart_console for cross-platform support.
 void main(List<String> args) async {
@@ -27,6 +25,7 @@ void main(List<String> args) async {
     ..addFlag('showinstructions', help: 'Show instructions (requires --debug)', defaultsTo: false)
     ..addFlag('showpc', help: 'Show PC advancement (requires --debug)', defaultsTo: false)
     ..addFlag('flight-recorder', help: 'Enable flight recorder (last 100 instructions)', defaultsTo: false)
+    ..addOption('flight-recorder-size', help: 'Flight recorder size (requires --flight-recorder)', defaultsTo: '100')
     ..addOption('logfilter', help: 'Only log messages containing this string')
     ..addOption('maxstep', help: 'Maximum steps to run');
 
@@ -116,6 +115,7 @@ void main(List<String> args) async {
         showModes: results['showmodes'] as bool,
         showPCAdvancement: results['showpc'] as bool,
         enableFlightRecorder: results['flight-recorder'] as bool,
+        flightRecorderSize: int.tryParse(results['flight-recorder-size']) ?? 100,
         showInstructions: results['showinstructions'] as bool,
         logFilter: results['logfilter'] as String?,
         maxStep: maxStepVal,
@@ -145,6 +145,7 @@ Future<void> _runGlulxGame(
   bool showModes = false,
   bool showPCAdvancement = false,
   bool enableFlightRecorder = false,
+  int flightRecorderSize = 100,
   bool showInstructions = false,
   String? logFilter,
   int? maxStep,
@@ -179,6 +180,7 @@ Future<void> _runGlulxGame(
         ..endStep = endStep
         ..showInstructions = showInstructions
         ..showFlightRecorder = enableFlightRecorder
+        ..flightRecorderSize = flightRecorderSize
         ..logFilter = logFilter;
     }
 
@@ -194,6 +196,10 @@ Future<void> _runGlulxGame(
     log.warning('Game ended. Tick Count: ${provider.tickCount}. Step Count: ${glulx.step}');
     // Render what we have so far
     terminal.render();
+
+    if (glulx.debugger.showFlightRecorder) {
+      glulx.debugger.dumpFlightRecorder();
+    }
 
     // Wait for keypress before exiting
     terminal.appendToWindow0('\n[Zart: Press any key to exit]');

@@ -105,6 +105,11 @@ class GlulxTerminalProvider implements GlkIoProvider {
       debugger.bufferedLog(
         '[${debugger.step}] Glk -> selector: 0x${selector.toRadixString(16)}(${GlulxDebugger.glkSelectorNames[selector] ?? 'UNKNOWN'}) args: $args',
       );
+      if (debugger.showFlightRecorder) {
+        debugger.flightRecorderEvent(
+          '[${debugger.step}] Glk -> selector: 0x${selector.toRadixString(16)}(${GlulxDebugger.glkSelectorNames[selector] ?? 'UNKNOWN'}) args: $args',
+        );
+      }
     }
     final result = _dispatch(selector, args);
     if (result is Future<int>) {
@@ -112,9 +117,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
         if (debugger.enabled) {
           if (debugger.showInstructions) {
             debugger.bufferedLog('Glk -> result: $val');
-          }
-          if (debugger.showFlightRecorder) {
-            debugger.recordEvent('GlkResult: $val');
+            if (debugger.showFlightRecorder) {
+              debugger.flightRecorderEvent('GlkResult: $val');
+            }
           }
         }
 
@@ -124,9 +129,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
     if (debugger.enabled) {
       if (debugger.showInstructions) {
         debugger.bufferedLog('Glk -> result: $result');
-      }
-      if (debugger.showFlightRecorder) {
-        debugger.recordEvent('GlkResult: $result');
+        if (debugger.showFlightRecorder) {
+          debugger.flightRecorderEvent('GlkResult: $result');
+        }
       }
     }
     return result;
@@ -142,9 +147,18 @@ class GlulxTerminalProvider implements GlkIoProvider {
         }
         final realSelector = args[0];
         final realArgs = args.length > 1 ? args.sublist(1) : <int>[];
-        debugger.bufferedLog(
-          '[${debugger.step}] glk dispatch -> unwrapping selector: 0x${realSelector.toRadixString(16)} args: $realArgs',
-        );
+        if (debugger.enabled) {
+          if (debugger.showInstructions) {
+            debugger.bufferedLog(
+              '[${debugger.step}] glk dispatch -> unwrapping selector: 0x${realSelector.toRadixString(16)} args: $realArgs',
+            );
+            if (debugger.showFlightRecorder) {
+              debugger.flightRecorderEvent(
+                '[${debugger.step}] glk dispatch -> unwrapping selector: 0x${realSelector.toRadixString(16)} args: $realArgs',
+              );
+            }
+          }
+        }
         return _dispatch(realSelector, realArgs);
 
       case GlkIoSelectors.tick:
@@ -310,7 +324,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
       case GlkIoSelectors.requestLineEvent:
       case GlkIoSelectors.requestLineEventUni:
-        debugger.bufferedLog('requestLineEvent: win=${args[0]}, buf=${args[1]}, maxlen=${args[2]}');
+        if (debugger.enabled && debugger.showFlightRecorder) {
+          debugger.flightRecorderEvent('requestLineEvent: win=${args[0]}, buf=${args[1]}, maxlen=${args[2]}');
+        }
         _pendingLineEventWin = args[0];
         _pendingLineEventAddr = args[1];
         _pendingLineEventMaxLen = args[2];

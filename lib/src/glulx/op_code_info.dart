@@ -60,6 +60,7 @@ class OpcodeInfo {
     GlulxOp.jgeu: OpcodeInfo(3, [false, false, false]),
     GlulxOp.jgtu: OpcodeInfo(3, [false, false, false]),
     GlulxOp.jleu: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.jumpabs: OpcodeInfo(1, [false]),
 
     // Function Call Opcodes
     GlulxOp.call: OpcodeInfo(3, [false, false, true]),
