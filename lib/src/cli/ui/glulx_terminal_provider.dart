@@ -51,38 +51,38 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
   @override
   int vmGestalt(int selector, int arg) {
+    // Gestalt handling... same as before
     switch (selector) {
       case GlulxGestaltSelectors.glulxVersion:
-        return 0x00030103; // Glulx spec version 3.1.3
+        return 0x00030103;
       case GlulxGestaltSelectors.terpVersion:
-        return 0x00000100; // Zart Glulx interpreter version 0.1.0
+        return 0x00000100;
       case GlulxGestaltSelectors.resizeMem:
-        return 1; // We support setmemsize
+        return 1;
       case GlulxGestaltSelectors.undo:
-        return 1; // We support saveundo/restoreundo
+        return 1;
       case GlulxGestaltSelectors.ioSystem:
-        // arg: 0=null, 1=filter, 2=Glk
         return (arg >= 0 && arg <= 2) ? 1 : 0;
       case GlulxGestaltSelectors.unicode:
-        return 1; // We support Unicode
+        return 1;
       case GlulxGestaltSelectors.memCopy:
-        return 1; // We support mcopy/mzero
+        return 1;
       case GlulxGestaltSelectors.mAlloc:
-        return 1; // We support malloc/mfree
+        return 1;
       case GlulxGestaltSelectors.mAllocHeap:
         return getHeapStart?.call() ?? 0;
       case GlulxGestaltSelectors.acceleration:
-        return 0; // We don't support accelerated functions yet
+        return 0;
       case GlulxGestaltSelectors.accelFunc:
-        return 0; // We don't know any accelerated functions yet
+        return 0;
       case GlulxGestaltSelectors.float:
-        return 1; // We support floating-point
+        return 1;
       case GlulxGestaltSelectors.extUndo:
-        return 1; // We support hasundo/discardundo
+        return 1;
       case GlulxGestaltSelectors.doubleValue:
-        return 1; // We support double-precision
+        return 1;
       default:
-        return 0; // Unknown selector
+        return 0;
     }
   }
 
@@ -149,7 +149,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
             }
           }
         }
-
         return val;
       });
     }
@@ -166,12 +165,8 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
   FutureOr<int> _dispatch(int selector, List<int> args) {
     switch (selector) {
-      // Handle glk dispatch (gidispa) - selector 0 means the real selector is in args[0]
-      case 0:
-        if (args.isEmpty) {
-          debugger.bufferedLog('[${debugger.step}] WARNING: glk dispatch with no args');
-          return 0;
-        }
+      case 0: // gidispa
+        if (args.isEmpty) return 0;
         final realSelector = args[0];
         final realArgs = args.length > 1 ? args.sublist(1) : <int>[];
         return _dispatch(realSelector, realArgs);
@@ -185,6 +180,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return _handleGlkGestalt(args[0], args.length > 1 ? args.sublist(1) : <int>[]);
 
       case GlkIoSelectors.putChar:
+        print('DEBUG: putChar(${args[0]}) to stream $_currentStreamId');
         _writeToStream(_currentStreamId, args[0]);
         return 0;
       case GlkIoSelectors.putCharStream:
@@ -199,7 +195,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
       case GlkIoSelectors.getCharStream:
       case GlkIoSelectors.getCharStreamUni:
-        return -1; // EOF for now
+        return -1; // EOF
 
       case GlkIoSelectors.charToLower:
         final ch = args[0];
@@ -276,20 +272,27 @@ class GlulxTerminalProvider implements GlkIoProvider {
         final streamId = args[0];
         final resultAddr = args.length > 1 ? args[1] : 0;
         final stream = _streams.remove(streamId);
-        if (stream == null) return 0;
+
+        // Even if stream is null (wasn't found), we should probably write 0s if it's strictly required,
+        // but removing a non-existent stream usually returns 0 in Glk.
+        // However, if we removed it, we must report counts.
+
+        final rCount = stream?.readCount ?? 0;
+        final wCount = stream?.writeCount ?? 0;
 
         if (resultAddr == -1 || resultAddr == 0xFFFFFFFF) {
-          pushToStack(stream.writeCount);
-          pushToStack(stream.readCount);
+          pushToStack(rCount);
+          pushToStack(wCount);
         } else if (resultAddr != 0) {
-          writeMemory(resultAddr, stream.readCount, size: 4);
-          writeMemory(resultAddr + 4, stream.writeCount, size: 4);
+          writeMemory(resultAddr, rCount, size: 4); // read count
+          writeMemory(resultAddr + 4, wCount, size: 4); // write count
         }
         return 0;
 
       case GlkIoSelectors.streamSetCurrent:
+        final prev = _currentStreamId;
         _currentStreamId = args[0];
-        return 0;
+        return prev;
       case GlkIoSelectors.streamGetCurrent:
         return _currentStreamId;
       case GlkIoSelectors.streamGetPosition:
@@ -361,6 +364,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       default:
+        if (debugger.enabled && debugger.showInstructions) {
+          debugger.bufferedLog('[${debugger.step}] Unimplemented Glk selector: $selector');
+        }
         return 0;
     }
   }
@@ -376,6 +382,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
       terminal.appendToWindow0(String.fromCharCode(value));
       if (value == 10) terminal.render();
     } else if (stream.type == 2) {
+      if (stream.bufAddr == 0) return; // Should not happen for memory streams but safe check
+
+      // Bounds check could be good here but raw speed is often preferred in interpreters
       if (stream.pos < stream.bufLen) {
         if (stream.isUnicode) {
           writeMemory(stream.bufAddr + (stream.pos * 4), value, size: 4);

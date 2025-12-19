@@ -169,5 +169,55 @@ void main() {
       final result = await provider.glkDispatch(GlkIoSelectors.gestalt, [0x01]); // 0x01 is charInput
       expect(result, equals(1));
     });
+    test('putCharStream writes to memory stream', () async {
+      // Setup a memory stream first
+      final bufAddr = 0x1000;
+      final bufLen = 16;
+
+      // Create memory backed by mock
+      final memory = Uint8List(0x2000);
+      provider.setMemoryAccess(
+        write: (addr, val, {size = 1}) {
+          if (size == 1)
+            memory[addr] = val;
+          else if (size == 4)
+            ByteData.view(memory.buffer).setUint32(addr, val, Endian.big);
+        },
+        read: (addr, {size = 1}) => memory[addr],
+      );
+
+      // Open memory stream
+      final streamId = await provider.glkDispatch(GlkIoSelectors.streamOpenMemory, [bufAddr, bufLen, 1]);
+
+      // Write a char 'X' (0x58) to the stream
+      final result = await provider.glkDispatch(GlkIoSelectors.putCharStream, [streamId, 0x58]);
+      expect(result, equals(0));
+
+      // Verify it was written to memory at bufAddr
+      expect(memory[bufAddr], equals(0x58));
+    });
+
+    test('streamSetCurrent returns previous stream ID', () async {
+      // Initial stream is 1001
+      final result1 = await provider.glkDispatch(GlkIoSelectors.streamGetCurrent, []);
+      expect(result1, equals(1001));
+
+      // Open new stream (will be 1002)
+      provider.setMemoryAccess(write: (_, __, {size = 1}) {}, read: (_, {size = 1}) => 0); // Stub memory
+
+      final newStreamId = await provider.glkDispatch(GlkIoSelectors.streamOpenMemory, [0x1000, 100, 1]);
+
+      // Set current to new stream, should return 1001 (previous)
+      final prevStreamId = await provider.glkDispatch(GlkIoSelectors.streamSetCurrent, [newStreamId]);
+      expect(prevStreamId, equals(1001));
+
+      // Verify new current
+      final result2 = await provider.glkDispatch(GlkIoSelectors.streamGetCurrent, []);
+      expect(result2, equals(newStreamId));
+
+      // Restore old stream, should return 1002
+      final prevStreamId2 = await provider.glkDispatch(GlkIoSelectors.streamSetCurrent, [1001]);
+      expect(prevStreamId2, equals(newStreamId));
+    });
   });
 }
