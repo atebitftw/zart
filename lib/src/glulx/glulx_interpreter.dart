@@ -11,7 +11,6 @@ import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_stack.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
 import 'package:zart/src/glulx/glulx_string_decoder.dart';
-import 'package:zart/src/io/glk/glk_gestalt_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
@@ -58,6 +57,7 @@ class GlulxInterpreter {
   /// Loads a game file into memory.
   Future<void> load(Uint8List gameData) async {
     memoryMap = GlulxMemoryMap(gameData);
+    glkDispatcher.setVMState(getHeapStart: () => memoryMap.heapStart);
     final header = GlulxHeader(memoryMap.rawMemory);
     _stringTableAddress = header.decodingTbl;
     _stringDecoder = GlulxStringDecoder(memoryMap);
@@ -1395,39 +1395,7 @@ class GlulxInterpreter {
 
   /// Handles the gestalt opcode by returning capability information.
   int _doGestalt(int selector, int arg) {
-    switch (selector) {
-      case GlkGestaltSelectors.version: // GlulxVersion
-        return 0x00030103; // Glulx spec version 3.1.3
-      case 1: // TerpVersion
-        return 0x00000100; // Zart Glulx interpreter version 0.1.0
-      case 2: // ResizeMem
-        return 1; // We support setmemsize
-      case 3: // Undo
-        return 1; // We support saveundo/restoreundo
-      case 4: // IOSystem
-        // arg: 0=null, 1=filter, 2=Glk
-        return (arg >= 0 && arg <= 2) ? 1 : 0;
-      case 5: // Unicode
-        return 1; // We support Unicode
-      case 6: // MemCopy
-        return 1; // We support mcopy/mzero
-      case 7: // MAlloc
-        return 1; // We support malloc/mfree
-      case 8: // MAllocHeap
-        return memoryMap.heapStart; // Returns 0 if heap inactive
-      case 9: // Acceleration
-        return 0; // We don't support accelerated functions yet
-      case 10: // AccelFunc
-        return 0; // We don't know any accelerated functions yet
-      case 11: // Float
-        return 1; // We support floating-point
-      case 12: // ExtUndo
-        return 1; // We support hasundo/discardundo
-      case 13: // Double
-        return 1; // We support double-precision
-      default:
-        return 0; // Unknown selector
-    }
+    return glkDispatcher.vmGestalt(selector, arg);
   }
 
   /// Reads an opcode from the current PC.
@@ -2014,35 +1982,52 @@ class GlulxInterpreter {
   }
 
   // ========== Search Support ==========
+  //
+  // Spec Section "Searching":
+  // - KeyIndirect (0x01): The Key argument is the address of the actual key.
+  //   If this flag is not used, the Key value itself is the key.
+  //   "In this case, the KeySize *must* be 1, 2, or 4."
+  // - When KeyIndirect IS used, any KeySize is valid - keys are compared as
+  //   big-endian byte arrays.
 
+  /// Performs a linear search through an array of structures.
+  ///
+  /// Spec: "linearsearch L1 L2 L3 L4 L5 L6 L7 S1"
+  /// Search through structures in order, returning first match or failure.
   int _doLinearSearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final zeroKeyTerminates = (options & 2) != 0;
     final returnIndex = (options & 4) != 0;
 
-    final targetKey = keyIndirect ? _readKey(key, keySize) : key;
+    // Spec: NumStructs may be -1 (0xFFFFFFFF) to indicate no upper limit
+    final unlimited = numStructs == 0xFFFFFFFF;
 
-    for (var i = 0; i < numStructs || zeroKeyTerminates; i++) {
+    for (var i = 0; unlimited || i < numStructs; i++) {
       final structAddr = start + (i * structSize);
-      final currentKey = _readKey(structAddr + keyOffset, keySize);
 
-      if (zeroKeyTerminates && currentKey == 0) break;
-
-      if (currentKey == targetKey) {
-        return returnIndex ? i : structAddr;
+      // Check for zero key terminator before comparing
+      if (zeroKeyTerminates && _isZeroKey(structAddr + keyOffset, keySize)) {
+        break;
       }
 
-      if (!zeroKeyTerminates && i == numStructs - 1) break;
+      // Compare keys
+      final cmp = _compareKeys(key, structAddr + keyOffset, keySize, keyIndirect);
+      if (cmp == 0) {
+        return returnIndex ? i : structAddr;
+      }
     }
 
     return returnIndex ? 0xFFFFFFFF : 0; // Not found
   }
 
+  /// Performs a binary search through a sorted array of structures.
+  ///
+  /// Spec: "binarysearch L1 L2 L3 L4 L5 L6 L7 S1"
+  /// Structures must be sorted in forward order of keys (big-endian unsigned).
+  /// NumStructs must be exact length; cannot be -1.
   int _doBinarySearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final returnIndex = (options & 4) != 0;
-
-    final targetKey = keyIndirect ? _readKey(key, keySize) : key;
 
     var low = 0;
     var high = numStructs - 1;
@@ -2050,13 +2035,17 @@ class GlulxInterpreter {
     while (low <= high) {
       final mid = (low + high) ~/ 2;
       final structAddr = start + (mid * structSize);
-      final currentKey = _readKey(structAddr + keyOffset, keySize);
 
-      if (currentKey == targetKey) {
+      // Compare keys: result is <0 if target<current, 0 if equal, >0 if target>current
+      final cmp = _compareKeys(key, structAddr + keyOffset, keySize, keyIndirect);
+
+      if (cmp == 0) {
         return returnIndex ? mid : structAddr;
-      } else if (currentKey < targetKey) {
+      } else if (cmp > 0) {
+        // Target key is greater than current key
         low = mid + 1;
       } else {
+        // Target key is less than current key
         high = mid - 1;
       }
     }
@@ -2064,21 +2053,25 @@ class GlulxInterpreter {
     return returnIndex ? 0xFFFFFFFF : 0;
   }
 
+  /// Performs a linked list search through structures.
+  ///
+  /// Spec: "linkedsearch L1 L2 L3 L4 L5 L6 S1"
   int _doLinkedSearch(int key, int keySize, int start, int keyOffset, int nextOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final zeroKeyTerminates = (options & 2) != 0;
 
-    final targetKey = keyIndirect ? _readKey(key, keySize) : key;
-
     var currentAddr = start;
     while (currentAddr != 0) {
-      final currentKey = _readKey(currentAddr + keyOffset, keySize);
-
-      if (currentKey == targetKey) {
-        return currentAddr;
+      // Check for zero key terminator
+      if (zeroKeyTerminates && _isZeroKey(currentAddr + keyOffset, keySize)) {
+        break;
       }
 
-      if (zeroKeyTerminates && currentKey == 0) break;
+      // Compare keys
+      final cmp = _compareKeys(key, currentAddr + keyOffset, keySize, keyIndirect);
+      if (cmp == 0) {
+        return currentAddr;
+      }
 
       currentAddr = memoryMap.readWord(currentAddr + nextOffset);
     }
@@ -2086,7 +2079,52 @@ class GlulxInterpreter {
     return 0;
   }
 
-  int _readKey(int addr, int size) {
+  /// Compares the target key with the key at [structKeyAddr].
+  ///
+  /// Returns:
+  /// - 0 if keys are equal
+  /// - negative if target key < struct key
+  /// - positive if target key > struct key
+  ///
+  /// Spec: When KeyIndirect is set, the [key] parameter is an address.
+  /// Keys are compared as big-endian unsigned integers.
+  int _compareKeys(int key, int structKeyAddr, int keySize, bool keyIndirect) {
+    if (keyIndirect) {
+      // Key is an address pointing to key data - compare byte by byte
+      return _compareKeyBytes(key, structKeyAddr, keySize);
+    } else {
+      // Key is the actual value - keySize must be 1, 2, or 4
+      final structKey = _readKeyValue(structKeyAddr, keySize);
+      // Mask the target key to the appropriate size
+      final maskedKey = _maskKeyToSize(key, keySize);
+      if (maskedKey < structKey) return -1;
+      if (maskedKey > structKey) return 1;
+      return 0;
+    }
+  }
+
+  /// Compares two keys byte-by-byte at the given addresses.
+  /// Keys are treated as big-endian unsigned integers.
+  int _compareKeyBytes(int keyAddr1, int keyAddr2, int keySize) {
+    for (var i = 0; i < keySize; i++) {
+      final b1 = memoryMap.readByte(keyAddr1 + i);
+      final b2 = memoryMap.readByte(keyAddr2 + i);
+      if (b1 < b2) return -1;
+      if (b1 > b2) return 1;
+    }
+    return 0;
+  }
+
+  /// Checks if the key at [addr] is all zeros.
+  bool _isZeroKey(int addr, int keySize) {
+    for (var i = 0; i < keySize; i++) {
+      if (memoryMap.readByte(addr + i) != 0) return false;
+    }
+    return true;
+  }
+
+  /// Reads a key value from memory. Only valid for sizes 1, 2, or 4.
+  int _readKeyValue(int addr, int size) {
     switch (size) {
       case 1:
         return memoryMap.readByte(addr);
@@ -2095,7 +2133,29 @@ class GlulxInterpreter {
       case 4:
         return memoryMap.readWord(addr);
       default:
-        throw GlulxException('Invalid key size for search: $size');
+        throw GlulxException(
+          'Invalid key size for direct key comparison: $size. '
+          'KeyIndirect flag must be set for non-standard key sizes.',
+        );
+    }
+  }
+
+  /// Masks a key value to the appropriate size.
+  /// Spec: "If the KeySize is 1 or 2, the lower bytes of the Key are used
+  /// and the upper bytes ignored."
+  int _maskKeyToSize(int key, int size) {
+    switch (size) {
+      case 1:
+        return key & 0xFF;
+      case 2:
+        return key & 0xFFFF;
+      case 4:
+        return key & 0xFFFFFFFF;
+      default:
+        throw GlulxException(
+          'Invalid key size for direct key comparison: $size. '
+          'KeyIndirect flag must be set for non-standard key sizes.',
+        );
     }
   }
 }

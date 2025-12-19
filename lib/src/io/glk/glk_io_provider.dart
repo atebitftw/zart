@@ -19,6 +19,9 @@ abstract class GlkIoProvider {
   /// Gestalt returns 0 for everything right now, and will expand as we implement more features.
   FutureOr<int> glkDispatch(int selector, List<int> args);
 
+  /// Handles Glulx VM-level gestalt queries (the @gestalt opcode).
+  int vmGestalt(int selector, int arg) => 0;
+
   /// Write a value to game memory. Override to provide memory access.
   void writeMemory(int addr, int value, {int size = 1}) {}
 
@@ -30,4 +33,7 @@ abstract class GlkIoProvider {
     required void Function(int addr, int value, {int size}) write,
     required int Function(int addr, {int size}) read,
   }) {}
+
+  /// Configure VM state callbacks.
+  void setVMState({int Function()? getHeapStart}) {}
 }

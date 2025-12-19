@@ -57,8 +57,9 @@ void main() {
       expect(result2, equals(-1));
     });
 
-    test('select selector returns 0 and writes none event', () async {
-      // Mock memory for event struct (4 ints = 16 bytes)
+    test('select selector blocks and returns lineInput event when no pending events', () async {
+      // Per Glk spec: glk_select() NEVER returns evtype_None - it always blocks
+      // until a real event occurs. When nothing is pending, it blocks for input.
       final memory = Uint8List(16);
       provider.setMemoryAccess(
         write: (addr, val, {size = 1}) {
@@ -70,11 +71,36 @@ void main() {
         read: (addr, {size = 1}) => 0,
       );
 
+      // Mock terminal returns empty input immediately
+      terminal.nextInput = '';
+
       final result = await provider.glkDispatch(GlkIoSelectors.select, [0]);
       expect(result, equals(0));
 
       final bd = ByteData.view(memory.buffer);
-      expect(bd.getUint32(0, Endian.big), equals(0)); // GlkEventTypes.none
+      // glk_select blocks for input, returns lineInput event (type 3) even with empty input
+      expect(bd.getUint32(0, Endian.big), equals(GlkEventTypes.lineInput));
+    });
+
+    test('selectPoll returns none event immediately', () async {
+      // Per Glk spec: glk_select_poll() returns immediately with evtype_None
+      // if no events are pending (unlike glk_select which blocks).
+      final memory = Uint8List(16);
+      provider.setMemoryAccess(
+        write: (addr, val, {size = 1}) {
+          if (size == 4) {
+            final bd = ByteData.view(memory.buffer);
+            bd.setUint32(addr, val, Endian.big);
+          }
+        },
+        read: (addr, {size = 1}) => 0,
+      );
+
+      final result = await provider.glkDispatch(GlkIoSelectors.selectPoll, [0]);
+      expect(result, equals(0));
+
+      final bd = ByteData.view(memory.buffer);
+      expect(bd.getUint32(0, Endian.big), equals(GlkEventTypes.none));
     });
 
     test('line input event works', () async {

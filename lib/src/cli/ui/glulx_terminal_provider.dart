@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart';
+import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 import 'package:zart/src/io/glk/glk_gestalt_selectors.dart' show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
@@ -34,6 +35,46 @@ class GlulxTerminalProvider implements GlkIoProvider {
   int _timerInterval = 0;
   DateTime? _lastTimerEvent;
 
+  /// Callback to get the current heap start from the VM.
+  int Function()? getHeapStart;
+
+  @override
+  int vmGestalt(int selector, int arg) {
+    switch (selector) {
+      case GlulxGestaltSelectors.glulxVersion:
+        return 0x00030103; // Glulx spec version 3.1.3
+      case GlulxGestaltSelectors.terpVersion:
+        return 0x00000100; // Zart Glulx interpreter version 0.1.0
+      case GlulxGestaltSelectors.resizeMem:
+        return 1; // We support setmemsize
+      case GlulxGestaltSelectors.undo:
+        return 1; // We support saveundo/restoreundo
+      case GlulxGestaltSelectors.ioSystem:
+        // arg: 0=null, 1=filter, 2=Glk
+        return (arg >= 0 && arg <= 2) ? 1 : 0;
+      case GlulxGestaltSelectors.unicode:
+        return 1; // We support Unicode
+      case GlulxGestaltSelectors.memCopy:
+        return 1; // We support mcopy/mzero
+      case GlulxGestaltSelectors.mAlloc:
+        return 1; // We support malloc/mfree
+      case GlulxGestaltSelectors.mAllocHeap:
+        return getHeapStart?.call() ?? 0;
+      case GlulxGestaltSelectors.acceleration:
+        return 0; // We don't support accelerated functions yet
+      case GlulxGestaltSelectors.accelFunc:
+        return 0; // We don't know any accelerated functions yet
+      case GlulxGestaltSelectors.float:
+        return 1; // We support floating-point
+      case GlulxGestaltSelectors.extUndo:
+        return 1; // We support hasundo/discardundo
+      case GlulxGestaltSelectors.doubleValue:
+        return 1; // We support double-precision
+      default:
+        return 0; // Unknown selector
+    }
+  }
+
   @override
   void writeMemory(int addr, int value, {int size = 1}) {
     _writeMemory?.call(addr, value, size: size);
@@ -54,8 +95,13 @@ class GlulxTerminalProvider implements GlkIoProvider {
   }
 
   @override
+  void setVMState({int Function()? getHeapStart}) {
+    this.getHeapStart = getHeapStart;
+  }
+
+  @override
   FutureOr<int> glkDispatch(int selector, List<int> args) {
-    if (debugger.enabled) {
+    if (debugger.enabled && debugger.showInstructions) {
       debugger.bufferedLog(
         '[${debugger.step}] Glk -> selector: 0x${selector.toRadixString(16)}(${GlulxDebugger.glkSelectorNames[selector] ?? 'UNKNOWN'}) args: $args',
       );
@@ -108,7 +154,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
           return 0;
         });
       case GlkIoSelectors.gestalt:
-        return _gestaltHandler(args[0], args.length > 1 ? args.sublist(1) : <int>[]);
+        return _handleGlkGestalt(args[0], args.length > 1 ? args.sublist(1) : <int>[]);
       case GlkIoSelectors.putChar:
         terminal.appendToWindow0(String.fromCharCode(args[0]));
         if (args[0] == 10) terminal.render();
@@ -124,6 +170,31 @@ class GlulxTerminalProvider implements GlkIoProvider {
       case GlkIoSelectors.getCharStream:
       case GlkIoSelectors.getCharStreamUni:
         return -1; // EOF for now
+
+      case GlkIoSelectors.charToLower:
+        // Glk spec: glk_char_to_lower(ch) returns lowercase of ch
+        // For Latin-1 characters, we can use Dart's toLowerCase
+        final ch = args[0];
+        if (ch >= 0x41 && ch <= 0x5A) {
+          // A-Z -> a-z
+          return ch + 32;
+        } else if (ch >= 0xC0 && ch <= 0xDE && ch != 0xD7) {
+          // Latin-1 uppercase accented (except multiplication sign)
+          return ch + 32;
+        }
+        return ch; // Already lowercase or not a letter
+
+      case GlkIoSelectors.charToUpper:
+        // Glk spec: glk_char_to_upper(ch) returns uppercase of ch
+        final chUp = args[0];
+        if (chUp >= 0x61 && chUp <= 0x7A) {
+          // a-z -> A-Z
+          return chUp - 32;
+        } else if (chUp >= 0xE0 && chUp <= 0xFE && chUp != 0xF7) {
+          // Latin-1 lowercase accented (except division sign)
+          return chUp - 32;
+        }
+        return chUp; // Already uppercase or not a letter
 
       case GlkIoSelectors.putString:
       case GlkIoSelectors.putStringUni:
@@ -374,7 +445,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
     writeMemory(addr + 12, val2, size: 4);
   }
 
-  FutureOr<int> _gestaltHandler(int gestaltSelector, List<int> args) {
+  FutureOr<int> _handleGlkGestalt(int gestaltSelector, List<int> args) {
     if (args.isEmpty && gestaltSelector != GlkGestaltSelectors.version) {
       // Most gestalt calls expect a second argument (e.g. for charInput, which character).
       // If empty, we just return 0 for now unless it's version.
@@ -395,7 +466,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
       default:
         debugger.bufferedLog(
-          '[${debugger.step}] Unknown gestalt selector: ${GlulxDebugger.gestaltSelectorNames[gestaltSelector]}',
+          '[${debugger.step}] Unknown Glk gestalt selector: ${GlulxDebugger.gestaltSelectorNames[gestaltSelector]}',
         );
         return 0;
     }

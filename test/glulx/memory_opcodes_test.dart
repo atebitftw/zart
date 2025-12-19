@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'package:zart/src/io/glk/glk_io_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   group('Memory Opcodes', () {
@@ -26,7 +26,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(MockGlkIoProvider());
+      interpreter = GlulxInterpreter(TestGlkIoProvider());
     });
 
     test('getmemsize returns current memory size', () async {
@@ -96,13 +96,4 @@ void main() {
   });
 }
 
-class MockGlkIoProvider implements GlkIoProvider {
-  @override
-  void setMemoryAccess({
-    required void Function(int addr, int val, {int size}) write,
-    required int Function(int addr, {int size}) read,
-  }) {}
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
+// Local MockGlkIoProvider removed

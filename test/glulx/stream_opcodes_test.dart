@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'package:zart/src/io/glk/glk_io_provider.dart';
-import 'package:zart/src/glulx/glulx_debugger.dart';
+import 'mock_glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 
 void main() {
@@ -120,17 +119,8 @@ void main() {
   });
 }
 
-class MockGlkIoProvider implements GlkIoProvider {
-  @override
-  late GlulxDebugger debugger;
-
+class MockGlkIoProvider extends TestGlkIoProvider {
   final List<int> output = [];
-
-  @override
-  void setMemoryAccess({
-    required void Function(int addr, int val, {int size}) write,
-    required int Function(int addr, {int size}) read,
-  }) {}
 
   @override
   FutureOr<int> glkDispatch(int selector, List<int> args) {
@@ -139,7 +129,4 @@ class MockGlkIoProvider implements GlkIoProvider {
     }
     return 0;
   }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

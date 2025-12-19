@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'package:zart/src/io/glk/glk_io_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   /// Glulx Spec Section 2.4.4: Function Call Opcodes
@@ -89,7 +89,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(MockGlkIoProvider());
+      interpreter = GlulxInterpreter(TestGlkIoProvider());
     });
 
     // ========== callf tests ==========
@@ -281,13 +281,4 @@ void main() {
   });
 }
 
-class MockGlkIoProvider implements GlkIoProvider {
-  @override
-  void setMemoryAccess({
-    required void Function(int addr, int val, {int size}) write,
-    required int Function(int addr, {int size}) read,
-  }) {}
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
+// Local MockGlkIoProvider removed

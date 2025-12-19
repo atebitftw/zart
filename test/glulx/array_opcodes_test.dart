@@ -2,8 +2,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'package:zart/src/io/glk/glk_io_provider.dart';
-import 'package:zart/src/glulx/glulx_debugger.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   group('Array Opcodes', () {
@@ -51,7 +50,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(MockGlkIoProvider());
+      interpreter = GlulxInterpreter(TestGlkIoProvider());
     });
 
     test('aload reads a 32-bit word from an array', () async {
@@ -256,16 +255,4 @@ void main() {
   });
 }
 
-class MockGlkIoProvider implements GlkIoProvider {
-  @override
-  late GlulxDebugger debugger;
-
-  @override
-  void setMemoryAccess({
-    required void Function(int addr, int val, {int size}) write,
-    required int Function(int addr, {int size}) read,
-  }) {}
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
+// Local MockGlkIoProvider removed
