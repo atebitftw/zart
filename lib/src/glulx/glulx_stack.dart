@@ -233,6 +233,7 @@ class GlulxStack {
     int type,
     int addr, {
     void Function(int addr, int val)? onMemoryWrite,
+    void Function(int addr, int type)? onResumeString,
   }) {
     switch (type) {
       case 0:
@@ -255,25 +256,27 @@ class GlulxStack {
         break;
       case 0x10:
         // Spec: "Resume printing a compressed (E1) string."
-        // Return value discarded - string resumption handled by interpreter
+        // Reference: funcs.c line 252 - resumes string printing.
+        onResumeString?.call(addr, 0xE1);
         break;
       case 0x11:
         // Spec: "Resume executing function code after a string completes."
         // Reference: funcs.c lines 245-247 - this is fatal in function return context
-        throw GlulxException(
-          'String-terminator call stub at end of function call',
-        );
+        throw GlulxException('String-terminator call stub at end of function call');
       case 0x12:
         // Spec: "Resume printing a signed decimal integer."
-        // Return value discarded - handled by interpreter
+        // Reference: funcs.c line 258.
+        // TODO: stream_num resumption if needed, but Inform mainly uses strings.
         break;
       case 0x13:
         // Spec: "Resume printing a C-style (E0) string."
-        // Return value discarded - handled by interpreter
+        // Reference: funcs.c line 264.
+        onResumeString?.call(addr, 0xE0);
         break;
       case 0x14:
         // Spec: "Resume printing a Unicode (E2) string."
-        // Return value discarded - handled by interpreter
+        // Reference: funcs.c line 270.
+        onResumeString?.call(addr, 0xE2);
         break;
       default:
         throw GlulxException('Unknown or reserved DestType: $type');
@@ -409,6 +412,13 @@ class GlulxStack {
       shift = (-shift) % count;
     }
     if (shift == 0) return;
+
+    // Copied from glulxe/exec.c stkroll:
+    // "Since the values are being moved into space above the current stack,
+    // we must check for overflow."
+    if (_sp + shift * 4 > maxSize) {
+      throw GlulxException('Stack overflow in stkroll');
+    }
 
     // Reference: exec.c lines 534-542 - in-place rotate algorithm
     final baseAddr = _sp - count * 4;

@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
+import 'package:zart/src/glulx/glulx_debugger.dart';
 
 void main() {
   group('Array Opcodes', () {
@@ -122,7 +123,7 @@ void main() {
       expect(interpreter.stack.pop32(), equals(0x00001122));
     });
 
-    test('aloads sign-extends negative short', () async {
+    test('aloads does not sign-extend negative short', () async {
       // Data at 0x202: [0x8899]
       gameData = createGameData([GlulxOp.aloads, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x01]);
       gameData[0x202] = 0x88;
@@ -134,7 +135,8 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
       await interpreter.executeInstruction();
-      expect(interpreter.stack.pop32().toSigned(32), equals(0xFFFF8899.toSigned(32)));
+      // Spec Section 2.4.6: "The 'load' opcodes expand 8-bit or 16-bit values *without* sign extension."
+      expect(interpreter.stack.pop32(), equals(0x8899));
     });
 
     test('astores writes a 16-bit short to an array', () async {
@@ -164,6 +166,20 @@ void main() {
 
       await interpreter.executeInstruction();
       expect(interpreter.stack.pop32(), equals(0x44));
+    });
+
+    test('aloadb does not sign-extend negative byte', () async {
+      // Data at 0x203: [0x88]
+      gameData = createGameData([GlulxOp.aloadb, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x03]);
+      gameData[0x203] = 0x88;
+
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
+
+      await interpreter.executeInstruction();
+      expect(interpreter.stack.pop32(), equals(0x88));
     });
 
     test('astoreb writes a byte to an array', () async {
@@ -241,6 +257,9 @@ void main() {
 }
 
 class MockGlkIoProvider implements GlkIoProvider {
+  @override
+  late GlulxDebugger debugger;
+
   @override
   void setMemoryAccess({
     required void Function(int addr, int val, {int size}) write,

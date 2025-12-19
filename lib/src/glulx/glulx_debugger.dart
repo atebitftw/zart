@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:zart/src/glulx/glulx_header.dart';
+import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
 import 'package:zart/src/io/glk/glk_gestalt_selectors.dart';
+import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/logging.dart';
 
 /// A dedicated debugger for the Glulx interpreter.
@@ -11,8 +13,14 @@ import 'package:zart/src/logging.dart';
 /// When enabled, logs header information, interpreter state, and
 /// instruction disassembly to the logging system.
 class GlulxDebugger {
+  /// Maximum size of the flight recorder.
+  final int maxFlightRecorderSize = 100;
+
   /// Master switch for debugging output.
   bool enabled = false;
+
+  /// Internal buffer for debug logs to avoid synchronous disk I/O.
+  final List<String> _logBuffer = [];
 
   /// Whether to log the header on load.
   bool showHeader = false;
@@ -32,11 +40,17 @@ class GlulxDebugger {
   /// Only emit instructions at or before this step (null = no upper bound).
   int? endStep;
 
+  /// Current step counter (updated by interpreter).
+  int step = 0;
+
   /// Whether to show instructions.
   bool showInstructions = false;
 
   /// Whether to show the flight recorder.
   bool showFlightRecorder = false;
+
+  /// Filter string - if set, only log messages containing this string.
+  String? logFilter;
 
   /// Maximum steps to allow in test scenarios. Do not changes this without permission.
   static const int maxSteps = 3000;
@@ -57,10 +71,7 @@ class GlulxDebugger {
     final endMem = memory.getUint32(GlulxHeader.endMemOffset, Endian.big);
     final stackSize = memory.getUint32(GlulxHeader.stackSizeOffset, Endian.big);
     final startFunc = memory.getUint32(GlulxHeader.startFuncOffset, Endian.big);
-    final decodingTbl = memory.getUint32(
-      GlulxHeader.decodingTblOffset,
-      Endian.big,
-    );
+    final decodingTbl = memory.getUint32(GlulxHeader.decodingTblOffset, Endian.big);
     final checksum = memory.getUint32(GlulxHeader.checksumOffset, Endian.big);
 
     // Format version as major.minor.patch
@@ -68,33 +79,22 @@ class GlulxDebugger {
     final minor = (version >> 8) & 0xFF;
     final patch = version & 0xFF;
 
-    log.info('=== Glulx Header ===');
-    log.info(
-      'Magic:       0x${magic.toRadixString(16).padLeft(8, '0')} (${_magicToString(magic)})',
-    );
-    log.info('Version:     $major.$minor.$patch');
-    log.info('RAMSTART:    0x${ramStart.toRadixString(16).padLeft(8, '0')}');
-    log.info('EXTSTART:    0x${extStart.toRadixString(16).padLeft(8, '0')}');
-    log.info('ENDMEM:      0x${endMem.toRadixString(16).padLeft(8, '0')}');
-    log.info(
-      'Stack Size:  0x${stackSize.toRadixString(16).padLeft(8, '0')} ($stackSize bytes)',
-    );
-    log.info('Start Func:  0x${startFunc.toRadixString(16).padLeft(8, '0')}');
-    log.info(
-      'Decoding Tbl: 0x${decodingTbl.toRadixString(16).padLeft(8, '0')}',
-    );
-    log.info('Checksum:    0x${checksum.toRadixString(16).padLeft(8, '0')}');
-    log.info('====================');
+    bufferedLog('=== Glulx Header ===');
+    bufferedLog('Magic:       0x${magic.toRadixString(16).padLeft(8, '0')} (${_magicToString(magic)})');
+    bufferedLog('Version:     $major.$minor.$patch');
+    bufferedLog('RAMSTART:    0x${ramStart.toRadixString(16).padLeft(8, '0')}');
+    bufferedLog('EXTSTART:    0x${extStart.toRadixString(16).padLeft(8, '0')}');
+    bufferedLog('ENDMEM:      0x${endMem.toRadixString(16).padLeft(8, '0')}');
+    bufferedLog('Stack Size:  0x${stackSize.toRadixString(16).padLeft(8, '0')} ($stackSize bytes)');
+    bufferedLog('Start Func:  0x${startFunc.toRadixString(16).padLeft(8, '0')}');
+    bufferedLog('Decoding Tbl: 0x${decodingTbl.toRadixString(16).padLeft(8, '0')}');
+    bufferedLog('Checksum:    0x${checksum.toRadixString(16).padLeft(8, '0')}');
+    bufferedLog('====================');
   }
 
   /// Converts a magic number to its ASCII string representation.
   String _magicToString(int magic) {
-    return String.fromCharCodes([
-      (magic >> 24) & 0xFF,
-      (magic >> 16) & 0xFF,
-      (magic >> 8) & 0xFF,
-      magic & 0xFF,
-    ]);
+    return String.fromCharCodes([(magic >> 24) & 0xFF, (magic >> 16) & 0xFF, (magic >> 8) & 0xFF, magic & 0xFF]);
   }
 
   /// Logs the current interpreter state.
@@ -103,13 +103,11 @@ class GlulxDebugger {
       return;
     }
     if (!_isInBounds(pc)) {
-      log.warning(
-        'PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}',
-      );
+      bufferedLog('WARNING: PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}');
       return;
     }
 
-    log.info(
+    bufferedLog(
       'PC: 0x${pc.toRadixString(16).padLeft(8, '0')} '
       'SP: 0x${sp.toRadixString(16).padLeft(8, '0')} '
       'FP: 0x${fp.toRadixString(16).padLeft(8, '0')}',
@@ -139,9 +137,7 @@ class GlulxDebugger {
     }
 
     if (!_isInBounds(pc)) {
-      log.warning(
-        'PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}',
-      );
+      bufferedLog('WARNING: PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}');
       return;
     }
 
@@ -153,9 +149,7 @@ class GlulxDebugger {
     final buffer = StringBuffer();
 
     // Format: 0x00001234: @opname op1 op2 op3
-    buffer.write(
-      '(Step: $step) 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName',
-    );
+    buffer.write('(Step: $step) 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName');
 
     for (int i = 0; i < operands.length; i++) {
       buffer.write(' ');
@@ -170,7 +164,7 @@ class GlulxDebugger {
       );
     }
 
-    log.info(buffer.toString());
+    bufferedLog(buffer.toString());
   }
 
   /// Logs raw bytes being read during instruction decode.
@@ -179,16 +173,12 @@ class GlulxDebugger {
       return;
     }
     if (!_isInBounds(startAddr)) {
-      log.warning(
-        'PC out of bounds: 0x${startAddr.toRadixString(16).padLeft(8, '0')}',
-      );
+      bufferedLog('WARNING: PC out of bounds: 0x${startAddr.toRadixString(16).padLeft(8, '0')}');
       return;
     }
 
-    final hexBytes = bytes
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join(' ');
-    log.info('  $label [0x${startAddr.toRadixString(16)}]: $hexBytes');
+    final hexBytes = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    bufferedLog('  $label [0x${startAddr.toRadixString(16)}]: $hexBytes');
   }
 
   /// Logs PC advancement.
@@ -197,9 +187,7 @@ class GlulxDebugger {
     if (!_isInBounds(oldPC)) return;
 
     final delta = newPC - oldPC;
-    log.info(
-      '  PC: 0x${oldPC.toRadixString(16)} -> 0x${newPC.toRadixString(16)} (+$delta bytes) [$reason]',
-    );
+    bufferedLog('  PC: 0x${oldPC.toRadixString(16)} -> 0x${newPC.toRadixString(16)} (+$delta bytes) [$reason]');
   }
 
   /// Logs addressing modes for operands.
@@ -209,7 +197,7 @@ class GlulxDebugger {
     }
 
     final modeNames = modes.map((m) => _getModeName(m)).join(', ');
-    log.info('  Modes: $modeNames');
+    bufferedLog('  Modes: $modeNames');
   }
 
   /// Gets the name of an addressing mode.
@@ -273,9 +261,7 @@ class GlulxDebugger {
         if (rawValue != null && !isStore) {
           return '[0x${rawValue.toRadixString(16)}]';
         }
-        return isStore
-            ? '*0x${value.toRadixString(16)}'
-            : '[0x${value.toRadixString(16)}]';
+        return isStore ? '*0x${value.toRadixString(16)}' : '[0x${value.toRadixString(16)}]';
       case 8: // Stack push/pop
         return isStore ? '-(sp)' : '(sp)+';
       case 9: // Local (1 byte offset)
@@ -291,9 +277,7 @@ class GlulxDebugger {
         if (rawValue != null && !isStore) {
           return '[ram+0x${rawValue.toRadixString(16)}]';
         }
-        return isStore
-            ? '*ram+0x${value.toRadixString(16)}'
-            : '[ram+0x${value.toRadixString(16)}]';
+        return isStore ? '*ram+0x${value.toRadixString(16)}' : '[ram+0x${value.toRadixString(16)}]';
       default:
         // Unknown mode, just show value
         return value.toString();
@@ -309,13 +293,23 @@ class GlulxDebugger {
   // --- Flight Recorder ---
 
   final List<String> _flightRecorder = [];
-  final int _flightRecorderMaxSize = 500;
+
+  /// Records an event or message to the flight recorder.
+  void recordEvent(String message) {
+    if (!enabled || !showFlightRecorder) {
+      return;
+    }
+    _flightRecorder.add('[$step] EVENT: $message');
+    if (_flightRecorder.length > maxFlightRecorderSize) {
+      _flightRecorder.removeAt(0);
+    }
+  }
 
   /// Records an instruction to the flight recorder (circular buffer).
   void recordInstruction(
     int pc,
     int opcode,
-    List<int> operands,
+    List<Object> operands,
     List<int> destTypes,
     OpcodeInfo opInfo,
     List<int> operandModes,
@@ -328,21 +322,28 @@ class GlulxDebugger {
     // Generate instruction string
     final opName = getOpcodeName(opcode);
     final buffer = StringBuffer();
-    buffer.write('0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName');
+    buffer.write('[$step] 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName');
 
     for (int i = 0; i < operands.length; i++) {
       buffer.write(' ');
-      buffer.write(
-        _formatOperand(
-          operands[i],
-          operandModes.length > i ? operandModes[i] : 0,
-          opInfo.isStore(i),
-        ),
-      );
+      if (operands[i] is StoreOperand) {
+        buffer.write(
+          _formatOperand(
+            (operands[i] as StoreOperand).addr,
+            operandModes.length > i ? operandModes[i] : 0,
+            opInfo.isStore(i),
+            rawValue: (operands[i] as StoreOperand).addr,
+          ),
+        );
+      } else {
+        buffer.write(
+          _formatOperand(operands[i] as int, operandModes.length > i ? operandModes[i] : 0, opInfo.isStore(i)),
+        );
+      }
     }
 
     _flightRecorder.add(buffer.toString());
-    if (_flightRecorder.length > _flightRecorderMaxSize) {
+    if (_flightRecorder.length > maxFlightRecorderSize) {
       _flightRecorder.removeAt(0);
     }
   }
@@ -352,27 +353,45 @@ class GlulxDebugger {
     if (!enabled || !showFlightRecorder) {
       return;
     }
-    log.info(
-      '--- Flight Recorder (Last $_flightRecorderMaxSize Instructions) ---',
-    );
+    bufferedLog('--- Flight Recorder (Last $maxFlightRecorderSize Instructions) ---');
     for (final line in _flightRecorder) {
-      log.info(line);
+      bufferedLog(line);
     }
-    log.info('-------------------------------------------');
+    bufferedLog('-------------------------------------------');
   }
 
   /// Dumps the current debug settings to the log.
   void dumpDebugSettings() {
-    log.info('=== Glulx Debugger Settings ===');
-    log.info('  Enabled: $enabled');
-    log.info('  Show Instructions: $showInstructions');
-    log.info('  Show Bytes: $showBytes');
-    log.info('  Show Modes: $showModes');
-    log.info('  Show Flight Recorder: $showFlightRecorder');
-    log.info('  Show PC Advancement: $showPCAdvancement');
-    log.info('  Start Step: $startStep');
-    log.info('  End Step: $endStep');
-    log.info('==============================');
+    bufferedLog('=== Glulx Debugger Settings ===');
+    bufferedLog('  Enabled: $enabled');
+    bufferedLog('  Show Instructions: $showInstructions');
+    bufferedLog('  Show Bytes: $showBytes');
+    bufferedLog('  Show Modes: $showModes');
+    bufferedLog('  Show Flight Recorder: $showFlightRecorder');
+    bufferedLog('  Show PC Advancement: $showPCAdvancement');
+    bufferedLog('  Start Step: $startStep');
+    bufferedLog('  End Step: $endStep');
+    bufferedLog('==============================');
+  }
+
+  /// Buffers a log message if within the configured step range and matches filter.
+  void bufferedLog(String message) {
+    if (!enabled) return;
+    // Check step bounds - only log if within the configured range
+    if (startStep != null && step < startStep!) return;
+    if (endStep != null && step > endStep!) return;
+    // Check filter - only log if message contains the filter string
+    if (logFilter != null && !message.contains(logFilter!)) return;
+    _logBuffer.add(message);
+  }
+
+  /// Flushes the buffered logs to the logging system.
+  void flushLogs() {
+    if (_logBuffer.isEmpty) return;
+    for (final line in _logBuffer) {
+      log.info(line);
+    }
+    _logBuffer.clear();
   }
 
   /// Opcode name lookup map.
@@ -522,5 +541,135 @@ class GlulxDebugger {
     GlkGestaltSelectors.resourceStream: 'resourceStream',
     GlkGestaltSelectors.graphicsCharInput: 'graphicsCharInput',
     GlkGestaltSelectors.drawImageScale: 'drawImageScale',
+  };
+
+  static const Map<int, String> glkSelectorNames = {
+    GlkIoSelectors.exit: 'exit',
+    GlkIoSelectors.setInterruptHandler: 'setInterruptHandler',
+    GlkIoSelectors.tick: 'tick',
+    GlkIoSelectors.gestalt: 'gestalt',
+    GlkIoSelectors.gestaltExt: 'gestaltExt',
+    GlkIoSelectors.windowIterate: 'windowIterate',
+    GlkIoSelectors.windowGetRock: 'windowGetRock',
+    GlkIoSelectors.windowGetRoot: 'windowGetRoot',
+    GlkIoSelectors.windowOpen: 'windowOpen',
+    GlkIoSelectors.windowClose: 'windowClose',
+    GlkIoSelectors.windowGetSize: 'windowGetSize',
+    GlkIoSelectors.windowSetArrangement: 'windowSetArrangement',
+    GlkIoSelectors.windowGetArrangement: 'windowGetArrangement',
+    GlkIoSelectors.windowGetType: 'windowGetType',
+    GlkIoSelectors.windowGetParent: 'windowGetParent',
+    GlkIoSelectors.windowClear: 'windowClear',
+    GlkIoSelectors.windowMoveCursor: 'windowMoveCursor',
+    GlkIoSelectors.windowGetStream: 'windowGetStream',
+    GlkIoSelectors.windowSetEchoStream: 'windowSetEchoStream',
+    GlkIoSelectors.windowGetEchoStream: 'windowGetEchoStream',
+    GlkIoSelectors.setWindow: 'setWindow',
+    GlkIoSelectors.windowGetSibling: 'windowGetSibling',
+    GlkIoSelectors.streamIterate: 'streamIterate',
+    GlkIoSelectors.streamGetRock: 'streamGetRock',
+    GlkIoSelectors.streamOpenFile: 'streamOpenFile',
+    GlkIoSelectors.streamOpenMemory: 'streamOpenMemory',
+    GlkIoSelectors.streamClose: 'streamClose',
+    GlkIoSelectors.streamSetPosition: 'streamSetPosition',
+    GlkIoSelectors.streamGetPosition: 'streamGetPosition',
+    GlkIoSelectors.streamSetCurrent: 'streamSetCurrent',
+    GlkIoSelectors.streamGetCurrent: 'streamGetCurrent',
+    GlkIoSelectors.streamOpenResource: 'streamOpenResource',
+    GlkIoSelectors.filerefCreateTemp: 'filerefCreateTemp',
+    GlkIoSelectors.filerefCreateByName: 'filerefCreateByName',
+    GlkIoSelectors.filerefCreateByPrompt: 'filerefCreateByPrompt',
+    GlkIoSelectors.filerefDestroy: 'filerefDestroy',
+    GlkIoSelectors.filerefIterate: 'filerefIterate',
+    GlkIoSelectors.filerefGetRock: 'filerefGetRock',
+    GlkIoSelectors.filerefDeleteFile: 'filerefDeleteFile',
+    GlkIoSelectors.filerefDoesFileExist: 'filerefDoesFileExist',
+    GlkIoSelectors.filerefCreateFromFileref: 'filerefCreateFromFileref',
+    GlkIoSelectors.putChar: 'putChar',
+    GlkIoSelectors.putCharStream: 'putCharStream',
+    GlkIoSelectors.putString: 'putString',
+    GlkIoSelectors.putStringStream: 'putStringStream',
+    GlkIoSelectors.putBuffer: 'putBuffer',
+    GlkIoSelectors.putBufferStream: 'putBufferStream',
+    GlkIoSelectors.setStyle: 'setStyle',
+    GlkIoSelectors.setStyleStream: 'setStyleStream',
+    GlkIoSelectors.getCharStream: 'getCharStream',
+    GlkIoSelectors.getLineStream: 'getLineStream',
+    GlkIoSelectors.getBufferStream: 'getBufferStream',
+    GlkIoSelectors.charToLower: 'charToLower',
+    GlkIoSelectors.charToUpper: 'charToUpper',
+    GlkIoSelectors.stylehintSet: 'stylehintSet',
+    GlkIoSelectors.stylehintClear: 'stylehintClear',
+    GlkIoSelectors.styleDistinguish: 'styleDistinguish',
+    GlkIoSelectors.styleMeasure: 'styleMeasure',
+    GlkIoSelectors.select: 'select',
+    GlkIoSelectors.selectPoll: 'selectPoll',
+    GlkIoSelectors.filerefCreateByFileUni: 'filerefCreateByFileUni',
+    GlkIoSelectors.filerefCreateByNameUni: 'filerefCreateByNameUni',
+    GlkIoSelectors.filerefCreateByPromptUni: 'filerefCreateByPromptUni',
+    GlkIoSelectors.requestLineEvent: 'requestLineEvent',
+    GlkIoSelectors.cancelLineEvent: 'cancelLineEvent',
+    GlkIoSelectors.requestCharEvent: 'requestCharEvent',
+    GlkIoSelectors.cancelCharEvent: 'cancelCharEvent',
+    GlkIoSelectors.requestMouseEvent: 'requestMouseEvent',
+    GlkIoSelectors.cancelMouseEvent: 'cancelMouseEvent',
+    GlkIoSelectors.requestTimerEvents: 'requestTimerEvents',
+    GlkIoSelectors.imageGetInfo: 'imageGetInfo',
+    GlkIoSelectors.imageDraw: 'imageDraw',
+    GlkIoSelectors.imageDrawScaled: 'imageDrawScaled',
+    GlkIoSelectors.windowFlowBreak: 'windowFlowBreak',
+    GlkIoSelectors.windowEraseRect: 'windowEraseRect',
+    GlkIoSelectors.windowFillRect: 'windowFillRect',
+    GlkIoSelectors.windowSetBackgroundColor: 'windowSetBackgroundColor',
+    GlkIoSelectors.imageDrawScaledExt: 'imageDrawScaledExt',
+    GlkIoSelectors.schannelIterate: 'schannelIterate',
+    GlkIoSelectors.schannelGetRock: 'schannelGetRock',
+    GlkIoSelectors.schannelCreate: 'schannelCreate',
+    GlkIoSelectors.schannelDestroy: 'schannelDestroy',
+    GlkIoSelectors.schannelCreateExt: 'schannelCreateExt',
+    GlkIoSelectors.schannelPlayMulti: 'schannelPlayMulti',
+    GlkIoSelectors.schannelPlay: 'schannelPlay',
+    GlkIoSelectors.schannelPlayExt: 'schannelPlayExt',
+    GlkIoSelectors.schannelStop: 'schannelStop',
+    GlkIoSelectors.schannelSetVolume: 'schannelSetVolume',
+    GlkIoSelectors.soundLoadHint: 'soundLoadHint',
+    GlkIoSelectors.schannelSetVolumeExt: 'schannelSetVolumeExt',
+    GlkIoSelectors.schannelPause: 'schannelPause',
+    GlkIoSelectors.schannelUnpause: 'schannelUnpause',
+    GlkIoSelectors.setHyperlink: 'setHyperlink',
+    GlkIoSelectors.setHyperlinkStream: 'setHyperlinkStream',
+    GlkIoSelectors.requestHyperlinkEvent: 'requestHyperlinkEvent',
+    GlkIoSelectors.cancelHyperlinkEvent: 'cancelHyperlinkEvent',
+    GlkIoSelectors.bufferToLowerCaseUni: 'bufferToLowerCaseUni',
+    GlkIoSelectors.bufferToUpperCaseUni: 'bufferToUpperCaseUni',
+    GlkIoSelectors.bufferToTitleCaseUni: 'bufferToTitleCaseUni',
+    GlkIoSelectors.bufferCanonDecomposeUni: 'bufferCanonDecomposeUni',
+    GlkIoSelectors.bufferCanonNormalizeUni: 'bufferCanonNormalizeUni',
+    GlkIoSelectors.putCharUni: 'putCharUni',
+    GlkIoSelectors.putStringUni: 'putStringUni',
+    GlkIoSelectors.putBufferUni: 'putBufferUni',
+    GlkIoSelectors.putCharStreamUni: 'putCharStreamUni',
+    GlkIoSelectors.putStringStreamUni: 'putStringStreamUni',
+    GlkIoSelectors.putBufferStreamUni: 'putBufferStreamUni',
+    GlkIoSelectors.getCharStreamUni: 'getCharStreamUni',
+    GlkIoSelectors.getBufferStreamUni: 'getBufferStreamUni',
+    GlkIoSelectors.getLineStreamUni: 'getLineStreamUni',
+    GlkIoSelectors.streamOpenFileUni: 'streamOpenFileUni',
+    GlkIoSelectors.streamOpenMemoryUni: 'streamOpenMemoryUni',
+    GlkIoSelectors.streamOpenResourceUni: 'streamOpenResourceUni',
+    GlkIoSelectors.requestCharEventUni: 'requestCharEventUni',
+    GlkIoSelectors.requestLineEventUni: 'requestLineEventUni',
+    GlkIoSelectors.setEchoLineEvent: 'setEchoLineEvent',
+    GlkIoSelectors.setTerminatorsLineEvent: 'setTerminatorsLineEvent',
+    GlkIoSelectors.currentTime: 'currentTime',
+    GlkIoSelectors.currentSimpleTime: 'currentSimpleTime',
+    GlkIoSelectors.timeToDateUtc: 'timeToDateUtc',
+    GlkIoSelectors.timeToDateLocal: 'timeToDateLocal',
+    GlkIoSelectors.simpleTimeToDateUtc: 'simpleTimeToDateUtc',
+    GlkIoSelectors.simpleTimeToDateLocal: 'simpleTimeToDateLocal',
+    GlkIoSelectors.dateToTimeUtc: 'dateToTimeUtc',
+    GlkIoSelectors.dateToTimeLocal: 'dateToTimeLocal',
+    GlkIoSelectors.dateToSimpleTimeUtc: 'dateToSimpleTimeUtc',
+    GlkIoSelectors.dateToSimpleTimeLocal: 'dateToSimpleTimeLocal',
   };
 }

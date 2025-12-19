@@ -171,18 +171,22 @@ class GlulxStringDecoder {
 
   /// Decodes and prints a compressed string.
   ///
-  /// This is currently a stub for the actual output logic, as we haven't
-  /// implemented the I/O system's string printing yet.
+  /// [printString] is called for indirect string references (type 0xE0-E2).
+  /// [callFunc] is called for indirect function references (type 0xC0-C1).
+  /// Reference: Spec 1.4.1.4 - Indirect reference handling
   void decode(
     int stringAddress,
     int tableAddress,
     void Function(int) printChar,
     void Function(int) printUnicode,
-    void Function(int, List<int>) callFunc,
-  ) {
+    void Function(int) printString,
+    void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args) callFunc, {
+    int? startAddr,
+    int? startBit,
+  }) {
     final table = _getTable(tableAddress);
-    int currentBitAddr = stringAddress + 1;
-    int currentBit = 0;
+    int currentBitAddr = startAddr ?? (stringAddress + 1);
+    int currentBit = startBit ?? 0;
 
     int nextBit() {
       final byte = memory.readByte(currentBitAddr);
@@ -216,19 +220,48 @@ class GlulxStringDecoder {
         }
       }
       if (node is IndirectNode) {
-        callFunc(node.address, []);
+        // Spec: "If it is a string, it is printed. If a function, it is called."
+        if (_dispatchIndirect(node.address, [], printString, callFunc, currentBitAddr, currentBit)) return;
       }
       if (node is DoubleIndirectNode) {
+        // Spec: "The address refers to a four-byte field in memory, and *that*
+        // contains the address of a string or function."
         final target = memory.readWord(node.address);
-        callFunc(target, []);
+        if (_dispatchIndirect(target, [], printString, callFunc, currentBitAddr, currentBit)) return;
       }
       if (node is IndirectArgsNode) {
-        callFunc(node.address, node.arguments);
+        // If string, args are ignored. If function, args are passed.
+        if (_dispatchIndirect(node.address, node.arguments, printString, callFunc, currentBitAddr, currentBit)) return;
       }
       if (node is DoubleIndirectArgsNode) {
         final target = memory.readWord(node.address);
-        callFunc(target, node.arguments);
+        if (_dispatchIndirect(target, node.arguments, printString, callFunc, currentBitAddr, currentBit)) return;
       }
+    }
+  }
+
+  /// Dispatches an indirect reference to either printString or callFunc based on type.
+  /// Reference: Spec 1.4.1.4 "Indirect reference" - type 0xE0-E2 = string, 0xC0-C1 = function.
+  bool _dispatchIndirect(
+    int address,
+    List<int> args,
+    void Function(int) printString,
+    void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args) callFunc,
+    int resumeAddr,
+    int resumeBit,
+  ) {
+    if (address == 0) return false;
+    final type = memory.readByte(address);
+    if (type >= 0xE0 && type <= 0xE2) {
+      printString(address);
+      return false;
+    } else if (type >= 0xC0 && type <= 0xC1) {
+      callFunc(resumeAddr, resumeBit, address, args);
+      return true;
+    } else {
+      throw Exception(
+        'Indirect reference at 0x${address.toRadixString(16)} is neither string nor function (type 0x${type.toRadixString(16)})',
+      );
     }
   }
 

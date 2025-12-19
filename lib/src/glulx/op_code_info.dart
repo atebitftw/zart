@@ -1,16 +1,28 @@
 import 'package:zart/src/glulx/glulx_op.dart';
 
 /// Describes an opcode's operand structure.
+/// Reference: operand.c operandlist_t in the C implementation
 class OpcodeInfo {
   final int operandCount;
   final List<bool> _stores;
 
-  OpcodeInfo(this.operandCount, this._stores);
+  /// The byte width for memory/local operand access (1, 2, or 4).
+  /// Reference: arg_size field in operandlist_t (operand.c line 22)
+  final int argSize;
+
+  /// Creates an [OpcodeInfo] with the given [operandCount] and [stores].
+  /// [argSize] controls byte width for memory reads (default 4, use 1 for copyb, 2 for copys).
+  const OpcodeInfo(this.operandCount, this._stores, {this.argSize = 4});
 
   /// Returns true if the operand at [index] is a store operand.
   bool isStore(int index) {
     if (index >= _stores.length) return false;
     return _stores[index];
+  }
+
+  @override
+  String toString() {
+    return 'OpInfo(operandCount: $operandCount, stores: $_stores)';
   }
 
   static final Map<int, OpcodeInfo> _opcodes = {
@@ -69,9 +81,12 @@ class OpcodeInfo {
     GlulxOp.getiosys: OpcodeInfo(2, [true, true]),
 
     // Copy Opcodes
+    // Reference: operand.c lines 139-144 (list_LS, list_2LS, list_1LS)
     GlulxOp.copy: OpcodeInfo(2, [false, true]),
-    GlulxOp.copys: OpcodeInfo(2, [false, true]),
-    GlulxOp.copyb: OpcodeInfo(2, [false, true]),
+    GlulxOp.copys: OpcodeInfo(2, [false, true], argSize: 2),
+    GlulxOp.copyb: OpcodeInfo(2, [false, true], argSize: 1),
+    GlulxOp.sexs: OpcodeInfo(2, [false, true]),
+    GlulxOp.sexb: OpcodeInfo(2, [false, true]),
 
     // Array: L1 L2 S1
     GlulxOp.aload: OpcodeInfo(3, [false, false, true]),

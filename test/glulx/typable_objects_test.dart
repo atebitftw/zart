@@ -203,7 +203,14 @@ void main() {
       final decoder = GlulxStringDecoder(memory);
 
       final result = <int>[];
-      decoder.decode(0x60, 0x40, (c) => result.add(c), (u) => result.add(u), (f, a) => null);
+      decoder.decode(
+        0x60,
+        0x40,
+        (c) => result.add(c),
+        (u) => result.add(u),
+        (s) => {},
+        (resumeAddr, resumeBit, funcAddr, args) => null,
+      );
 
       /// Spec 1.4.1.3: "Decoding compressed strings ... Read one bit from the bit stream,
       /// and go to the left or right child depending on its value. ... reach a leaf node.
@@ -233,7 +240,14 @@ void main() {
       final decoder = GlulxStringDecoder(memory);
 
       // First call parses and caches
-      decoder.decode(0x50, 0x30, (c) => null, (u) => null, (f, a) => null);
+      decoder.decode(
+        0x50,
+        0x30,
+        (c) => null,
+        (u) => null,
+        (s) => null,
+        (resumeAddr, resumeBit, funcAddr, args) => null,
+      );
 
       // Verify caching logic works for ROM (internal detail, but confirmed by implementation)
     });
@@ -270,7 +284,14 @@ void main() {
       final decoder = GlulxStringDecoder(memory);
 
       final result = <int>[];
-      decoder.decode(0x60, 0x40, (c) => result.add(c), (u) => result.add(u), (f, a) => null);
+      decoder.decode(
+        0x60,
+        0x40,
+        (c) => result.add(c),
+        (u) => result.add(u),
+        (s) => {},
+        (resumeAddr, resumeBit, funcAddr, args) => null,
+      );
 
       expect(result, equals([0x48, 0x69])); // 'H', 'i'
     });
@@ -307,7 +328,14 @@ void main() {
       final decoder = GlulxStringDecoder(memory);
 
       final result = <int>[];
-      decoder.decode(0x60, 0x40, (c) => {}, (u) => result.add(u), (f, a) => {});
+      decoder.decode(
+        0x60,
+        0x40,
+        (c) => {},
+        (u) => result.add(u),
+        (s) => {},
+        (resumeAddr, resumeBit, funcAddr, args) => {},
+      );
 
       expect(result, equals([0x0001F600])); // U+1F600
     });
@@ -349,7 +377,14 @@ void main() {
       final decoder = GlulxStringDecoder(memory);
 
       final result = <int>[];
-      decoder.decode(0x70, 0x40, (c) => {}, (u) => result.add(u), (f, a) => {});
+      decoder.decode(
+        0x70,
+        0x40,
+        (c) => {},
+        (u) => result.add(u),
+        (s) => {},
+        (resumeAddr, resumeBit, funcAddr, args) => {},
+      );
 
       expect(result, equals([0x41, 0x42])); // 'A', 'B'
     });
@@ -383,13 +418,16 @@ void main() {
       // Compressed string
       data.setRange(0x60, 0x62, [0xE1, 0x02]);
 
+      // Place a function type byte at 0x80 so dispatch recognizes it as function
+      data[0x80] = 0xC0;
+
       memory = GlulxMemoryMap(data);
       final decoder = GlulxStringDecoder(memory);
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x60, 0x40, (c) => {}, (u) => {}, (addr, args) {
-        calledAddr = addr;
+      decoder.decode(0x60, 0x40, (c) => {}, (u) => {}, (s) => {}, (resumeAddr, resumeBit, funcAddr, args) {
+        calledAddr = funcAddr;
         calledArgs = args;
       });
 
@@ -421,11 +459,21 @@ void main() {
       // Compressed string
       data.setRange(0x60, 0x62, [0xE1, 0x02]);
 
+      // Place a function type byte at 0x90 so dispatch recognizes it as function
+      data[0x90] = 0xC0;
+
       memory = GlulxMemoryMap(data);
       final decoder = GlulxStringDecoder(memory);
 
       int? calledAddr;
-      decoder.decode(0x60, 0x40, (c) => {}, (u) => {}, (addr, args) => calledAddr = addr);
+      decoder.decode(
+        0x60,
+        0x40,
+        (c) => {},
+        (u) => {},
+        (s) => {},
+        (resumeAddr, resumeBit, funcAddr, args) => calledAddr = funcAddr,
+      );
 
       expect(calledAddr, equals(0x90)); // Dereferenced address
     });
@@ -456,13 +504,16 @@ void main() {
       // Compressed string
       data.setRange(0x70, 0x72, [0xE1, 0x02]);
 
+      // Place a function type byte at 0x80 so dispatch recognizes it as function
+      data[0x80] = 0xC0;
+
       memory = GlulxMemoryMap(data);
       final decoder = GlulxStringDecoder(memory);
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x70, 0x40, (c) => {}, (u) => {}, (addr, args) {
-        calledAddr = addr;
+      decoder.decode(0x70, 0x40, (c) => {}, (u) => {}, (s) => {}, (resumeAddr, resumeBit, funcAddr, args) {
+        calledAddr = funcAddr;
         calledArgs = args;
       });
 
@@ -498,13 +549,16 @@ void main() {
       // Compressed string
       data.setRange(0x70, 0x72, [0xE1, 0x02]);
 
+      // Place a function type byte at 0xA0 so dispatch recognizes it as function
+      data[0xA0] = 0xC0;
+
       memory = GlulxMemoryMap(data);
       final decoder = GlulxStringDecoder(memory);
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x70, 0x40, (c) => {}, (u) => {}, (addr, args) {
-        calledAddr = addr;
+      decoder.decode(0x70, 0x40, (c) => {}, (u) => {}, (s) => {}, (resumeAddr, resumeBit, funcAddr, args) {
+        calledAddr = funcAddr;
         calledArgs = args;
       });
 

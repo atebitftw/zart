@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
+import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 
 void main() {
@@ -120,6 +121,9 @@ void main() {
 }
 
 class MockGlkIoProvider implements GlkIoProvider {
+  @override
+  late GlulxDebugger debugger;
+
   final List<int> output = [];
 
   @override

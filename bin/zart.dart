@@ -26,7 +26,9 @@ void main(List<String> args) async {
     ..addFlag('showmodes', help: 'Show addressing modes (requires --debug)', defaultsTo: false)
     ..addFlag('showinstructions', help: 'Show instructions (requires --debug)', defaultsTo: false)
     ..addFlag('showpc', help: 'Show PC advancement (requires --debug)', defaultsTo: false)
-    ..addFlag('flight-recorder', help: 'Enable flight recorder (last 100 instructions)', defaultsTo: false);
+    ..addFlag('flight-recorder', help: 'Enable flight recorder (last 100 instructions)', defaultsTo: false)
+    ..addOption('logfilter', help: 'Only log messages containing this string')
+    ..addOption('maxstep', help: 'Maximum steps to run');
 
   ArgResults results;
   try {
@@ -97,6 +99,11 @@ void main(List<String> args) async {
         }
       }
 
+      int? maxStepVal;
+      if (results['maxstep'] != null) {
+        maxStepVal = int.tryParse(results['maxstep']);
+      }
+
       await _runGlulxGame(
         filename,
         gameData,
@@ -110,6 +117,8 @@ void main(List<String> args) async {
         showPCAdvancement: results['showpc'] as bool,
         enableFlightRecorder: results['flight-recorder'] as bool,
         showInstructions: results['showinstructions'] as bool,
+        logFilter: results['logfilter'] as String?,
+        maxStep: maxStepVal,
       );
       exit(0);
     }
@@ -137,6 +146,8 @@ Future<void> _runGlulxGame(
   bool showPCAdvancement = false,
   bool enableFlightRecorder = false,
   bool showInstructions = false,
+  String? logFilter,
+  int? maxStep,
 }) async {
   final terminal = TerminalDisplay();
   terminal.config = config;
@@ -152,9 +163,10 @@ Future<void> _runGlulxGame(
 
   // Create provider
   final provider = GlulxTerminalProvider(terminal);
+  GlulxInterpreter? glulx;
 
   try {
-    final glulx = GlulxInterpreter(provider);
+    glulx = GlulxInterpreter(provider);
 
     if (enableDebug || enableFlightRecorder) {
       glulx.debugger
@@ -166,7 +178,8 @@ Future<void> _runGlulxGame(
         ..startStep = startStep
         ..endStep = endStep
         ..showInstructions = showInstructions
-        ..showFlightRecorder = enableFlightRecorder;
+        ..showFlightRecorder = enableFlightRecorder
+        ..logFilter = logFilter;
     }
 
     glulx.debugger.dumpDebugSettings();
@@ -177,23 +190,21 @@ Future<void> _runGlulxGame(
     terminal.enterFullScreen();
     log.warning('Game started');
     // keeping maxSteps here for now to handle infinite loops, etc.
-    await glulx.run(maxStep: 1000);
+    await glulx.run(maxStep: -1);
     log.warning('Game ended. Tick Count: ${provider.tickCount}. Step Count: ${glulx.step}');
     // Render what we have so far
     terminal.render();
 
     // Wait for keypress before exiting
-    terminal.appendToWindow0('\n[Press any key to exit]');
+    terminal.appendToWindow0('\n[Zart: Press any key to exit]');
     terminal.render();
     await terminal.readChar();
-
-    terminal.exitFullScreen();
-    exit(0);
   } catch (e, stackTrace) {
-    terminal.exitFullScreen();
     stdout.writeln("Glulx Error: $e");
     stdout.writeln("Stack Trace:\n$stackTrace");
-    exit(1);
+  } finally {
+    terminal.exitFullScreen();
+    glulx?.debugger.flushLogs();
   }
 }
 
