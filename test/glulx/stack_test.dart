@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
+import 'package:zart/src/glulx/glulx_locals_descriptor.dart';
 import 'package:zart/src/glulx/glulx_stack.dart';
 
 void main() {
@@ -367,13 +368,7 @@ void main() {
         setupMinimalFrame();
         expect(
           () => stack.storeResult(0, 0x11, 0),
-          throwsA(
-            isA<GlulxException>().having(
-              (e) => e.message,
-              'message',
-              contains('String-terminator'),
-            ),
-          ),
+          throwsA(isA<GlulxException>().having((e) => e.message, 'message', contains('String-terminator'))),
         );
       });
 
@@ -381,13 +376,7 @@ void main() {
         setupMinimalFrame();
         expect(
           () => stack.storeResult(0, 4, 0),
-          throwsA(
-            isA<GlulxException>().having(
-              (e) => e.message,
-              'message',
-              contains('Unknown or reserved DestType'),
-            ),
-          ),
+          throwsA(isA<GlulxException>().having((e) => e.message, 'message', contains('Unknown or reserved DestType'))),
         );
       });
     });
@@ -428,14 +417,7 @@ void main() {
     group('Frame Lifecycle', () {
       test('pushFrame creates correct structure', () {
         // Spec: frame = [FrameLen, LocalsPos, Format, Padding, Locals, Padding, Values]
-        final format = Uint8List.fromList([
-          1,
-          3,
-          2,
-          6,
-          0,
-          0,
-        ]); // 3 bytes + 6 shorts
+        final format = Uint8List.fromList([1, 3, 2, 6, 0, 0]); // 3 bytes + 6 shorts
 
         stack.pushCallStub(1, 0x1000, 0x2000, 0);
         final stubSp = stack.sp;
@@ -466,23 +448,54 @@ void main() {
       });
     });
 
-    group('setArgument Operation', () {
+    group('setArguments Operation', () {
       test('sets arguments in locals', () {
         // Spec: "Function arguments can be stored in the locals of the new call frame."
-        stack.pushFrame(Uint8List.fromList([4, 3, 0, 0])); // 3 32-bit locals
+        final format = Uint8List.fromList([4, 3, 0, 0]); // 3 32-bit locals
+        final descriptor = GlulxLocalsDescriptor.parse(format);
+        stack.pushFrame(format);
 
-        stack.setArgument(0, 0x11111111);
-        stack.setArgument(1, 0x22222222);
-        stack.setArgument(2, 0x33333333);
+        stack.setArguments([0x11111111, 0x22222222, 0x33333333], descriptor.locals);
 
         expect(stack.readLocal32(0), 0x11111111);
         expect(stack.readLocal32(4), 0x22222222);
         expect(stack.readLocal32(8), 0x33333333);
       });
 
-      test('argument index out of range throws', () {
-        stack.pushFrame(Uint8List.fromList([4, 1, 0, 0])); // 1 local
-        expect(() => stack.setArgument(5, 0), throwsA(isA<GlulxException>()));
+      test('extra arguments are silently dropped', () {
+        // Spec Section 1.4.2: "If there are more arguments than locals, the extras are silently dropped."
+        final format = Uint8List.fromList([4, 1, 0, 0]); // 1 32-bit local
+        final descriptor = GlulxLocalsDescriptor.parse(format);
+        stack.pushFrame(format);
+
+        stack.setArguments([0x11, 0x22, 0x33], descriptor.locals);
+        expect(stack.readLocal32(0), 0x11);
+      });
+
+      test('fewer arguments leave locals at zero', () {
+        // Spec Section 1.4.2: "any locals left unfilled are initialized to zero."
+        // pushFrame already zeroes locals, but setArguments should not disturb them if not provided.
+        final format = Uint8List.fromList([4, 3, 0, 0]); // 3 32-bit locals
+        final descriptor = GlulxLocalsDescriptor.parse(format);
+        stack.pushFrame(format);
+
+        stack.setArguments([0x11111111], descriptor.locals);
+        expect(stack.readLocal32(0), 0x11111111);
+        expect(stack.readLocal32(4), 0);
+        expect(stack.readLocal32(8), 0);
+      });
+
+      test('arguments are truncated for 8-bit and 16-bit locals', () {
+        // Spec Section 1.4.2: "Arguments passed into 8-bit or 16-bit locals are truncated."
+        final format = Uint8List.fromList([1, 1, 2, 1, 4, 1, 0, 0]); // 8-bit, 16-bit, 32-bit
+        final descriptor = GlulxLocalsDescriptor.parse(format);
+        stack.pushFrame(format);
+
+        stack.setArguments([0x112233AA, 0x1122BBCC, 0xDDDDDDDD], descriptor.locals);
+
+        expect(stack.readLocal8(0), 0xAA);
+        expect(stack.readLocal16(2), 0xBBCC);
+        expect(stack.readLocal32(4), 0xDDDDDDDD);
       });
     });
 

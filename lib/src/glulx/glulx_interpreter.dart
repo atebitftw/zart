@@ -524,19 +524,23 @@ class GlulxInterpreter {
       case GlulxOp.tailcall:
         final address = operands[0] as int;
         final argCount = operands[1] as int;
-        // Pop args from stack
+
+        // 1. Pop arguments from the top of the current stack.
+        // These are the arguments to the function we are tailcalling into.
         final args = <int>[];
         for (var i = 0; i < argCount; i++) {
           args.add(stack.pop32());
         }
-        // Pop current frame first
-        final stub = stack.popFrame();
-        // Dest is inherited from the call stub we just popped
-        final dest = StoreOperand(stub[0], stub[1]);
-        // Restore old PC temporarily (will be overwritten)
-        _pc = stub[2];
-        // Now call new function with same destination
-        _callFunction(address, args.reversed.toList(), dest);
+
+        // 2. Discard the current frame by resetting SP to FP.
+        // Spec: "This destroys the current call-frame... but does not touch the
+        // call stub below that."
+        stack.sp = stack.fp;
+
+        // 3. Enter the new function at the same stack position.
+        // The call stub below FP remains unchanged and will be used when the
+        // tailcalled function eventually returns.
+        _enterFunction(address, args.reversed.toList());
         break;
 
       /// Spec Section 2.4.4: "catch S1 L1: Generate catch token, branch to L1."
@@ -1762,9 +1766,7 @@ class GlulxInterpreter {
       stack.push32(args.length);
     } else {
       // C1: Copy args into locals
-      for (var i = 0; i < args.length; i++) {
-        stack.setArgument(i, args[i]);
-      }
+      stack.setArguments(args, func.localsDescriptor.locals);
     }
 
     // Jump to entry point

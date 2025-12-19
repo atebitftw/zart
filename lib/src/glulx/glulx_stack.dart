@@ -283,34 +283,28 @@ class GlulxStack {
     }
   }
 
-  /// Sets a function argument in the current call frame.
+  /// Sets function arguments in the current call frame.
   ///
-  /// [index] is the zero-based index of the local variable.
-  /// [value] is the 32-bit value to store (truncated to the local's size).
-  void setArgument(int index, int value) {
-    // Re-parse the format descriptor from the stack to find the local's info.
-    final localsPosValue = localsPos;
-    if (localsPosValue == 0) return;
-
-    final formatLen = localsPosValue - 8;
-    final format = _data.sublist(_fp + 8, _fp + 8 + formatLen);
-    final descriptor = GlulxLocalsDescriptor.parse(format);
-
-    if (index < 0 || index >= descriptor.locals.length) {
-      throw GlulxException('Local variable index out of range: $index');
-    }
-
-    final info = descriptor.locals[index];
-    switch (info.type) {
-      case 1:
-        writeLocal8(info.offset, value);
-        break;
-      case 2:
-        writeLocal16(info.offset, value);
-        break;
-      case 4:
-        writeLocal32(info.offset, value);
-        break;
+  /// [args] is the list of argument values.
+  /// [locals] is the list of local variable descriptors for the function.
+  ///
+  /// Spec Section 2.4.2: "If there are more arguments than locals, the extras are silently dropped."
+  void setArguments(List<int> args, List<LocalInfo> locals) {
+    final count = args.length < locals.length ? args.length : locals.length;
+    for (var i = 0; i < count; i++) {
+      final info = locals[i];
+      final value = args[i];
+      switch (info.type) {
+        case 1:
+          writeLocal8(info.offset, value);
+          break;
+        case 2:
+          writeLocal16(info.offset, value);
+          break;
+        case 4:
+          writeLocal32(info.offset, value);
+          break;
+      }
     }
   }
 
