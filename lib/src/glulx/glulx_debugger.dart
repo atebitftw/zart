@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:zart/src/glulx/glulx_header.dart';
-import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
 import 'package:zart/src/io/glk/glk_gestalt_selectors.dart';

@@ -85,6 +85,8 @@ class GlulxInterpreter {
         return 0;
       },
     );
+
+    glkDispatcher.setStackAccess(push: (val) => stack.push32(val), pop: () => stack.pop32());
   }
 
   /// Whether the program has finished execution.
@@ -113,8 +115,10 @@ class GlulxInterpreter {
       // Reset quit flag
       _quit = false;
 
-      // Call the start function with 0 arguments
-      _callFunction(startFunc, [], StoreOperand(0, 0));
+      // Enter the start function directly with 0 arguments (no call stub)
+      // This matches the C reference: enter_function(startfuncaddr, 0, NULL)
+      // Unlike regular calls, the startup function has no caller to return to.
+      _enterFunction(startFunc, []);
 
       // Main execution loop
       int steps = 0;
@@ -130,9 +134,6 @@ class GlulxInterpreter {
         } catch (e, stackTrace) {
           debugger.bufferedLog('Error at PC=0x${instructionPc.toRadixString(16)}, step=$steps: $e');
           debugger.bufferedLog('Stack trace: $stackTrace');
-          if (debugger.enabled && debugger.showFlightRecorder) {
-            debugger.dumpFlightRecorder();
-          }
           print('Saving debug data to log...');
           debugger.flushLogs();
           print('Finished saving debug data.');
@@ -143,9 +144,6 @@ class GlulxInterpreter {
 
       if (maxStep != -1 && steps >= maxStep) {
         debugger.bufferedLog('Interpreter -> Max steps ($maxStep) exceeded. Terminating.');
-        if (debugger.enabled && debugger.showFlightRecorder) {
-          debugger.dumpFlightRecorder();
-        }
         print('Saving debug data to log...');
         debugger.flushLogs();
         print('Finished saving debug data.');
@@ -574,13 +572,16 @@ class GlulxInterpreter {
         break;
 
       /// Spec Section 2.4.4: "throw L1 L2: Jump back to catch with value L1, token L2."
+      /// Reference: exec.c case op_throw - stackptr = token; pop_callstub(value);
       case GlulxOp.throwEx:
         final value = operands[0] as int;
         final token = operands[1] as int;
         // Restore stack pointer to the token position (per C reference: stackptr = token)
         stack.sp = token;
-        // Pop call stub
+        // Pop call stub (just reads the 4 values)
         final stub = stack.popCallStub();
+        // Restore frame pointer and cached bases (per C pop_callstub: frameptr = newframeptr)
+        stack.restoreFp(stub[3]);
         // Store thrown value in destination
         stack.storeResult(
           value,
@@ -1794,13 +1795,27 @@ class GlulxInterpreter {
   /// Returns from the current function with the given value.
   ///
   /// Spec Section 2.4.4: "return L1: Return from the current function, with the given return value."
+  /// Reference: exec.c case op_return - leave_function(), check stackptr == 0, then pop_callstub()
   void _returnValue(int value) {
-    // Pop frame and get call stub
-    final stub = stack.popFrame();
+    // Step 1: Leave the function (set SP = FP, like C's leave_function())
+    stack.leaveFunction();
+
+    // Step 2: Check if we're returning from the top-level function (no call stub)
+    // Reference: exec.c lines 346-348: if (stackptr == 0) { done_executing = TRUE; break; }
+    if (stack.sp == 0) {
+      _quit = true;
+      return;
+    }
+
+    // Step 3: Pop the call stub and restore state
+    final stub = stack.popCallStub();
     final destType = stub[0];
     final destAddr = stub[1];
     final oldPc = stub[2];
     final oldFp = stub[3];
+
+    // Restore FP and update cached bases
+    stack.restoreFp(oldFp);
 
     // Store result
     stack.storeResult(
@@ -1817,16 +1832,8 @@ class GlulxInterpreter {
     );
 
     // Restore PC (unless it's a string resume, but storeResult callback handles that)
-    // Actually, for string resume, the callback already called _streamString,
-    // which might have pushed NEW stubs. We only restore _pc if it's a normal return.
     if (destType < 0x10 || destType > 0x14) {
       _pc = oldPc;
-    }
-
-    // Check if we're returning from the top-level function
-    if (oldFp == 0) {
-      _quit = true;
-      return;
     }
   }
 

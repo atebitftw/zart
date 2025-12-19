@@ -209,6 +209,20 @@ class GlulxStack {
     return stub;
   }
 
+  /// Leaves the current function by setting SP = FP.
+  /// Reference: C interpreter's leave_function() which sets stackptr = frameptr.
+  /// This is called before checking if we should pop a call stub.
+  void leaveFunction() {
+    _sp = _fp;
+  }
+
+  /// Restores the frame pointer and updates cached bases.
+  /// Called after popping a call stub during return.
+  void restoreFp(int oldFp) {
+    _fp = oldFp;
+    _updateCachedBases();
+  }
+
   /// Updates the cached _valstackbase and _localsbase from the current frame.
   void _updateCachedBases() {
     if (_fp >= 0 && _fp <= maxSize - 8) {

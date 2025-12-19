@@ -36,4 +36,15 @@ abstract class GlkIoProvider {
 
   /// Configure VM state callbacks.
   void setVMState({int Function()? getHeapStart}) {}
+
+  /// Push a 32-bit value onto the VM stack.
+  /// Used when Glk struct addresses are 0xFFFFFFFF (-1).
+  void pushToStack(int value) {}
+
+  /// Pop a 32-bit value from the VM stack.
+  /// Used when Glk struct addresses are 0xFFFFFFFF (-1).
+  int popFromStack() => 0;
+
+  /// Configure stack access callbacks.
+  void setStackAccess({required void Function(int value) push, required int Function() pop}) {}
 }
