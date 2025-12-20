@@ -464,6 +464,18 @@ class GlulxTerminalProvider implements GlkIoProvider {
   void _writeStringToStream(int streamId, int addr, bool unicode) {
     if (addr == 0) return;
     var p = addr;
+
+    // Glulx strings start with a type byte:
+    // E0 = C-string (Latin-1), E2 = Unicode string
+    // Skip the type byte and any padding
+    final typeByte = readMemory(p, size: 1);
+    if (typeByte == 0xE0) {
+      p += 1; // Skip type byte
+    } else if (typeByte == 0xE2) {
+      p += 4; // Skip type byte + 3 padding bytes
+    }
+    // else: assume raw data, no type byte
+
     while (true) {
       final ch = unicode ? readMemory(p, size: 4) : readMemory(p, size: 1);
       if (ch == 0) break;
