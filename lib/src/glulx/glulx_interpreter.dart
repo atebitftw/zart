@@ -2890,13 +2890,14 @@ class GlulxInterpreter {
         if (res == -1) break; // EOF
         builder.addByte(res);
 
-        // We can optimize here if we wanted to, but let's keep it simple.
-        // Once we have the magic and header, we know how much to read.
-        if (builder.length == 32) {
+        // Once we have the magic and full header (36 bytes), we know how much to read.
+        if (builder.length == 36) {
           final header = ByteData.sublistView(builder.toBytes());
+          // Magic: 0-3, Version: 4-7, MemSize: 8-11, RamLen: 12-15, StkPtr: 16-19, PC: 20-23, DestType: 24-27, DestAddr: 28-31, HeapLen: 32-35
           final ramLen = header.getUint32(12);
           final stackPtr = header.getUint32(16);
-          final totalToRead = 32 + ramLen + stackPtr;
+          final heapLen = header.getUint32(32);
+          final totalToRead = 36 + ramLen + stackPtr + (heapLen * 4);
 
           while (builder.length < totalToRead) {
             final next = glkDispatcher.glkDispatch(GlkIoSelectors.getCharStream, [streamId]);
