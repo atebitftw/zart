@@ -1920,65 +1920,241 @@ class GlulxInterpreter {
     }
   }
 
+  /// Streams a string to the current output.
+  ///
+  /// This is designed to match the C interpreter's stream_string() loop-based
+  /// architecture (string.c:203-671). Key aspects:
+  /// - `inmiddle` is 0 for new strings, or the string type (E0/E1/E2) for resumption
+  /// - `substring` (local var) tracks if we've pushed a 0x11 terminator stub
+  /// - When a function is called, we push stubs and return (letting main loop run it)
+  /// - On completion, if substring is true, we pop the 0x11 stub
+  ///
+  /// Reference: string.c lines 203-671
   void _streamString(int addr, {int? type, int? bitnum}) {
     if (addr == 0) return;
-    final stringType = type ?? memoryMap.readByte(addr);
-    switch (stringType) {
-      case 0xE0: // C-style
-        _streamStringE0(type == null ? addr + 1 : addr);
-        break;
-      case 0xE1: // Compressed
-        _streamStringE1(type == null ? addr + 1 : addr, bitnum: bitnum);
-        break;
-      case 0xE2: // Unicode
-        // Spec 1.4.1.2: "An unencoded Unicode string consists of an E2 byte,
-        // followed by three padding 0 bytes, followed by the Unicode character values."
-        // Reference: string.c line 218-219: if (type == 0xE2) addr+=4;
-        _streamStringE2(type == null ? addr + 4 : addr);
-        break;
-      default:
-        // Fatal error: Unknown string type
-        throw GlulxException('Unknown string type: 0x${stringType.toRadixString(16)}');
+
+    // inmiddle logic: if type is provided, we're resuming a string
+    final inmiddle = type ?? 0;
+    // substring is LOCAL to this function, just like in C interpreter
+    // Reference: string.c line 208: int substring = (inmiddle != 0);
+    var substring = inmiddle != 0;
+
+    var alldone = false;
+    var currentAddr = addr;
+    var currentType = inmiddle;
+    var currentBitnum = bitnum ?? 0;
+
+    while (!alldone) {
+      // Determine string type
+      if (currentType == 0) {
+        currentType = memoryMap.readByte(currentAddr);
+        if (currentType == 0xE2) {
+          currentAddr += 4; // Skip type + 3 padding bytes
+        } else {
+          currentAddr += 1; // Skip type byte
+        }
+        currentBitnum = 0;
+      }
+
+      switch (currentType) {
+        case 0xE0: // C-style string
+          final result = _streamStringE0Loop(currentAddr, substring);
+          if (result != null) {
+            // Function was called, exit and let main loop run it
+            return;
+          }
+          break;
+
+        case 0xE1: // Compressed string
+          final result = _streamStringE1Loop(currentAddr, currentBitnum, substring);
+          if (result != null) {
+            // Function was called, substring is now true
+            substring = true;
+            return;
+          }
+          break;
+
+        case 0xE2: // Unicode string
+          final result = _streamStringE2Loop(currentAddr, substring);
+          if (result != null) {
+            // Function was called, exit and let main loop run it
+            return;
+          }
+          break;
+
+        default:
+          throw GlulxException('Unknown string type: 0x${currentType.toRadixString(16)}');
+      }
+
+      // String processing completed for this segment
+      if (!substring) {
+        // No function calls happened, just exit
+        alldone = true;
+      } else {
+        // Pop the next stub to see what to do
+        final resumed = _popCallstubString();
+        if (resumed == null) {
+          // 0x11 stub was popped, we're done
+          alldone = true;
+        } else {
+          // 0x10 stub was popped, continue with E1 string at resumed address
+          currentAddr = resumed.$1;
+          currentBitnum = resumed.$2;
+          currentType = 0xE1;
+        }
+      }
     }
   }
 
-  void _streamStringE0(int addr) {
+  /// Streams a C-style (E0) string.
+  /// Returns non-null if a function was called (filter mode), null if completed.
+  /// Reference: string.c lines 593-619
+  Object? _streamStringE0Loop(int addr, bool substring) {
     var p = addr;
     while (true) {
-      final ch = memoryMap.readByte(p++);
+      final ch = memoryMap.readByte(p);
+      p++;
       if (ch == 0) break;
-      _streamChar(ch);
+
+      if (_iosysMode == 1) {
+        // Filter mode: need to call function for each character
+        if (!substring) {
+          stack.pushCallStub(0x11, 0, _pc, stack.fp);
+        }
+        _pc = p; // Resume address after this character
+        stack.pushCallStub(0x13, 0, p, stack.fp); // 0x13 = resume E0 string
+        _enterFunction(_iosysRock, [ch & 0xFF]);
+        return true; // Function called, exit
+      } else {
+        // Glk or null mode: output directly
+        _streamCharDirect(ch);
+      }
     }
+    return null; // Completed
   }
 
-  void _streamStringE2(int addr) {
+  /// Streams a Unicode (E2) string.
+  /// Returns non-null if a function was called (filter mode), null if completed.
+  /// Reference: string.c lines 622-648
+  Object? _streamStringE2Loop(int addr, bool substring) {
     var p = addr;
     while (true) {
       final ch = memoryMap.readWord(p);
       p += 4;
       if (ch == 0) break;
-      _streamUniChar(ch);
+
+      if (_iosysMode == 1) {
+        // Filter mode: need to call function for each character
+        if (!substring) {
+          stack.pushCallStub(0x11, 0, _pc, stack.fp);
+        }
+        _pc = p; // Resume address after this character
+        stack.pushCallStub(0x14, 0, p, stack.fp); // 0x14 = resume E2 string
+        _enterFunction(_iosysRock, [ch]);
+        return true; // Function called, exit
+      } else {
+        // Glk or null mode: output directly
+        _streamUniCharDirect(ch);
+      }
     }
+    return null; // Completed
   }
 
-  void _streamStringE1(int addr, {int? bitnum}) {
+  /// Streams a compressed (E1) string.
+  /// Returns non-null if a function was called, null if completed.
+  /// Reference: string.c lines 228-588
+  Object? _streamStringE1Loop(int addr, int bitnum, bool substring) {
     if (_stringTableAddress == 0) {
       throw GlulxException('Compressed string found but no string-decoding table set');
     }
-    _stringDecoder.decode(
-      addr - 1,
-      _stringTableAddress,
-      _streamChar,
-      _streamUniChar,
-      _streamString, // printString callback for indirect string references
-      (resumeAddr, resumeBit, funcAddr, args) {
-        // Push a resumption stub (DestType 0x10) before entering the function
-        stack.pushCallStub(0x10, resumeBit, resumeAddr, stack.fp);
-        _enterFunction(funcAddr, args);
-      },
-      startAddr: bitnum != null ? addr : null,
-      startBit: bitnum,
-    );
+
+    // Use the existing decoder with a signal exception for function calls
+    try {
+      _stringDecoder.decode(
+        addr - 1, // decode expects address of the E1 type byte
+        _stringTableAddress,
+        // Print char callback
+        (ch) {
+          if (_iosysMode == 1) {
+            // Filter mode not supported in compressed strings for now
+            // (would need to track position - complex)
+            throw GlulxException('Filter iosys in compressed strings not yet supported');
+          }
+          _streamCharDirect(ch);
+        },
+        // Print unicode callback
+        (ch) {
+          if (_iosysMode == 1) {
+            throw GlulxException('Filter iosys in compressed strings not yet supported');
+          }
+          _streamUniCharDirect(ch);
+        },
+        // Print nested string callback - recursive, synchronous
+        (nestedAddr) {
+          _streamString(nestedAddr);
+        },
+        // Call function callback - throw signal to escape decoder
+        (resumeAddr, resumeBit, funcAddr, args) {
+          throw _StringFunctionCall(funcAddr, args, resumeAddr, resumeBit);
+        },
+        startAddr: bitnum > 0 ? addr : null,
+        startBit: bitnum > 0 ? bitnum : null,
+      );
+    } on _StringFunctionCall catch (call) {
+      // Need to call a function - push stubs and enter
+      if (!substring) {
+        stack.pushCallStub(0x11, 0, _pc, stack.fp);
+      }
+      _pc = call.resumeAddr;
+      stack.pushCallStub(0x10, call.resumeBit, call.resumeAddr, stack.fp);
+      _enterFunction(call.funcAddr, call.args);
+      return true; // Function was called
+    }
+
+    return null; // Completed normally
+  }
+
+  /// Direct character output to Glk (no function call).
+  void _streamCharDirect(int ch) {
+    if (_iosysMode == 2) {
+      _callGlk(GlkIoSelectors.putChar, [ch & 0xFF]);
+    }
+    // Mode 0 = null, do nothing
+  }
+
+  /// Direct unicode character output to Glk (no function call).
+  void _streamUniCharDirect(int ch) {
+    if (_iosysMode == 2) {
+      _callGlk(GlkIoSelectors.putCharUni, [ch]);
+    }
+    // Mode 0 = null, do nothing
+  }
+
+  /// Pops a call stub during string processing to determine next action.
+  /// Returns (addr, bitnum) if 0x10 stub (continue E1 string), or null if 0x11 (done).
+  /// Reference: funcs.c pop_callstub_string() lines 287-311
+  (int, int)? _popCallstubString() {
+    if (stack.sp < 16) {
+      throw GlulxException('Stack underflow in callstub');
+    }
+
+    final stub = stack.popCallStub();
+    final destType = stub[0];
+    final destAddr = stub[1];
+    final newPc = stub[2];
+    // stub[3] is old FP, not needed here
+
+    _pc = newPc;
+
+    if (destType == 0x11) {
+      // String terminator - we're done
+      return null;
+    } else if (destType == 0x10) {
+      // Resume compressed string at newPc with bit number destAddr
+      return (newPc, destAddr);
+    } else {
+      throw GlulxException('Function-terminator call stub at end of string (type 0x${destType.toRadixString(16)})');
+    }
   }
 
   // ========== Floating Point Support ==========
@@ -2219,4 +2395,17 @@ class GlulxInterpreterTestingHarness {
 
   /// Exposes [_readAddressingModes] for testing.
   List<int> readAddressingModes(int count) => interpreter._readAddressingModes(count);
+}
+
+/// Signal class thrown when a compressed string decoder encounters an indirect
+/// function call. Used to escape from the decoder and let the main loop handle
+/// the function call.
+/// Reference: C interpreter uses return statements to exit stream_string for function calls.
+class _StringFunctionCall {
+  final int funcAddr;
+  final List<int> args;
+  final int resumeAddr;
+  final int resumeBit;
+
+  _StringFunctionCall(this.funcAddr, this.args, this.resumeAddr, this.resumeBit);
 }
