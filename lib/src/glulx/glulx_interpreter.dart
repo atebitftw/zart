@@ -15,6 +15,7 @@ import 'package:zart/src/glulx/xoshiro128.dart';
 import 'package:zart/src/glulx/glulx_undo_state.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
+import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 
 /// The Glulx interpreter.
 class GlulxInterpreter {
@@ -1546,10 +1547,24 @@ class GlulxInterpreter {
   /// Handles the gestalt opcode by returning capability information.
   int _doGestalt(int selector, int arg) {
     switch (selector) {
-      case 8: // Malloc
-      case 9: // MZero
-      case 10: // MCopy
+      case GlulxGestaltSelectors.resizeMem:
         return 1;
+      case GlulxGestaltSelectors.undo:
+        return 1;
+      case GlulxGestaltSelectors.memCopy:
+        return 1;
+      case GlulxGestaltSelectors.mAlloc:
+        return 1;
+      case GlulxGestaltSelectors.mAllocHeap:
+        return memoryMap.heapStart;
+      case GlulxGestaltSelectors.extUndo:
+        return 1;
+      case GlulxGestaltSelectors.acceleration:
+        return 1;
+      case GlulxGestaltSelectors.accelFunc:
+        // We support none yet, but the opcode exists.
+        // Return 1 if we support the index in 'arg', 0 otherwise.
+        return 0;
       default:
         return glkDispatcher.vmGestalt(selector, arg);
     }
