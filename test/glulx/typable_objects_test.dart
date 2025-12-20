@@ -206,8 +206,8 @@ void main() {
       decoder.decode(
         0x60,
         0x40,
-        (c) => result.add(c),
-        (u) => result.add(u),
+        (c, _, __) => result.add(c),
+        (u, _, __) => result.add(u),
         (resumeAddr, resumeBit, stringAddr) => {},
         (resumeAddr, resumeBit, funcAddr, args) => null,
       );
@@ -243,8 +243,8 @@ void main() {
       decoder.decode(
         0x50,
         0x30,
-        (c) => null,
-        (u) => null,
+        (c, _, __) => null,
+        (u, _, __) => null,
         (resumeAddr, resumeBit, stringAddr) => null,
         (resumeAddr, resumeBit, funcAddr, args) => null,
       );
@@ -287,8 +287,8 @@ void main() {
       decoder.decode(
         0x60,
         0x40,
-        (c) => result.add(c),
-        (u) => result.add(u),
+        (c, _, __) => result.add(c),
+        (u, _, __) => result.add(u),
         (resumeAddr, resumeBit, stringAddr) => {},
         (resumeAddr, resumeBit, funcAddr, args) => null,
       );
@@ -331,8 +331,8 @@ void main() {
       decoder.decode(
         0x60,
         0x40,
-        (c) => {},
-        (u) => result.add(u),
+        (c, _, __) => {},
+        (u, _, __) => result.add(u),
         (resumeAddr, resumeBit, stringAddr) => {},
         (resumeAddr, resumeBit, funcAddr, args) => {},
       );
@@ -380,8 +380,8 @@ void main() {
       decoder.decode(
         0x70,
         0x40,
-        (c) => {},
-        (u) => result.add(u),
+        (c, _, __) => {},
+        (u, _, __) => result.add(u),
         (resumeAddr, resumeBit, stringAddr) => {},
         (resumeAddr, resumeBit, funcAddr, args) => {},
       );
@@ -426,7 +426,7 @@ void main() {
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x60, 0x40, (c) => {}, (u) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
+      decoder.decode(0x60, 0x40, (c, _, __) => {}, (u, _, __) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
         resumeAddr2,
         resumeBit2,
         funcAddr,
@@ -474,8 +474,8 @@ void main() {
       decoder.decode(
         0x60,
         0x40,
-        (c) => {},
-        (u) => {},
+        (c, _, __) => {},
+        (u, _, __) => {},
         (resumeAddr, resumeBit, stringAddr) => {},
         (resumeAddr, resumeBit, funcAddr, args) => calledAddr = funcAddr,
       );
@@ -517,7 +517,7 @@ void main() {
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x70, 0x40, (c) => {}, (u) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
+      decoder.decode(0x70, 0x40, (c, _, __) => {}, (u, _, __) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
         resumeAddr2,
         resumeBit2,
         funcAddr,
@@ -567,7 +567,7 @@ void main() {
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x70, 0x40, (c) => {}, (u) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
+      decoder.decode(0x70, 0x40, (c, _, __) => {}, (u, _, __) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
         resumeAddr2,
         resumeBit2,
         funcAddr,

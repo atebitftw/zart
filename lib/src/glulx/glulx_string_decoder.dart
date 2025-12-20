@@ -171,14 +171,16 @@ class GlulxStringDecoder {
 
   /// Decodes and prints a compressed string.
   ///
+  /// [printChar] is called for each character, with (ch, resumeAddr, resumeBit)
+  /// [printUnicode] is called for each unicode char, with (ch, resumeAddr, resumeBit)
   /// [callString] is called for indirect string references (type 0xE0-E2).
   /// [callFunc] is called for indirect function references (type 0xC0-C1).
   /// Reference: Spec 1.4.1.4 - Indirect reference handling
   void decode(
     int stringAddress,
     int tableAddress,
-    void Function(int) printChar,
-    void Function(int) printUnicode,
+    void Function(int ch, int resumeAddr, int resumeBit) printChar,
+    void Function(int ch, int resumeAddr, int resumeBit) printUnicode,
     void Function(int resumeAddr, int resumeBit, int stringAddr) callString,
     void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args) callFunc, {
     int? startAddr,
@@ -207,18 +209,19 @@ class GlulxStringDecoder {
       }
 
       if (node is TerminatorNode) break;
-      if (node is SingleCharNode) printChar(node.char);
+      if (node is SingleCharNode) printChar(node.char, currentBitAddr, currentBit);
       if (node is StringNode) {
         for (final b in node.bytes) {
-          printChar(b);
+          printChar(b, currentBitAddr, currentBit);
         }
       }
-      if (node is UnicodeCharNode) printUnicode(node.char);
+      if (node is UnicodeCharNode) printUnicode(node.char, currentBitAddr, currentBit);
       if (node is UnicodeStringNode) {
         for (final c in node.characters) {
-          printUnicode(c);
+          printUnicode(c, currentBitAddr, currentBit);
         }
       }
+
       if (node is IndirectNode) {
         // Spec: "If it is a string, it is printed. If a function, it is called."
         if (_dispatchIndirect(node.address, [], callString, callFunc, currentBitAddr, currentBit)) return;

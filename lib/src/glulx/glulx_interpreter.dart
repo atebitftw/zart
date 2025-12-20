@@ -1988,6 +1988,16 @@ class GlulxInterpreter {
             currentType = 0; // Will determine type on next iteration
             currentBitnum = 0;
             done = 2; // Restart loop with nested string
+          } on _StringFilterCall catch (call) {
+            // Filter mode character - push stubs and call filter function
+            // Reference: string.c:292-301 - each char calls filter function
+            if (!substring) {
+              stack.pushCallStub(0x11, 0, _pc, stack.fp);
+            }
+            _pc = call.resumeAddr;
+            stack.pushCallStub(0x10, call.resumeBit, call.resumeAddr, stack.fp);
+            _enterFunction(_iosysRock, [call.ch]);
+            return; // Exit and let main loop run filter function
           } on _StringFunctionCall catch (call) {
             // Function encountered - push stubs and enter function
             // Reference: string.c:404-407
@@ -2103,21 +2113,23 @@ class GlulxInterpreter {
       throw GlulxException('Compressed string found but no string-decoding table set');
     }
 
-    // Use the existing decoder - it will throw if it encounters indirect refs
+    // Use the existing decoder - it will throw if it encounters indirect refs or Filter mode
     _stringDecoder.decode(
       addr - 1, // decode expects address of the E1 type byte
       _stringTableAddress,
-      // Print char callback
-      (ch) {
+      // Print char callback - for Filter mode, throw signal to call filter function
+      // Reference: C interpreter string.c:292-301 - push stubs and call filter
+      (ch, resumeAddr, resumeBit) {
         if (_iosysMode == 1) {
-          throw GlulxException('Filter iosys in compressed strings not yet supported');
+          throw _StringFilterCall(ch, resumeAddr, resumeBit);
         }
         _streamCharDirect(ch);
       },
-      // Print unicode callback
-      (ch) {
+      // Print unicode callback - for Filter mode, throw signal to call filter function
+      // Reference: C interpreter string.c:310-319 - push stubs and call filter
+      (ch, resumeAddr, resumeBit) {
         if (_iosysMode == 1) {
-          throw GlulxException('Filter iosys in compressed strings not yet supported');
+          throw _StringFilterCall(ch, resumeAddr, resumeBit);
         }
         _streamUniCharDirect(ch);
       },
@@ -2443,4 +2455,15 @@ class _StringNestedCall {
   final int resumeBit;
 
   _StringNestedCall(this.stringAddr, this.resumeAddr, this.resumeBit);
+}
+
+/// Signal class thrown when Filter iosys mode needs to output a character.
+/// Each character output requires calling the filter function.
+/// Reference: C interpreter string.c:292-301 - for each char, push stubs and call filter.
+class _StringFilterCall {
+  final int ch;
+  final int resumeAddr;
+  final int resumeBit;
+
+  _StringFilterCall(this.ch, this.resumeAddr, this.resumeBit);
 }
