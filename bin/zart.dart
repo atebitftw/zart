@@ -26,6 +26,11 @@ void main(List<String> args) async {
     ..addFlag('showpc', help: 'Show PC advancement (requires --debug)', defaultsTo: false)
     ..addFlag('flight-recorder', help: 'Enable flight recorder (last 100 instructions)', defaultsTo: false)
     ..addOption('flight-recorder-size', help: 'Flight recorder size (requires --flight-recorder)', defaultsTo: '100')
+    ..addFlag(
+      'show-screen',
+      help: 'Log screen output to flight recorder (requires --flight-recorder)',
+      defaultsTo: false,
+    )
     ..addOption('logfilter', help: 'Only log messages containing this string')
     ..addOption('maxstep', help: 'Maximum steps to run');
 
@@ -116,6 +121,7 @@ void main(List<String> args) async {
         showPCAdvancement: results['showpc'] as bool,
         enableFlightRecorder: results['flight-recorder'] as bool,
         flightRecorderSize: int.tryParse(results['flight-recorder-size']) ?? 100,
+        showScreen: results['show-screen'] as bool,
         showInstructions: results['showinstructions'] as bool,
         logFilter: results['logfilter'] as String?,
         maxStep: maxStepVal,
@@ -146,6 +152,7 @@ Future<void> _runGlulxGame(
   bool showPCAdvancement = false,
   bool enableFlightRecorder = false,
   int flightRecorderSize = 100,
+  bool showScreen = false,
   bool showInstructions = false,
   String? logFilter,
   int? maxStep,
@@ -181,6 +188,7 @@ Future<void> _runGlulxGame(
         ..showInstructions = showInstructions
         ..showFlightRecorder = enableFlightRecorder
         ..flightRecorderSize = flightRecorderSize
+        ..showScreen = showScreen
         ..logFilter = logFilter;
     }
 

@@ -444,8 +444,14 @@ class GlulxTerminalProvider implements GlkIoProvider {
       // Validate Unicode codepoint - max is 0x10FFFF
       // Invalid values get replaced with replacement character
       final codepoint = (value >= 0 && value <= 0x10FFFF) ? value : 0xFFFD;
-      terminal.appendToWindow0(String.fromCharCode(codepoint));
+      final char = String.fromCharCode(codepoint);
+      terminal.appendToWindow0(char);
       if (value == 10) terminal.render();
+
+      // Log screen output to flight recorder if enabled
+      if (debugger.enabled && debugger.showScreen) {
+        debugger.flightRecorderEvent('screen: $char');
+      }
     } else if (stream.type == 2) {
       if (stream.bufAddr == 0) return; // Should not happen for memory streams but safe check
 

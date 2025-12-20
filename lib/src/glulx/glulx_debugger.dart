@@ -48,6 +48,10 @@ class GlulxDebugger {
   /// Whether to show the flight recorder.
   bool showFlightRecorder = false;
 
+  /// Whether to log screen output to the flight recorder.
+  /// When enabled, text written to screen 0 is logged with 'screen:' prefix.
+  bool showScreen = false;
+
   /// Filter string - if set, only log messages containing this string.
   String? logFilter;
 
