@@ -441,7 +441,10 @@ class GlulxTerminalProvider implements GlkIoProvider {
     stream.writeCount++;
 
     if (stream.type == 1) {
-      terminal.appendToWindow0(String.fromCharCode(value));
+      // Validate Unicode codepoint - max is 0x10FFFF
+      // Invalid values get replaced with replacement character
+      final codepoint = (value >= 0 && value <= 0x10FFFF) ? value : 0xFFFD;
+      terminal.appendToWindow0(String.fromCharCode(codepoint));
       if (value == 10) terminal.render();
     } else if (stream.type == 2) {
       if (stream.bufAddr == 0) return; // Should not happen for memory streams but safe check
