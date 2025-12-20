@@ -1927,6 +1927,7 @@ class GlulxInterpreter {
   /// - `inmiddle` is 0 for new strings, or the string type (E0/E1/E2) for resumption
   /// - `substring` (local var) tracks if we've pushed a 0x11 terminator stub
   /// - When a function is called, we push stubs and return (letting main loop run it)
+  /// - When a nested string is encountered, we push 0x10 stub and restart loop
   /// - On completion, if substring is true, we pop the 0x11 stub
   ///
   /// Reference: string.c lines 203-671
@@ -1956,6 +1957,9 @@ class GlulxInterpreter {
         currentBitnum = 0;
       }
 
+      // done flag: 0 = continue inner loop, 1 = exit, 2 = restart with new string
+      var done = 0;
+
       switch (currentType) {
         case 0xE0: // C-style string
           final result = _streamStringE0Loop(currentAddr, substring);
@@ -1963,14 +1967,37 @@ class GlulxInterpreter {
             // Function was called, exit and let main loop run it
             return;
           }
+          done = 1;
           break;
 
         case 0xE1: // Compressed string
-          final result = _streamStringE1Loop(currentAddr, currentBitnum, substring);
-          if (result != null) {
-            // Function was called, substring is now true
-            substring = true;
-            return;
+          try {
+            _streamStringE1Loop(currentAddr, currentBitnum, substring);
+            done = 1; // Completed normally
+          } on _StringNestedCall catch (call) {
+            // Nested string encountered - C-style: push 0x10 stub and restart loop
+            // Reference: string.c:386-391
+            if (!substring) {
+              stack.pushCallStub(0x11, 0, _pc, stack.fp);
+              substring = true;
+            }
+            _pc = currentAddr;
+            stack.pushCallStub(0x10, call.resumeBit, call.resumeAddr, stack.fp);
+            // Update loop variables to process nested string
+            currentAddr = call.stringAddr;
+            currentType = 0; // Will determine type on next iteration
+            currentBitnum = 0;
+            done = 2; // Restart loop with nested string
+          } on _StringFunctionCall catch (call) {
+            // Function encountered - push stubs and enter function
+            // Reference: string.c:404-407
+            if (!substring) {
+              stack.pushCallStub(0x11, 0, _pc, stack.fp);
+            }
+            _pc = call.resumeAddr;
+            stack.pushCallStub(0x10, call.resumeBit, call.resumeAddr, stack.fp);
+            _enterFunction(call.funcAddr, call.args);
+            return; // Exit and let main loop run function
           }
           break;
 
@@ -1980,10 +2007,16 @@ class GlulxInterpreter {
             // Function was called, exit and let main loop run it
             return;
           }
+          done = 1;
           break;
 
         default:
           throw GlulxException('Unknown string type: 0x${currentType.toRadixString(16)}');
+      }
+
+      // done == 2 means restart loop with new string (nested string case)
+      if (done == 2) {
+        continue;
       }
 
       // String processing completed for this segment
@@ -2061,57 +2094,47 @@ class GlulxInterpreter {
   }
 
   /// Streams a compressed (E1) string.
-  /// Returns non-null if a function was called, null if completed.
+  /// Returns null if completed normally.
+  /// Throws _StringFunctionCall if a function was encountered.
+  /// Throws _StringNestedCall if a nested string was encountered.
   /// Reference: string.c lines 228-588
-  Object? _streamStringE1Loop(int addr, int bitnum, bool substring) {
+  void _streamStringE1Loop(int addr, int bitnum, bool substring) {
     if (_stringTableAddress == 0) {
       throw GlulxException('Compressed string found but no string-decoding table set');
     }
 
-    // Use the existing decoder with a signal exception for function calls
-    try {
-      _stringDecoder.decode(
-        addr - 1, // decode expects address of the E1 type byte
-        _stringTableAddress,
-        // Print char callback
-        (ch) {
-          if (_iosysMode == 1) {
-            // Filter mode not supported in compressed strings for now
-            // (would need to track position - complex)
-            throw GlulxException('Filter iosys in compressed strings not yet supported');
-          }
-          _streamCharDirect(ch);
-        },
-        // Print unicode callback
-        (ch) {
-          if (_iosysMode == 1) {
-            throw GlulxException('Filter iosys in compressed strings not yet supported');
-          }
-          _streamUniCharDirect(ch);
-        },
-        // Print nested string callback - recursive, synchronous
-        (nestedAddr) {
-          _streamString(nestedAddr);
-        },
-        // Call function callback - throw signal to escape decoder
-        (resumeAddr, resumeBit, funcAddr, args) {
-          throw _StringFunctionCall(funcAddr, args, resumeAddr, resumeBit);
-        },
-        startAddr: bitnum > 0 ? addr : null,
-        startBit: bitnum > 0 ? bitnum : null,
-      );
-    } on _StringFunctionCall catch (call) {
-      // Need to call a function - push stubs and enter
-      if (!substring) {
-        stack.pushCallStub(0x11, 0, _pc, stack.fp);
-      }
-      _pc = call.resumeAddr;
-      stack.pushCallStub(0x10, call.resumeBit, call.resumeAddr, stack.fp);
-      _enterFunction(call.funcAddr, call.args);
-      return true; // Function was called
-    }
-
-    return null; // Completed normally
+    // Use the existing decoder - it will throw if it encounters indirect refs
+    _stringDecoder.decode(
+      addr - 1, // decode expects address of the E1 type byte
+      _stringTableAddress,
+      // Print char callback
+      (ch) {
+        if (_iosysMode == 1) {
+          throw GlulxException('Filter iosys in compressed strings not yet supported');
+        }
+        _streamCharDirect(ch);
+      },
+      // Print unicode callback
+      (ch) {
+        if (_iosysMode == 1) {
+          throw GlulxException('Filter iosys in compressed strings not yet supported');
+        }
+        _streamUniCharDirect(ch);
+      },
+      // Indirect string callback - throw to exit decoder and let main loop handle
+      // Reference: C interpreter string.c:386-391 - pushes 0x10, restarts loop
+      (resumeAddr, resumeBit, stringAddr) {
+        throw _StringNestedCall(stringAddr, resumeAddr, resumeBit);
+      },
+      // Indirect function callback - throw to exit decoder and let main loop handle
+      // Reference: C interpreter string.c:404-407 - pushes 0x10, enters function
+      (resumeAddr, resumeBit, funcAddr, args) {
+        throw _StringFunctionCall(funcAddr, args, resumeAddr, resumeBit);
+      },
+      startAddr: bitnum > 0 ? addr : null,
+      startBit: bitnum > 0 ? bitnum : null,
+    );
+    // If we get here, string completed normally (no indirect refs)
   }
 
   /// Direct character output to Glk (no function call).
@@ -2408,4 +2431,16 @@ class _StringFunctionCall {
   final int resumeBit;
 
   _StringFunctionCall(this.funcAddr, this.args, this.resumeAddr, this.resumeBit);
+}
+
+/// Signal class thrown when a compressed string decoder encounters an indirect
+/// STRING reference. Used to exit decoder so main loop can push 0x10 stub for
+/// parent before processing nested string.
+/// Reference: C interpreter string.c:386-391 pushes 0x10 stub before nested string.
+class _StringNestedCall {
+  final int stringAddr;
+  final int resumeAddr;
+  final int resumeBit;
+
+  _StringNestedCall(this.stringAddr, this.resumeAddr, this.resumeBit);
 }
