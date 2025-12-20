@@ -2638,10 +2638,18 @@ class GlulxInterpreter {
       }
 
       // Restore RAM by XORing with original (reverses the save XOR)
+      // Skip protected bytes per spec: "protect L1 L2" prevents restore from changing them
+      // Reference: serial.c read_memstate - skip bytes in protected range
+      final (protectStart, protectEnd) = memoryMap.protectionRange;
       for (var i = 0; i < state.ramState.length; i++) {
-        final originalByte = memoryMap.readOriginalByte(ramStart + i);
+        final addr = ramStart + i;
+        // Skip bytes in the protected range
+        if (addr >= protectStart && addr < protectEnd) {
+          continue;
+        }
+        final originalByte = memoryMap.readOriginalByte(addr);
         final restoredByte = state.ramState[i] ^ originalByte;
-        memoryMap.writeByte(ramStart + i, restoredByte);
+        memoryMap.writeByte(addr, restoredByte);
       }
 
       // Restore stack state
