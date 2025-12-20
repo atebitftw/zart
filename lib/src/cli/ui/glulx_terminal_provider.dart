@@ -49,6 +49,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
   int _nextStreamId = 1002;
   int _currentStreamId = 1001;
 
+  // Buffer for screen output logging (accumulates until newline)
+  final StringBuffer _screenOutputBuffer = StringBuffer();
+
   // Window tracking
   final Map<int, _GlkWindow> _windows = {};
   int _nextWindowId = 1;
@@ -448,9 +451,15 @@ class GlulxTerminalProvider implements GlkIoProvider {
       terminal.appendToWindow0(char);
       if (value == 10) terminal.render();
 
-      // Log screen output to flight recorder if enabled
+      // Log screen output to flight recorder if enabled (buffer until newline)
       if (debugger.enabled && debugger.showScreen) {
-        debugger.flightRecorderEvent('screen: $char');
+        if (value == 10) {
+          // Newline - flush the buffer
+          debugger.flightRecorderEvent('screen: ${_screenOutputBuffer.toString()}');
+          _screenOutputBuffer.clear();
+        } else {
+          _screenOutputBuffer.write(char);
+        }
       }
     } else if (stream.type == 2) {
       if (stream.bufAddr == 0) return; // Should not happen for memory streams but safe check

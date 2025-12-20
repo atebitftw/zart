@@ -2326,7 +2326,8 @@ class GlulxInterpreter {
   /// Performs a linear search through an array of structures.
   ///
   /// Spec: "linearsearch L1 L2 L3 L4 L5 L6 L7 S1"
-  /// Search through structures in order, returning first match or failure.
+  /// Reference: search.c linear_search()
+  /// Note: Key-match takes precedence over zero-key-termination.
   int _doLinearSearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final zeroKeyTerminates = (options & 2) != 0;
@@ -2338,15 +2339,15 @@ class GlulxInterpreter {
     for (var i = 0; unlimited || i < numStructs; i++) {
       final structAddr = start + (i * structSize);
 
-      // Check for zero key terminator before comparing
-      if (zeroKeyTerminates && _isZeroKey(structAddr + keyOffset, keySize)) {
-        break;
-      }
-
-      // Compare keys
+      // Compare keys FIRST (key-match takes precedence over zero-match)
       final cmp = _compareKeys(key, structAddr + keyOffset, keySize, keyIndirect);
       if (cmp == 0) {
         return returnIndex ? i : structAddr;
+      }
+
+      // Check for zero key terminator AFTER match check
+      if (zeroKeyTerminates && _isZeroKey(structAddr + keyOffset, keySize)) {
+        break;
       }
     }
 
@@ -2389,21 +2390,23 @@ class GlulxInterpreter {
   /// Performs a linked list search through structures.
   ///
   /// Spec: "linkedsearch L1 L2 L3 L4 L5 L6 S1"
+  /// Reference: search.c linked_search()
+  /// Note: Key-match takes precedence over zero-key-termination.
   int _doLinkedSearch(int key, int keySize, int start, int keyOffset, int nextOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final zeroKeyTerminates = (options & 2) != 0;
 
     var currentAddr = start;
     while (currentAddr != 0) {
-      // Check for zero key terminator
-      if (zeroKeyTerminates && _isZeroKey(currentAddr + keyOffset, keySize)) {
-        break;
-      }
-
-      // Compare keys
+      // Compare keys FIRST (key-match takes precedence over zero-match)
       final cmp = _compareKeys(key, currentAddr + keyOffset, keySize, keyIndirect);
       if (cmp == 0) {
         return currentAddr;
+      }
+
+      // Check for zero key terminator AFTER match check
+      if (zeroKeyTerminates && _isZeroKey(currentAddr + keyOffset, keySize)) {
+        break;
       }
 
       currentAddr = memoryMap.readWord(currentAddr + nextOffset);
