@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
@@ -56,9 +57,12 @@ class GlulxTerminalProvider implements GlkIoProvider {
   final Map<int, _GlkWindow> _windows = {};
   int _nextWindowId = 1;
 
+  // File system simulation (for filerefs and streams)
+  final Map<int, _GlkFile> _files = {};
+  int _nextFileRefId = 2001;
+
   @override
   int vmGestalt(int selector, int arg) {
-    // Gestalt handling... same as before
     switch (selector) {
       case GlulxGestaltSelectors.glulxVersion:
         return 0x00030103;
@@ -187,7 +191,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return _handleGlkGestalt(args[0], args.length > 1 ? args.sublist(1) : <int>[]);
 
       case GlkIoSelectors.putChar:
-        // Glk put_char takes Latin-1 (0-255), mask to byte
         _writeToStream(_currentStreamId, args[0] & 0xFF);
         return 0;
       case GlkIoSelectors.putCharStream:
@@ -202,7 +205,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
       case GlkIoSelectors.getCharStream:
       case GlkIoSelectors.getCharStreamUni:
-        return -1; // EOF
+        return _readFromStream(args[0], selector == GlkIoSelectors.getCharStreamUni);
 
       case GlkIoSelectors.charToLower:
         final ch = args[0];
@@ -241,7 +244,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       case GlkIoSelectors.windowOpen:
-        // args: [split, method, size, wintype, rock]
         final rock = args.length > 4 ? args[4] : 0;
         final winId = _nextWindowId++;
         _windows[winId] = _GlkWindow(id: winId, rock: rock);
@@ -261,9 +263,32 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
       case GlkIoSelectors.streamOpenFile:
       case GlkIoSelectors.streamOpenFileUni:
+        final frefId = args[0];
+        final mode = args[1];
+        final id = _nextStreamId++;
+        final stream = _GlkStream(
+          id: id,
+          type: 3, // File-backed
+          mode: mode,
+          frefId: frefId,
+          isUnicode: selector == GlkIoSelectors.streamOpenFileUni,
+        );
+        _streams[id] = stream;
+
+        if (!_files.containsKey(frefId)) {
+          _files[frefId] = _GlkFile();
+        }
+
+        if (mode == 0x01) {
+          // Write
+          _files[frefId]!.data = Uint8List(0);
+          _files[frefId]!.length = 0;
+        }
+
+        return id;
       case GlkIoSelectors.streamOpenResource:
       case GlkIoSelectors.streamOpenResourceUni:
-        return 1001; // Fake other streams for now
+        return 0;
 
       case GlkIoSelectors.streamOpenMemory:
       case GlkIoSelectors.streamOpenMemoryUni:
@@ -283,11 +308,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
         final streamId = args[0];
         final resultAddr = args.length > 1 ? args[1] : 0;
         final stream = _streams.remove(streamId);
-
-        // Even if stream is null (wasn't found), we should probably write 0s if it's strictly required,
-        // but removing a non-existent stream usually returns 0 in Glk.
-        // However, if we removed it, we must report counts.
-
         final rCount = stream?.readCount ?? 0;
         final wCount = stream?.writeCount ?? 0;
 
@@ -295,8 +315,8 @@ class GlulxTerminalProvider implements GlkIoProvider {
           pushToStack(rCount);
           pushToStack(wCount);
         } else if (resultAddr != 0) {
-          writeMemory(resultAddr, rCount, size: 4); // read count
-          writeMemory(resultAddr + 4, wCount, size: 4); // write count
+          writeMemory(resultAddr, rCount, size: 4);
+          writeMemory(resultAddr + 4, wCount, size: 4);
         }
         return 0;
 
@@ -317,8 +337,10 @@ class GlulxTerminalProvider implements GlkIoProvider {
             str.pos = pos;
           else if (seekMode == 1)
             str.pos += pos;
-          else if (seekMode == 2)
-            str.pos = str.bufLen + pos;
+          else if (seekMode == 2) {
+            final len = str.type == 2 ? str.bufLen : (_files[str.frefId]?.length ?? 0);
+            str.pos = len + pos;
+          }
         }
         return 0;
 
@@ -328,7 +350,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
       case GlkIoSelectors.filerefCreateByFileUni:
       case GlkIoSelectors.filerefCreateByNameUni:
       case GlkIoSelectors.filerefCreateByPromptUni:
-        return 2001;
+        final id = _nextFileRefId++;
+        _files[id] = _GlkFile();
+        return id;
 
       case GlkIoSelectors.filerefDestroy:
       case GlkIoSelectors.filerefDeleteFile:
@@ -340,48 +364,29 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       case GlkIoSelectors.windowIterate:
-        // args[0] = previous window (0 = start iteration), args[1] = rock address
         final prevWin = args[0];
         final rockAddr = args.length > 1 ? args[1] : 0;
-
-        // Find next window after prevWin
         final windowIds = _windows.keys.toList()..sort();
         int? nextWin;
         if (prevWin == 0) {
-          // Start iteration - return first window
           nextWin = windowIds.isNotEmpty ? windowIds.first : null;
         } else {
-          // Find next after prevWin
           final idx = windowIds.indexOf(prevWin);
-          if (idx >= 0 && idx + 1 < windowIds.length) {
-            nextWin = windowIds[idx + 1];
-          }
+          if (idx >= 0 && idx + 1 < windowIds.length) nextWin = windowIds[idx + 1];
         }
 
         if (nextWin != null) {
           final win = _windows[nextWin]!;
-          if (rockAddr != 0 && rockAddr != 0xFFFFFFFF) {
+          if (rockAddr != 0 && rockAddr != 0xFFFFFFFF)
             writeMemory(rockAddr, win.rock, size: 4);
-          } else if (rockAddr == 0xFFFFFFFF) {
+          else if (rockAddr == 0xFFFFFFFF)
             pushToStack(win.rock);
-          }
           return nextWin;
         }
-        return 0; // No more windows
+        return 0;
 
       case GlkIoSelectors.windowGetRock:
-        final win = _windows[args[0]];
-        return win?.rock ?? 0;
-
-      case GlkIoSelectors.streamIterate:
-      case GlkIoSelectors.filerefIterate:
-        return 0;
-
-      case GlkIoSelectors.stylehintSet:
-      case GlkIoSelectors.stylehintClear:
-      case GlkIoSelectors.styleDistinguish:
-      case GlkIoSelectors.styleMeasure:
-        return 0;
+        return _windows[args[0]]?.rock ?? 0;
 
       case GlkIoSelectors.requestLineEvent:
       case GlkIoSelectors.requestLineEventUni:
@@ -409,17 +414,13 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
       case GlkIoSelectors.bufferToLowerCaseUni:
       case GlkIoSelectors.bufferToUpperCaseUni:
-        // args: [buf, len, numchars]
         final bufAddr = args[0];
         final bufLen = args[1];
         final numChars = args[2];
         final toUpper = selector == GlkIoSelectors.bufferToUpperCaseUni;
-
-        // Read chars from buffer, convert using Dart's Unicode-aware functions, write back
         var resultLen = 0;
         for (var i = 0; i < numChars && i < bufLen; i++) {
           var ch = readMemory(bufAddr + i * 4, size: 4);
-          // Use Dart's built-in Unicode case conversion
           final s = String.fromCharCode(ch);
           final converted = toUpper ? s.toUpperCase() : s.toLowerCase();
           ch = converted.codeUnitAt(0);
@@ -429,9 +430,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return resultLen;
 
       default:
-        if (debugger.enabled && debugger.showInstructions) {
-          debugger.bufferedLog('[${debugger.step}] Unimplemented Glk selector: $selector');
-        }
         return 0;
     }
   }
@@ -444,17 +442,12 @@ class GlulxTerminalProvider implements GlkIoProvider {
     stream.writeCount++;
 
     if (stream.type == 1) {
-      // Validate Unicode codepoint - max is 0x10FFFF
-      // Invalid values get replaced with replacement character
       final codepoint = (value >= 0 && value <= 0x10FFFF) ? value : 0xFFFD;
       final char = String.fromCharCode(codepoint);
       terminal.appendToWindow0(char);
       if (value == 10) terminal.render();
-
-      // Log screen output to dedicated screen buffer if enabled (buffer until newline)
       if (debugger.enabled && debugger.showScreen) {
         if (value == 10) {
-          // Newline - flush the buffer to debugger
           debugger.logScreenOutput(_screenOutputBuffer.toString());
           _screenOutputBuffer.clear();
         } else {
@@ -462,34 +455,77 @@ class GlulxTerminalProvider implements GlkIoProvider {
         }
       }
     } else if (stream.type == 2) {
-      if (stream.bufAddr == 0) return; // Should not happen for memory streams but safe check
-
-      // Bounds check could be good here but raw speed is often preferred in interpreters
+      if (stream.bufAddr == 0) return;
       if (stream.pos < stream.bufLen) {
-        if (stream.isUnicode) {
+        if (stream.isUnicode)
           writeMemory(stream.bufAddr + (stream.pos * 4), value, size: 4);
-        } else {
+        else
           writeMemory(stream.bufAddr + stream.pos, value & 0xFF, size: 1);
-        }
         stream.pos++;
       }
+    } else if (stream.type == 3) {
+      final file = _files[stream.frefId];
+      if (file == null) return;
+
+      final bytesNeeded = stream.isUnicode ? 4 : 1;
+      if (stream.pos + bytesNeeded > file.data.length) {
+        final newSize = (stream.pos + bytesNeeded + 1024) & ~1023;
+        final newData = Uint8List(newSize);
+        newData.setAll(0, file.data);
+        file.data = newData;
+      }
+
+      if (stream.isUnicode) {
+        final bd = ByteData(4)..setUint32(0, value);
+        for (var i = 0; i < 4; i++) {
+          file.data[stream.pos++] = bd.getUint8(i);
+        }
+      } else {
+        file.data[stream.pos++] = value & 0xFF;
+      }
+      if (stream.pos > file.length) file.length = stream.pos;
     }
+  }
+
+  int _readFromStream(int streamId, bool unicode) {
+    if (streamId == 0) return -1;
+    final stream = _streams[streamId];
+    if (stream == null) return -1;
+    stream.readCount++;
+
+    if (stream.type == 2) {
+      if (stream.pos < stream.bufLen) {
+        final val = unicode
+            ? readMemory(stream.bufAddr + (stream.pos * 4), size: 4)
+            : readMemory(stream.bufAddr + stream.pos, size: 1);
+        stream.pos++;
+        return val;
+      }
+    } else if (stream.type == 3) {
+      final file = _files[stream.frefId];
+      if (file != null && stream.pos < file.length) {
+        if (unicode) {
+          if (stream.pos + 4 <= file.length) {
+            final val = ByteData.sublistView(file.data, stream.pos, stream.pos + 4).getUint32(0);
+            stream.pos += 4;
+            return val;
+          }
+        } else {
+          return file.data[stream.pos++];
+        }
+      }
+    }
+    return -1;
   }
 
   void _writeStringToStream(int streamId, int addr, bool unicode) {
     if (addr == 0) return;
     var p = addr;
-
-    // Glulx strings start with a type byte:
-    // E0 = C-string (Latin-1), E2 = Unicode string
-    // Skip the type byte and any padding
     final typeByte = readMemory(p, size: 1);
-    if (typeByte == 0xE0) {
-      p += 1; // Skip type byte
-    } else if (typeByte == 0xE2) {
-      p += 4; // Skip type byte + 3 padding bytes
-    }
-    // else: assume raw data, no type byte
+    if (typeByte == 0xE0)
+      p += 1;
+    else if (typeByte == 0xE2)
+      p += 4;
 
     while (true) {
       final ch = unicode ? readMemory(p, size: 4) : readMemory(p, size: 1);
@@ -520,7 +556,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
       _pendingLineEventAddr = null;
       return 0;
     }
-
     if (_pendingCharEventWin != null) {
       terminal.render();
       final char = await terminal.readChar();
@@ -529,7 +564,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
       _pendingCharEventWin = null;
       return 0;
     }
-
     if (_timerInterval > 0) {
       final elapsed = _lastTimerEvent != null ? DateTime.now().difference(_lastTimerEvent!).inMilliseconds : 0;
       final remaining = _timerInterval - elapsed;
@@ -538,7 +572,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
       _writeEventStruct(eventAddr, GlkEventTypes.timer, 0, 0, 0);
       return 0;
     }
-
     terminal.render();
     final line = await terminal.readLine();
     _writeEventStruct(eventAddr, GlkEventTypes.lineInput, 1, line.length, 0);
@@ -546,9 +579,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
   }
 
   void _writeEventStruct(int addr, int type, int win, int val1, int val2) {
-    // Glk spec: address -1 (0xFFFFFFFF) means push to stack
     if (addr == -1 || addr == 0xFFFFFFFF) {
-      // Push in reverse order so they can be popped in correct order
       pushToStack(val2);
       pushToStack(val1);
       pushToStack(win);
@@ -584,11 +615,10 @@ class _GlkStream {
   final int bufAddr;
   final int bufLen;
   final bool isUnicode;
-
+  final int frefId;
   int writeCount = 0;
   int readCount = 0;
   int pos = 0;
-
   _GlkStream({
     required this.id,
     required this.type,
@@ -596,12 +626,17 @@ class _GlkStream {
     this.bufAddr = 0,
     this.bufLen = 0,
     this.isUnicode = false,
+    this.frefId = 0,
   });
+}
+
+class _GlkFile {
+  Uint8List data = Uint8List(0);
+  int length = 0;
 }
 
 class _GlkWindow {
   final int id;
   final int rock;
-
   _GlkWindow({required this.id, this.rock = 0});
 }
