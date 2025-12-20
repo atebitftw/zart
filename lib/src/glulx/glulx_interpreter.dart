@@ -1545,7 +1545,14 @@ class GlulxInterpreter {
 
   /// Handles the gestalt opcode by returning capability information.
   int _doGestalt(int selector, int arg) {
-    return glkDispatcher.vmGestalt(selector, arg);
+    switch (selector) {
+      case 8: // Malloc
+      case 9: // MZero
+      case 10: // MCopy
+        return 1;
+      default:
+        return glkDispatcher.vmGestalt(selector, arg);
+    }
   }
 
   /// Reads an opcode from the current PC.

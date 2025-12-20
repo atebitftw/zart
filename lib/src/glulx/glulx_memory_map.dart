@@ -334,10 +334,13 @@ class GlulxMemoryMap {
       setMemorySize(savedEndMem, internal: true);
     }
 
-    // Copy memory, skipping protected range
-    for (int i = 0; i < savedMemory.length && i < _endMem; i++) {
-      if (!isProtected(i)) {
-        _memory[i] = savedMemory[i];
+    // savedMemory corresponds to addresses [ramStart, ramStart + savedMemory.length)
+    for (int i = 0; i < savedMemory.length; i++) {
+      final addr = ramStart + i;
+      if (addr >= _endMem) break;
+      if (!isProtected(addr)) {
+        final originalByte = readOriginalByte(addr);
+        _memory[addr] = savedMemory[i] ^ originalByte;
       }
     }
 

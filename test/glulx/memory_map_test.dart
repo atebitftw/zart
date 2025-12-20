@@ -609,19 +609,23 @@ void main() {
       // Protect the middle byte
       mem.setProtection(mem.ramStart + 1, 1);
 
-      // Create "saved" state with different values
-      final savedMem = Uint8List.fromList(mem.rawMemory);
-      savedMem[mem.ramStart] = 0x11;
-      savedMem[mem.ramStart + 1] = 0x22; // This should NOT be restored
-      savedMem[mem.ramStart + 2] = 0x33;
+      // Create "saved" state with RAM data XOR'd against original
+      final ramStart = mem.ramStart;
+      final ramLength = mem.size - ramStart;
+      final savedRam = Uint8List(ramLength);
+
+      // XOR the target values with original bytes
+      savedRam[0] = 0x11 ^ mem.readOriginalByte(ramStart);
+      savedRam[1] = 0x22 ^ mem.readOriginalByte(ramStart + 1); // Protected
+      savedRam[2] = 0x33 ^ mem.readOriginalByte(ramStart + 2);
 
       // Restore
-      mem.restoreMemory(savedMem, mem.endMem, []);
+      mem.restoreMemory(savedRam, mem.endMem, []);
 
       // Check results
-      expect(mem.readByte(mem.ramStart), 0x11); // Restored
-      expect(mem.readByte(mem.ramStart + 1), 0xBB); // Protected, NOT restored
-      expect(mem.readByte(mem.ramStart + 2), 0x33); // Restored
+      expect(mem.readByte(ramStart), 0x11); // Restored
+      expect(mem.readByte(ramStart + 1), 0xBB); // Protected, NOT restored
+      expect(mem.readByte(ramStart + 2), 0x33); // Restored
     });
   });
 
