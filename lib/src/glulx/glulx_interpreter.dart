@@ -2649,16 +2649,12 @@ class GlulxInterpreter {
       // Reference: serial.c read_memstate
       final ramStart = memoryMap.ramStart;
 
-      // First, resize memory if needed
+      // First, deactivate heap and resize memory if needed
+      // Reference: serial.c read_memstate
+      memoryMap.deactivateHeap();
       if (state.memorySize != memoryMap.size) {
-        // For now, we don't support memory resizing in undo
-        // Most games don't change memory size between saveundo/restoreundo
-        if (state.memorySize > memoryMap.size) {
-          debugger.flightRecorderEvent('restoreundo: memory resize not supported');
-          return false;
-        }
+        memoryMap.setMemorySize(state.memorySize, internal: true);
       }
-
       // Restore RAM by XORing with original (reverses the save XOR)
       // Skip protected bytes per spec: "protect L1 L2" prevents restore from changing them
       // Reference: serial.c read_memstate - skip bytes in protected range
