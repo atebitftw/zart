@@ -184,11 +184,11 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return _handleGlkGestalt(args[0], args.length > 1 ? args.sublist(1) : <int>[]);
 
       case GlkIoSelectors.putChar:
-        // print('DEBUG: putChar(${args[0]}) to stream $_currentStreamId');
-        _writeToStream(_currentStreamId, args[0]);
+        // Glk put_char takes Latin-1 (0-255), mask to byte
+        _writeToStream(_currentStreamId, args[0] & 0xFF);
         return 0;
       case GlkIoSelectors.putCharStream:
-        _writeToStream(args[0], args[1]);
+        _writeToStream(args[0], args[1] & 0xFF);
         return 0;
       case GlkIoSelectors.putCharUni:
         _writeToStream(_currentStreamId, args[0]);
