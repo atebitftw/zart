@@ -137,6 +137,9 @@ class GlulxInterpreter {
         } catch (e, stackTrace) {
           debugger.bufferedLog('Error at PC=0x${instructionPc.toRadixString(16)}, step=$steps: $e');
           debugger.bufferedLog('Stack trace: $stackTrace');
+          if (debugger.showScreen) {
+            debugger.dumpScreenOutput();
+          }
           print('Saving debug data to log...');
           debugger.flushLogs();
           print('Finished saving debug data.');
@@ -158,6 +161,10 @@ class GlulxInterpreter {
         // in the inner loop, log it here.
         debugger.bufferedLog('Fatal error in runner: $e');
         debugger.bufferedLog('Stack trace: $stackTrace');
+      }
+
+      if (debugger.showScreen) {
+        debugger.dumpScreenOutput();
       }
 
       if (debugger.enabled && debugger.showFlightRecorder) {
@@ -2334,9 +2341,11 @@ class GlulxInterpreter {
     final returnIndex = (options & 4) != 0;
 
     // Spec: NumStructs may be -1 (0xFFFFFFFF) to indicate no upper limit
-    final unlimited = numStructs == 0xFFFFFFFF;
+    // In Dart, -1 as a signed int needs to be treated as 0xFFFFFFFF unsigned
+    final numStructsUnsigned = numStructs & 0xFFFFFFFF;
+    final unlimited = numStructsUnsigned == 0xFFFFFFFF;
 
-    for (var i = 0; unlimited || i < numStructs; i++) {
+    for (var i = 0; unlimited || i < numStructsUnsigned; i++) {
       final structAddr = start + (i * structSize);
 
       // Compare keys FIRST (key-match takes precedence over zero-match)

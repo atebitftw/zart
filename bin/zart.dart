@@ -205,6 +205,10 @@ Future<void> _runGlulxGame(
     // Render what we have so far
     terminal.render();
 
+    if (glulx.debugger.showScreen) {
+      glulx.debugger.dumpScreenOutput();
+    }
+
     if (glulx.debugger.showFlightRecorder) {
       glulx.debugger.dumpFlightRecorder();
     }

@@ -297,6 +297,9 @@ class GlulxDebugger {
 
   final List<String> _flightRecorder = [];
 
+  /// Separate buffer for screen output (not size-limited like flight recorder)
+  final List<String> _screenBuffer = [];
+
   /// Records an event or message to the flight recorder.
   void flightRecorderEvent(String message) {
     if (!enabled || !showFlightRecorder) {
@@ -306,6 +309,27 @@ class GlulxDebugger {
     if (_flightRecorder.length > flightRecorderSize) {
       _flightRecorder.removeAt(0);
     }
+  }
+
+  /// Records screen output to the dedicated screen buffer.
+  /// This buffer is NOT size-limited to ensure we capture all screen output.
+  void logScreenOutput(String line) {
+    if (!enabled || !showScreen) {
+      return;
+    }
+    _screenBuffer.add('[$step] $line');
+  }
+
+  /// Dumps the screen output buffer contents.
+  void dumpScreenOutput() {
+    if (!enabled || !showScreen || _screenBuffer.isEmpty) {
+      return;
+    }
+    bufferedLog('--- Screen Output (All Lines) ---');
+    for (final line in _screenBuffer) {
+      bufferedLog(line);
+    }
+    bufferedLog('----------------------------------');
   }
 
   /// Dumps the flight recorder contents.

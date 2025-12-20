@@ -451,11 +451,11 @@ class GlulxTerminalProvider implements GlkIoProvider {
       terminal.appendToWindow0(char);
       if (value == 10) terminal.render();
 
-      // Log screen output to flight recorder if enabled (buffer until newline)
+      // Log screen output to dedicated screen buffer if enabled (buffer until newline)
       if (debugger.enabled && debugger.showScreen) {
         if (value == 10) {
-          // Newline - flush the buffer
-          debugger.flightRecorderEvent('screen: ${_screenOutputBuffer.toString()}');
+          // Newline - flush the buffer to debugger
+          debugger.logScreenOutput(_screenOutputBuffer.toString());
           _screenOutputBuffer.clear();
         } else {
           _screenOutputBuffer.write(char);
