@@ -11,6 +11,7 @@ import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_stack.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
 import 'package:zart/src/glulx/glulx_string_decoder.dart';
+import 'package:zart/src/glulx/xoshiro128.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
@@ -38,7 +39,9 @@ class GlulxInterpreter {
   /// The step counter.
   int get step => _step;
 
-  final math.Random _random = math.Random();
+  /// xoshiro128** random number generator.
+  /// Spec Section 2.4.9 / Reference: osdepend.c
+  final Xoshiro128 _random = Xoshiro128();
   late GlulxStringDecoder _stringDecoder;
 
   final Float32List _f32 = Float32List(1);
@@ -862,27 +865,30 @@ class GlulxInterpreter {
       // ========== Random Number Opcodes (Spec Section 2.4.9) ==========
 
       /// Spec Section 2.4.9: "random L1 S1: Return a random number."
+      /// Reference: osdepend.c glulx_random()
       case GlulxOp.random:
         final range = (operands[0] as int).toSigned(32);
         final dest = operands[1] as StoreOperand;
+        final rawRandom = _random.nextInt();
+
         int result;
         if (range == 0) {
           // Full 32-bit range
-          result = _random.nextInt(0x80000000); // 31 bits
-          if (_random.nextBool()) result |= 0x80000000;
+          result = rawRandom;
         } else if (range > 0) {
-          result = _random.nextInt(range);
+          result = rawRandom % range;
         } else {
           // Negative range: (L1+1) to 0
-          result = -_random.nextInt(-range);
+          result = -(rawRandom % (-range));
         }
         _performStore(dest, result & 0xFFFFFFFF);
         break;
 
       /// Spec Section 2.4.9: "setrandom L1: Seed the random-number generator."
+      /// Reference: osdepend.c glulx_setrandom()
       case GlulxOp.setrandom:
-        // final seed = operands[0] as int;
-        // Stub: Not fully implementing deterministic seeding yet.
+        final seed = operands[0] as int;
+        _random.seed(seed);
         break;
 
       // ========== Stream Opcodes (Spec Section 2.4.8) ==========
