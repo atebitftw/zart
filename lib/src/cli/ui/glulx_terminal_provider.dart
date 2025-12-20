@@ -404,6 +404,27 @@ class GlulxTerminalProvider implements GlkIoProvider {
         _lastTimerEvent = _timerInterval > 0 ? DateTime.now() : null;
         return 0;
 
+      case GlkIoSelectors.bufferToLowerCaseUni:
+      case GlkIoSelectors.bufferToUpperCaseUni:
+        // args: [buf, len, numchars]
+        final bufAddr = args[0];
+        final bufLen = args[1];
+        final numChars = args[2];
+        final toUpper = selector == GlkIoSelectors.bufferToUpperCaseUni;
+
+        // Read chars from buffer, convert using Dart's Unicode-aware functions, write back
+        var resultLen = 0;
+        for (var i = 0; i < numChars && i < bufLen; i++) {
+          var ch = readMemory(bufAddr + i * 4, size: 4);
+          // Use Dart's built-in Unicode case conversion
+          final s = String.fromCharCode(ch);
+          final converted = toUpper ? s.toUpperCase() : s.toLowerCase();
+          ch = converted.codeUnitAt(0);
+          writeMemory(bufAddr + i * 4, ch, size: 4);
+          resultLen++;
+        }
+        return resultLen;
+
       default:
         if (debugger.enabled && debugger.showInstructions) {
           debugger.bufferedLog('[${debugger.step}] Unimplemented Glk selector: $selector');
