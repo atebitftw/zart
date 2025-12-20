@@ -116,6 +116,45 @@ void main() {
       await interpreter.executeInstruction();
       expect(String.fromCharCodes(mockIo.output), equals('Hello'));
     });
+
+    test('streamstr outputs an E2 unicode string', () async {
+      // Spec 1.4.1.2: "An unencoded Unicode string consists of an E2 byte,
+      // followed by three padding 0 bytes, followed by the Unicode character values
+      // (each being a four-byte integer). Finally, there is a terminating value (four 0 bytes)."
+      // streamstr addr
+      // Opcode: 0x72. Modes: L1=2 -> 0x02. Operand: 0x200
+      gameData = createGameData([0x72, 0x02, 0x02, 0x00]);
+      // E2 string at 0x200: [0xE2, 0x00, 0x00, 0x00, 'H'(4bytes), 'i'(4bytes), 0x00000000]
+      gameData[0x200] = 0xE2; // type byte
+      gameData[0x201] = 0x00; // padding
+      gameData[0x202] = 0x00; // padding
+      gameData[0x203] = 0x00; // padding
+      // 'H' = 0x00000048 (big endian)
+      gameData[0x204] = 0x00;
+      gameData[0x205] = 0x00;
+      gameData[0x206] = 0x00;
+      gameData[0x207] = 0x48;
+      // 'i' = 0x00000069 (big endian)
+      gameData[0x208] = 0x00;
+      gameData[0x209] = 0x00;
+      gameData[0x20A] = 0x00;
+      gameData[0x20B] = 0x69;
+      // null terminator (4 bytes)
+      gameData[0x20C] = 0x00;
+      gameData[0x20D] = 0x00;
+      gameData[0x20E] = 0x00;
+      gameData[0x20F] = 0x00;
+
+      await interpreter.load(gameData);
+      harness = GlulxInterpreterTestingHarness(interpreter);
+      harness.setProgramCounter(0x100);
+      interpreter.stack.pushFrame(Uint8List.fromList([0, 0, 0, 0]));
+
+      await setupIosysGlk(interpreter, harness);
+
+      await interpreter.executeInstruction();
+      expect(mockIo.output, equals([0x48, 0x69])); // 'H', 'i' as unicode codepoints
+    });
   });
 }
 

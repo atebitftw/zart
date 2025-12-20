@@ -1931,7 +1931,10 @@ class GlulxInterpreter {
         _streamStringE1(type == null ? addr + 1 : addr, bitnum: bitnum);
         break;
       case 0xE2: // Unicode
-        _streamStringE2(type == null ? addr + 1 : addr);
+        // Spec 1.4.1.2: "An unencoded Unicode string consists of an E2 byte,
+        // followed by three padding 0 bytes, followed by the Unicode character values."
+        // Reference: string.c line 218-219: if (type == 0xE2) addr+=4;
+        _streamStringE2(type == null ? addr + 4 : addr);
         break;
       default:
         // Fatal error: Unknown string type
