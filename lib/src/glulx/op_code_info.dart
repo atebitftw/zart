@@ -111,6 +111,8 @@ class OpcodeInfo {
     GlulxOp.setmemsize: OpcodeInfo(2, [false, true]),
     GlulxOp.mzero: OpcodeInfo(2, [false, false]),
     GlulxOp.mcopy: OpcodeInfo(3, [false, false, false]),
+    GlulxOp.malloc: OpcodeInfo(2, [false, true]),
+    GlulxOp.mfree: OpcodeInfo(1, [false]),
 
     // System / Random
     GlulxOp.random: OpcodeInfo(2, [false, true]),

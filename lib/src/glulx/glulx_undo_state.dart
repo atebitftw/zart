@@ -31,6 +31,10 @@ class GlulxUndoState {
   final int destType;
   final int destAddr;
 
+  /// The heap state at time of save.
+  /// Format: [heapStart, allocCount, addr1, len1, ...]
+  final List<int> heapState;
+
   GlulxUndoState({
     required this.ramState,
     required this.memorySize,
@@ -39,5 +43,6 @@ class GlulxUndoState {
     required this.pc,
     required this.destType,
     required this.destAddr,
+    required this.heapState,
   });
 }

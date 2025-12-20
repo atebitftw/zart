@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'glulx_exception.dart';
+import 'glulx_heap.dart';
 
 /// The Glulx memory map, divided into ROM and RAM segments.
 ///
@@ -52,13 +53,13 @@ class GlulxMemoryMap {
   /// Spec: "When you first allocate a block of memory, the heap becomes active.
   /// The current end of memory – that is, the current getmemsize value – becomes
   /// the beginning address of the heap."
-  int _heapStart = 0;
+  final GlulxHeap _heap = GlulxHeap();
 
   /// Gets the current end of memory.
   int get endMem => _endMem;
 
   /// Gets the current heap start address (0 if heap is inactive).
-  int get heapStart => _heapStart;
+  int get heapStart => _heap.heapStart;
 
   /// Gets the current size of the memory map (alias for endMem).
   int get size => _endMem;
@@ -67,7 +68,10 @@ class GlulxMemoryMap {
   late final Uint8List _originalGameData;
 
   /// Returns whether the heap is currently active.
-  bool get heapIsActive => _heapStart != 0;
+  bool get heapIsActive => _heap.isActive;
+
+  /// Gets the heap summary for save/restore.
+  List<int> get heapSummary => _heap.getSummary();
 
   /// Initialize the memory map from the game data.
   ///
@@ -289,9 +293,7 @@ class GlulxMemoryMap {
   /// The current end of memory – that is, the current getmemsize value – becomes
   /// the beginning address of the heap."
   void activateHeap() {
-    if (_heapStart == 0) {
-      _heapStart = _endMem;
-    }
+    _heap.activate(_endMem);
   }
 
   /// Deactivate the heap and shrink memory back to heap start.
@@ -299,9 +301,23 @@ class GlulxMemoryMap {
   /// Spec: "When you free the last extant memory block, the heap becomes inactive.
   /// The interpreter will reduce the memory map size down to the heap-start address."
   void deactivateHeap() {
-    if (_heapStart != 0) {
-      setMemorySize(_heapStart, internal: true);
-      _heapStart = 0;
+    if (_heap.isActive) {
+      final start = _heap.heapStart;
+      _heap.clear();
+      setMemorySize(start, internal: true);
+    }
+  }
+
+  /// Allocates a block of the given length on the heap.
+  int malloc(int len) {
+    return _heap.allocate(len, _endMem, (newSize) => setMemorySize(newSize, internal: true));
+  }
+
+  /// Frees a heap block at the given address.
+  void mfree(int addr) {
+    _heap.free(addr);
+    if (_heap.allocCount <= 0) {
+      deactivateHeap();
     }
   }
 
@@ -312,7 +328,7 @@ class GlulxMemoryMap {
   /// Restores memory from a saved state, respecting the protection range.
   ///
   /// Spec: "The protected range ... is silently unaffected by the state-restoring operations."
-  void restoreMemory(Uint8List savedMemory, int savedEndMem) {
+  void restoreMemory(Uint8List savedMemory, int savedEndMem, List<int> heapSummary) {
     // Resize if necessary
     if (savedEndMem != _endMem) {
       setMemorySize(savedEndMem, internal: true);
@@ -322,6 +338,39 @@ class GlulxMemoryMap {
     for (int i = 0; i < savedMemory.length && i < _endMem; i++) {
       if (!isProtected(i)) {
         _memory[i] = savedMemory[i];
+      }
+    }
+
+    // Restore heap state
+    _heap.applySummary(heapSummary, _endMem);
+  }
+
+  /// Restarts the memory map to its initial state.
+  ///
+  /// Spec Section 2.4.11: "restart: Restore VM to initial state."
+  /// Spec Section 2.4.10: "The protected range ... is silently unaffected by the state-restoring operations."
+  void restart() {
+    // Deactivate the heap
+    _heap.clear();
+
+    // Reset memory size
+    if (_endMem != origEndMem) {
+      setMemorySize(origEndMem, internal: true);
+    }
+
+    // Reload RAM from original game data, respecting protection
+    // Data from 0 to ramStart is ROM (already correct, but we reload to be sure)
+    // Data from ramStart to extStart is initial RAM
+    for (int i = ramStart; i < extStart && i < _originalGameData.length; i++) {
+      if (!isProtected(i)) {
+        _memory[i] = _originalGameData[i];
+      }
+    }
+
+    // Above extStart is initialized to zero, respecting protection
+    for (int i = extStart; i < origEndMem; i++) {
+      if (!isProtected(i)) {
+        _memory[i] = 0;
       }
     }
   }

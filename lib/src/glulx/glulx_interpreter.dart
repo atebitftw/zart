@@ -842,6 +842,19 @@ class GlulxInterpreter {
         }
         break;
 
+      /// Spec Section 2.13.2: "malloc L1 S1: Allocate a block on the heap."
+      case GlulxOp.malloc:
+        final len = operands[0] as int;
+        final dest = operands[1] as StoreOperand;
+        _performStore(dest, memoryMap.malloc(len));
+        break;
+
+      /// Spec Section 2.13.2: "mfree L1: Free a block on the heap."
+      case GlulxOp.mfree:
+        final addr = operands[0] as int;
+        memoryMap.mfree(addr);
+        break;
+
       // ========== System Opcodes (Spec Section 2.4.11) ==========
 
       /// Spec Section 2.4.11: "verify S1: Perform sanity checks on game file."
@@ -852,18 +865,27 @@ class GlulxInterpreter {
         break;
 
       /// Spec Section 2.4.11: "restart: Restore VM to initial state."
+      /// Reference: vm.c vm_restart()
       case GlulxOp.restart:
-        // This is a partial implementation. Full restart requires reloading
-        // the original ROM and resetting all RAM above RAMSTART.
-        // For now, we clear the stack and reset PC, but we don't fully reload RAM.
-        // Actually, the easiest way to "restart" is to signal it or reload.
+        // Reload RAM and reset memory size (respecting protection)
+        memoryMap.restart();
+
+        // Reset stack and registers
         stack.reset();
-        _pc = memoryMap.ramStart;
-        // The start function should be called again, but _executeOpcode
-        // is called from the middle of the run loop.
-        // A better approach is to set a flag.
-        _quit = true; // Signal exit so run() can handle restart (if it supported it)
-        // TODO: Full restart support
+
+        // Reset I/O system (Spec Section 2.4.11)
+        _iosysMode = 0;
+        _iosysRock = 0;
+
+        // Reset string table
+        final header = GlulxHeader(memoryMap.rawMemory);
+        _stringTableAddress = header.decodingTbl;
+
+        // Do NOT set _quit = true; we want to continue running from the start
+        // Re-enter the start function directly
+        _enterFunction(header.startFunc, []);
+
+        // The run() loop will continue executing from the new PC
         break;
 
       /// Spec Section 2.4.8: "getstringtbl S1: Return current string table address."
@@ -2633,6 +2655,7 @@ class GlulxInterpreter {
         pc: _pc, // Current PC (after saveundo instruction)
         destType: dest.mode,
         destAddr: dest.addr,
+        heapState: memoryMap.heapSummary,
       );
     } catch (e) {
       debugger.flightRecorderEvent('saveundo failed: $e');
@@ -2647,28 +2670,8 @@ class GlulxInterpreter {
     try {
       // Restore RAM state
       // Reference: serial.c read_memstate
-      final ramStart = memoryMap.ramStart;
-
-      // First, deactivate heap and resize memory if needed
-      // Reference: serial.c read_memstate
-      memoryMap.deactivateHeap();
-      if (state.memorySize != memoryMap.size) {
-        memoryMap.setMemorySize(state.memorySize, internal: true);
-      }
-      // Restore RAM by XORing with original (reverses the save XOR)
-      // Skip protected bytes per spec: "protect L1 L2" prevents restore from changing them
-      // Reference: serial.c read_memstate - skip bytes in protected range
-      final (protectStart, protectEnd) = memoryMap.protectionRange;
-      for (var i = 0; i < state.ramState.length; i++) {
-        final addr = ramStart + i;
-        // Skip bytes in the protected range
-        if (addr >= protectStart && addr < protectEnd) {
-          continue;
-        }
-        final originalByte = memoryMap.readOriginalByte(addr);
-        final restoredByte = state.ramState[i] ^ originalByte;
-        memoryMap.writeByte(addr, restoredByte);
-      }
+      // Note: GlulxMemoryMap.restoreMemory will handle heap summary
+      memoryMap.restoreMemory(state.ramState, state.memorySize, state.heapState);
 
       // Restore stack state
       // Reference: serial.c read_stackstate
@@ -2772,7 +2775,7 @@ class GlulxInterpreter {
     // Magic: "ZART"
     builder.add([0x5A, 0x41, 0x52, 0x54]);
     // Version: 1
-    final header = ByteData(32);
+    final header = ByteData(36);
     header.setUint32(0, 1);
     header.setUint32(4, state.memorySize);
     header.setUint32(8, state.ramState.length);
@@ -2780,18 +2783,21 @@ class GlulxInterpreter {
     header.setUint32(16, state.pc);
     header.setUint32(20, state.destType);
     header.setUint32(24, state.destAddr);
-    builder.add(header.buffer.asUint8List(0, 28));
+    header.setUint32(28, state.heapState.length);
+    builder.add(header.buffer.asUint8List(0, 32));
 
     // Data
     builder.add(state.ramState);
     builder.add(state.stackData);
+    final heapData = Uint32List.fromList(state.heapState).buffer.asUint8List();
+    builder.add(heapData);
 
     return builder.toBytes();
   }
 
   /// Deserializes a [GlulxUndoState] from [Uint8List].
   GlulxUndoState? _deserializeState(Uint8List data) {
-    if (data.length < 32) return null;
+    if (data.length < 36) return null;
     final view = ByteData.sublistView(data);
 
     // Magic
@@ -2809,14 +2815,20 @@ class GlulxInterpreter {
     final pc = view.getUint32(20);
     final destType = view.getUint32(24);
     final destAddr = view.getUint32(28);
+    final heapLength = view.getUint32(32);
 
-    var offset = 32;
+    var offset = 36;
     if (data.length < offset + ramLength) return null;
     final ramState = data.sublist(offset, offset + ramLength);
     offset += ramLength;
 
     if (data.length < offset + stackPointer) return null;
     final stackData = data.sublist(offset, offset + stackPointer);
+    offset += stackPointer;
+
+    if (data.length < offset + heapLength * 4) return null;
+    final heapBytes = data.sublist(offset, offset + heapLength * 4);
+    final heapState = List<int>.from(Uint32List.view(heapBytes.buffer, heapBytes.offsetInBytes, heapLength));
 
     return GlulxUndoState(
       ramState: ramState,
@@ -2826,6 +2838,7 @@ class GlulxInterpreter {
       pc: pc,
       destType: destType,
       destAddr: destAddr,
+      heapState: heapState,
     );
   }
 
