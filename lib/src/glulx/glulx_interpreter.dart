@@ -2073,6 +2073,20 @@ class GlulxInterpreter {
             stack.pushCallStub(0x10, call.resumeBit, call.resumeAddr, stack.fp);
             _enterFunction(call.funcAddr, call.args);
             return; // Exit and let main loop run function
+          } on _StringEmbeddedCall catch (call) {
+            // Embedded string node (0x03/0x05) in Filter mode - switch to E0/E2
+            // Reference: string.c:330-340 - sets inmiddle to 0xE0/0xE2 and restarts
+            if (!substring) {
+              stack.pushCallStub(0x11, 0, _pc, stack.fp);
+              substring = true;
+            }
+            _pc = currentAddr;
+            stack.pushCallStub(0x10, call.resumeBit, call.resumeAddr, stack.fp);
+            // Switch to E0/E2 processing for the embedded string data
+            currentAddr = call.dataAddr;
+            currentType = call.stringType; // 0xE0 or 0xE2
+            currentBitnum = 0;
+            done = 2; // Restart loop with embedded string type
           }
           break;
 
@@ -2210,6 +2224,13 @@ class GlulxInterpreter {
       },
       startAddr: bitnum > 0 ? addr : null,
       startBit: bitnum > 0 ? bitnum : null,
+      // Embedded string callback - only for Filter mode (0x03/0x05 nodes)
+      // Reference: C interpreter string.c:330-340 - switches to E0/E2 processing
+      callEmbeddedString: _iosysMode == 1
+          ? (resumeAddr, resumeBit, dataAddr, stringType) {
+              throw _StringEmbeddedCall(dataAddr, stringType, resumeAddr, resumeBit);
+            }
+          : null,
     );
     // If we get here, string completed normally (no indirect refs)
   }
@@ -2531,4 +2552,16 @@ class _StringFilterCall {
   final int resumeBit;
 
   _StringFilterCall(this.ch, this.resumeAddr, this.resumeBit);
+}
+
+/// Signal class thrown when Filter mode encounters an embedded string node (0x03/0x05).
+/// Used to switch from E1 to E0/E2 processing.
+/// Reference: C interpreter string.c:330-340 - sets inmiddle to 0xE0/0xE2.
+class _StringEmbeddedCall {
+  final int dataAddr;
+  final int stringType; // 0xE0 or 0xE2
+  final int resumeAddr;
+  final int resumeBit;
+
+  _StringEmbeddedCall(this.dataAddr, this.stringType, this.resumeAddr, this.resumeBit);
 }

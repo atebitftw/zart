@@ -52,14 +52,15 @@ abstract class HuffmanNode {
 
       /// Spec 1.4.1.4: "C-style string | Type: 03 | Characters... | NUL: 00"
       case 0x03:
+        final dataAddr = address + 1;
         final bytes = <int>[];
-        int current = address + 1;
+        int current = dataAddr;
         while (true) {
           final b = memory.readByte(current++);
           if (b == 0) break;
           bytes.add(b);
         }
-        return StringNode(bytes);
+        return StringNode(bytes, dataAddr);
 
       /// Spec 1.4.1.4: "Single Unicode character | Type: 04 | Character (4 bytes)"
       case 0x04:
@@ -67,15 +68,16 @@ abstract class HuffmanNode {
 
       /// Spec 1.4.1.4: "C-style Unicode string | Type: 05 | Characters... | NUL: 00000000"
       case 0x05:
+        final dataAddr = address + 1;
         final chars = <int>[];
-        int current = address + 1;
+        int current = dataAddr;
         while (true) {
           final c = memory.readWord(current);
           current += 4;
           if (c == 0) break;
           chars.add(c);
         }
-        return UnicodeStringNode(chars);
+        return UnicodeStringNode(chars, dataAddr);
 
       /// Spec 1.4.1.4: "Indirect reference | Type: 08 | Address (4 bytes)"
       case 0x08:
@@ -127,7 +129,8 @@ class SingleCharNode extends HuffmanNode {
 
 class StringNode extends HuffmanNode {
   final List<int> bytes;
-  StringNode(this.bytes) : super(0x03);
+  final int dataAddress;
+  StringNode(this.bytes, this.dataAddress) : super(0x03);
 }
 
 class UnicodeCharNode extends HuffmanNode {
@@ -137,7 +140,8 @@ class UnicodeCharNode extends HuffmanNode {
 
 class UnicodeStringNode extends HuffmanNode {
   final List<int> characters;
-  UnicodeStringNode(this.characters) : super(0x05);
+  final int dataAddress;
+  UnicodeStringNode(this.characters, this.dataAddress) : super(0x05);
 }
 
 class IndirectNode extends HuffmanNode {
@@ -175,6 +179,7 @@ class GlulxStringDecoder {
   /// [printUnicode] is called for each unicode char, with (ch, resumeAddr, resumeBit)
   /// [callString] is called for indirect string references (type 0xE0-E2).
   /// [callFunc] is called for indirect function references (type 0xC0-C1).
+  /// [callEmbeddedString] is called for embedded string nodes in Filter mode.
   /// Reference: Spec 1.4.1.4 - Indirect reference handling
   void decode(
     int stringAddress,
@@ -185,6 +190,9 @@ class GlulxStringDecoder {
     void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args) callFunc, {
     int? startAddr,
     int? startBit,
+    // Optional callback for embedded string nodes (type 0x03/0x05) in Filter mode
+    // Reference: C interpreter string.c:330-340 switches to E0/E2 processing
+    void Function(int resumeAddr, int resumeBit, int dataAddr, int stringType)? callEmbeddedString,
   }) {
     final table = _getTable(tableAddress);
     int currentBitAddr = startAddr ?? (stringAddress + 1);
@@ -211,12 +219,24 @@ class GlulxStringDecoder {
       if (node is TerminatorNode) break;
       if (node is SingleCharNode) printChar(node.char, currentBitAddr, currentBit);
       if (node is StringNode) {
+        // For Filter mode, signal to switch to E0 processing
+        if (callEmbeddedString != null) {
+          callEmbeddedString(currentBitAddr, currentBit, node.dataAddress, 0xE0);
+          return; // Exit decoder - main loop will handle E0 string
+        }
+        // Glk/null mode - iterate directly
         for (final b in node.bytes) {
           printChar(b, currentBitAddr, currentBit);
         }
       }
       if (node is UnicodeCharNode) printUnicode(node.char, currentBitAddr, currentBit);
       if (node is UnicodeStringNode) {
+        // For Filter mode, signal to switch to E2 processing
+        if (callEmbeddedString != null) {
+          callEmbeddedString(currentBitAddr, currentBit, node.dataAddress, 0xE2);
+          return; // Exit decoder - main loop will handle E2 string
+        }
+        // Glk/null mode - iterate directly
         for (final c in node.characters) {
           printUnicode(c, currentBitAddr, currentBit);
         }
