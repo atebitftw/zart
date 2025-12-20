@@ -902,10 +902,7 @@ class GlulxInterpreter {
       /// Spec Section 2.4.8: "streamnum L1: Output a signed decimal integer."
       case GlulxOp.streamnum:
         final num = (operands[0] as int).toSigned(32);
-        final s = num.toString();
-        for (var i = 0; i < s.length; i++) {
-          _streamChar(s.codeUnitAt(i));
-        }
+        _streamNum(num, inmiddle: false, charnum: 0);
         break;
 
       /// Spec Section 2.4.8: "streamstr L1: Output a string."
@@ -1817,6 +1814,14 @@ class GlulxInterpreter {
     // Restore FP and update cached bases
     stack.restoreFp(oldFp);
 
+    // Handle 0x12 (streamnum resumption) specially since we need oldPc as the original number
+    // Reference: funcs.c line 258 - stream_num(pc, TRUE, destaddr)
+    if (destType == 0x12) {
+      // oldPc contains the original number, destAddr contains charnum
+      _streamNum(oldPc.toSigned(32), inmiddle: true, charnum: destAddr);
+      return;
+    }
+
     // Store result
     stack.storeResult(
       value,
@@ -1917,6 +1922,66 @@ class GlulxInterpreter {
       case 2:
         _callGlk(GlkIoSelectors.putCharUni, [code]);
         break;
+    }
+  }
+
+  /// Streams a signed decimal integer to the current output.
+  ///
+  /// Reference: C interpreter string.c stream_num() lines 132-195
+  /// For Filter mode, uses 0x12 stubs with charnum to track position.
+  void _streamNum(int val, {required bool inmiddle, required int charnum}) {
+    // Build digits in reverse order (matching C implementation)
+    final List<int> buf = [];
+    if (val == 0) {
+      buf.add(0x30); // '0'
+    } else {
+      int ival = val < 0 ? -val : val;
+      while (ival != 0) {
+        buf.add((ival % 10) + 0x30);
+        ival ~/= 10;
+      }
+      if (val < 0) {
+        buf.add(0x2D); // '-'
+      }
+    }
+
+    final ix = buf.length;
+
+    switch (_iosysMode) {
+      case 0:
+        // Null mode - discard
+        break;
+
+      case 2:
+        // Glk mode - output from end to start (reverse order)
+        for (var i = ix - 1 - charnum; i >= 0; i--) {
+          _callGlk(GlkIoSelectors.putChar, [buf[i]]);
+        }
+        break;
+
+      case 1:
+        // Filter mode - each char requires function call with 0x12 stub
+        // Reference: string.c lines 171-183
+        if (!inmiddle) {
+          stack.pushCallStub(0x11, 0, _pc, stack.fp);
+          inmiddle = true;
+        }
+        if (charnum < ix) {
+          final ival = buf[(ix - 1) - charnum] & 0xFF;
+          _pc = val; // Store original value in PC for resumption
+          stack.pushCallStub(0x12, charnum + 1, val, stack.fp);
+          _enterFunction(_iosysRock, [ival]);
+          return; // Exit and let main loop run filter function
+        }
+        break;
+    }
+
+    // Completed - pop terminator stub if needed
+    if (inmiddle) {
+      final resumed = _popCallstubString();
+      if (resumed != null) {
+        throw GlulxException('String-on-string call stub while printing number.');
+      }
     }
   }
 

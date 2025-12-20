@@ -248,6 +248,7 @@ class GlulxStack {
     int addr, {
     void Function(int addr, int val)? onMemoryWrite,
     void Function(int addr, int type)? onResumeString,
+    void Function(int val, int charnum)? onResumeNum,
   }) {
     switch (type) {
       case 0:
@@ -279,8 +280,8 @@ class GlulxStack {
         throw GlulxException('String-terminator call stub at end of function call');
       case 0x12:
         // Spec: "Resume printing a signed decimal integer."
-        // Reference: funcs.c line 258.
-        // TODO: stream_num resumption if needed, but Inform mainly uses strings.
+        // Reference: funcs.c line 258 - calls stream_num(pc, TRUE, destaddr)
+        onResumeNum?.call(addr, value);
         break;
       case 0x13:
         // Spec: "Resume printing a C-style (E0) string."
