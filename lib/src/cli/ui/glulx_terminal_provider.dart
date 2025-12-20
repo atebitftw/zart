@@ -49,6 +49,10 @@ class GlulxTerminalProvider implements GlkIoProvider {
   int _nextStreamId = 1002;
   int _currentStreamId = 1001;
 
+  // Window tracking
+  final Map<int, _GlkWindow> _windows = {};
+  int _nextWindowId = 1;
+
   @override
   int vmGestalt(int selector, int arg) {
     // Gestalt handling... same as before
@@ -234,7 +238,11 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       case GlkIoSelectors.windowOpen:
-        return 1;
+        // args: [split, method, size, wintype, rock]
+        final rock = args.length > 4 ? args[4] : 0;
+        final winId = _nextWindowId++;
+        _windows[winId] = _GlkWindow(id: winId, rock: rock);
+        return winId;
       case GlkIoSelectors.windowClose:
         return 0;
       case GlkIoSelectors.windowGetSize:
@@ -329,6 +337,39 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       case GlkIoSelectors.windowIterate:
+        // args[0] = previous window (0 = start iteration), args[1] = rock address
+        final prevWin = args[0];
+        final rockAddr = args.length > 1 ? args[1] : 0;
+
+        // Find next window after prevWin
+        final windowIds = _windows.keys.toList()..sort();
+        int? nextWin;
+        if (prevWin == 0) {
+          // Start iteration - return first window
+          nextWin = windowIds.isNotEmpty ? windowIds.first : null;
+        } else {
+          // Find next after prevWin
+          final idx = windowIds.indexOf(prevWin);
+          if (idx >= 0 && idx + 1 < windowIds.length) {
+            nextWin = windowIds[idx + 1];
+          }
+        }
+
+        if (nextWin != null) {
+          final win = _windows[nextWin]!;
+          if (rockAddr != 0 && rockAddr != 0xFFFFFFFF) {
+            writeMemory(rockAddr, win.rock, size: 4);
+          } else if (rockAddr == 0xFFFFFFFF) {
+            pushToStack(win.rock);
+          }
+          return nextWin;
+        }
+        return 0; // No more windows
+
+      case GlkIoSelectors.windowGetRock:
+        final win = _windows[args[0]];
+        return win?.rock ?? 0;
+
       case GlkIoSelectors.streamIterate:
       case GlkIoSelectors.filerefIterate:
         return 0;
@@ -454,10 +495,19 @@ class GlulxTerminalProvider implements GlkIoProvider {
   }
 
   void _writeEventStruct(int addr, int type, int win, int val1, int val2) {
-    writeMemory(addr, type, size: 4);
-    writeMemory(addr + 4, win, size: 4);
-    writeMemory(addr + 8, val1, size: 4);
-    writeMemory(addr + 12, val2, size: 4);
+    // Glk spec: address -1 (0xFFFFFFFF) means push to stack
+    if (addr == -1 || addr == 0xFFFFFFFF) {
+      // Push in reverse order so they can be popped in correct order
+      pushToStack(val2);
+      pushToStack(val1);
+      pushToStack(win);
+      pushToStack(type);
+    } else {
+      writeMemory(addr, type, size: 4);
+      writeMemory(addr + 4, win, size: 4);
+      writeMemory(addr + 8, val1, size: 4);
+      writeMemory(addr + 12, val2, size: 4);
+    }
   }
 
   int _handleGlkGestalt(int gestaltSelector, List<int> args) {
@@ -496,4 +546,11 @@ class _GlkStream {
     this.bufLen = 0,
     this.isUnicode = false,
   });
+}
+
+class _GlkWindow {
+  final int id;
+  final int rock;
+
+  _GlkWindow({required this.id, this.rock = 0});
 }
