@@ -117,6 +117,13 @@ class OpcodeInfo {
     GlulxOp.setrandom: OpcodeInfo(1, [false]),
     GlulxOp.verify: OpcodeInfo(1, [true]),
     GlulxOp.restart: OpcodeInfo(0, []),
+    GlulxOp.save: OpcodeInfo(2, [false, true]),
+    GlulxOp.restore: OpcodeInfo(2, [false, true]),
+    GlulxOp.saveundo: OpcodeInfo(1, [true]),
+    GlulxOp.restoreundo: OpcodeInfo(1, [true]),
+    GlulxOp.hasundo: OpcodeInfo(1, [true]),
+    GlulxOp.discardundo: OpcodeInfo(0, []),
+    GlulxOp.protect: OpcodeInfo(2, [false, false]),
     GlulxOp.getstringtbl: OpcodeInfo(1, [true]),
     GlulxOp.setstringtbl: OpcodeInfo(1, [false]),
 

@@ -60,6 +60,12 @@ class GlulxMemoryMap {
   /// Gets the current heap start address (0 if heap is inactive).
   int get heapStart => _heapStart;
 
+  /// Gets the current size of the memory map (alias for endMem).
+  int get size => _endMem;
+
+  /// The original game data (ROM + initial RAM) for undo XOR compression.
+  late final Uint8List _originalGameData;
+
   /// Returns whether the heap is currently active.
   bool get heapIsActive => _heapStart != 0;
 
@@ -74,10 +80,7 @@ class GlulxMemoryMap {
 
     // Verify Magic Number: 47 6C 75 6C ('Glul')
     // Spec: "Magic number: 47 6C 75 6C, which is to say the ASCII string 'Glul'."
-    if (gameData[0] != 0x47 ||
-        gameData[1] != 0x6C ||
-        gameData[2] != 0x75 ||
-        gameData[3] != 0x6C) {
+    if (gameData[0] != 0x47 || gameData[1] != 0x6C || gameData[2] != 0x75 || gameData[3] != 0x6C) {
       throw GlulxException('Invalid Glulx magic number');
     }
 
@@ -91,22 +94,15 @@ class GlulxMemoryMap {
     // Validate 256-byte alignment
     // Spec: "For the convenience of paging interpreters, the three boundaries
     // RAMSTART, EXTSTART, and ENDMEM must be aligned on 256-byte boundaries."
-    if ((ramStart & 0xFF) != 0 ||
-        (extStart & 0xFF) != 0 ||
-        (origEndMem & 0xFF) != 0 ||
-        (stackSize & 0xFF) != 0) {
-      throw GlulxException(
-        'Segment boundaries in the header are not 256-byte aligned',
-      );
+    if ((ramStart & 0xFF) != 0 || (extStart & 0xFF) != 0 || (origEndMem & 0xFF) != 0 || (stackSize & 0xFF) != 0) {
+      throw GlulxException('Segment boundaries in the header are not 256-byte aligned');
     }
 
     // Validate segment ordering
     // Spec: "ROM must be at least 256 bytes long (so that the header fits in it)."
     // Spec: The segments must be in order: 0 < RAMSTART <= EXTSTART <= ENDMEM
     if (ramStart < 0x100) {
-      throw GlulxException(
-        'RAMSTART must be at least 0x100 (ROM must contain the header)',
-      );
+      throw GlulxException('RAMSTART must be at least 0x100 (ROM must contain the header)');
     }
     if (extStart < ramStart) {
       throw GlulxException('EXTSTART must be >= RAMSTART');
@@ -132,31 +128,28 @@ class GlulxMemoryMap {
     final dataToCopy = extStart < gameData.length ? extStart : gameData.length;
     _memory.setRange(0, dataToCopy, gameData);
 
+    // Keep a copy of the original game data for undo XOR compression
+    // Reference: serial.c uses ramcache for this purpose
+    _originalGameData = Uint8List.fromList(gameData);
+
     // Protection range starts disabled
     _protectStart = 0;
     _protectEnd = 0;
   }
 
   int _read32(Uint8List data, int offset) {
-    return (data[offset] << 24) |
-        (data[offset + 1] << 16) |
-        (data[offset + 2] << 8) |
-        data[offset + 3];
+    return (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3];
   }
 
   /// Validates that count bytes starting at address all fall within the memory map.
   void _verifyAddress(int address, int count) {
     if (address < 0 || address >= _endMem) {
-      throw GlulxException(
-        'Memory access out of range at address 0x${address.toRadixString(16).toUpperCase()}',
-      );
+      throw GlulxException('Memory access out of range at address 0x${address.toRadixString(16).toUpperCase()}');
     }
     if (count > 1) {
       final endAddress = address + count - 1;
       if (endAddress >= _endMem) {
-        throw GlulxException(
-          'Memory access out of range at address 0x${endAddress.toRadixString(16).toUpperCase()}',
-        );
+        throw GlulxException('Memory access out of range at address 0x${endAddress.toRadixString(16).toUpperCase()}');
       }
     }
   }
@@ -164,21 +157,15 @@ class GlulxMemoryMap {
   /// Validates that count bytes starting at address all fall within RAM.
   void _verifyAddressWrite(int address, int count) {
     if (address < ramStart) {
-      throw GlulxException(
-        'Illegal write to ROM at address 0x${address.toRadixString(16).toUpperCase()}',
-      );
+      throw GlulxException('Illegal write to ROM at address 0x${address.toRadixString(16).toUpperCase()}');
     }
     if (address >= _endMem) {
-      throw GlulxException(
-        'Write beyond memory bounds at address 0x${address.toRadixString(16).toUpperCase()}',
-      );
+      throw GlulxException('Write beyond memory bounds at address 0x${address.toRadixString(16).toUpperCase()}');
     }
     if (count > 1) {
       final endAddress = address + count - 1;
       if (endAddress >= _endMem) {
-        throw GlulxException(
-          'Write beyond memory bounds at address 0x${endAddress.toRadixString(16).toUpperCase()}',
-        );
+        throw GlulxException('Write beyond memory bounds at address 0x${endAddress.toRadixString(16).toUpperCase()}');
       }
     }
   }
@@ -201,11 +188,19 @@ class GlulxMemoryMap {
     return _read32(_memory, address);
   }
 
-  /// Write an 8-bit byte to memory.
-  /// Throws [GlulxException] if writing to ROM or out of bounds.
   void writeByte(int address, int value) {
     _verifyAddressWrite(address, 1);
     _memory[address] = value & 0xFF;
+  }
+
+  /// Read the original byte value at the given address (from initial game data).
+  /// Used for XOR compression in undo state.
+  /// Reference: serial.c ramcache access
+  int readOriginalByte(int address) {
+    if (address < 0 || address >= _originalGameData.length) {
+      return 0; // Beyond original game data, assume zero
+    }
+    return _originalGameData[address];
   }
 
   /// Write a 16-bit short to memory (big-endian).

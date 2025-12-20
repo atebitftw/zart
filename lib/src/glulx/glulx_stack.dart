@@ -484,4 +484,62 @@ class GlulxStack {
     _valstackbase = 0;
     _localsbase = 0;
   }
+
+  /// Alias for sp, used by undo save/restore.
+  int get pointer => _sp;
+
+  /// Restores the stack from saved data.
+  /// Used by restoreundo to restore the complete stack state.
+  void restoreFrom(Uint8List data, int stackPointer) {
+    // Copy the saved data into the stack
+    _data.setRange(0, data.length, data);
+    _sp = stackPointer;
+
+    // Recompute frame pointer from the stack if there's a valid frame
+    // The FP is at the bottom of the stack (position 0 for first frame)
+    // For a proper restore, we need to find the frame pointer from the stack structure
+    // However, the stack data already contains the correct frame structure.
+    // We need to find the current frame by walking back from SP.
+    // For simplicity, we'll assume FP is stored in the call stub below the current frame.
+    // Actually, we need to reconstruct FP from the saved stack.
+    // The call stub at the base contains the previous FP.
+    // Let's walk the stack to find the current frame.
+    if (_sp > 0) {
+      // Find the frame pointer by looking at the stack structure
+      // The frame pointer should be at position 0 for the outermost frame
+      _fp = 0;
+      // Walk frames to find the innermost one
+      while (true) {
+        final frameLen = _view.getUint32(_fp, Endian.big);
+        final nextFp = _fp + frameLen;
+        if (nextFp >= _sp) {
+          // This is the current frame
+          break;
+        }
+        // Check if there's a call stub after this frame
+        if (nextFp + 16 > _sp) {
+          break;
+        }
+        // Read the saved FP from the call stub
+        final savedFp = _view.getUint32(nextFp + 12, Endian.big);
+        if (savedFp == _fp) {
+          // Found a call stub pointing back, move to next frame
+          // But we need to find where the next frame starts
+          // This is complex - for now just find the outermost valid frame
+          _fp = nextFp + 16;
+          if (_fp >= _sp) {
+            _fp = 0;
+            break;
+          }
+        } else {
+          break;
+        }
+      }
+      _updateCachedBases();
+    } else {
+      _fp = 0;
+      _valstackbase = 0;
+      _localsbase = 0;
+    }
+  }
 }

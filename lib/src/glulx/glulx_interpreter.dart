@@ -12,6 +12,7 @@ import 'package:zart/src/glulx/glulx_stack.dart';
 import 'package:zart/src/glulx/op_code_info.dart';
 import 'package:zart/src/glulx/glulx_string_decoder.dart';
 import 'package:zart/src/glulx/xoshiro128.dart';
+import 'package:zart/src/glulx/glulx_undo_state.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 
@@ -51,6 +52,14 @@ class GlulxInterpreter {
   late Uint32List _u32_64 = _f64.buffer.asUint32List();
 
   int _fsetroundMode = 0; // 0=nearest, 1=zero, 2=posinf, 3=neginf
+
+  /// Maximum number of undo states to keep.
+  /// Reference: serial.c max_undo_level = 8
+  static const int _maxUndoLevel = 8;
+
+  /// Undo state chain (most recent first).
+  /// Reference: serial.c undo_chain[]
+  final List<GlulxUndoState> _undoChain = [];
 
   /// Creates a new Glulx interpreter.
   GlulxInterpreter(this.glkDispatcher) {
@@ -379,8 +388,8 @@ class GlulxInterpreter {
 
       /// Spec Section 2.4.3: "jeq L1 L2 L3: If L1 is equal to L2, branch to L3."
       case GlulxOp.jeq:
-        final l1 = operands[0] as int;
-        final l2 = operands[1] as int;
+        final l1 = (operands[0] as int) & 0xFFFFFFFF;
+        final l2 = (operands[1] as int) & 0xFFFFFFFF;
         final offset = operands[2] as int;
         if (l1 == l2) {
           _performBranch(offset);
@@ -389,8 +398,8 @@ class GlulxInterpreter {
 
       /// Spec Section 2.4.3: "jne L1 L2 L3: If L1 is not equal to L2, branch to L3."
       case GlulxOp.jne:
-        final l1 = operands[0] as int;
-        final l2 = operands[1] as int;
+        final l1 = (operands[0] as int) & 0xFFFFFFFF;
+        final l2 = (operands[1] as int) & 0xFFFFFFFF;
         final offset = operands[2] as int;
         if (l1 != l2) {
           _performBranch(offset);
@@ -1366,6 +1375,59 @@ class GlulxInterpreter {
           return result.then((val) => _performStore(dest, val));
         }
         _performStore(dest, result);
+        break;
+
+      // ========== Undo Opcodes (Spec Section 2.4.10) ==========
+
+      /// Spec: "saveundo S1" - Save VM state to temporary storage.
+      /// Returns 0 on success, 1 on failure, -1 if just restored.
+      /// Reference: serial.c perform_saveundo
+      case GlulxOp.saveundo:
+        final dest = operands[0] as StoreOperand;
+        final undoState = _performSaveUndo(dest);
+        if (undoState != null) {
+          // Success - add to chain (most recent first)
+          if (_undoChain.length >= _maxUndoLevel) {
+            _undoChain.removeLast(); // Drop oldest
+          }
+          _undoChain.insert(0, undoState);
+          _performStore(dest, 0); // Success
+        } else {
+          _performStore(dest, 1); // Failure
+        }
+        break;
+
+      /// Spec: "restoreundo S1" - Restore VM state from temporary storage.
+      /// Returns 1 on failure. If successful, execution resumes at saveundo
+      /// and that opcode stores -1.
+      /// Reference: serial.c perform_restoreundo
+      case GlulxOp.restoreundo:
+        final dest = operands[0] as StoreOperand;
+        if (_undoChain.isEmpty) {
+          _performStore(dest, 1); // Failure - no undo states
+        } else {
+          final success = _performRestoreUndo(_undoChain[0]);
+          if (success) {
+            _undoChain.removeAt(0); // Remove used state
+            // Note: _performRestoreUndo already set PC and stores -1
+          } else {
+            _performStore(dest, 1); // Failure
+          }
+        }
+        break;
+
+      /// Spec: "hasundo S1" - Test if undo state is available.
+      /// Returns 0 if available, 1 if not.
+      case GlulxOp.hasundo:
+        final dest = operands[0] as StoreOperand;
+        _performStore(dest, _undoChain.isEmpty ? 1 : 0);
+        break;
+
+      /// Spec: "discardundo" - Discard most recent undo state.
+      case GlulxOp.discardundo:
+        if (_undoChain.isNotEmpty) {
+          _undoChain.removeAt(0);
+        }
         break;
 
       default:
@@ -2501,6 +2563,92 @@ class GlulxInterpreter {
           'Invalid key size for direct key comparison: $size. '
           'KeyIndirect flag must be set for non-standard key sizes.',
         );
+    }
+  }
+
+  // ========== Undo State Management ==========
+
+  /// Saves the current VM state for undo.
+  /// Returns the GlulxUndoState on success, null on failure.
+  /// Reference: serial.c perform_saveundo, write_memstate, write_stackstate
+  GlulxUndoState? _performSaveUndo(StoreOperand dest) {
+    try {
+      // Save RAM state (from ramStart to current memory size)
+      // Reference: serial.c write_memstate - XORs with original game file
+      final ramStart = memoryMap.ramStart;
+      final memSize = memoryMap.size;
+      final ramLength = memSize - ramStart;
+      final ramState = Uint8List(ramLength);
+
+      // Copy current RAM, XOR'd with original game data for compression
+      // (bytes matching original become 0, which compresses well)
+      for (var i = 0; i < ramLength; i++) {
+        final currentByte = memoryMap.readByte(ramStart + i);
+        final originalByte = memoryMap.readOriginalByte(ramStart + i);
+        ramState[i] = currentByte ^ originalByte;
+      }
+
+      // Save stack state - just copy the raw stack data
+      // Reference: serial.c write_stackstate
+      final stackData = Uint8List.fromList(stack.rawData.sublist(0, stack.pointer));
+
+      return GlulxUndoState(
+        ramState: ramState,
+        memorySize: memSize,
+        stackData: stackData,
+        stackPointer: stack.pointer,
+        pc: _pc, // Current PC (after saveundo instruction)
+        destType: dest.mode,
+        destAddr: dest.addr,
+      );
+    } catch (e) {
+      debugger.flightRecorderEvent('saveundo failed: $e');
+      return null;
+    }
+  }
+
+  /// Restores the VM state from an undo state.
+  /// Returns true on success, false on failure.
+  /// Reference: serial.c perform_restoreundo, read_memstate, read_stackstate
+  bool _performRestoreUndo(GlulxUndoState state) {
+    try {
+      // Restore RAM state
+      // Reference: serial.c read_memstate
+      final ramStart = memoryMap.ramStart;
+
+      // First, resize memory if needed
+      if (state.memorySize != memoryMap.size) {
+        // For now, we don't support memory resizing in undo
+        // Most games don't change memory size between saveundo/restoreundo
+        if (state.memorySize > memoryMap.size) {
+          debugger.flightRecorderEvent('restoreundo: memory resize not supported');
+          return false;
+        }
+      }
+
+      // Restore RAM by XORing with original (reverses the save XOR)
+      for (var i = 0; i < state.ramState.length; i++) {
+        final originalByte = memoryMap.readOriginalByte(ramStart + i);
+        final restoredByte = state.ramState[i] ^ originalByte;
+        memoryMap.writeByte(ramStart + i, restoredByte);
+      }
+
+      // Restore stack state
+      // Reference: serial.c read_stackstate
+      stack.restoreFrom(state.stackData, state.stackPointer);
+
+      // Restore PC to resume at the saveundo instruction
+      _pc = state.pc;
+
+      // Store -1 at the original saveundo's destination
+      // This indicates "we just restored from undo"
+      final dest = StoreOperand(state.destType, state.destAddr);
+      _performStore(dest, -1 & 0xFFFFFFFF); // -1 as unsigned
+
+      return true;
+    } catch (e) {
+      debugger.flightRecorderEvent('restoreundo failed: $e');
+      return false;
     }
   }
 }
