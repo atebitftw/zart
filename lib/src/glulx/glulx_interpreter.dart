@@ -1430,6 +1430,17 @@ class GlulxInterpreter {
         }
         break;
 
+      /// Spec Section 2.4.10: "protect L1 L2" - Protect memory range from restore.
+      /// The protected range starts at L1 and has length L2 bytes.
+      /// Reference: exec.c op_protect
+      case GlulxOp.protect:
+        final start = operands[0] as int;
+        final length = operands[1] as int;
+        // Reference: if (val0 == val1) { val0 = 0; val1 = 0; }
+        // i.e., if length == 0, clear protection
+        memoryMap.setProtection(start, length);
+        break;
+
       default:
         throw GlulxException(
           'Unimplemented opcode: 0x${opcode.toRadixString(16)} (${GlulxDebugger.opCodeName[opcode]})',
