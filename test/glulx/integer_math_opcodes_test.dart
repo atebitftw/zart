@@ -160,7 +160,10 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
+      expect(
+        Future.sync(() => interpreter.executeInstruction()),
+        throwsException,
+      );
     });
 
     test('div throws on -0x80000000 / -1', () async {
@@ -177,7 +180,10 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
+      expect(
+        Future.sync(() => interpreter.executeInstruction()),
+        throwsException,
+      );
     });
 
     test('div handles negative numbers correctly', () async {
@@ -222,7 +228,10 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
+      expect(
+        Future.sync(() => interpreter.executeInstruction()),
+        throwsException,
+      );
     });
 
     test('neg computes -L1', () async {

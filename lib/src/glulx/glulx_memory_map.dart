@@ -84,7 +84,10 @@ class GlulxMemoryMap {
 
     // Verify Magic Number: 47 6C 75 6C ('Glul')
     // Spec: "Magic number: 47 6C 75 6C, which is to say the ASCII string 'Glul'."
-    if (gameData[0] != 0x47 || gameData[1] != 0x6C || gameData[2] != 0x75 || gameData[3] != 0x6C) {
+    if (gameData[0] != 0x47 ||
+        gameData[1] != 0x6C ||
+        gameData[2] != 0x75 ||
+        gameData[3] != 0x6C) {
       throw GlulxException('Invalid Glulx magic number');
     }
 
@@ -98,15 +101,22 @@ class GlulxMemoryMap {
     // Validate 256-byte alignment
     // Spec: "For the convenience of paging interpreters, the three boundaries
     // RAMSTART, EXTSTART, and ENDMEM must be aligned on 256-byte boundaries."
-    if ((ramStart & 0xFF) != 0 || (extStart & 0xFF) != 0 || (origEndMem & 0xFF) != 0 || (stackSize & 0xFF) != 0) {
-      throw GlulxException('Segment boundaries in the header are not 256-byte aligned');
+    if ((ramStart & 0xFF) != 0 ||
+        (extStart & 0xFF) != 0 ||
+        (origEndMem & 0xFF) != 0 ||
+        (stackSize & 0xFF) != 0) {
+      throw GlulxException(
+        'Segment boundaries in the header are not 256-byte aligned',
+      );
     }
 
     // Validate segment ordering
     // Spec: "ROM must be at least 256 bytes long (so that the header fits in it)."
     // Spec: The segments must be in order: 0 < RAMSTART <= EXTSTART <= ENDMEM
     if (ramStart < 0x100) {
-      throw GlulxException('RAMSTART must be at least 0x100 (ROM must contain the header)');
+      throw GlulxException(
+        'RAMSTART must be at least 0x100 (ROM must contain the header)',
+      );
     }
     if (extStart < ramStart) {
       throw GlulxException('EXTSTART must be >= RAMSTART');
@@ -142,18 +152,25 @@ class GlulxMemoryMap {
   }
 
   int _read32(Uint8List data, int offset) {
-    return (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3];
+    return (data[offset] << 24) |
+        (data[offset + 1] << 16) |
+        (data[offset + 2] << 8) |
+        data[offset + 3];
   }
 
   /// Validates that count bytes starting at address all fall within the memory map.
   void _verifyAddress(int address, int count) {
     if (address < 0 || address >= _endMem) {
-      throw GlulxException('Memory access out of range at address 0x${address.toRadixString(16).toUpperCase()}');
+      throw GlulxException(
+        'Memory access out of range at address 0x${address.toRadixString(16).toUpperCase()}',
+      );
     }
     if (count > 1) {
       final endAddress = address + count - 1;
       if (endAddress >= _endMem) {
-        throw GlulxException('Memory access out of range at address 0x${endAddress.toRadixString(16).toUpperCase()}');
+        throw GlulxException(
+          'Memory access out of range at address 0x${endAddress.toRadixString(16).toUpperCase()}',
+        );
       }
     }
   }
@@ -161,15 +178,21 @@ class GlulxMemoryMap {
   /// Validates that count bytes starting at address all fall within RAM.
   void _verifyAddressWrite(int address, int count) {
     if (address < ramStart) {
-      throw GlulxException('Illegal write to ROM at address 0x${address.toRadixString(16).toUpperCase()}');
+      throw GlulxException(
+        'Illegal write to ROM at address 0x${address.toRadixString(16).toUpperCase()}',
+      );
     }
     if (address >= _endMem) {
-      throw GlulxException('Write beyond memory bounds at address 0x${address.toRadixString(16).toUpperCase()}');
+      throw GlulxException(
+        'Write beyond memory bounds at address 0x${address.toRadixString(16).toUpperCase()}',
+      );
     }
     if (count > 1) {
       final endAddress = address + count - 1;
       if (endAddress >= _endMem) {
-        throw GlulxException('Write beyond memory bounds at address 0x${endAddress.toRadixString(16).toUpperCase()}');
+        throw GlulxException(
+          'Write beyond memory bounds at address 0x${endAddress.toRadixString(16).toUpperCase()}',
+        );
       }
     }
   }
@@ -310,7 +333,11 @@ class GlulxMemoryMap {
 
   /// Allocates a block of the given length on the heap.
   int malloc(int len) {
-    return _heap.allocate(len, _endMem, (newSize) => setMemorySize(newSize, internal: true));
+    return _heap.allocate(
+      len,
+      _endMem,
+      (newSize) => setMemorySize(newSize, internal: true),
+    );
   }
 
   /// Frees a heap block at the given address.
@@ -328,7 +355,11 @@ class GlulxMemoryMap {
   /// Restores memory from a saved state, respecting the protection range.
   ///
   /// Spec: "The protected range ... is silently unaffected by the state-restoring operations."
-  void restoreMemory(Uint8List savedMemory, int savedEndMem, List<int> heapSummary) {
+  void restoreMemory(
+    Uint8List savedMemory,
+    int savedEndMem,
+    List<int> heapSummary,
+  ) {
     // Resize if necessary
     if (savedEndMem != _endMem) {
       setMemorySize(savedEndMem, internal: true);

@@ -38,7 +38,11 @@ class GlulxAccel {
   /// Stream character output for error messages.
   void Function(int char) streamChar;
 
-  GlulxAccel({required this.memoryMap, required this.getIosysMode, required this.streamChar});
+  GlulxAccel({
+    required this.memoryMap,
+    required this.getIosysMode,
+    required this.streamChar,
+  });
 
   /// Set a parameter value.
   /// Reference: accel.c accel_set_param()
@@ -72,7 +76,9 @@ class GlulxAccel {
     final funcType = memoryMap.readByte(address);
     if (funcType != 0xC0 && funcType != 0xC1) {
       // Reference: C throws fatal_error_i("Attempt to accelerate non-function.", addr)
-      throw GlulxException('Attempt to accelerate non-function at address 0x${address.toRadixString(16)}');
+      throw GlulxException(
+        'Attempt to accelerate non-function at address 0x${address.toRadixString(16)}',
+      );
     }
 
     if (index == 0) {
@@ -185,7 +191,8 @@ class GlulxAccel {
     final tb = memoryMap.readByte(addr);
     if (tb >= 0xE0) return 3; // String
     if (tb >= 0xC0) return 2; // Function
-    if (tb >= 0x70 && tb <= 0x7F && addr >= memoryMap.ramStart) return 1; // Object
+    if (tb >= 0x70 && tb <= 0x7F && addr >= memoryMap.ramStart)
+      return 1; // Object
     return 0;
   }
 
@@ -198,7 +205,9 @@ class GlulxAccel {
     final id = _argIfGiven(args, 1);
 
     if (_func1ZRegion([obj]) != 1) {
-      _accelError('[** Programming error: tried to find the "." of (something) **]');
+      _accelError(
+        '[** Programming error: tried to find the "." of (something) **]',
+      );
       return 0;
     }
 
@@ -249,19 +258,29 @@ class GlulxAccel {
     if (cla == _params[2]) {
       // class_metaclass
       if (_objInClass(obj)) return 1;
-      if (obj == _params[2] || obj == _params[5] || obj == _params[4] || obj == _params[3]) return 1;
+      if (obj == _params[2] ||
+          obj == _params[5] ||
+          obj == _params[4] ||
+          obj == _params[3])
+        return 1;
       return 0;
     }
     if (cla == _params[3]) {
       // object_metaclass
       if (_objInClass(obj)) return 0;
-      if (obj == _params[2] || obj == _params[5] || obj == _params[4] || obj == _params[3]) return 0;
+      if (obj == _params[2] ||
+          obj == _params[5] ||
+          obj == _params[4] ||
+          obj == _params[3])
+        return 0;
       return 1;
     }
     if (cla == _params[5] || cla == _params[4]) return 0;
 
     if (!_objInClass(cla)) {
-      _accelError("[** Programming error: tried to apply 'ofclass' with non-class **]");
+      _accelError(
+        "[** Programming error: tried to apply 'ofclass' with non-class **]",
+      );
       return 0;
     }
 
@@ -332,7 +351,9 @@ class GlulxAccel {
     final id = _argIfGiven(args, 1);
 
     if (_func1ZRegion([obj]) != 1) {
-      _accelError('[** Programming error: tried to find the "." of (something) **]');
+      _accelError(
+        '[** Programming error: tried to find the "." of (something) **]',
+      );
       return 0;
     }
 
@@ -382,18 +403,28 @@ class GlulxAccel {
 
     if (cla == _params[2]) {
       if (_objInClass(obj)) return 1;
-      if (obj == _params[2] || obj == _params[5] || obj == _params[4] || obj == _params[3]) return 1;
+      if (obj == _params[2] ||
+          obj == _params[5] ||
+          obj == _params[4] ||
+          obj == _params[3])
+        return 1;
       return 0;
     }
     if (cla == _params[3]) {
       if (_objInClass(obj)) return 0;
-      if (obj == _params[2] || obj == _params[5] || obj == _params[4] || obj == _params[3]) return 0;
+      if (obj == _params[2] ||
+          obj == _params[5] ||
+          obj == _params[4] ||
+          obj == _params[3])
+        return 0;
       return 1;
     }
     if (cla == _params[5] || cla == _params[4]) return 0;
 
     if (!_objInClass(cla)) {
-      _accelError("[** Programming error: tried to apply 'ofclass' with non-class **]");
+      _accelError(
+        "[** Programming error: tried to apply 'ofclass' with non-class **]",
+      );
       return 0;
     }
 
@@ -509,7 +540,15 @@ class GlulxAccel {
   /// Reference: search.c binary_search()
   ///
   /// This is a simplified version matching the Glulx binarysearch opcode.
-  int _binarySearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
+  int _binarySearch(
+    int key,
+    int keySize,
+    int start,
+    int structSize,
+    int numStructs,
+    int keyOffset,
+    int options,
+  ) {
     if (numStructs == 0) return 0;
 
     var low = 0;

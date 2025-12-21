@@ -8,7 +8,13 @@ class GlulxHeapBlock {
   GlulxHeapBlock? next;
   GlulxHeapBlock? prev;
 
-  GlulxHeapBlock({required this.addr, required this.len, required this.isFree, this.next, this.prev});
+  GlulxHeapBlock({
+    required this.addr,
+    required this.len,
+    required this.isFree,
+    this.next,
+    this.prev,
+  });
 }
 
 /// The Glulx dynamic allocation heap.
@@ -47,7 +53,11 @@ class GlulxHeap {
   /// Returns the address of the block, or 0 if allocation failed.
   /// Note: The caller (MemoryMap) is responsible for resizing memory if needed
   /// and setting _heapStart if this is the first allocation.
-  int allocate(int len, int currentEndMem, int Function(int newSize) resizeMemory) {
+  int allocate(
+    int len,
+    int currentEndMem,
+    int Function(int newSize) resizeMemory,
+  ) {
     if (len <= 0) {
       throw GlulxException('Heap allocation length must be positive.');
     }
@@ -111,7 +121,12 @@ class GlulxHeap {
         curr!.len += extension;
       } else {
         // Append new free block
-        final newBlo = GlulxHeapBlock(addr: currentEndMem, len: extension, isFree: true, prev: _tail);
+        final newBlo = GlulxHeapBlock(
+          addr: currentEndMem,
+          len: extension,
+          isFree: true,
+          prev: _tail,
+        );
         if (_tail == null) {
           _head = newBlo;
           _tail = newBlo;
@@ -161,7 +176,9 @@ class GlulxHeap {
     }
 
     if (curr == null || curr.isFree) {
-      throw GlulxException('Attempt to free unallocated address 0x${addr.toRadixString(16).toUpperCase()} from heap.');
+      throw GlulxException(
+        'Attempt to free unallocated address 0x${addr.toRadixString(16).toUpperCase()} from heap.',
+      );
     }
 
     curr.isFree = true;
@@ -205,14 +222,26 @@ class GlulxHeap {
       final GlulxHeapBlock blo;
       if (idx >= summary.length) {
         // Trailing free block
-        blo = GlulxHeapBlock(addr: lastEnd, len: currentEndMem - lastEnd, isFree: true);
+        blo = GlulxHeapBlock(
+          addr: lastEnd,
+          len: currentEndMem - lastEnd,
+          isFree: true,
+        );
       } else {
         if (lastEnd < summary[idx]) {
           // Inner free block
-          blo = GlulxHeapBlock(addr: lastEnd, len: summary[idx] - lastEnd, isFree: true);
+          blo = GlulxHeapBlock(
+            addr: lastEnd,
+            len: summary[idx] - lastEnd,
+            isFree: true,
+          );
         } else {
           // Allocated block
-          blo = GlulxHeapBlock(addr: summary[idx++], len: summary[idx++], isFree: false);
+          blo = GlulxHeapBlock(
+            addr: summary[idx++],
+            len: summary[idx++],
+            isFree: false,
+          );
         }
       }
 

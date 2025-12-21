@@ -64,7 +64,10 @@ class GlkTerminalDisplay {
     buf.write('\x1B[H'); // Move to home position
 
     // Create a screen buffer
-    final screen = List.generate(rows, (_) => List.generate(cols, (_) => GlkCell.empty()));
+    final screen = List.generate(
+      rows,
+      (_) => List.generate(cols, (_) => GlkCell.empty()),
+    );
 
     // Track where to place cursor (end of focused window)
     _cursorRow = rows - 1;
@@ -107,7 +110,11 @@ class GlkTerminalDisplay {
       final screenRow = info.y + row;
       if (screenRow >= rows) break;
 
-      for (var col = 0; col < info.width && col < window.grid[row].length; col++) {
+      for (
+        var col = 0;
+        col < info.width && col < window.grid[row].length;
+        col++
+      ) {
         final screenCol = info.x + col;
         if (screenCol >= cols) break;
 
@@ -129,7 +136,9 @@ class GlkTerminalDisplay {
     bool isFocused,
   ) {
     // Show the most recent lines that fit in the window
-    final startLine = (window.lines.length > info.height) ? window.lines.length - info.height : 0;
+    final startLine = (window.lines.length > info.height)
+        ? window.lines.length - info.height
+        : 0;
 
     for (var i = 0; i < info.height; i++) {
       final lineIdx = startLine + i;
@@ -226,7 +235,8 @@ class GlkTerminalDisplay {
       } else if (key.controlChar == ControlCharacter.ctrlC) {
         exitFullScreen();
         exit(0);
-      } else if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
+      } else if (key.char.isNotEmpty &&
+          key.controlChar == ControlCharacter.none) {
         buf.write(key.char);
         stdout.write(key.char);
       }

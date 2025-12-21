@@ -146,7 +146,12 @@ void main() {
 
     test('should accept properly aligned boundaries', () {
       // Spec: All boundaries must be 256-byte aligned
-      final validData = createTestHeader(ramStart: 0x100, extStart: 0x200, endMem: 0x300, stackSize: 0x100);
+      final validData = createTestHeader(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x300,
+        stackSize: 0x100,
+      );
       expect(() => GlulxMemoryMap(validData), returnsNormally);
     });
   });
@@ -354,12 +359,18 @@ void main() {
 
     test('should throw on read beyond memory bounds (short)', () {
       // Reference: verify_address checks entire range
-      expect(() => mem.readShort(mem.endMem - 1), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.readShort(mem.endMem - 1),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
     test('should throw on read beyond memory bounds (word)', () {
       // Reference: verify_address checks entire range
-      expect(() => mem.readWord(mem.endMem - 3), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.readWord(mem.endMem - 3),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
     test('should throw on negative read address', () {
@@ -414,35 +425,59 @@ void main() {
     test('should throw on write to ROM (byte)', () {
       // Spec: "the section marked ROM never changes during execution; it is illegal to write there."
       expect(() => mem.writeByte(0, 0x00), throwsA(isA<GlulxException>()));
-      expect(() => mem.writeByte(mem.ramStart - 1, 0x00), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.writeByte(mem.ramStart - 1, 0x00),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
     test('should throw on write to ROM (short)', () {
       // Spec: "it is illegal to write there."
-      expect(() => mem.writeShort(mem.ramStart - 2, 0x0000), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.writeShort(mem.ramStart - 2, 0x0000),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
     test('should throw on write to ROM (word)', () {
       // Spec: "it is illegal to write there."
-      expect(() => mem.writeWord(0, 0x00000000), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.writeWord(0, 0x00000000),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
     test('should throw on write beyond memory bounds (byte)', () {
       // Reference: verify_address_write checks addr >= endmem
-      expect(() => mem.writeByte(mem.endMem, 0x00), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.writeByte(mem.endMem, 0x00),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
-    test('should throw on write beyond memory bounds (short ending past endMem)', () {
-      // Reference: verify_address_write checks entire range
-      // Writing a short at endMem - 1 means byte at endMem would be written
-      expect(() => mem.writeShort(mem.endMem - 1, 0x0000), throwsA(isA<GlulxException>()));
-    });
+    test(
+      'should throw on write beyond memory bounds (short ending past endMem)',
+      () {
+        // Reference: verify_address_write checks entire range
+        // Writing a short at endMem - 1 means byte at endMem would be written
+        expect(
+          () => mem.writeShort(mem.endMem - 1, 0x0000),
+          throwsA(isA<GlulxException>()),
+        );
+      },
+    );
 
-    test('should throw on write beyond memory bounds (word ending past endMem)', () {
-      // Reference: verify_address_write checks entire range
-      // Writing a word at endMem - 3 means byte at endMem would be written
-      expect(() => mem.writeWord(mem.endMem - 3, 0x00000000), throwsA(isA<GlulxException>()));
-    });
+    test(
+      'should throw on write beyond memory bounds (word ending past endMem)',
+      () {
+        // Reference: verify_address_write checks entire range
+        // Writing a word at endMem - 3 means byte at endMem would be written
+        expect(
+          () => mem.writeWord(mem.endMem - 3, 0x00000000),
+          throwsA(isA<GlulxException>()),
+        );
+      },
+    );
   });
 
   group('GlulxMemoryMap - Dynamic Memory Resizing (setmemsize)', () {
@@ -778,13 +813,22 @@ void main() {
       // Spec: "the section marked ROM never changes during execution; it is illegal to write there."
       final mem = GlulxMemoryMap(storyData);
       expect(() => mem.writeByte(0, 0x00), throwsA(isA<GlulxException>()));
-      expect(() => mem.writeShort(mem.ramStart - 2, 0x0000), throwsA(isA<GlulxException>()));
-      expect(() => mem.writeWord(100, 0x00000000), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.writeShort(mem.ramStart - 2, 0x0000),
+        throwsA(isA<GlulxException>()),
+      );
+      expect(
+        () => mem.writeWord(100, 0x00000000),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
     test('should throw on write beyond memory bounds in real game', () {
       final mem = GlulxMemoryMap(storyData);
-      expect(() => mem.writeByte(mem.endMem, 0x00), throwsA(isA<GlulxException>()));
+      expect(
+        () => mem.writeByte(mem.endMem, 0x00),
+        throwsA(isA<GlulxException>()),
+      );
     });
 
     test('should throw on read beyond memory bounds in real game', () {

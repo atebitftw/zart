@@ -5,7 +5,9 @@ import 'package:zart/src/glulx/typable_objects.dart';
 class CompressedString extends GlulxString {
   final int bitStreamAddress;
 
-  CompressedString(int address) : bitStreamAddress = address + 1, super(address, GlulxTypableType.stringE1);
+  CompressedString(int address)
+    : bitStreamAddress = address + 1,
+      super(address, GlulxTypableType.stringE1);
 }
 
 /// Spec Section 1.4.1.4: The String-Decoding Table
@@ -16,7 +18,13 @@ class HuffmanTable {
   final int rootAddress;
   final Map<int, HuffmanNode> nodes;
 
-  HuffmanTable(this.address, this.length, this.nodeCount, this.rootAddress, this.nodes);
+  HuffmanTable(
+    this.address,
+    this.length,
+    this.nodeCount,
+    this.rootAddress,
+    this.nodes,
+  );
 
   static HuffmanTable parse(GlulxMemoryMap memory, int address) {
     final length = memory.readWord(address);
@@ -40,7 +48,10 @@ abstract class HuffmanNode {
     switch (type) {
       /// Spec 1.4.1.4: "Branch (non-leaf node) | Type: 00 | Left (0) Node | Right (1) Node"
       case 0x00:
-        return BranchNode(memory.readWord(address + 1), memory.readWord(address + 5));
+        return BranchNode(
+          memory.readWord(address + 1),
+          memory.readWord(address + 5),
+        );
 
       /// Spec 1.4.1.4: "String terminator | Type: 01 | This ends the string-decoding process."
       case 0x01:
@@ -107,7 +118,9 @@ abstract class HuffmanNode {
         }
         return DoubleIndirectArgsNode(addr, args);
       default:
-        throw Exception('Unknown Huffman node type: 0x${type.toRadixString(16)} at 0x${address.toRadixString(16)}');
+        throw Exception(
+          'Unknown Huffman node type: 0x${type.toRadixString(16)} at 0x${address.toRadixString(16)}',
+        );
     }
   }
 }
@@ -187,12 +200,14 @@ class GlulxStringDecoder {
     void Function(int ch, int resumeAddr, int resumeBit) printChar,
     void Function(int ch, int resumeAddr, int resumeBit) printUnicode,
     void Function(int resumeAddr, int resumeBit, int stringAddr) callString,
-    void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args) callFunc, {
+    void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args)
+    callFunc, {
     int? startAddr,
     int? startBit,
     // Optional callback for embedded string nodes (type 0x03/0x05) in Filter mode
     // Reference: C interpreter string.c:330-340 switches to E0/E2 processing
-    void Function(int resumeAddr, int resumeBit, int dataAddr, int stringType)? callEmbeddedString,
+    void Function(int resumeAddr, int resumeBit, int dataAddr, int stringType)?
+    callEmbeddedString,
   }) {
     final table = _getTable(tableAddress);
     int currentBitAddr = startAddr ?? (stringAddress + 1);
@@ -217,11 +232,17 @@ class GlulxStringDecoder {
       }
 
       if (node is TerminatorNode) break;
-      if (node is SingleCharNode) printChar(node.char, currentBitAddr, currentBit);
+      if (node is SingleCharNode)
+        printChar(node.char, currentBitAddr, currentBit);
       if (node is StringNode) {
         // For Filter mode, signal to switch to E0 processing
         if (callEmbeddedString != null) {
-          callEmbeddedString(currentBitAddr, currentBit, node.dataAddress, 0xE0);
+          callEmbeddedString(
+            currentBitAddr,
+            currentBit,
+            node.dataAddress,
+            0xE0,
+          );
           return; // Exit decoder - main loop will handle E0 string
         }
         // Glk/null mode - iterate directly
@@ -229,11 +250,17 @@ class GlulxStringDecoder {
           printChar(b, currentBitAddr, currentBit);
         }
       }
-      if (node is UnicodeCharNode) printUnicode(node.char, currentBitAddr, currentBit);
+      if (node is UnicodeCharNode)
+        printUnicode(node.char, currentBitAddr, currentBit);
       if (node is UnicodeStringNode) {
         // For Filter mode, signal to switch to E2 processing
         if (callEmbeddedString != null) {
-          callEmbeddedString(currentBitAddr, currentBit, node.dataAddress, 0xE2);
+          callEmbeddedString(
+            currentBitAddr,
+            currentBit,
+            node.dataAddress,
+            0xE2,
+          );
           return; // Exit decoder - main loop will handle E2 string
         }
         // Glk/null mode - iterate directly
@@ -244,21 +271,53 @@ class GlulxStringDecoder {
 
       if (node is IndirectNode) {
         // Spec: "If it is a string, it is printed. If a function, it is called."
-        if (_dispatchIndirect(node.address, [], callString, callFunc, currentBitAddr, currentBit)) return;
+        if (_dispatchIndirect(
+          node.address,
+          [],
+          callString,
+          callFunc,
+          currentBitAddr,
+          currentBit,
+        ))
+          return;
       }
       if (node is DoubleIndirectNode) {
         // Spec: "The address refers to a four-byte field in memory, and *that*
         // contains the address of a string or function."
         final target = memory.readWord(node.address);
-        if (_dispatchIndirect(target, [], callString, callFunc, currentBitAddr, currentBit)) return;
+        if (_dispatchIndirect(
+          target,
+          [],
+          callString,
+          callFunc,
+          currentBitAddr,
+          currentBit,
+        ))
+          return;
       }
       if (node is IndirectArgsNode) {
         // If string, args are ignored. If function, args are passed.
-        if (_dispatchIndirect(node.address, node.arguments, callString, callFunc, currentBitAddr, currentBit)) return;
+        if (_dispatchIndirect(
+          node.address,
+          node.arguments,
+          callString,
+          callFunc,
+          currentBitAddr,
+          currentBit,
+        ))
+          return;
       }
       if (node is DoubleIndirectArgsNode) {
         final target = memory.readWord(node.address);
-        if (_dispatchIndirect(target, node.arguments, callString, callFunc, currentBitAddr, currentBit)) return;
+        if (_dispatchIndirect(
+          target,
+          node.arguments,
+          callString,
+          callFunc,
+          currentBitAddr,
+          currentBit,
+        ))
+          return;
       }
     }
   }
@@ -271,7 +330,8 @@ class GlulxStringDecoder {
     int address,
     List<int> args,
     void Function(int resumeAddr, int resumeBit, int stringAddr) callString,
-    void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args) callFunc,
+    void Function(int resumeAddr, int resumeBit, int funcAddr, List<int> args)
+    callFunc,
     int resumeAddr,
     int resumeBit,
   ) {

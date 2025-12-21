@@ -61,7 +61,8 @@ class GlkWinmethod {
   static bool isFixed(int method) => (method & divisionMask) == fixed;
 
   /// Helper to check if split is proportional.
-  static bool isProportional(int method) => (method & divisionMask) == proportional;
+  static bool isProportional(int method) =>
+      (method & divisionMask) == proportional;
 
   /// Helper to check if border should be drawn.
   static bool hasBorder(int method) => (method & borderMask) == border;

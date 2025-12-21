@@ -68,7 +68,13 @@ class GlkScreenModel {
   /// Returns window ID or null if creation failed.
   ///
   /// Glk Spec: "glk_window_open() [creates windows] by splitting existing ones."
-  int? windowOpen(int? splitFromId, int method, int size, GlkWindowType type, int rock) {
+  int? windowOpen(
+    int? splitFromId,
+    int method,
+    int size,
+    GlkWindowType type,
+    int rock,
+  ) {
     // Validate - can't create pair windows directly.
     if (type == GlkWindowType.pair) {
       return null;
@@ -242,7 +248,9 @@ class GlkScreenModel {
         window.newLine();
       } else {
         // Add the character to current line
-        window.currentLine.add(GlkCell(String.fromCharCode(char), style: window.style));
+        window.currentLine.add(
+          GlkCell(String.fromCharCode(char), style: window.style),
+        );
 
         // Check if we need to wrap (line exceeds window width)
         if (window.width > 0 && window.currentLine.length >= window.width) {
@@ -258,7 +266,10 @@ class GlkScreenModel {
           if (lastSpace > 0) {
             // Word wrap: move characters after the space to the next line
             final overflow = window.currentLine.sublist(lastSpace + 1);
-            window.currentLine.removeRange(lastSpace, window.currentLine.length);
+            window.currentLine.removeRange(
+              lastSpace,
+              window.currentLine.length,
+            );
             window.newLine();
             window.currentLine.addAll(overflow);
           } else {
@@ -279,8 +290,12 @@ class GlkScreenModel {
         if (window.cursorY >= window.height) {
           window.cursorY = window.height - 1;
         }
-      } else if (window.cursorY < window.height && window.cursorX < window.width) {
-        window.grid[window.cursorY][window.cursorX] = GlkCell(String.fromCharCode(char), style: window.style);
+      } else if (window.cursorY < window.height &&
+          window.cursorX < window.width) {
+        window.grid[window.cursorY][window.cursorX] = GlkCell(
+          String.fromCharCode(char),
+          style: window.style,
+        );
         window.cursorX++;
         if (window.cursorX >= window.width) {
           window.cursorX = 0;
@@ -362,7 +377,10 @@ class GlkScreenModel {
   /// Returns list of window IDs.
   List<int> getWindowsAwaitingInput() {
     return _windowsById.values
-        .where((w) => w.lineInputPending || w.charInputPending || w.mouseInputPending)
+        .where(
+          (w) =>
+              w.lineInputPending || w.charInputPending || w.mouseInputPending,
+        )
         .map((w) => w.id)
         .toList();
   }

@@ -17,7 +17,11 @@ void main() {
 
       // Both instances seeded with same value should produce same sequence
       for (var i = 0; i < 100; i++) {
-        expect(rng1.nextInt(), equals(rng2.nextInt()), reason: 'Same seed should produce same sequence at index $i');
+        expect(
+          rng1.nextInt(),
+          equals(rng2.nextInt()),
+          reason: 'Same seed should produce same sequence at index $i',
+        );
       }
     });
 
@@ -40,7 +44,11 @@ void main() {
       // Reseed with 1 - should get same first values
       rng.seed(1);
       for (var i = 0; i < 10; i++) {
-        expect(rng.nextInt(), equals(firstValues[i]), reason: 'Reseeding should produce same sequence at index $i');
+        expect(
+          rng.nextInt(),
+          equals(firstValues[i]),
+          reason: 'Reseeding should produce same sequence at index $i',
+        );
       }
     });
 
@@ -81,8 +89,16 @@ void main() {
 
       for (var i = 0; i < 1000; i++) {
         final value = rng.nextInt();
-        expect(value, greaterThanOrEqualTo(0), reason: 'Value should be non-negative');
-        expect(value, lessThanOrEqualTo(0xFFFFFFFF), reason: 'Value should fit in 32 bits');
+        expect(
+          value,
+          greaterThanOrEqualTo(0),
+          reason: 'Value should be non-negative',
+        );
+        expect(
+          value,
+          lessThanOrEqualTo(0xFFFFFFFF),
+          reason: 'Value should fit in 32 bits',
+        );
       }
     });
 
@@ -97,7 +113,11 @@ void main() {
       }
 
       // Should have a high variety of unique values (at least 990 out of 1000)
-      expect(values.length, greaterThan(990), reason: 'Should produce highly varied values');
+      expect(
+        values.length,
+        greaterThan(990),
+        reason: 'Should produce highly varied values',
+      );
     });
   });
 }

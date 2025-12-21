@@ -57,10 +57,15 @@ void main() {
     });
 
     test('getCharStream and getCharStreamUni return -1 (EOF)', () async {
-      final result1 = await provider.glkDispatch(GlkIoSelectors.getCharStream, [0]);
+      final result1 = await provider.glkDispatch(GlkIoSelectors.getCharStream, [
+        0,
+      ]);
       expect(result1, equals(-1));
 
-      final result2 = await provider.glkDispatch(GlkIoSelectors.getCharStreamUni, [0]);
+      final result2 = await provider.glkDispatch(
+        GlkIoSelectors.getCharStreamUni,
+        [0],
+      );
       expect(result2, equals(-1));
     });
 
@@ -151,7 +156,10 @@ void main() {
     test('gestalt with empty args does not crash', () async {
       // gestalt(charInput, window_type) should return 1 for text buffer (type 3)
       // Note: Glk window types are pair=1, blank=2, textBuffer=3, textGrid=4, graphics=5
-      final result = await provider.glkDispatch(GlkIoSelectors.gestalt, [0x01, 3]); // charInput, textBuffer
+      final result = await provider.glkDispatch(GlkIoSelectors.gestalt, [
+        0x01,
+        3,
+      ]); // charInput, textBuffer
       expect(result, equals(1));
     });
     test('putCharStream writes to memory stream', () async {
@@ -172,10 +180,16 @@ void main() {
       );
 
       // Open memory stream
-      final streamId = await provider.glkDispatch(GlkIoSelectors.streamOpenMemory, [bufAddr, bufLen, 1]);
+      final streamId = await provider.glkDispatch(
+        GlkIoSelectors.streamOpenMemory,
+        [bufAddr, bufLen, 1],
+      );
 
       // Write a char 'X' (0x58) to the stream
-      final result = await provider.glkDispatch(GlkIoSelectors.putCharStream, [streamId, 0x58]);
+      final result = await provider.glkDispatch(GlkIoSelectors.putCharStream, [
+        streamId,
+        0x58,
+      ]);
       expect(result, equals(0));
 
       // Verify it was written to memory at bufAddr
@@ -184,24 +198,42 @@ void main() {
 
     test('streamSetCurrent returns previous stream ID', () async {
       // Initial stream is 1001
-      final result1 = await provider.glkDispatch(GlkIoSelectors.streamGetCurrent, []);
+      final result1 = await provider.glkDispatch(
+        GlkIoSelectors.streamGetCurrent,
+        [],
+      );
       expect(result1, equals(1001));
 
       // Open new stream (will be 1002)
-      provider.setMemoryAccess(write: (_, __, {size = 1}) {}, read: (_, {size = 1}) => 0); // Stub memory
+      provider.setMemoryAccess(
+        write: (_, __, {size = 1}) {},
+        read: (_, {size = 1}) => 0,
+      ); // Stub memory
 
-      final newStreamId = await provider.glkDispatch(GlkIoSelectors.streamOpenMemory, [0x1000, 100, 1]);
+      final newStreamId = await provider.glkDispatch(
+        GlkIoSelectors.streamOpenMemory,
+        [0x1000, 100, 1],
+      );
 
       // Set current to new stream, should return 1001 (previous)
-      final prevStreamId = await provider.glkDispatch(GlkIoSelectors.streamSetCurrent, [newStreamId]);
+      final prevStreamId = await provider.glkDispatch(
+        GlkIoSelectors.streamSetCurrent,
+        [newStreamId],
+      );
       expect(prevStreamId, equals(1001));
 
       // Verify new current
-      final result2 = await provider.glkDispatch(GlkIoSelectors.streamGetCurrent, []);
+      final result2 = await provider.glkDispatch(
+        GlkIoSelectors.streamGetCurrent,
+        [],
+      );
       expect(result2, equals(newStreamId));
 
       // Restore old stream, should return 1002
-      final prevStreamId2 = await provider.glkDispatch(GlkIoSelectors.streamSetCurrent, [1001]);
+      final prevStreamId2 = await provider.glkDispatch(
+        GlkIoSelectors.streamSetCurrent,
+        [1001],
+      );
       expect(prevStreamId2, equals(newStreamId));
     });
   });

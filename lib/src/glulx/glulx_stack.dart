@@ -277,7 +277,9 @@ class GlulxStack {
       case 0x11:
         // Spec: "Resume executing function code after a string completes."
         // Reference: funcs.c lines 245-247 - this is fatal in function return context
-        throw GlulxException('String-terminator call stub at end of function call');
+        throw GlulxException(
+          'String-terminator call stub at end of function call',
+        );
       case 0x12:
         // Spec: "Resume printing a signed decimal integer."
         // Reference: funcs.c line 258 - calls stream_num(pc, TRUE, destaddr)

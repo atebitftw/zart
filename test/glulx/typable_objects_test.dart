@@ -14,7 +14,12 @@ void main() {
     ///
     /// Spec: "For the convenience of paging interpreters, the three boundaries
     /// RAMSTART, EXTSTART, and ENDMEM must be aligned on 256-byte boundaries."
-    Uint8List createGlulxData({int ramStart = 0x100, int extStart = 0x200, int endMem = 0x300, int stackSize = 0x100}) {
+    Uint8List createGlulxData({
+      int ramStart = 0x100,
+      int extStart = 0x200,
+      int endMem = 0x300,
+      int stackSize = 0x100,
+    }) {
       final data = Uint8List(extStart > endMem ? extStart : endMem);
       // Magic Number: 47 6C 75 6C ('Glul')
       data[0] = 0x47;
@@ -58,7 +63,11 @@ void main() {
     test('detects object types correctly', () {
       /// Spec 1.4: "structured objects in Glulx main memory follow a simple convention:
       /// the first byte indicates the type of the object."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
       // Place test data in ROM at 0x30 (after header)
       data.setRange(0x30, 0x30 + 8, [
         0xE0, // String E0
@@ -101,7 +110,11 @@ void main() {
     test('parses Unencoded String (E0)', () {
       /// Spec 1.4.1.1: "An unencoded string consists of an E0 byte,
       /// followed by all the bytes of the string, followed by a zero byte."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
       data.setRange(0x30, 0x30 + 7, [
         0xE0, // Type
         0x48, 0x65, 0x6C, 0x6C, 0x6F, // "Hello"
@@ -118,7 +131,11 @@ void main() {
       /// Spec 1.4.1.2: "An unencoded Unicode string consists of an E2 byte, followed by three padding 0 bytes,
       /// followed by the Unicode character values (each one being a four-byte integer).
       /// Finally, there is a terminating value (four 0 bytes)."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
       data.setRange(0x30, 0x30 + 16, [
         0xE2, 0x00, 0x00, 0x00, // Type + Padding
         0x00, 0x00, 0x00, 0x48, // 'H'
@@ -135,7 +152,11 @@ void main() {
       /// Spec 1.4.2: "The locals-format list is encoded the same way it is on the stack;
       /// see [*](#callframe). This is a list of LocalType/LocalCount byte pairs,
       /// terminated by a zero/zero pair. (There is, however, no extra padding to reach four-byte alignment.)"
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
       data.setRange(0x30, 0x30 + 9, [
         0xC0, // Type
         0x04, 0x02, // 2 locals of 4 bytes
@@ -158,7 +179,11 @@ void main() {
     test('parses C1 LocalArgsFunction correctly', () {
       /// Spec 1.4.2: "If the type is C1, the arguments are passed on the stack,
       /// and are written into the locals according to the 'format of locals' list."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
       data.setRange(0x30, 0x30 + 5, [
         0xC1, // Type: C1 (local-argument function)
         0x04, 0x01, // 1 local of 4 bytes
@@ -177,7 +202,11 @@ void main() {
       /// Spec 1.4.1.3: "Decoding compressed strings requires looking up data in a Huffman table."
       /// Spec 1.4.1.4: "The decoding table has the following format: ... Table Length (4 bytes),
       /// Number of Nodes (4 bytes), Root Node Addr (4 bytes)..."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
       // String decoding table at 0x40
       data.setRange(0x40, 0x40 + 12, [
         0x00, 0x00, 0x00, 0x30, // Length (48 bytes)
@@ -187,7 +216,17 @@ void main() {
 
       /// Spec 1.4.1.4: "Branch (non-leaf node) +----------------+ | Type: 00 | (1 byte)
       /// | Left (0) Node | (4 bytes) | Right (1) Node | (4 bytes) +----------------+"
-      data.setRange(0x4C, 0x4C + 9, [0x00, 0x00, 0x00, 0x00, 0x55, 0x00, 0x00, 0x00, 0x5E]);
+      data.setRange(0x4C, 0x4C + 9, [
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x55,
+        0x00,
+        0x00,
+        0x00,
+        0x5E,
+      ]);
 
       /// Spec 1.4.1.4: "Single character +----------------+ | Type: 02 | (1 byte) | Character | (1 byte) +----------------+"
       data.setRange(0x55, 0x55 + 2, [0x02, 0x41]);
@@ -223,7 +262,11 @@ void main() {
       /// and caching it as native data structures."
       /// Spec 1.4.1.3 [Warning]: "...it is technically legal for a table in RAM to be altered at runtime ...
       /// If it caches data from RAM, it must watch for writes to that RAM space, and invalidate its cache..."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // Table in ROM (0x30)
       data.setRange(0x30, 0x30 + 12, [
@@ -255,7 +298,11 @@ void main() {
     test('decodes C-style string node (0x03)', () {
       /// Spec 1.4.1.4: "C-style string ... | Type: 03 | (1 byte) | Characters.... | (any length)
       /// | NUL: 00 | (1 byte) ... This prints an array of characters."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // String decoding table at 0x40
       data.setRange(0x40, 0x40 + 12, [
@@ -299,7 +346,11 @@ void main() {
     test('decodes single Unicode character node (0x04)', () {
       /// Spec 1.4.1.4: "Single Unicode character ... | Type: 04 | (1 byte)
       /// | Character | (4 bytes) ... This prints a single Unicode character."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // String decoding table at 0x40
       data.setRange(0x40, 0x40 + 12, [
@@ -343,7 +394,11 @@ void main() {
     test('decodes C-style Unicode string node (0x05)', () {
       /// Spec 1.4.1.4: "C-style Unicode string ... | Type: 05 | (1 byte)
       /// | Characters.... | (any length, multiple of 4) | NUL: 00000000 | (4 bytes)"
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // String decoding table at 0x40
       data.setRange(0x40, 0x40 + 12, [
@@ -393,7 +448,11 @@ void main() {
       /// Spec 1.4.1.4: "Indirect reference ... | Type: 08 | (1 byte) | Address | (4 bytes)
       /// ... The address may refer to a location anywhere in memory ...
       /// If it is a string, it is printed. If a function, it is called..."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // String decoding table at 0x40
       data.setRange(0x40, 0x40 + 12, [
@@ -426,15 +485,17 @@ void main() {
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x60, 0x40, (c, _, __) => {}, (u, _, __) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
-        resumeAddr2,
-        resumeBit2,
-        funcAddr,
-        args,
-      ) {
-        calledAddr = funcAddr;
-        calledArgs = args;
-      });
+      decoder.decode(
+        0x60,
+        0x40,
+        (c, _, __) => {},
+        (u, _, __) => {},
+        (resumeAddr, resumeBit, stringAddr) => {},
+        (resumeAddr2, resumeBit2, funcAddr, args) {
+          calledAddr = funcAddr;
+          calledArgs = args;
+        },
+      );
 
       expect(calledAddr, equals(0x80));
       expect(calledArgs, isEmpty);
@@ -444,13 +505,40 @@ void main() {
       /// Spec 1.4.1.4: "Double-indirect reference ... | Type: 09 | (1 byte) | Address | (4 bytes)
       /// ... the address refers to a four-byte field in memory, and *that* contains
       /// the address of a string or function."
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // String decoding table at 0x40
-      data.setRange(0x40, 0x40 + 12, [0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x4C]);
+      data.setRange(0x40, 0x40 + 12, [
+        0x00,
+        0x00,
+        0x00,
+        0x30,
+        0x00,
+        0x00,
+        0x00,
+        0x03,
+        0x00,
+        0x00,
+        0x00,
+        0x4C,
+      ]);
 
       // Branch node
-      data.setRange(0x4C, 0x4C + 9, [0x00, 0x00, 0x00, 0x00, 0x55, 0x00, 0x00, 0x00, 0x5A]);
+      data.setRange(0x4C, 0x4C + 9, [
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x55,
+        0x00,
+        0x00,
+        0x00,
+        0x5A,
+      ]);
 
       // Double-indirect node at 0x55: points to pointer at 0x80
       data.setRange(0x55, 0x55 + 5, [0x09, 0x00, 0x00, 0x00, 0x80]);
@@ -486,13 +574,40 @@ void main() {
     test('decodes indirect reference with arguments node (0x0A)', () {
       /// Spec 1.4.1.4: "Indirect reference with arguments ... | Type: 0A | (1 byte)
       /// | Address | (4 bytes) | Argument Count | (4 bytes) | Arguments.... | (4*N bytes)"
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // String decoding table at 0x40
-      data.setRange(0x40, 0x40 + 12, [0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x4C]);
+      data.setRange(0x40, 0x40 + 12, [
+        0x00,
+        0x00,
+        0x00,
+        0x40,
+        0x00,
+        0x00,
+        0x00,
+        0x03,
+        0x00,
+        0x00,
+        0x00,
+        0x4C,
+      ]);
 
       // Branch node
-      data.setRange(0x4C, 0x4C + 9, [0x00, 0x00, 0x00, 0x00, 0x55, 0x00, 0x00, 0x00, 0x6A]);
+      data.setRange(0x4C, 0x4C + 9, [
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x55,
+        0x00,
+        0x00,
+        0x00,
+        0x6A,
+      ]);
 
       // Indirect with args at 0x55: address=0x80, count=2, args=[42, 99]
       data.setRange(0x55, 0x55 + 17, [
@@ -517,15 +632,17 @@ void main() {
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x70, 0x40, (c, _, __) => {}, (u, _, __) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
-        resumeAddr2,
-        resumeBit2,
-        funcAddr,
-        args,
-      ) {
-        calledAddr = funcAddr;
-        calledArgs = args;
-      });
+      decoder.decode(
+        0x70,
+        0x40,
+        (c, _, __) => {},
+        (u, _, __) => {},
+        (resumeAddr, resumeBit, stringAddr) => {},
+        (resumeAddr2, resumeBit2, funcAddr, args) {
+          calledAddr = funcAddr;
+          calledArgs = args;
+        },
+      );
 
       expect(calledAddr, equals(0x80));
       expect(calledArgs, equals([42, 99]));
@@ -534,13 +651,40 @@ void main() {
     test('decodes double-indirect reference with arguments node (0x0B)', () {
       /// Spec 1.4.1.4: "Double-indirect reference with arguments ... | Type: 0B | (1 byte)
       /// | Address | (4 bytes) | Argument Count | (4 bytes) | Arguments.... | (4*N bytes)"
-      final data = createGlulxData(ramStart: 0x100, extStart: 0x200, endMem: 0x200);
+      final data = createGlulxData(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x200,
+      );
 
       // String decoding table at 0x40
-      data.setRange(0x40, 0x40 + 12, [0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x4C]);
+      data.setRange(0x40, 0x40 + 12, [
+        0x00,
+        0x00,
+        0x00,
+        0x40,
+        0x00,
+        0x00,
+        0x00,
+        0x03,
+        0x00,
+        0x00,
+        0x00,
+        0x4C,
+      ]);
 
       // Branch node
-      data.setRange(0x4C, 0x4C + 9, [0x00, 0x00, 0x00, 0x00, 0x55, 0x00, 0x00, 0x00, 0x6E]);
+      data.setRange(0x4C, 0x4C + 9, [
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x55,
+        0x00,
+        0x00,
+        0x00,
+        0x6E,
+      ]);
 
       // Double-indirect with args at 0x55: pointer=0x80, count=1, args=[7]
       data.setRange(0x55, 0x55 + 13, [
@@ -567,15 +711,17 @@ void main() {
 
       int? calledAddr;
       List<int>? calledArgs;
-      decoder.decode(0x70, 0x40, (c, _, __) => {}, (u, _, __) => {}, (resumeAddr, resumeBit, stringAddr) => {}, (
-        resumeAddr2,
-        resumeBit2,
-        funcAddr,
-        args,
-      ) {
-        calledAddr = funcAddr;
-        calledArgs = args;
-      });
+      decoder.decode(
+        0x70,
+        0x40,
+        (c, _, __) => {},
+        (u, _, __) => {},
+        (resumeAddr, resumeBit, stringAddr) => {},
+        (resumeAddr2, resumeBit2, funcAddr, args) {
+          calledAddr = funcAddr;
+          calledArgs = args;
+        },
+      );
 
       expect(calledAddr, equals(0xA0)); // Dereferenced
       expect(calledArgs, equals([7]));

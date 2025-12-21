@@ -67,7 +67,8 @@ class Xoshiro128 {
   int _random() {
     // rotl(x, k) => (x << k) | (x >> (32 - k))
     final t1x5 = (_table[1] * 5) & 0xFFFFFFFF;
-    final result = ((((t1x5 << 7) | (t1x5 >> 25)) & 0xFFFFFFFF) * 9) & 0xFFFFFFFF;
+    final result =
+        ((((t1x5 << 7) | (t1x5 >> 25)) & 0xFFFFFFFF) * 9) & 0xFFFFFFFF;
 
     final t1s9 = (_table[1] << 9) & 0xFFFFFFFF;
 

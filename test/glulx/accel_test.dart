@@ -66,18 +66,42 @@ void main() {
       /// Spec: All 13 functions (1-13) should be supported.
       test('supportsFunc returns true for indices 1-13', () {
         expect(interpreter.accel.supportsFunc(1), isTrue, reason: 'Z__Region');
-        expect(interpreter.accel.supportsFunc(2), isTrue, reason: 'CP__Tab old');
+        expect(
+          interpreter.accel.supportsFunc(2),
+          isTrue,
+          reason: 'CP__Tab old',
+        );
         expect(interpreter.accel.supportsFunc(3), isTrue, reason: 'RA__Pr old');
         expect(interpreter.accel.supportsFunc(4), isTrue, reason: 'RL__Pr old');
         expect(interpreter.accel.supportsFunc(5), isTrue, reason: 'OC__Cl old');
         expect(interpreter.accel.supportsFunc(6), isTrue, reason: 'RV__Pr old');
         expect(interpreter.accel.supportsFunc(7), isTrue, reason: 'OP__Pr old');
-        expect(interpreter.accel.supportsFunc(8), isTrue, reason: 'CP__Tab new');
+        expect(
+          interpreter.accel.supportsFunc(8),
+          isTrue,
+          reason: 'CP__Tab new',
+        );
         expect(interpreter.accel.supportsFunc(9), isTrue, reason: 'RA__Pr new');
-        expect(interpreter.accel.supportsFunc(10), isTrue, reason: 'RL__Pr new');
-        expect(interpreter.accel.supportsFunc(11), isTrue, reason: 'OC__Cl new');
-        expect(interpreter.accel.supportsFunc(12), isTrue, reason: 'RV__Pr new');
-        expect(interpreter.accel.supportsFunc(13), isTrue, reason: 'OP__Pr new');
+        expect(
+          interpreter.accel.supportsFunc(10),
+          isTrue,
+          reason: 'RL__Pr new',
+        );
+        expect(
+          interpreter.accel.supportsFunc(11),
+          isTrue,
+          reason: 'OC__Cl new',
+        );
+        expect(
+          interpreter.accel.supportsFunc(12),
+          isTrue,
+          reason: 'RV__Pr new',
+        );
+        expect(
+          interpreter.accel.supportsFunc(13),
+          isTrue,
+          reason: 'OP__Pr new',
+        );
       });
 
       /// Spec: "0 always means no acceleration"
@@ -107,7 +131,10 @@ void main() {
       /// Reference: accel.c lines 131-134 - fatal_error on non-function address
       test('setFunc throws GlulxException for non-function address', () {
         // Address 0x24 is in the header (not a function - doesn't start with 0xC0/0xC1)
-        expect(() => interpreter.accel.setFunc(1, 0x24), throwsA(isA<GlulxException>()));
+        expect(
+          () => interpreter.accel.setFunc(1, 0x24),
+          throwsA(isA<GlulxException>()),
+        );
       });
     });
 
@@ -124,7 +151,11 @@ void main() {
       test('gestalt AccelFunc returns 1 for supported indices', () {
         // This is tested implicitly through supportsFunc
         for (var i = 1; i <= 13; i++) {
-          expect(interpreter.accel.supportsFunc(i), isTrue, reason: 'Function $i should be supported');
+          expect(
+            interpreter.accel.supportsFunc(i),
+            isTrue,
+            reason: 'Function $i should be supported',
+          );
         }
       });
 
@@ -166,7 +197,11 @@ void main() {
       }
 
       for (var i = 0; i < 9; i++) {
-        expect(interpreter.accel.getParam(i), equals(testValues[i]), reason: 'Parameter $i should match');
+        expect(
+          interpreter.accel.getParam(i),
+          equals(testValues[i]),
+          reason: 'Parameter $i should match',
+        );
       }
     });
   });

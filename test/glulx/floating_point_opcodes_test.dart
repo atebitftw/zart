@@ -225,7 +225,10 @@ void main() {
         final nanBits = floatToBits(double.nan);
         gameData = createGameData([
           0x81, 0xC8, 0x13,
-          (nanBits >> 24) & 0xFF, (nanBits >> 16) & 0xFF, (nanBits >> 8) & 0xFF, nanBits & 0xFF,
+          (nanBits >> 24) & 0xFF,
+          (nanBits >> 16) & 0xFF,
+          (nanBits >> 8) & 0xFF,
+          nanBits & 0xFF,
           0x10, // branch offset
         ]);
         await interpreter.load(gameData);
@@ -248,9 +251,18 @@ void main() {
         final f3Bits = floatToBits(0.0);
         gameData = createGameData([
           0x81, 0xC0, 0x33, 0x13,
-          (f1Bits >> 24) & 0xFF, (f1Bits >> 16) & 0xFF, (f1Bits >> 8) & 0xFF, f1Bits & 0xFF,
-          (f2Bits >> 24) & 0xFF, (f2Bits >> 16) & 0xFF, (f2Bits >> 8) & 0xFF, f2Bits & 0xFF,
-          (f3Bits >> 24) & 0xFF, (f3Bits >> 16) & 0xFF, (f3Bits >> 8) & 0xFF, f3Bits & 0xFF,
+          (f1Bits >> 24) & 0xFF,
+          (f1Bits >> 16) & 0xFF,
+          (f1Bits >> 8) & 0xFF,
+          f1Bits & 0xFF,
+          (f2Bits >> 24) & 0xFF,
+          (f2Bits >> 16) & 0xFF,
+          (f2Bits >> 8) & 0xFF,
+          f2Bits & 0xFF,
+          (f3Bits >> 24) & 0xFF,
+          (f3Bits >> 16) & 0xFF,
+          (f3Bits >> 8) & 0xFF,
+          f3Bits & 0xFF,
           0x10, // offset
         ]);
         await interpreter.load(gameData);

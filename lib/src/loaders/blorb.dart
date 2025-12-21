@@ -195,7 +195,9 @@ class Blorb {
                       fileBytes[start + 7];
 
                   if (start + 8 + len <= fileBytes.length) {
-                    return Uint8List.fromList(fileBytes.sublist(start + 8, start + 8 + len));
+                    return Uint8List.fromList(
+                      fileBytes.sublist(start + 8, start + 8 + len),
+                    );
                   }
                 } else {
                   log.warning("GLUL chunk not found.");
@@ -273,7 +275,9 @@ class Blorb {
                       fileBytes[start + 7];
 
                   if (start + 8 + len <= fileBytes.length) {
-                    return Uint8List.fromList(fileBytes.sublist(start + 8, start + 8 + len));
+                    return Uint8List.fromList(
+                      fileBytes.sublist(start + 8, start + 8 + len),
+                    );
                   }
                 } else {
                   log.warning("ZCOD chunk not found.");

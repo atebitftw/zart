@@ -24,13 +24,23 @@ class GlkCell {
   int? bgColor;
 
   /// Create a cell with a character and optional style/color.
-  GlkCell(this.char, {this.style = GlkStyle.normal, this.fgColor, this.bgColor});
+  GlkCell(
+    this.char, {
+    this.style = GlkStyle.normal,
+    this.fgColor,
+    this.bgColor,
+  });
 
   /// Create an empty (space) cell with default style.
-  GlkCell.empty() : char = ' ', style = GlkStyle.normal, fgColor = null, bgColor = null;
+  GlkCell.empty()
+    : char = ' ',
+      style = GlkStyle.normal,
+      fgColor = null,
+      bgColor = null;
 
   /// Create a copy of this cell.
-  GlkCell clone() => GlkCell(char, style: style, fgColor: fgColor, bgColor: bgColor);
+  GlkCell clone() =>
+      GlkCell(char, style: style, fgColor: fgColor, bgColor: bgColor);
 
   @override
   bool operator ==(Object other) =>

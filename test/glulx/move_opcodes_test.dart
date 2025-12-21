@@ -106,7 +106,10 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
       await interpreter.executeInstruction();
-      expect(interpreter.stack.pop32().toSigned(32), equals(0xFFFF8899.toSigned(32)));
+      expect(
+        interpreter.stack.pop32().toSigned(32),
+        equals(0xFFFF8899.toSigned(32)),
+      );
     });
 
     test('sexb sign-extends 8-bit to 32-bit', () async {
@@ -119,7 +122,10 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
       await interpreter.executeInstruction();
-      expect(interpreter.stack.pop32().toSigned(32), equals(0xFFFFFF88.toSigned(32)));
+      expect(
+        interpreter.stack.pop32().toSigned(32),
+        equals(0xFFFFFF88.toSigned(32)),
+      );
     });
   });
 }

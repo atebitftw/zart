@@ -46,5 +46,8 @@ abstract class GlkIoProvider {
   int popFromStack() => 0;
 
   /// Configure stack access callbacks.
-  void setStackAccess({required void Function(int value) push, required int Function() pop}) {}
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {}
 }
