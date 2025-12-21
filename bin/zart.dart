@@ -90,22 +90,24 @@ void main(List<String> args) async {
   try {
     await runner.run(file.readAsBytesSync(), filename: filename);
     runner.dispose();
-    print('Saving debug data to log...');
-    debugger.flushLogs();
-    print('Finished saving debug data.');
+    _saveDebugData();
     exit(0);
   } on GameRunnerException catch (e) {
     stderr.writeln('Zart GameRunnerException Error: ${e.message}');
-    print('Saving debug data to log...');
-    debugger.flushLogs();
-    print('Finished saving debug data.');
+    _saveDebugData();
     exit(1);
   } catch (e) {
     stderr.writeln('Zart Error: $e');
+    _saveDebugData();
+    exit(1);
+  }
+}
+
+void _saveDebugData() {
+  if (debugger.enabled) {
     print('Saving debug data to log...');
     debugger.flushLogs();
     print('Finished saving debug data.');
-    exit(1);
   }
 }
 
