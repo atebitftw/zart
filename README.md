@@ -1,7 +1,7 @@
 # Zart
 [![Dart CI](https://github.com/atebitftw/zart/actions/workflows/dart.yaml/badge.svg)](https://github.com/atebitftw/zart/actions/workflows/dart.yaml)
 
-Dart Implementation of the Infocom Z-Machine.
+A multi-platform Z-Machine and Glulx (Inform 6/7) interpreter, for playing Interactive Fiction (IF) games.
 
 ```text
 West of House
@@ -20,8 +20,9 @@ This project is a labor of love.
 Enjoy!
 
 ## Features
-* Plays V3, V5, V7, and V8 games.
-* Supports loading different types of game files (.z3, .z5, .z8, .dat, .blorb, .zblorb, etc).
+* Plays Z-Machine V1, V2, V3, V4, V5, V7, V8 games.
+* Plays Glulx (Inform 6/7) games.
+* Supports loading different types of game files (.z3, .z5, .z8, .dat, .blorb, .zblorb, .gblorb, .ulx, etc).
 * Provides an API that allows you to build your own player for any platform that Dart runs on.
 * Comes with a full-featured CLI player.
 
