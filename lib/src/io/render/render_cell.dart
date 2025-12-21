@@ -34,7 +34,14 @@ class RenderCell {
   static const empty = RenderCell(' ');
 
   /// Create a copy with optional overrides.
-  RenderCell copyWith({String? char, int? fgColor, int? bgColor, bool? bold, bool? italic, bool? reverse}) {
+  RenderCell copyWith({
+    String? char,
+    int? fgColor,
+    int? bgColor,
+    bool? bold,
+    bool? italic,
+    bool? reverse,
+  }) {
     return RenderCell(
       char ?? this.char,
       fgColor: fgColor ?? this.fgColor,
@@ -56,7 +63,8 @@ class RenderCell {
       other.reverse == reverse;
 
   @override
-  int get hashCode => Object.hash(char, fgColor, bgColor, bold, italic, reverse);
+  int get hashCode =>
+      Object.hash(char, fgColor, bgColor, bold, italic, reverse);
 
   @override
   String toString() =>

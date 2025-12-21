@@ -107,8 +107,10 @@ class GameRunner {
       _zDisplay!.applySavedSettings();
     }
 
-    _zDisplay!.onOpenSettings = () =>
-        SettingsScreen(_zDisplay!, config ?? ConfigurationManager()).show(isGameStarted: isGameRunning);
+    _zDisplay!.onOpenSettings = () => SettingsScreen(
+      _zDisplay!,
+      config ?? ConfigurationManager(),
+    ).show(isGameStarted: isGameRunning);
 
     Debugger.enableDebug = false;
     Debugger.enableVerbose = false;
@@ -144,7 +146,11 @@ class GameRunner {
             _zDisplay!.render();
             final line = await _zDisplay!.readLine();
             _zDisplay!.appendToWindow0('\n');
-            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+            final commands = line
+                .split('.')
+                .map((c) => c.trim())
+                .where((c) => c.isNotEmpty)
+                .toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

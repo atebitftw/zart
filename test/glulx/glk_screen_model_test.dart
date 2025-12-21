@@ -41,7 +41,13 @@ void main() {
 
       test('splits window creating pair window', () {
         // Create root.
-        final rootId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final rootId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         expect(rootId, isNotNull);
 
         // Split above with 3 rows.
@@ -70,7 +76,13 @@ void main() {
       });
 
       test('closing child promotes sibling to replace pair', () {
-        final bufferId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final bufferId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         final gridId = model.windowOpen(
           bufferId,
           GlkWinmethod.above | GlkWinmethod.fixed,
@@ -97,7 +109,13 @@ void main() {
       });
 
       test('fixed split allocates correct sizes', () {
-        final bufferId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final bufferId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         final gridId = model.windowOpen(
           bufferId,
           GlkWinmethod.above | GlkWinmethod.fixed,
@@ -116,7 +134,13 @@ void main() {
       });
 
       test('proportional split allocates percentage', () {
-        final bufferId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final bufferId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         final statusId = model.windowOpen(
           bufferId,
           GlkWinmethod.left | GlkWinmethod.proportional,
@@ -138,7 +162,13 @@ void main() {
     group('Window Set Arrangement', () {
       test('resizes window via set arrangement', () {
         // Create root buffer window.
-        final bufferId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final bufferId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         // Split with 1-line status bar.
         final gridId = model.windowOpen(
           bufferId,
@@ -159,7 +189,12 @@ void main() {
         final pairId = gridWindow.parent!.id;
 
         // Resize the status bar to 2 rows.
-        model.windowSetArrangement(pairId, GlkWinmethod.above | GlkWinmethod.fixed, 2, gridId);
+        model.windowSetArrangement(
+          pairId,
+          GlkWinmethod.above | GlkWinmethod.fixed,
+          2,
+          gridId,
+        );
 
         // Verify grid now has 2 rows.
         (gridW, gridH) = model.windowGetSize(gridId);
@@ -173,11 +208,22 @@ void main() {
       });
 
       test('does nothing if window is not a pair window', () {
-        final bufferId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final bufferId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         final (initialW, initialH) = model.windowGetSize(bufferId!);
 
         // Try to call set arrangement on a non-pair window.
-        model.windowSetArrangement(bufferId, GlkWinmethod.above | GlkWinmethod.fixed, 5, 0);
+        model.windowSetArrangement(
+          bufferId,
+          GlkWinmethod.above | GlkWinmethod.fixed,
+          5,
+          0,
+        );
 
         // Size should be unchanged.
         final (w, h) = model.windowGetSize(bufferId);
@@ -187,7 +233,13 @@ void main() {
 
       test('grid window content preserved after resize', () {
         // Create buffer + grid.
-        final bufferId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final bufferId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         final gridId = model.windowOpen(
           bufferId,
           GlkWinmethod.above | GlkWinmethod.fixed,
@@ -201,7 +253,12 @@ void main() {
 
         // Resize via set arrangement.
         final pairId = model.getWindow(gridId)!.parent!.id;
-        model.windowSetArrangement(pairId, GlkWinmethod.above | GlkWinmethod.fixed, 3, gridId);
+        model.windowSetArrangement(
+          pairId,
+          GlkWinmethod.above | GlkWinmethod.fixed,
+          3,
+          gridId,
+        );
 
         // Content should be preserved in first row.
         final cells = model.getTextGridCells(gridId);
@@ -220,7 +277,13 @@ void main() {
       });
 
       test('split window has pair parent', () {
-        final bufferId = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
+        final bufferId = model.windowOpen(
+          null,
+          0,
+          0,
+          GlkWindowType.textBuffer,
+          0,
+        );
         final gridId = model.windowOpen(
           bufferId,
           GlkWinmethod.above | GlkWinmethod.fixed,
@@ -345,7 +408,13 @@ void main() {
 
       test('multiple windows can have pending input', () {
         final buf = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
-        final grid = model.windowOpen(buf, GlkWinmethod.above | GlkWinmethod.fixed, 3, GlkWindowType.textGrid, 0);
+        final grid = model.windowOpen(
+          buf,
+          GlkWinmethod.above | GlkWinmethod.fixed,
+          3,
+          GlkWindowType.textGrid,
+          0,
+        );
 
         model.requestLineEvent(buf!, 0x1000, 255);
         model.requestCharEvent(grid!);
@@ -358,7 +427,13 @@ void main() {
     group('Visible Windows', () {
       test('returns all visible windows', () {
         final buf = model.windowOpen(null, 0, 0, GlkWindowType.textBuffer, 0);
-        final grid = model.windowOpen(buf, GlkWinmethod.above | GlkWinmethod.fixed, 3, GlkWindowType.textGrid, 0);
+        final grid = model.windowOpen(
+          buf,
+          GlkWinmethod.above | GlkWinmethod.fixed,
+          3,
+          GlkWindowType.textGrid,
+          0,
+        );
 
         final visible = model.getVisibleWindows();
         expect(visible.length, 2);

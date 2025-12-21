@@ -6,7 +6,10 @@ class TestGlkIoProvider implements GlkIoProvider {
   @override
   dynamic noSuchMethod(Invocation invocation) {
     if (invocation.memberName == #vmGestalt) {
-      return _defaultVmGestalt(invocation.positionalArguments[0], invocation.positionalArguments[1]);
+      return _defaultVmGestalt(
+        invocation.positionalArguments[0],
+        invocation.positionalArguments[1],
+      );
     }
     return null;
   }

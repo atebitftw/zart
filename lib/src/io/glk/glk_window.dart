@@ -97,7 +97,8 @@ class GlkTextBufferWindow extends GlkWindow {
     return lines.last;
   }
 
-  GlkTextBufferWindow({required super.id, required super.rock}) : super(type: GlkWindowType.textBuffer);
+  GlkTextBufferWindow({required super.id, required super.rock})
+    : super(type: GlkWindowType.textBuffer);
 
   /// Add a new line.
   void newLine() {
@@ -135,7 +136,8 @@ class GlkTextGridWindow extends GlkWindow {
   /// Cursor Y position (0-indexed).
   int cursorY = 0;
 
-  GlkTextGridWindow({required super.id, required super.rock}) : super(type: GlkWindowType.textGrid) {
+  GlkTextGridWindow({required super.id, required super.rock})
+    : super(type: GlkWindowType.textGrid) {
     grid = [];
   }
 
@@ -145,7 +147,9 @@ class GlkTextGridWindow extends GlkWindow {
       newHeight,
       (row) => List.generate(
         newWidth,
-        (col) => (row < grid.length && col < grid[row].length) ? grid[row][col].clone() : GlkCell.empty(),
+        (col) => (row < grid.length && col < grid[row].length)
+            ? grid[row][col].clone()
+            : GlkCell.empty(),
       ),
     );
     grid = newGrid;
@@ -185,7 +189,8 @@ class GlkGraphicsWindow extends GlkWindow {
   // TODO: Implement pixel buffer when graphics support is needed.
   // For now, this is a stub to allow opening graphics windows without crashing.
 
-  GlkGraphicsWindow({required super.id, required super.rock}) : super(type: GlkWindowType.graphics);
+  GlkGraphicsWindow({required super.id, required super.rock})
+    : super(type: GlkWindowType.graphics);
 
   /// Clear the graphics window to background color.
   void clear() {
@@ -197,7 +202,8 @@ class GlkGraphicsWindow extends GlkWindow {
 ///
 /// Glk Spec: "A blank window is always empty."
 class GlkBlankWindow extends GlkWindow {
-  GlkBlankWindow({required super.id, required super.rock}) : super(type: GlkWindowType.blank);
+  GlkBlankWindow({required super.id, required super.rock})
+    : super(type: GlkWindowType.blank);
 }
 
 /// Pair window - internal container created by splits.
@@ -221,5 +227,6 @@ class GlkPairWindow extends GlkWindow {
   /// Split size (rows/cols for fixed, percentage for proportional).
   int size = 0;
 
-  GlkPairWindow({required super.id, required super.rock}) : super(type: GlkWindowType.pair);
+  GlkPairWindow({required super.id, required super.rock})
+    : super(type: GlkWindowType.pair);
 }
