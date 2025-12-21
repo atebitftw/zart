@@ -12,8 +12,7 @@ import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/cell.dart';
 import 'package:zart/src/cli/ui/zart_terminal.dart';
 
-const _zartBarText =
-    "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
 
 /// Layout:
 /// ```text
@@ -44,9 +43,7 @@ class TerminalDisplay implements ZartTerminal {
   int get cols => _cols;
 
   /// Terminal rows
-  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true))
-      ? _rows - 1
-      : _rows; // Dynamic sizing
+  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true)) ? _rows - 1 : _rows; // Dynamic sizing
 
   final ScreenModel _screen = ScreenModel();
 
@@ -71,8 +68,7 @@ class TerminalDisplay implements ZartTerminal {
   bool enableStatusBar = false;
 
   String _inputBuffer = '';
-  int _inputLine =
-      -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
   String? _tempStatusMessage;
@@ -96,8 +92,7 @@ class TerminalDisplay implements ZartTerminal {
   int _currentTextColorIndex = 0;
 
   void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _screen.forceWindow0Color(newColor);
 
@@ -163,9 +158,7 @@ class TerminalDisplay implements ZartTerminal {
     sleep(Duration(seconds: seconds));
 
     final paddedText = _zartBarText.padRight(cols);
-    final finalText = paddedText.length > cols
-        ? paddedText.substring(0, cols)
-        : paddedText;
+    final finalText = paddedText.length > cols ? paddedText.substring(0, cols) : paddedText;
 
     // ANSI Sequence:
     // 1. Save Cursor (\x1b7)
@@ -185,32 +178,9 @@ class TerminalDisplay implements ZartTerminal {
   int _inputCol = 0; // Column where input started
 
   // ANSI helper via console?
-  bool get _supportsAnsi =>
-      true; // dart_console handles this internally usually
+  bool get _supportsAnsi => true; // dart_console handles this internally usually
 
   // helper to get key string
-  String _keyToString(Key key) {
-    if (key.char.isNotEmpty) return key.char;
-
-    switch (key.controlChar) {
-      case ControlCharacter.enter:
-        return '\n';
-      case ControlCharacter.backspace:
-        return String.fromCharCode(127);
-      case ControlCharacter.arrowUp:
-        return String.fromCharCode(129);
-      case ControlCharacter.arrowDown:
-        return String.fromCharCode(130);
-      case ControlCharacter.arrowLeft:
-        return String.fromCharCode(131);
-      case ControlCharacter.arrowRight:
-        return String.fromCharCode(132);
-      case ControlCharacter.escape:
-        return String.fromCharCode(27);
-      default:
-        return '';
-    }
-  }
 
   int _scrollOffset = 0; // 0 = at bottom
 
@@ -324,11 +294,7 @@ class TerminalDisplay implements ZartTerminal {
   /// Save screen state (for settings/menus).
   void saveState() {
     _screen.saveState();
-    _savedTerminalState = {
-      'inputLine': _inputLine,
-      'inputBuffer': _inputBuffer,
-      'inputCol': _inputCol,
-    };
+    _savedTerminalState = {'inputLine': _inputLine, 'inputBuffer': _inputBuffer, 'inputCol': _inputCol};
   }
 
   /// Restore screen state.
@@ -466,11 +432,7 @@ class TerminalDisplay implements ZartTerminal {
     int lastStyle = -1;
 
     // Helper to render a row of cells
-    void renderRow(
-      int screenRow,
-      List<Cell> cells, {
-      required bool forceFullWidth,
-    }) {
+    void renderRow(int screenRow, List<Cell> cells, {required bool forceFullWidth}) {
       buf.write('\x1B[$screenRow;1H'); // Position cursor
 
       // Calculate effective cells
@@ -554,9 +516,7 @@ class TerminalDisplay implements ZartTerminal {
 
     // Calculate maximum possible scroll
     // w0Grid.length is total history. window0Lines is viewport height.
-    final maxScroll = (w0Grid.length > window0Lines)
-        ? w0Grid.length - window0Lines
-        : 0;
+    final maxScroll = (w0Grid.length > window0Lines) ? w0Grid.length - window0Lines : 0;
 
     // Clamp offset
     if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
@@ -579,13 +539,7 @@ class TerminalDisplay implements ZartTerminal {
 
     // Draw Scroll Bar if needed
     if (maxScroll > 0) {
-      _drawScrollBar(
-        buf,
-        window0Lines,
-        startLine,
-        w0Grid.length,
-        window1Lines + separatorLine + 1,
-      );
+      _drawScrollBar(buf, window0Lines, startLine, w0Grid.length, window1Lines + separatorLine + 1);
     }
 
     // Draw status bar
@@ -607,12 +561,9 @@ class TerminalDisplay implements ZartTerminal {
       final inputRelativeRaw = _inputLine - startLine;
 
       if (inputRelativeRaw >= 0 && inputRelativeRaw < window0Lines) {
-        final inputScreenRow =
-            inputRelativeRaw + window1Lines + separatorLine + 1;
+        final inputScreenRow = inputRelativeRaw + window1Lines + separatorLine + 1;
 
-        if (inputScreenRow >= 1 &&
-            inputScreenRow <= _rows &&
-            inputScreenRow < _console.windowHeight) {
+        if (inputScreenRow >= 1 && inputScreenRow <= _rows && inputScreenRow < _console.windowHeight) {
           final cursorCol = w0Grid[_inputLine].length + 1;
           buf.write('\x1B[$inputScreenRow;${cursorCol}H');
           buf.write('\x1B[?25h'); // Show cursor
@@ -625,13 +576,7 @@ class TerminalDisplay implements ZartTerminal {
     stdout.write(buf.toString());
   }
 
-  void _drawScrollBar(
-    StringBuffer buf,
-    int height,
-    int currentStart,
-    int totalLines,
-    int startRow,
-  ) {
+  void _drawScrollBar(StringBuffer buf, int height, int currentStart, int totalLines, int startRow) {
     if (totalLines <= height) return;
 
     // Calculate visible ratio
@@ -681,9 +626,7 @@ class TerminalDisplay implements ZartTerminal {
   void _drawStatusBar(StringBuffer buf) {
     if (!(config?.zartBarVisible ?? true)) return;
 
-    if (_tempStatusMessage != null &&
-        _tempStatusExpiry != null &&
-        DateTime.now().isAfter(_tempStatusExpiry!)) {
+    if (_tempStatusMessage != null && _tempStatusExpiry != null && DateTime.now().isAfter(_tempStatusExpiry!)) {
       _tempStatusMessage = null;
     }
 
@@ -697,9 +640,7 @@ class TerminalDisplay implements ZartTerminal {
     // Pad with spaces to fill width
     final paddedText = statusText.padRight(_cols);
     // Truncate if too long to prevent wrapping
-    final finalText = paddedText.length > _cols
-        ? paddedText.substring(0, _cols)
-        : paddedText;
+    final finalText = paddedText.length > _cols ? paddedText.substring(0, _cols) : paddedText;
 
     // Position at last row (using _console.windowHeight directly)
     // Note: _rows is now windowHeight - 1
@@ -779,17 +720,13 @@ class TerminalDisplay implements ZartTerminal {
     _scrollOffset = 0;
 
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.length - 1
-        : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.last.length
-        : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
 
     render();
 
@@ -921,8 +858,7 @@ class TerminalDisplay implements ZartTerminal {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) {
               rowList.removeLast();
@@ -933,115 +869,23 @@ class TerminalDisplay implements ZartTerminal {
       } else if (key.char.isNotEmpty) {
         // Printable
         final char = key.char;
+        _inputBuffer += char;
 
-        // Check if char is "mouse-like" (digit, semi, M, m)
-        // If so, buffer it and don't echo yet.
-        final isMouseChar = RegExp(r'[0-9;Mm]').hasMatch(char);
-
-        if (isMouseChar) {
-          _partialMouseBuffer.write(char);
-          final partial = _partialMouseBuffer.toString();
-
-          // 1. Validation Logic
-          // Valid Prefix: Starts with digit, followed by digits/semis
-          final RegExp validPrefix = RegExp(r'^\d[\d;]*$');
-
-          // 1. Check for Complete Mouse Sequence
-          final RegExp fullSeq = RegExp(r'^\d+;\d+;\d+[Mm]$');
-          if (fullSeq.hasMatch(partial)) {
-            // Complete Mouse Sequence!
-            final match = fullSeq.firstMatch(partial);
-            if (match != null) {
-              // Parse
-              final fullStr = match.group(0)!;
-              final parts = fullStr.substring(0, fullStr.length - 1).split(';');
-              if (parts.length >= 3) {
-                final btn = int.tryParse(parts[0]) ?? 0;
-                if (btn == 64) {
-                  _scrollOffset++;
-                  final maxScroll =
-                      (_screen.window0Grid.length > _screen.window0Lines)
-                      ? _screen.window0Grid.length - _screen.window0Lines
-                      : 0;
-                  if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
-                } else if (btn == 65) {
-                  _scrollOffset--;
-                  if (_scrollOffset < 0) _scrollOffset = 0;
-                }
-                // Other buttons ignored
-              }
-            }
-            _partialMouseBuffer.clear();
-            render();
-            continue; // Consumed, do not echo
+        // Update Grid
+        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+          final rowList = _screen.window0Grid[_inputLine];
+          if (rowList.length < _cols) {
+            // Force user input to be White (9) per user request
+            rowList.add(Cell(char, fg: 9, bg: _screen.bgColor, style: _screen.currentStyle));
           }
-
-          // 2. Check Valid Prefix (digits/semis only)
-          if (validPrefix.hasMatch(partial)) {
-            // Partial valid sequence, continue buffering
-            // Do NOT echo yet
-            continue;
-          }
-
-          // If NOT valid prefix, flush buffer
-          // It was just random numbers/semis typed by user
-          // Fall through to flush logic below
         }
-
-        // Processing Logic (Flush buffer + current char)
-        // If we are here, either:
-        // 1. char is NOT mouse-like
-        // 2. char IS mouse-like, but combined with buffer makes invalid sequence
-
-        String toProcess = '';
-        // If buffer has content that turned out invalid, use it
-        if (_partialMouseBuffer.isNotEmpty) {
-          toProcess = _partialMouseBuffer.toString();
-          _partialMouseBuffer.clear();
-        }
-
-        // If char wasn't effectively strictly buffered (i.e. we fell through), add it.
-        // Wait, if it WAS mouse char, it IS in buffer.
-        // If it WAS NOT mouse char, it is NOT in buffer.
-        if (!isMouseChar) {
-          toProcess += char;
-        }
-
-        if (toProcess.isNotEmpty) {
-          _inputBuffer += toProcess;
-
-          // Update Grid
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
-            final rowList = _screen.window0Grid[_inputLine];
-            for (int i = 0; i < toProcess.length; i++) {
-              if (rowList.length < _cols) {
-                // Force user input to be White (9) per user request
-                rowList.add(
-                  Cell(
-                    toProcess[i],
-                    fg: 9,
-                    bg: _screen.bgColor,
-                    style: _screen.currentStyle,
-                  ),
-                );
-              }
-            }
-          }
-          render();
-        }
+        render();
       }
-      // Ignore Arrows in Line Mode
     }
   }
 
   // Buffer for mouse sequence parsing (Header based)
   final StringBuffer _pendingMouseSequence = StringBuffer();
-
-  // Buffer for flushed keys (when mouse detection fails)
-  final List<String> _keyQueue = [];
-  // Buffer for potential mouse tail (Leak based)
-  final StringBuffer _partialMouseBuffer = StringBuffer();
 
   String _keyChar(Key key) {
     if (key.char.isNotEmpty) return key.char;
@@ -1060,9 +904,8 @@ class TerminalDisplay implements ZartTerminal {
     String content = seq;
     if (seq.startsWith('\x1B[<')) {
       content = seq.substring(3, seq.length - 1);
-    } else if (seq.endsWith('M') || seq.endsWith('m')) {
-      // Leak format: 64;X;YM
-      content = seq.substring(0, seq.length - 1);
+    } else {
+      return; // Not a supported sequence
     }
 
     final parts = content.split(';');
@@ -1087,11 +930,6 @@ class TerminalDisplay implements ZartTerminal {
   /// Read a single character for char input mode.
   Future<String> readChar() async {
     while (true) {
-      // 1. Process Queue
-      if (_keyQueue.isNotEmpty) {
-        return _keyQueue.removeAt(0);
-      }
-
       final key = _console.readKey();
 
       // Handle Ctrl+C to exit
@@ -1099,7 +937,7 @@ class TerminalDisplay implements ZartTerminal {
         throw Exception('User pressed Ctrl+C');
       }
 
-      // 2. Standard Header-based Mouse Handling (Escape)
+      // Standard Header-based Mouse Handling (Escape)
       if (key.controlChar == ControlCharacter.escape) {
         _pendingMouseSequence.clear();
         _pendingMouseSequence.write('\x1B');
@@ -1135,62 +973,15 @@ class TerminalDisplay implements ZartTerminal {
 
       if (await _handleGlobalKeys(key)) continue;
 
-      // 3. Leak-based Mouse Handling (Digits/Semi/M/m)
-      // If we see chars likely to be part of a mouse code, buffer them.
-      // SGR Tail: digits, ;, M, m
-      final char = _keyChar(key);
-      if (char.isNotEmpty) {
-        final isMouseChar = RegExp(r'[0-9;Mm]').hasMatch(char);
-        if (isMouseChar) {
-          _partialMouseBuffer.write(char);
-          final partial = _partialMouseBuffer.toString();
+      // Map control characters to their expected values
+      if (key.controlChar == ControlCharacter.enter) return '\n';
+      if (key.controlChar == ControlCharacter.backspace) return '\x7F';
+      if (key.controlChar == ControlCharacter.arrowUp) return '\x81';
+      if (key.controlChar == ControlCharacter.arrowDown) return '\x82';
+      if (key.controlChar == ControlCharacter.arrowLeft) return '\x83';
+      if (key.controlChar == ControlCharacter.arrowRight) return '\x84';
 
-          // Validation
-          // Valid Prefix: Starts with digit, followed by digits/semis
-          final RegExp validPrefix = RegExp(r'^\d[\d;]*$');
-
-          // 1. Check for Complete Sequence
-          final RegExp fullSeq = RegExp(r'^\d+;\d+;\d+[Mm]$');
-          if (fullSeq.hasMatch(partial)) {
-            // It's a mouse event!
-            _parseMouse(partial);
-            _partialMouseBuffer.clear();
-            render();
-            continue;
-          }
-
-          // 2. Check Valid Prefix
-          if (validPrefix.hasMatch(partial)) {
-            // Continue buffering
-            continue;
-          }
-
-          // If here, it's NOT a valid mouse prefix or sequence.
-          // Flush buffer to queue
-          for (int i = 0; i < partial.length; i++) {
-            _keyQueue.add(partial[i]);
-          }
-          _partialMouseBuffer.clear();
-          // Loop will pick up from queue
-          continue;
-        } else {
-          // Not a mouse char.
-          // If we have buffer, flush it + this char
-          if (_partialMouseBuffer.isNotEmpty) {
-            final partial = _partialMouseBuffer.toString();
-            for (int i = 0; i < partial.length; i++) {
-              _keyQueue.add(partial[i]);
-            }
-            _partialMouseBuffer.clear();
-            _keyQueue.add(char);
-            continue; // Loop processes queue
-          }
-          // Else just return this char
-          return char;
-        }
-      }
-
-      return _keyToString(key);
+      return key.char.isNotEmpty ? key.char : '';
     }
   }
 }
