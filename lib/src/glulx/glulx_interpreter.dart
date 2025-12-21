@@ -1233,18 +1233,32 @@ class GlulxInterpreter {
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dmodr:
+        // Reference: exec.c op_dmodr uses fmod()
+        // Dart's remainder() matches C's fmod behavior
         final d1 = _u2d(operands[0] as int, operands[1] as int);
         final d2 = _u2d(operands[2] as int, operands[3] as int);
-        final res = _d2u(d1 % d2);
+        final remainder = d1.remainder(d2);
+        final res = _d2u(remainder);
         _performStore(operands[4] as StoreOperand, res[0]);
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dmodq:
-        final d1 = _u2d(operands[0] as int, operands[1] as int);
-        final d2 = _u2d(operands[2] as int, operands[3] as int);
-        final res = _d2u((d1 / d2).truncateToDouble());
-        _performStore(operands[4] as StoreOperand, res[0]);
-        _performStore(operands[5] as StoreOperand, res[1]);
+        // Reference: exec.c op_dmodq computes: vald = fmod(vald1, vald2); then (vald1-vald)/vald2
+        // Also has sign preservation for zero quotient
+        final dmodqHiRaw = operands[0] as int;
+        final dmodq1 = _u2d(dmodqHiRaw, operands[1] as int);
+        final dmodqHi2Raw = operands[2] as int;
+        final dmodq2 = _u2d(dmodqHi2Raw, operands[3] as int);
+        final dmodqRemainder = dmodq1.remainder(dmodq2);
+        final dmodqQuot = (dmodq1 - dmodqRemainder) / dmodq2;
+        var dmodqRes = _d2u(dmodqQuot);
+        // When quotient is zero, sign is lost - set by hand from original args
+        // res[0] is lo, res[1] is hi
+        if ((dmodqRes[1] == 0x0 || dmodqRes[1] == 0x80000000) && dmodqRes[0] == 0x0) {
+          dmodqRes = [0, (dmodqHiRaw ^ dmodqHi2Raw) & 0x80000000];
+        }
+        _performStore(operands[4] as StoreOperand, dmodqRes[0]);
+        _performStore(operands[5] as StoreOperand, dmodqRes[1]);
         break;
       case GlulxOp.dsqrt:
         final res = _d2u(math.sqrt(_u2d(operands[0] as int, operands[1] as int)));
@@ -1401,15 +1415,17 @@ class GlulxInterpreter {
         }
         break;
       case GlulxOp.numtod:
+        // Reference: exec.c op_numtod - stores lo to first dest, hi to second
+        // _d2u now returns [lo, hi] to match this order
         final res = _d2u((operands[0] as int).toSigned(32).toDouble());
-        _performStore(operands[1] as StoreOperand, res[0]);
-        _performStore(operands[2] as StoreOperand, res[1]);
+        _performStore(operands[1] as StoreOperand, res[0]); // lo
+        _performStore(operands[2] as StoreOperand, res[1]); // hi
         break;
       case GlulxOp.dtonumz:
         // Check sign bit from raw representation (C uses signbit())
-        // For doubles, operands[1] is the high word containing the sign bit
-        final dtzHiRaw = operands[1] as int;
-        final dtz = _u2d(operands[0] as int, dtzHiRaw);
+        // For doubles, operands[0] is the high word containing the sign bit (per C decode_double(valhi, vallo))
+        final dtzHiRaw = operands[0] as int;
+        final dtz = _u2d(dtzHiRaw, operands[1] as int);
         final dtzSignBit = (dtzHiRaw & 0x80000000) != 0;
         int dtzResult;
         if (!dtzSignBit) {
@@ -1431,9 +1447,9 @@ class GlulxInterpreter {
         break;
       case GlulxOp.dtonumn:
         // Check sign bit from raw representation (C uses signbit())
-        // For doubles, operands[1] is the high word containing the sign bit
-        final dtnHiRaw = operands[1] as int;
-        final dtn = _u2d(operands[0] as int, dtnHiRaw);
+        // For doubles, operands[0] is the high word containing the sign bit (per C decode_double(valhi, vallo))
+        final dtnHiRaw = operands[0] as int;
+        final dtn = _u2d(dtnHiRaw, operands[1] as int);
         final dtnSignBit = (dtnHiRaw & 0x80000000) != 0;
         int dtnResult;
         if (!dtnSignBit) {
@@ -2594,10 +2610,15 @@ class GlulxInterpreter {
     return bd.getFloat64(0);
   }
 
+  /// Converts a Dart double to two 32-bit unsigned integers [lo, hi].
+  /// Returns [lo, hi] to match C reference store order (store lo first, then hi).
+  /// Reference: exec.c always does store_operand(..., val0lo) then store_operand(..., val0hi)
   List<int> _d2u(double d) {
     final bd = ByteData(8);
     bd.setFloat64(0, d);
-    return [bd.getUint32(0), bd.getUint32(4)];
+    final hi = bd.getUint32(0);
+    final lo = bd.getUint32(4);
+    return [lo, hi]; // lo first, hi second
   }
 
   // ========== Search Support ==========

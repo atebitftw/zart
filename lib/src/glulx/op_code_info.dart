@@ -199,7 +199,7 @@ class OpcodeInfo {
     GlulxOp.numtod: OpcodeInfo(3, [false, true, true]),
     GlulxOp.dtonumz: OpcodeInfo(3, [false, false, true]),
     GlulxOp.dtonumn: OpcodeInfo(3, [false, false, true]),
-    GlulxOp.ftod: OpcodeInfo(2, [false, true, true]),
+    GlulxOp.ftod: OpcodeInfo(3, [false, true, true]),
     GlulxOp.dtof: OpcodeInfo(3, [false, false, true]),
     GlulxOp.jdeq: OpcodeInfo(7, [false, false, false, false, false, false, false]),
     GlulxOp.jdne: OpcodeInfo(7, [false, false, false, false, false, false, false]),

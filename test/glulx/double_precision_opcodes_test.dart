@@ -53,8 +53,9 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0, 0, 0]));
 
       await interpreter.executeInstruction();
-      final lo = interpreter.stack.pop32();
+      // Stack order: lo was stored first, hi second. Pop gets hi first.
       final hi = interpreter.stack.pop32();
+      final lo = interpreter.stack.pop32();
       expect(bitsToDouble(hi, lo), equals(100.0));
     });
 
@@ -91,8 +92,9 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0, 0, 0]));
 
       await interpreter.executeInstruction();
-      final lo = interpreter.stack.pop32();
+      // Stack order: lo was stored first, hi second. Pop gets hi first.
       final hi = interpreter.stack.pop32();
+      final lo = interpreter.stack.pop32();
       expect(bitsToDouble(hi, lo), equals(4.0));
     });
 
@@ -129,8 +131,9 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0, 0, 0]));
 
       await interpreter.executeInstruction();
-      final lo = interpreter.stack.pop32();
+      // Stack order: lo was stored first, hi second. Pop gets hi first.
       final hi = interpreter.stack.pop32();
+      final lo = interpreter.stack.pop32();
       expect(bitsToDouble(hi, lo), equals(10.0));
     });
 
@@ -148,8 +151,9 @@ void main() {
         interpreter.stack.pushFrame(Uint8List.fromList([0, 0, 0, 0]));
 
         await interpreter.executeInstruction();
-        final lo = interpreter.stack.pop32();
+        // Stack order: lo was stored first, hi second. Pop gets hi first.
         final hi = interpreter.stack.pop32();
+        final lo = interpreter.stack.pop32();
         expect(bitsToDouble(hi, lo), closeTo(0.0, 0.00001));
       });
     });
