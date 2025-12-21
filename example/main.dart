@@ -6,7 +6,7 @@ import 'package:logging/logging.dart' show Level;
 import 'package:zart/zart.dart' hide getPreamble;
 import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/settings_screen.dart';
-import 'package:zart/src/cli/ui/terminal_display.dart';
+import 'package:zart/src/cli/ui/z_terminal_display.dart';
 
 /// A full-screen terminal-based console player for Z-Machine.
 /// Uses dart_console for cross-platform support.
@@ -41,11 +41,10 @@ void main(List<String> args) async {
   }
 
   var isGameRunning = false;
-  final terminal = TerminalDisplay();
+  final terminal = ZTerminalDisplay();
   terminal.config = config;
   terminal.applySavedSettings();
-  terminal.onOpenSettings = () =>
-      SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
+  terminal.onOpenSettings = () => SettingsScreen(terminal, config).show(isGameStarted: isGameRunning);
 
   try {
     final bytes = f.readAsBytesSync();
@@ -63,7 +62,7 @@ void main(List<String> args) async {
 
     // Set IoProvider before loading
     final provider = TerminalProvider(terminal, filename);
-    Z.io = provider as IoProvider;
+    Z.io = provider as ZIoDispatcher;
     // Map autosave trigger to provider flag
     terminal.onAutosave = () {
       provider.isQuickSaveMode = true;
@@ -121,11 +120,7 @@ void main(List<String> args) async {
             final line = await terminal.readLine();
             terminal.appendToWindow0('\n');
             // Split by '.' to support chained commands
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {
@@ -170,8 +165,8 @@ void main(List<String> args) async {
   }
 }
 
-class TerminalProvider implements IoProvider {
-  final TerminalDisplay terminal;
+class TerminalProvider implements ZIoDispatcher {
+  final ZTerminalDisplay terminal;
   final String gameName;
   bool isQuickSaveMode = false;
   bool isAutorestoreMode = false;
@@ -191,9 +186,9 @@ class TerminalProvider implements IoProvider {
   // Method mapping implementation...
   @override
   Future<dynamic> command(Map<String, dynamic> commandMessage) async {
-    final cmd = commandMessage['command'] as IoCommands;
+    final cmd = commandMessage['command'] as ZIoCommands;
     switch (cmd) {
-      case IoCommands.print:
+      case ZIoCommands.print:
         final window = commandMessage['window'] as int;
         final buffer = commandMessage['buffer'] as String?;
         if (buffer != null) {
@@ -204,18 +199,18 @@ class TerminalProvider implements IoProvider {
           }
         }
         break;
-      case IoCommands.splitWindow:
+      case ZIoCommands.splitWindow:
         final lines = commandMessage['lines'] as int;
         terminal.splitWindow(lines);
         break;
-      case IoCommands.setWindow:
+      case ZIoCommands.setWindow:
         // Current window is implicit in print command usage in Z-Machine
         // But we track it in IoProvider? No, ScreenModel manages where text goes?
         // Z-Machine ops: `set_window`.
         // The interpreter passes `window` arg only to `print`.
         // We're good.
         break;
-      case IoCommands.clearScreen:
+      case ZIoCommands.clearScreen:
         final window = commandMessage['window_id'] as int;
         if (window == -1 || window == -2) {
           terminal.clearAll();
@@ -225,28 +220,28 @@ class TerminalProvider implements IoProvider {
           terminal.clearWindow1();
         }
         break;
-      case IoCommands.setCursor:
+      case ZIoCommands.setCursor:
         final line = commandMessage['line'] as int;
         final col = commandMessage['column'] as int;
         terminal.setCursor(line, col);
         break;
-      case IoCommands.getCursor:
+      case ZIoCommands.getCursor:
         return terminal.getCursor();
-      case IoCommands.setTextStyle:
+      case ZIoCommands.setTextStyle:
         final style = commandMessage['style'] as int;
         terminal.setStyle(style);
         break;
-      case IoCommands.setColour:
+      case ZIoCommands.setColour:
         final fg = commandMessage['foreground'] as int;
         final bg = commandMessage['background'] as int;
         terminal.setColors(fg, bg);
         break;
-      case IoCommands.eraseLine:
+      case ZIoCommands.eraseLine:
         // Erase line in current window?
         // Z-machine standard: erase to end of line.
         // We'll leave unimplemented for now.
         break;
-      case IoCommands.status:
+      case ZIoCommands.status:
         // V3 Status Line
         final room = commandMessage['room_name'] as String;
         final score1 = commandMessage['score_one'] as String;
@@ -254,9 +249,7 @@ class TerminalProvider implements IoProvider {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (terminal.screen.window1Height < 1) {
@@ -280,8 +273,7 @@ class TerminalProvider implements IoProvider {
         // 2. Calculate padding
         final width = terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -296,7 +288,7 @@ class TerminalProvider implements IoProvider {
         terminal.setStyle(0);
         terminal.setColors(1, 1); // Reset to defaults
         break;
-      case IoCommands.save:
+      case ZIoCommands.save:
         final fileData = commandMessage['file_data'] as List<int>;
 
         String filename;
@@ -342,7 +334,7 @@ class TerminalProvider implements IoProvider {
           terminal.appendToWindow0('Save failed: $e\n');
           return false;
         }
-      case IoCommands.restore:
+      case ZIoCommands.restore:
         String filename;
 
         if (isAutorestoreMode) {
@@ -356,10 +348,7 @@ class TerminalProvider implements IoProvider {
 
           final f = File(filename);
           if (!f.existsSync()) {
-            terminal.showTempMessage(
-              'QuickSave File Not Found! Cannot Restore',
-              seconds: 3,
-            );
+            terminal.showTempMessage('QuickSave File Not Found! Cannot Restore', seconds: 3);
             isAutorestoreMode = false;
             return null;
           }

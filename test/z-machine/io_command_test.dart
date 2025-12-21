@@ -3,7 +3,7 @@ import 'package:zart/zart.dart';
 import 'package:test/test.dart';
 
 /// Comprehensive test provider that captures and handles all IoCommands
-class ComprehensiveTestProvider extends IoProvider {
+class ComprehensiveTestProvider extends ZIoDispatcher {
   final StringBuffer output = StringBuffer();
   final List<Map<String, dynamic>> commands = [];
 
@@ -34,60 +34,57 @@ class ComprehensiveTestProvider extends IoProvider {
   Future<dynamic> command(Map<String, dynamic> ioData) async {
     commands.add(ioData);
 
-    final cmd = ioData['command'] as IoCommands?;
+    final cmd = ioData['command'] as ZIoCommands?;
 
     switch (cmd) {
-      case IoCommands.print:
+      case ZIoCommands.print:
         output.write(ioData['buffer'] ?? '');
         return null;
 
-      case IoCommands.status:
+      case ZIoCommands.status:
         return null;
 
-      case IoCommands.quit:
+      case ZIoCommands.quit:
         return null;
 
-      case IoCommands.splitWindow:
+      case ZIoCommands.splitWindow:
         splitWindowCommands.add(ioData);
         return null;
 
-      case IoCommands.setWindow:
+      case ZIoCommands.setWindow:
         setWindowCommands.add(ioData);
         return null;
 
-      case IoCommands.setCursor:
+      case ZIoCommands.setCursor:
         setCursorCommands.add(ioData);
-        cursorPosition = {
-          'row': ioData['line'] ?? 1,
-          'column': ioData['column'] ?? 1,
-        };
+        cursorPosition = {'row': ioData['line'] ?? 1, 'column': ioData['column'] ?? 1};
         return null;
 
-      case IoCommands.getCursor:
+      case ZIoCommands.getCursor:
         getCursorCommands.add(ioData);
         return cursorPosition;
 
-      case IoCommands.eraseLine:
+      case ZIoCommands.eraseLine:
         eraseLineCommands.add(ioData);
         return null;
 
-      case IoCommands.clearScreen:
+      case ZIoCommands.clearScreen:
         clearScreenCommands.add(ioData);
         return null;
 
-      case IoCommands.setTextStyle:
+      case ZIoCommands.setTextStyle:
         setTextStyleCommands.add(ioData);
         return null;
 
-      case IoCommands.setColour:
+      case ZIoCommands.setColour:
         setColourCommands.add(ioData);
         return null;
 
-      case IoCommands.setTrueColour:
+      case ZIoCommands.setTrueColour:
         setTrueColourCommands.add(ioData);
         return null;
 
-      case IoCommands.setFont:
+      case ZIoCommands.setFont:
         setFontCommands.add(ioData);
         final oldFont = currentFont;
         final requestedFont = ioData['font_id'] as int? ?? 0;
@@ -100,27 +97,27 @@ class ComprehensiveTestProvider extends IoProvider {
         }
         return 0; // Font not available
 
-      case IoCommands.soundEffect:
+      case ZIoCommands.soundEffect:
         soundEffectCommands.add(ioData);
         return null;
 
-      case IoCommands.read:
+      case ZIoCommands.read:
         readCommands.add(ioData);
         return nextReadResponse ?? '';
 
-      case IoCommands.readChar:
+      case ZIoCommands.readChar:
         readCharCommands.add(ioData);
         return nextReadCharResponse ?? ' ';
 
-      case IoCommands.save:
+      case ZIoCommands.save:
         saveCommands.add(ioData);
         return true; // Always succeed
 
-      case IoCommands.restore:
+      case ZIoCommands.restore:
         restoreCommands.add(ioData);
         return null; // No save data available
 
-      case IoCommands.inputStream:
+      case ZIoCommands.inputStream:
         return null;
 
       default:
@@ -155,12 +152,12 @@ class ComprehensiveTestProvider extends IoProvider {
   }
 
   /// Check if a specific command was received
-  bool hasCommand(IoCommands cmd) {
+  bool hasCommand(ZIoCommands cmd) {
     return commands.any((c) => c['command'] == cmd);
   }
 
   /// Count how many times a command was sent
-  int countCommand(IoCommands cmd) {
+  int countCommand(ZIoCommands cmd) {
     return commands.where((c) => c['command'] == cmd).length;
   }
 }
@@ -194,15 +191,11 @@ void main() {
       );
 
       // Verify print command was used
-      expect(
-        provider.hasCommand(IoCommands.print),
-        isTrue,
-        reason: 'Game should print initial output',
-      );
+      expect(provider.hasCommand(ZIoCommands.print), isTrue, reason: 'Game should print initial output');
 
       print('=== Initial Commands Summary ===');
       print('Total commands: ${provider.commands.length}');
-      print('Print commands: ${provider.countCommand(IoCommands.print)}');
+      print('Print commands: ${provider.countCommand(ZIoCommands.print)}');
       print('Split window: ${provider.splitWindowCommands.length}');
       print('Set window: ${provider.setWindowCommands.length}');
       print('Set cursor: ${provider.setCursorCommands.length}');
@@ -210,12 +203,7 @@ void main() {
       print('Set colour: ${provider.setColourCommands.length}');
       print('');
       print('First 500 chars of output:');
-      print(
-        provider.output.toString().substring(
-          0,
-          provider.output.length.clamp(0, 500),
-        ),
-      );
+      print(provider.output.toString().substring(0, provider.output.length.clamp(0, 500)));
     });
 
     test('V5 game uses windowing or style commands on startup', () async {
@@ -236,11 +224,7 @@ void main() {
           provider.setTextStyleCommands.isNotEmpty ||
           provider.setColourCommands.isNotEmpty;
 
-      expect(
-        usesV5Features,
-        isTrue,
-        reason: 'V5 game should use windowing, style, or color commands',
-      );
+      expect(usesV5Features, isTrue, reason: 'V5 game should use windowing, style, or color commands');
 
       print('V5 features detected:');
       print('  splitWindow: ${provider.splitWindowCommands.length}');
@@ -260,55 +244,32 @@ void main() {
 
       if (provider.setWindowCommands.isNotEmpty) {
         for (final cmd in provider.setWindowCommands) {
-          expect(
-            cmd['window'],
-            isA<int>(),
-            reason: 'setWindow should have int window parameter',
-          );
+          expect(cmd['window'], isA<int>(), reason: 'setWindow should have int window parameter');
           expect(cmd['window'], anyOf(0, 1), reason: 'window should be 0 or 1');
           print('setWindow: window=${cmd['window']}');
         }
       }
     });
 
-    test(
-      'V5 game sends setCursor command with 1-indexed coordinates',
-      () async {
-        final gamePath = _findGameFile('beyondzork.z5');
-        final bytes = File(gamePath).readAsBytesSync();
+    test('V5 game sends setCursor command with 1-indexed coordinates', () async {
+      final gamePath = _findGameFile('beyondzork.z5');
+      final bytes = File(gamePath).readAsBytesSync();
 
-        Z.load(bytes.toList());
-        provider.nextReadResponse = '';
+      Z.load(bytes.toList());
+      provider.nextReadResponse = '';
 
-        await Z.runUntilInput();
+      await Z.runUntilInput();
 
-        if (provider.setCursorCommands.isNotEmpty) {
-          for (final cmd in provider.setCursorCommands) {
-            expect(
-              cmd['line'],
-              isA<int>(),
-              reason: 'setCursor should have int line parameter',
-            );
-            expect(
-              cmd['column'],
-              isA<int>(),
-              reason: 'setCursor should have int column parameter',
-            );
-            expect(
-              cmd['line'],
-              greaterThan(0),
-              reason: 'line should be 1-indexed (>0)',
-            );
-            expect(
-              cmd['column'],
-              greaterThan(0),
-              reason: 'column should be 1-indexed (>0)',
-            );
-            print('setCursor: line=${cmd['line']}, column=${cmd['column']}');
-          }
+      if (provider.setCursorCommands.isNotEmpty) {
+        for (final cmd in provider.setCursorCommands) {
+          expect(cmd['line'], isA<int>(), reason: 'setCursor should have int line parameter');
+          expect(cmd['column'], isA<int>(), reason: 'setCursor should have int column parameter');
+          expect(cmd['line'], greaterThan(0), reason: 'line should be 1-indexed (>0)');
+          expect(cmd['column'], greaterThan(0), reason: 'column should be 1-indexed (>0)');
+          print('setCursor: line=${cmd['line']}, column=${cmd['column']}');
         }
-      },
-    );
+      }
+    });
 
     test('V5 game sends setTextStyle command with valid bitmask', () async {
       final gamePath = _findGameFile('beyondzork.z5');
@@ -321,17 +282,9 @@ void main() {
 
       if (provider.setTextStyleCommands.isNotEmpty) {
         for (final cmd in provider.setTextStyleCommands) {
-          expect(
-            cmd['style'],
-            isA<int>(),
-            reason: 'setTextStyle should have int style parameter',
-          );
+          expect(cmd['style'], isA<int>(), reason: 'setTextStyle should have int style parameter');
           final style = cmd['style'] as int;
-          expect(
-            style,
-            inInclusiveRange(0, 15),
-            reason: 'style bitmask should be 0-15',
-          );
+          expect(style, inInclusiveRange(0, 15), reason: 'style bitmask should be 0-15');
           print(
             'setTextStyle: style=$style (reverse=${style & 1 != 0}, bold=${style & 2 != 0}, italic=${style & 4 != 0}, fixed=${style & 8 != 0})',
           );
@@ -350,16 +303,8 @@ void main() {
 
       if (provider.setColourCommands.isNotEmpty) {
         for (final cmd in provider.setColourCommands) {
-          expect(
-            cmd['foreground'],
-            isA<int>(),
-            reason: 'setColour should have int foreground',
-          );
-          expect(
-            cmd['background'],
-            isA<int>(),
-            reason: 'setColour should have int background',
-          );
+          expect(cmd['foreground'], isA<int>(), reason: 'setColour should have int foreground');
+          expect(cmd['background'], isA<int>(), reason: 'setColour should have int background');
           print('setColour: fg=${cmd['foreground']}, bg=${cmd['background']}');
         }
       }
@@ -376,18 +321,10 @@ void main() {
 
       if (provider.clearScreenCommands.isNotEmpty) {
         for (final cmd in provider.clearScreenCommands) {
-          expect(
-            cmd['window_id'],
-            isA<int>(),
-            reason: 'clearScreen should have int window_id',
-          );
+          expect(cmd['window_id'], isA<int>(), reason: 'clearScreen should have int window_id');
           final windowId = cmd['window_id'] as int;
           // window_id can be -2, -1, 0, or 1
-          expect(
-            windowId,
-            inInclusiveRange(-2, 1),
-            reason: 'window_id should be -2 to 1',
-          );
+          expect(windowId, inInclusiveRange(-2, 1), reason: 'window_id should be -2 to 1');
           print('clearScreen: window_id=$windowId');
         }
       }
@@ -409,27 +346,13 @@ void main() {
 
       await Z.runUntilInput();
 
-      final printCommands = provider.commands
-          .where((c) => c['command'] == IoCommands.print)
-          .toList();
+      final printCommands = provider.commands.where((c) => c['command'] == ZIoCommands.print).toList();
 
-      expect(
-        printCommands.isNotEmpty,
-        isTrue,
-        reason: 'Should have print commands',
-      );
+      expect(printCommands.isNotEmpty, isTrue, reason: 'Should have print commands');
 
       for (final cmd in printCommands.take(5)) {
-        expect(
-          cmd['buffer'],
-          isA<String>(),
-          reason: 'print should have string buffer',
-        );
-        expect(
-          cmd['window'],
-          isA<int>(),
-          reason: 'print should have int window',
-        );
+        expect(cmd['buffer'], isA<String>(), reason: 'print should have string buffer');
+        expect(cmd['window'], isA<int>(), reason: 'print should have int window');
         print(
           'print: window=${cmd['window']}, buffer="${(cmd['buffer'] as String).replaceAll('\n', '\\n').substring(0, (cmd['buffer'] as String).length.clamp(0, 50))}"',
         );
@@ -446,22 +369,12 @@ void main() {
 
     await Z.runUntilInput();
 
-    expect(
-      provider.hasCommand(IoCommands.status),
-      isTrue,
-      reason: 'V3 game should send status command',
-    );
+    expect(provider.hasCommand(ZIoCommands.status), isTrue, reason: 'V3 game should send status command');
 
-    final statusCommands = provider.commands
-        .where((c) => c['command'] == IoCommands.status)
-        .toList();
+    final statusCommands = provider.commands.where((c) => c['command'] == ZIoCommands.status).toList();
     if (statusCommands.isNotEmpty) {
       final cmd = statusCommands.first;
-      expect(
-        cmd['room_name'],
-        isA<String>(),
-        reason: 'status should have room_name',
-      );
+      expect(cmd['room_name'], isA<String>(), reason: 'status should have room_name');
       print(
         'status: room="${cmd['room_name']}", type=${cmd['game_type']}, score1=${cmd['score_one']}, score2=${cmd['score_two']}',
       );
@@ -481,27 +394,15 @@ void main() {
       // Check if setWindow to 1 is followed by setCursor to (1,1)
       for (int i = 0; i < provider.commands.length - 1; i++) {
         final cmd = provider.commands[i];
-        if (cmd['command'] == IoCommands.setWindow && cmd['window'] == 1) {
+        if (cmd['command'] == ZIoCommands.setWindow && cmd['window'] == 1) {
           // Look for setCursor in next few commands
           bool foundCursor = false;
-          for (
-            int j = i + 1;
-            j < (i + 3).clamp(0, provider.commands.length);
-            j++
-          ) {
+          for (int j = i + 1; j < (i + 3).clamp(0, provider.commands.length); j++) {
             final nextCmd = provider.commands[j];
-            if (nextCmd['command'] == IoCommands.setCursor) {
+            if (nextCmd['command'] == ZIoCommands.setCursor) {
               foundCursor = true;
-              expect(
-                nextCmd['line'],
-                equals(1),
-                reason: 'Cursor should reset to line 1',
-              );
-              expect(
-                nextCmd['column'],
-                equals(1),
-                reason: 'Cursor should reset to column 1',
-              );
+              expect(nextCmd['line'], equals(1), reason: 'Cursor should reset to line 1');
+              expect(nextCmd['column'], equals(1), reason: 'Cursor should reset to column 1');
               break;
             }
           }
@@ -528,7 +429,5 @@ String _findGameFile(String filename) {
     }
   }
 
-  throw Exception(
-    'Game file $filename not found. Tried: $paths. CWD: ${Directory.current.path}',
-  );
+  throw Exception('Game file $filename not found. Tried: $paths. CWD: ${Directory.current.path}');
 }

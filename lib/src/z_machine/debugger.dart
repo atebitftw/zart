@@ -49,9 +49,7 @@ class Debugger {
       case ZMachineVersions.v8:
         return InterpreterV8();
       default:
-        throw GameException(
-          "Unsupported gamefile version.  This interpreter does not support $version",
-        );
+        throw GameException("Unsupported gamefile version.  This interpreter does not support $version");
     }
   }
 
@@ -62,15 +60,11 @@ class Debugger {
   static void initializeEngine([InterpreterV3? newEngine]) {
     Z.inInterrupt = true;
     if (!Z.isLoaded) {
-      throw GameException(
-        "Unable to initialize Z-Machine.  No game file is loaded.",
-      );
+      throw GameException("Unable to initialize Z-Machine.  No game file is loaded.");
     }
 
     if (newEngine != null && newEngine.version != Z.ver) {
-      throw GameException(
-        'Machine/Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}',
-      );
+      throw GameException('Machine/Story version mismatch. Expected ${Z.ver}. Got ${newEngine.version}');
     }
 
     Z.engine = newEngine ?? _getEngineByVersion(Z.ver);
@@ -83,7 +77,7 @@ class Debugger {
   /// Start the debugger.
   static Future<void> startBreak() async {
     await Z.sendIO({
-      "command": IoCommands.printDebug,
+      "command": ZIoCommands.printDebug,
       "message":
           '(break)>>> 0x${debugStartAddr!.toRadixString(16)}:'
           ' opCode: ${Z.engine.mem.loadb(debugStartAddr!)}'
@@ -205,7 +199,7 @@ class Debugger {
       }
     }
 
-    final line = await Z.sendIO({"command": IoCommands.read});
+    final line = await Z.sendIO({"command": ZIoCommands.read});
     parse(line);
   }
 
@@ -272,42 +266,20 @@ class Debugger {
     s.write('\n');
     s.write('------- START HEADER -------\n');
     s.write('Z-Machine Version: ${Z.engine.version}\n');
-    s.write(
-      'Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n',
-    );
+    s.write('Flags1(binary): 0b${Z.engine.mem.loadw(Header.flags1).toRadixString(2)}\n');
     // word after flags1 is used by Inform
-    s.write(
-      'Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n',
-    );
-    s.write(
-      'Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n',
-    );
-    s.write(
-      'Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n',
-    );
-    s.write(
-      'Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n',
-    );
-    s.write(
-      'Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n',
-    );
-    s.write(
-      'High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n',
-    );
-    s.write(
-      'Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n',
-    );
-    s.write(
-      'Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n',
-    );
-    s.write(
-      'Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n',
-    );
+    s.write('Abbreviations Location: 0x${Z.engine.mem.abbrAddress.toRadixString(16)}\n');
+    s.write('Object Table Location: 0x${Z.engine.mem.objectsAddress.toRadixString(16)}\n');
+    s.write('Global Variables Location: 0x${Z.engine.mem.globalVarsAddress.toRadixString(16)}\n');
+    s.write('Static Memory Start: 0x${Z.engine.mem.staticMemAddress.toRadixString(16)}\n');
+    s.write('Dictionary Location: 0x${Z.engine.mem.dictionaryAddress!.toRadixString(16)}\n');
+    s.write('High Memory Start: 0x${Z.engine.mem.highMemAddress.toRadixString(16)}\n');
+    s.write('Program Counter Start: 0x${Z.engine.mem.programStart!.toRadixString(16)}\n');
+    s.write('Flags2(binary): 0b${Z.engine.mem.loadb(Header.flags2).toRadixString(2)}\n');
+    s.write('Length Of File: ${Z.engine.mem.loadw(Header.lengthOfFile) * Z.engine.fileLengthMultiplier()}\n');
     s.write('Checksum Of File: ${Z.engine.mem.loadw(Header.checkSumOfFile)}\n');
 
-    s.write(
-      'Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n',
-    );
+    s.write('Standard Revision: ${Z.engine.mem.loadw(Header.revisionNumberN)}\n');
     s.write('-------- END HEADER ---------\n');
 
     //s.write('main Routine: ${Z.machine.mem.getRange(Z.pc - 4, 10)}');
@@ -325,13 +297,13 @@ class Debugger {
 
   /// Displays a message on the debug channel.
   static void debug(String debugString) async {
-    await Z.sendIO({"command": IoCommands.printDebug, "message": debugString});
+    await Z.sendIO({"command": ZIoCommands.printDebug, "message": debugString});
   }
 
   /// Displays a message on the todo channel.
   static void todo([String? message]) async {
     await Z.sendIO({
-      "command": IoCommands.printDebug,
+      "command": ZIoCommands.printDebug,
       "message":
           'Stopped At: 0x${Z.engine.programCounter.toRadixString(16)}\n\n'
           'Text Buffer:\n'

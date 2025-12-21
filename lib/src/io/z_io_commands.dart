@@ -2,7 +2,7 @@
 ///
 /// Each command is sent as a Map with a "command" key containing the IoCommand,
 /// plus additional keys for parameters specific to that command.
-enum IoCommands {
+enum ZIoCommands {
   /// Split the screen to create an upper window.
   ///
   /// **Parameters:**

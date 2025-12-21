@@ -14,7 +14,7 @@
 /// | 10   | Light Grey   |
 /// | 11   | Medium Grey  |
 /// | 12   | Dark Grey    |
-class TerminalColors {
+class ZTerminalColors {
   /// Default color
   static const int defaultColor = 1;
 

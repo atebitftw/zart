@@ -6,8 +6,8 @@ import 'package:zart/src/cli/ui/cli_renderer.dart';
 import 'package:zart/src/cli/ui/glk_terminal_display.dart';
 import 'package:zart/src/cli/ui/glulx_terminal_provider.dart';
 import 'package:zart/src/cli/ui/settings_screen.dart';
-import 'package:zart/src/cli/ui/terminal_display.dart';
-import 'package:zart/src/cli/ui/z_machine_terminal_provider.dart';
+import 'package:zart/src/cli/ui/z_terminal_display.dart';
+import 'package:zart/src/cli/ui/z_machine_io_dispatcher.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart' show debugger;
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/zart.dart';
@@ -30,8 +30,8 @@ class GameRunner {
   // Internal state
   GlulxInterpreter? _glulx;
   GlulxTerminalProvider? _glulxProvider;
-  TerminalDisplay? _zDisplay;
-  ZMachineTerminalProvider? _zProvider;
+  ZTerminalDisplay? _zDisplay;
+  ZMachineIoDispatcher? _zProvider;
 
   /// Create a GameRunner with a renderer.
   GameRunner(this.renderer, {this.config, this.debugConfig = const {}});
@@ -100,25 +100,23 @@ class GameRunner {
   Future<void> _runZMachine(Uint8List gameData, String filename) async {
     var isGameRunning = false;
     // Create Z-machine display (uses its own terminal handling)
-    _zDisplay = TerminalDisplay();
+    _zDisplay = ZTerminalDisplay();
 
     if (config != null) {
       _zDisplay!.config = config;
       _zDisplay!.applySavedSettings();
     }
 
-    _zDisplay!.onOpenSettings = () => SettingsScreen(
-      _zDisplay!,
-      config ?? ConfigurationManager(),
-    ).show(isGameStarted: isGameRunning);
+    _zDisplay!.onOpenSettings = () =>
+        SettingsScreen(_zDisplay!, config ?? ConfigurationManager()).show(isGameStarted: isGameRunning);
 
     Debugger.enableDebug = false;
     Debugger.enableVerbose = false;
     Debugger.enableTrace = false;
     Debugger.enableStackTrace = false;
 
-    _zProvider = ZMachineTerminalProvider(_zDisplay!, filename);
-    Z.io = _zProvider as IoProvider;
+    _zProvider = ZMachineIoDispatcher(_zDisplay!, filename);
+    Z.io = _zProvider as ZIoDispatcher;
 
     _zDisplay!.onAutosave = () => _zProvider!.isQuickSaveMode = true;
     _zDisplay!.onRestore = () => _zProvider!.isAutorestoreMode = true;
@@ -146,11 +144,7 @@ class GameRunner {
             _zDisplay!.render();
             final line = await _zDisplay!.readLine();
             _zDisplay!.appendToWindow0('\n');
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

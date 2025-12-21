@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:zart/zart.dart' show IoProvider;
+import 'package:zart/zart.dart' show ZIoDispatcher;
 
 /// Mock UI Provider for Unit Testing
-class MockUIProvider implements IoProvider {
+class MockUIProvider implements ZIoDispatcher {
   Future<int> glulxGlk(int selector, List<int> args) => Future.value(0);
 
   @override

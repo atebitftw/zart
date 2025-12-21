@@ -3,7 +3,7 @@ import 'package:zart/zart.dart';
 import 'package:zart/src/z_machine/interpreters/interpreter_v5.dart';
 import 'dart:async';
 
-class CapturingIoProvider implements IoProvider {
+class CapturingIoProvider implements ZIoDispatcher {
   Map<String, dynamic>? lastCommand;
   String nextReadResult = "hello";
   String nextCharResult = "a";
@@ -11,10 +11,10 @@ class CapturingIoProvider implements IoProvider {
   @override
   Future<dynamic> command(Map<String, dynamic> command) async {
     lastCommand = command;
-    if (command['command'] == IoCommands.read) {
+    if (command['command'] == ZIoCommands.read) {
       return nextReadResult;
     }
-    if (command['command'] == IoCommands.readChar) {
+    if (command['command'] == ZIoCommands.readChar) {
       return nextCharResult;
     }
     // Handle other commands like printBuffer by returning null
@@ -110,7 +110,7 @@ void main() {
       await v5.readChar();
 
       expect(io.lastCommand, isNotNull);
-      expect(io.lastCommand!['command'], equals(IoCommands.readChar));
+      expect(io.lastCommand!['command'], equals(ZIoCommands.readChar));
       expect(io.lastCommand!['time'], equals(50));
       expect(io.lastCommand!['routine'], equals(200));
     });
@@ -170,7 +170,7 @@ void main() {
       await v5.aread();
 
       expect(io.lastCommand, isNotNull);
-      expect(io.lastCommand!['command'], equals(IoCommands.read));
+      expect(io.lastCommand!['command'], equals(ZIoCommands.read));
       expect(io.lastCommand!['max_chars'], equals(18)); // 20 - 2
       expect(io.lastCommand!['time'], equals(100));
       expect(io.lastCommand!['routine'], equals(250));

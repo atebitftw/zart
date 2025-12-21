@@ -1,7 +1,7 @@
-import 'package:zart/zart.dart' show IoCommands;
+import 'package:zart/zart.dart' show ZIoCommands;
 
-/// Represents a contract for IO (Presentation) providers.
-abstract class IoProvider {
+/// Dispatch layer interface for Z-Machine IO.
+abstract class ZIoDispatcher {
   /// Sends a command to the provider.
   Future<dynamic> command(Map<String, dynamic> commandMessage);
 
@@ -18,50 +18,50 @@ abstract class IoProvider {
 }
 
 /// Converts a string to an IO command.
-IoCommands toIOCommand(String cmd) {
+ZIoCommands toIOCommand(String cmd) {
   switch (cmd) {
     case "IOCommands.PRINT":
-      return IoCommands.print;
+      return ZIoCommands.print;
     case "IOCommands.STATUS":
-      return IoCommands.status;
+      return ZIoCommands.status;
     case "IOCommands.CLEAR_SCREEN":
-      return IoCommands.clearScreen;
+      return ZIoCommands.clearScreen;
     case "IOCommands.SPLIT_WINDOW":
-      return IoCommands.splitWindow;
+      return ZIoCommands.splitWindow;
     case "IOCommands.SET_WINDOW":
-      return IoCommands.setWindow;
+      return ZIoCommands.setWindow;
     case "IOCommands.SET_FONT":
-      return IoCommands.setFont;
+      return ZIoCommands.setFont;
     case "IOCommands.SAVE":
-      return IoCommands.save;
+      return ZIoCommands.save;
     case "IOCommands.RESTORE":
-      return IoCommands.restore;
+      return ZIoCommands.restore;
     case "IOCommands.READ":
-      return IoCommands.read;
+      return ZIoCommands.read;
     case "IOCommands.READ_CHAR":
-      return IoCommands.readChar;
+      return ZIoCommands.readChar;
     case "IOCommands.QUIT":
-      return IoCommands.quit;
+      return ZIoCommands.quit;
     case "IOCommands.PRINT_DEBUG":
-      return IoCommands.printDebug;
+      return ZIoCommands.printDebug;
     case "IOCommands.ASYNC":
-      return IoCommands.async;
+      return ZIoCommands.async;
     case "IOCommands.SET_CURSOR":
-      return IoCommands.setCursor;
+      return ZIoCommands.setCursor;
     case "IOCommands.SET_TEXT_STYLE":
-      return IoCommands.setTextStyle;
+      return ZIoCommands.setTextStyle;
     case "IOCommands.SET_COLOUR":
-      return IoCommands.setColour;
+      return ZIoCommands.setColour;
     case "IOCommands.ERASE_LINE":
-      return IoCommands.eraseLine;
+      return ZIoCommands.eraseLine;
     case "IOCommands.GET_CURSOR":
-      return IoCommands.getCursor;
+      return ZIoCommands.getCursor;
     case "IOCommands.INPUT_STREAM":
-      return IoCommands.inputStream;
+      return ZIoCommands.inputStream;
     case "IOCommands.SOUND_EFFECT":
-      return IoCommands.soundEffect;
+      return ZIoCommands.soundEffect;
     case "IOCommands.SET_TRUE_COLOUR":
-      return IoCommands.setTrueColour;
+      return ZIoCommands.setTrueColour;
     default:
       throw Exception("IOCommand not recognized: $cmd");
   }

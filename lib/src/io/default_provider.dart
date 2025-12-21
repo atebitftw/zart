@@ -7,7 +7,7 @@ import 'package:zart/zart.dart';
 /// Cannot take input because it has no IO
 /// context.  Also cannot provide async facility
 /// so just runs sync.
-class DefaultProvider extends IoProvider {
+class DefaultProvider extends ZIoDispatcher {
   /// The script to run.
   final Queue<String> script;
 

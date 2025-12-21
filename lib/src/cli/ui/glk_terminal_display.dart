@@ -4,7 +4,7 @@ import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/cli_renderer.dart';
 import 'package:zart/src/cli/ui/zart_terminal.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
-import 'package:zart/src/io/screen_model.dart';
+import 'package:zart/src/io/z_screen_model.dart';
 
 /// Terminal display for Glk/Glulx games.
 ///
@@ -15,7 +15,7 @@ class GlkTerminalDisplay implements ZartTerminal {
   CliRenderer get _renderer => renderer;
 
   /// Optional UI model used for standalone UI screens (like settings).
-  ScreenModel? _uiModel;
+  ZScreenModel? _uiModel;
 
   /// The configuration manager.
   ConfigurationManager? config;
@@ -24,8 +24,7 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   Future<void> Function()? get onOpenSettings => _renderer.onOpenSettings;
   @override
-  set onOpenSettings(Future<void> Function()? value) =>
-      _renderer.onOpenSettings = value;
+  set onOpenSettings(Future<void> Function()? value) => _renderer.onOpenSettings = value;
 
   @override
   bool get enableStatusBar => _renderer.zartBarVisible;
@@ -130,10 +129,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   void _ensureUiModel() {
     if (_uiModel == null) {
-      _uiModel = ScreenModel(
-        cols: _renderer.screenWidth,
-        rows: _renderer.screenHeight,
-      );
+      _uiModel = ZScreenModel(cols: _renderer.screenWidth, rows: _renderer.screenHeight);
     }
   }
 }

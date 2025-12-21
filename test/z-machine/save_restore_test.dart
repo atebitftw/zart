@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 import 'package:zart/zart.dart';
 
 /// A mock IO provider that stores saved games in memory.
-class MemoryIoProvider extends IoProvider {
+class MemoryIoProvider extends ZIoDispatcher {
   final Map<String, List<int>> _savedGames = {};
 
   // Use to simulate input for the test
@@ -30,17 +30,17 @@ class MemoryIoProvider extends IoProvider {
 
   @override
   Future<dynamic> command(Map<String, dynamic> commandMessage) async {
-    final cmd = commandMessage['command'] as IoCommands;
+    final cmd = commandMessage['command'] as ZIoCommands;
 
     switch (cmd) {
-      case IoCommands.print:
+      case ZIoCommands.print:
         final buffer = commandMessage['buffer'] as String?;
         if (buffer != null) {
           _output.write(buffer);
         }
         break;
 
-      case IoCommands.save:
+      case ZIoCommands.save:
         // Mock save: Expect filename input next (simulated here for direct access) or handle logic?
         // In the real Zart CLI, 'save' opcode sends IoCommands.save, then the provider asks for input.
         // BUT the interpreter sends the data in the command message!
@@ -64,7 +64,7 @@ class MemoryIoProvider extends IoProvider {
         _savedGames[filename] = fileData;
         return true;
 
-      case IoCommands.restore:
+      case ZIoCommands.restore:
         // Mock restore
         String filename = "default.sav";
         if (_inputQueue.isNotEmpty) {
@@ -81,13 +81,13 @@ class MemoryIoProvider extends IoProvider {
         }
         return null;
 
-      case IoCommands.read:
+      case ZIoCommands.read:
         if (_inputQueue.isNotEmpty) {
           return _inputQueue.removeAt(0);
         }
         return '';
 
-      case IoCommands.readChar:
+      case ZIoCommands.readChar:
         if (_inputQueue.isNotEmpty) {
           final s = _inputQueue.removeAt(0);
           return s.isNotEmpty ? s[0] : ' ';
@@ -141,9 +141,7 @@ void main() {
     // But we are in a unit test. We can use Z.runUntilInput()
 
     // Step 1: Run until first input (game start)
-    provider.queueInput(
-      'mysave',
-    ); // Filename for save (no extension to test auto-add)
+    provider.queueInput('mysave'); // Filename for save (no extension to test auto-add)
 
     // Running...
     // Note: 'save' is an opcode. It triggers IoCommands.save.
@@ -170,20 +168,12 @@ void main() {
 
     // Provider logic inside 'save' command should have consumed 'mysave'
     // and created 'mysave.sav'
-    expect(
-      provider.hasSavedGame('mysave.sav'),
-      isTrue,
-      reason: "Save file should exist",
-    );
+    expect(provider.hasSavedGame('mysave.sav'), isTrue, reason: "Save file should exist");
 
     // 3. Verify Data
     final savedData = provider.getSavedGame('mysave.sav');
     expect(savedData, isNotNull);
-    expect(
-      savedData!.length,
-      greaterThan(100),
-      reason: "Save data should be substantial",
-    );
+    expect(savedData!.length, greaterThan(100), reason: "Save data should be substantial");
 
     // 4. Restore
     // We are back at input prompt (hopefully, depending on minizork behavior after save)

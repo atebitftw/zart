@@ -5,15 +5,18 @@ import 'dart:isolate';
 import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/cli_renderer.dart';
-import 'package:zart/src/cli/ui/terminal_colors.dart';
+import 'package:zart/src/cli/ui/z_terminal_colors.dart';
 import 'package:zart/src/logging.dart';
-import 'package:zart/src/io/screen_model.dart';
+import 'package:zart/src/io/z_screen_model.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/cell.dart';
 import 'package:zart/src/cli/ui/zart_terminal.dart';
 
 const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
 
+/// Z-Machine Terminal Display.
+/// Used by the unified [CliRenderer] for rendering.
+///
 /// Layout:
 /// ```text
 /// ┌────────────────────────────────┐
@@ -24,15 +27,15 @@ const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Co
 /// │ > [input line]                 │
 /// └────────────────────────────────┘
 /// ```
-class TerminalDisplay implements ZartTerminal {
+class ZTerminalDisplay implements ZartTerminal {
   /// Create standard terminal display.
-  TerminalDisplay();
+  ZTerminalDisplay();
 
   /// Create with a shared renderer.
   /// Note: Currently uses its own rendering; will migrate to CliRenderer.
-  factory TerminalDisplay.withRenderer(CliRenderer renderer) {
+  factory ZTerminalDisplay.withRenderer(CliRenderer renderer) {
     // TODO: Migrate to use CliRenderer for unified rendering
-    return TerminalDisplay();
+    return ZTerminalDisplay();
   }
 
   /// Terminal dimensions
@@ -45,10 +48,10 @@ class TerminalDisplay implements ZartTerminal {
   /// Terminal rows
   int get rows => (enableStatusBar && (config?.zartBarVisible ?? true)) ? _rows - 1 : _rows; // Dynamic sizing
 
-  final ScreenModel _screen = ScreenModel();
+  final ZScreenModel _screen = ZScreenModel();
 
   /// Screen model
-  ScreenModel get screen => _screen;
+  ZScreenModel get screen => _screen;
 
   final Console _console = Console();
 
@@ -78,15 +81,15 @@ class TerminalDisplay implements ZartTerminal {
 
   // Custom Text Color Cycling Options
   final List<int> _customTextColors = [
-    TerminalColors.lightGrey,
-    TerminalColors.darkGrey,
-    TerminalColors.white,
-    TerminalColors.red,
-    TerminalColors.green,
-    TerminalColors.yellow,
-    TerminalColors.blue,
-    TerminalColors.magenta,
-    TerminalColors.cyan,
+    ZTerminalColors.lightGrey,
+    ZTerminalColors.darkGrey,
+    ZTerminalColors.white,
+    ZTerminalColors.red,
+    ZTerminalColors.green,
+    ZTerminalColors.yellow,
+    ZTerminalColors.blue,
+    ZTerminalColors.magenta,
+    ZTerminalColors.cyan,
   ];
 
   int _currentTextColorIndex = 0;
