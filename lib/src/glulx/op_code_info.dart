@@ -175,8 +175,6 @@ class OpcodeInfo {
     GlulxOp.jfle: OpcodeInfo(3, [false, false, false]),
     GlulxOp.jisnan: OpcodeInfo(2, [false, false]),
     GlulxOp.jisinf: OpcodeInfo(2, [false, false]),
-    GlulxOp.fgetround: OpcodeInfo(1, [true]),
-    GlulxOp.fsetround: OpcodeInfo(1, [false]),
 
     // Double Precision: (same as float but mostly 64-bit operands)
     GlulxOp.dadd: OpcodeInfo(6, [false, false, false, false, true, true]),
@@ -200,6 +198,7 @@ class OpcodeInfo {
     GlulxOp.dfloor: OpcodeInfo(4, [false, false, true, true]),
     GlulxOp.numtod: OpcodeInfo(3, [false, true, true]),
     GlulxOp.dtonumz: OpcodeInfo(3, [false, false, true]),
+    GlulxOp.dtonumn: OpcodeInfo(3, [false, false, true]),
     GlulxOp.ftod: OpcodeInfo(2, [false, true, true]),
     GlulxOp.dtof: OpcodeInfo(3, [false, false, true]),
     GlulxOp.jdeq: OpcodeInfo(7, [false, false, false, false, false, false, false]),

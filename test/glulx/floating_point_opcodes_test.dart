@@ -221,10 +221,10 @@ void main() {
     group('Floating Comparison Branches', () {
       test('jisnan branches on NaN', () async {
         // jisnan NaN, offset 10
-        // Modes: L1=3, L2=1 -> 0x13
+        // jisnan = 0x1C8, Modes: L1=3, L2=1 -> 0x13
         final nanBits = floatToBits(double.nan);
         gameData = createGameData([
-          0x81, 0xC0, 0x13,
+          0x81, 0xC8, 0x13,
           (nanBits >> 24) & 0xFF, (nanBits >> 16) & 0xFF, (nanBits >> 8) & 0xFF, nanBits & 0xFF,
           0x10, // branch offset
         ]);
@@ -242,12 +242,12 @@ void main() {
 
       test('jfeq branches on exact equality', () async {
         // jfeq 1.0, 1.0, 0.0, offset 16
-        // Modes: L1=3, L2=3, L3=3, L4=1 -> 0x33, 0x13
+        // jfeq = 0x1C0, Modes: L1=3, L2=3, L3=3, L4=1 -> 0x33, 0x13
         final f1Bits = floatToBits(1.0);
         final f2Bits = floatToBits(1.0);
         final f3Bits = floatToBits(0.0);
         gameData = createGameData([
-          0x81, 0xC2, 0x33, 0x13,
+          0x81, 0xC0, 0x33, 0x13,
           (f1Bits >> 24) & 0xFF, (f1Bits >> 16) & 0xFF, (f1Bits >> 8) & 0xFF, f1Bits & 0xFF,
           (f2Bits >> 24) & 0xFF, (f2Bits >> 16) & 0xFF, (f2Bits >> 8) & 0xFF, f2Bits & 0xFF,
           (f3Bits >> 24) & 0xFF, (f3Bits >> 16) & 0xFF, (f3Bits >> 8) & 0xFF, f3Bits & 0xFF,

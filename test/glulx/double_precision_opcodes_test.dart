@@ -45,7 +45,8 @@ void main() {
     });
 
     test('numtod converts integer to double', () async {
-      gameData = createGameData([0x81, 0xD0, 0x81, 0x08, 100]);
+      // numtod = 0x200, encoded as 0x82, 0x00 (2-byte opcode)
+      gameData = createGameData([0x82, 0x00, 0x81, 0x08, 100]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -60,9 +61,10 @@ void main() {
     test('dadd adds two doubles', () async {
       final d1 = doubleToBits(1.5);
       final d2 = doubleToBits(2.5);
+      // dadd = 0x210, encoded as 0x82, 0x10 (2-byte opcode)
       gameData = createGameData([
-        0x81,
-        0xE0,
+        0x82,
+        0x10,
         0x33,
         0x33,
         0x88,
@@ -97,9 +99,10 @@ void main() {
     test('dmul multiplies two doubles', () async {
       final d1 = doubleToBits(2.5);
       final d2 = doubleToBits(4.0);
+      // dmul = 0x212, encoded as 0x82, 0x12 (2-byte opcode)
       gameData = createGameData([
-        0x81,
-        0xE2,
+        0x82,
+        0x12,
         0x33,
         0x33,
         0x88,
@@ -133,8 +136,9 @@ void main() {
 
     group('Trigonometric Opcodes', () {
       test('dsin returns correct value', () async {
+        // dsin = 0x220, encoded as 0x82, 0x20 (2-byte opcode)
         gameData = createGameData([
-          0x81, 0xF0, 0x33, 0x88,
+          0x82, 0x20, 0x33, 0x88,
           0, 0, 0, 0, // Xhi
           0, 0, 0, 0, // Xlo
         ]);
@@ -153,9 +157,10 @@ void main() {
     group('Double Comparison Branches', () {
       test('jdisnan branches on NaN', () async {
         final d1 = doubleToBits(double.nan);
+        // jdisnan = 0x238, encoded as 0x82, 0x38 (2-byte opcode)
         gameData = createGameData([
           0x82,
-          0x00,
+          0x38,
           0x33,
           0x01,
           (d1[0] >> 24) & 0xFF,
@@ -184,9 +189,10 @@ void main() {
         final d1 = doubleToBits(1.0);
         final d2 = doubleToBits(1.0);
         final d3 = doubleToBits(0.0);
+        // jdeq = 0x230, encoded as 0x82, 0x30 (2-byte opcode)
         gameData = createGameData([
           0x82,
-          0x02,
+          0x30,
           0x33,
           0x33,
           0x33,

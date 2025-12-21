@@ -57,8 +57,6 @@ class GlulxInterpreter {
   final Float64List _f64 = Float64List(1);
   late Uint32List _u32_64 = _f64.buffer.asUint32List();
 
-  int _fsetroundMode = 0; // 0=nearest, 1=zero, 2=posinf, 3=neginf
-
   /// Maximum number of undo states to keep.
   /// Reference: serial.c max_undo_level = 8
   static const int _maxUndoLevel = 8;
@@ -1019,11 +1017,27 @@ class GlulxInterpreter {
         _performStore(operands[2] as StoreOperand, _f2u(_u2f(operands[0] as int) / _u2f(operands[1] as int)));
         break;
       case GlulxOp.fmod:
-        final f1 = _u2f(operands[0] as int);
-        final f2 = _u2f(operands[1] as int);
-        final quot = (f1 / f2).truncateToDouble();
-        _performStore(operands[2] as StoreOperand, _f2u(f1 - (quot * f2)));
-        _performStore(operands[3] as StoreOperand, _f2u(quot));
+        // Reference: exec.c case op_fmod
+        final fmodRawA = operands[0] as int;
+        final fmodRawB = operands[1] as int;
+        final f1 = _u2f(fmodRawA);
+        final f2 = _u2f(fmodRawB);
+        // C fmodf behavior for remainder
+        final remainder = f1.remainder(f2);
+        var remBits = _f2u(remainder);
+        // Preserve sign of zero remainder
+        if (remBits == 0x0 || remBits == 0x80000000) {
+          remBits = fmodRawA & 0x80000000;
+        }
+        // Calculate quotient
+        final quot = (f1 - remainder) / f2;
+        var quotBits = _f2u(quot);
+        // When quotient is zero, sign is lost - set by hand from original args
+        if (quotBits == 0x0 || quotBits == 0x80000000) {
+          quotBits = (fmodRawA ^ fmodRawB) & 0x80000000;
+        }
+        _performStore(operands[2] as StoreOperand, remBits);
+        _performStore(operands[3] as StoreOperand, quotBits);
         break;
       case GlulxOp.frem:
         final f1 = _u2f(operands[0] as int);
@@ -1150,28 +1164,50 @@ class GlulxInterpreter {
         _performStore(operands[1] as StoreOperand, _f2u((operands[0] as int).toSigned(32).toDouble()));
         break;
       case GlulxOp.ftonumz:
-        _performStore(operands[1] as StoreOperand, _u2f(operands[0] as int).truncate().toSigned(32) & 0xFFFFFFFF);
+        // Check sign bit from raw representation (C uses signbit())
+        final ftzRaw = operands[0] as int;
+        final ftz = _u2f(ftzRaw);
+        final ftzSignBit = (ftzRaw & 0x80000000) != 0;
+        int ftzResult;
+        if (!ftzSignBit) {
+          // Positive or positive zero
+          if (ftz.isNaN || ftz.isInfinite || ftz > 2147483647.0) {
+            ftzResult = 0x7FFFFFFF;
+          } else {
+            ftzResult = ftz.truncate();
+          }
+        } else {
+          // Negative
+          if (ftz.isNaN || ftz.isInfinite || ftz < -2147483647.0) {
+            ftzResult = 0x80000000;
+          } else {
+            ftzResult = ftz.truncate();
+          }
+        }
+        _performStore(operands[1] as StoreOperand, ftzResult & 0xFFFFFFFF);
         break;
       case GlulxOp.ftonumn:
-        final f = _u2f(operands[0] as int);
-        if (f.isNaN || f.isInfinite) {
-          _performStore(operands[1] as StoreOperand, 0);
-        } else {
-          // Round to even
-          double rounded = f.roundToDouble();
-          if ((f - rounded).abs() == 0.5) {
-            if (rounded.toInt().isOdd) {
-              rounded = (f < rounded) ? f.floorToDouble() : f.ceilToDouble();
-            }
+        // Check sign bit from raw representation (C uses signbit())
+        final ftnRaw = operands[0] as int;
+        final ftn = _u2f(ftnRaw);
+        final ftnSignBit = (ftnRaw & 0x80000000) != 0;
+        int ftnResult;
+        if (!ftnSignBit) {
+          // Positive or positive zero
+          if (ftn.isNaN || ftn.isInfinite || ftn > 2147483647.0) {
+            ftnResult = 0x7FFFFFFF;
+          } else {
+            ftnResult = ftn.round();
           }
-          _performStore(operands[1] as StoreOperand, rounded.toInt().toSigned(32) & 0xFFFFFFFF);
+        } else {
+          // Negative
+          if (ftn.isNaN || ftn.isInfinite || ftn < -2147483647.0) {
+            ftnResult = 0x80000000;
+          } else {
+            ftnResult = ftn.round();
+          }
         }
-        break;
-      case GlulxOp.fgetround:
-        _performStore(operands[0] as StoreOperand, _fsetroundMode);
-        break;
-      case GlulxOp.fsetround:
-        _fsetroundMode = operands[0] as int;
+        _performStore(operands[1] as StoreOperand, ftnResult & 0xFFFFFFFF);
         break;
 
       // ========== Double Precision Opcodes (Spec Section 2.4.12) ==========
@@ -1370,10 +1406,52 @@ class GlulxInterpreter {
         _performStore(operands[2] as StoreOperand, res[1]);
         break;
       case GlulxOp.dtonumz:
-        _performStore(
-          operands[2] as StoreOperand,
-          _u2d(operands[0] as int, operands[1] as int).truncate().toSigned(32) & 0xFFFFFFFF,
-        );
+        // Check sign bit from raw representation (C uses signbit())
+        // For doubles, operands[1] is the high word containing the sign bit
+        final dtzHiRaw = operands[1] as int;
+        final dtz = _u2d(operands[0] as int, dtzHiRaw);
+        final dtzSignBit = (dtzHiRaw & 0x80000000) != 0;
+        int dtzResult;
+        if (!dtzSignBit) {
+          // Positive or positive zero
+          if (dtz.isNaN || dtz.isInfinite || dtz > 2147483647.0) {
+            dtzResult = 0x7FFFFFFF;
+          } else {
+            dtzResult = dtz.truncate();
+          }
+        } else {
+          // Negative
+          if (dtz.isNaN || dtz.isInfinite || dtz < -2147483647.0) {
+            dtzResult = 0x80000000;
+          } else {
+            dtzResult = dtz.truncate();
+          }
+        }
+        _performStore(operands[2] as StoreOperand, dtzResult & 0xFFFFFFFF);
+        break;
+      case GlulxOp.dtonumn:
+        // Check sign bit from raw representation (C uses signbit())
+        // For doubles, operands[1] is the high word containing the sign bit
+        final dtnHiRaw = operands[1] as int;
+        final dtn = _u2d(operands[0] as int, dtnHiRaw);
+        final dtnSignBit = (dtnHiRaw & 0x80000000) != 0;
+        int dtnResult;
+        if (!dtnSignBit) {
+          // Positive or positive zero
+          if (dtn.isNaN || dtn.isInfinite || dtn > 2147483647.0) {
+            dtnResult = 0x7FFFFFFF;
+          } else {
+            dtnResult = dtn.round();
+          }
+        } else {
+          // Negative
+          if (dtn.isNaN || dtn.isInfinite || dtn < -2147483647.0) {
+            dtnResult = 0x80000000;
+          } else {
+            dtnResult = dtn.round();
+          }
+        }
+        _performStore(operands[2] as StoreOperand, dtnResult & 0xFFFFFFFF);
         break;
       case GlulxOp.ftod:
         final res = _d2u(_u2f(operands[0] as int));
