@@ -157,10 +157,6 @@ Future<void> _runGlulxGame(
   String? logFilter,
   int? maxStep,
 }) async {
-  final terminal = TerminalDisplay();
-  terminal.config = config;
-  terminal.applySavedSettings();
-
   final f = File("debug.log");
   f.writeAsStringSync("", mode: FileMode.write);
 
@@ -170,7 +166,7 @@ Future<void> _runGlulxGame(
   });
 
   // Create provider
-  final provider = GlulxTerminalProvider(terminal);
+  final provider = GlulxTerminalProvider();
   GlulxInterpreter? glulx;
 
   try {
@@ -197,13 +193,13 @@ Future<void> _runGlulxGame(
     glulx.load(gameData);
 
     // Enter full-screen mode to show the game display
-    terminal.enterFullScreen();
+    provider.glkDisplay.enterFullScreen();
     log.warning('Game started');
     // keeping maxSteps here for now to handle infinite loops, etc.
     await glulx.run(maxStep: -1);
     log.warning('Game ended. Tick Count: ${provider.tickCount}. Step Count: ${glulx.step}');
     // Render what we have so far
-    terminal.render();
+    provider.renderScreen();
 
     if (glulx.debugger.showScreen) {
       glulx.debugger.dumpScreenOutput();
@@ -214,14 +210,12 @@ Future<void> _runGlulxGame(
     }
 
     // Wait for keypress before exiting
-    terminal.appendToWindow0('\n[Zart: Press any key to exit]');
-    terminal.render();
-    await terminal.readChar();
+    await provider.showExitAndWait('[Zart: Press any key to exit]');
   } catch (e, stackTrace) {
     stdout.writeln("Glulx Error: $e");
     stdout.writeln("Stack Trace:\n$stackTrace");
   } finally {
-    terminal.exitFullScreen();
+    provider.glkDisplay.exitFullScreen();
     glulx?.debugger.flushLogs();
   }
 }

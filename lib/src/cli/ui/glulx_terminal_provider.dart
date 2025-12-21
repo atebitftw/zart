@@ -1,23 +1,29 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:zart/src/cli/ui/terminal_display.dart';
+import 'package:zart/src/cli/ui/glk_terminal_display.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 import 'package:zart/src/io/glk/glk_gestalt_selectors.dart' show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
+import 'package:zart/src/io/glk/glk_screen_model.dart';
+import 'package:zart/src/io/glk/glk_window.dart';
 
 /// IO provider for Glulx interpreter.
 class GlulxTerminalProvider implements GlkIoProvider {
-  /// The terminal display.
-  final TerminalDisplay terminal;
+  /// The Glk terminal display.
+  late final GlkTerminalDisplay glkDisplay;
 
   /// The debugger.
   late final GlulxDebugger debugger;
 
-  GlulxTerminalProvider(this.terminal) {
+  /// Creates a terminal provider, optionally accepting a display for testing.
+  GlulxTerminalProvider({GlkTerminalDisplay? display}) {
+    glkDisplay = display ?? GlkTerminalDisplay();
     // ID 1001 is the default stream (terminal window0)
     _streams[1001] = _GlkStream(id: 1001, type: 1);
+    // Initialize screen model with terminal dimensions
+    _screenModel.setScreenSize(glkDisplay.cols, glkDisplay.rows);
   }
 
   int _tickCount = 0;
@@ -53,9 +59,29 @@ class GlulxTerminalProvider implements GlkIoProvider {
   // Buffer for screen output logging (accumulates until newline)
   final StringBuffer _screenOutputBuffer = StringBuffer();
 
-  // Window tracking
-  final Map<int, _GlkWindow> _windows = {};
-  int _nextWindowId = 1;
+  // Glk Screen Model for window management and rendering
+  final GlkScreenModel _screenModel = GlkScreenModel();
+
+  /// Public getter for screen model (for rendering)
+  GlkScreenModel get screenModel => _screenModel;
+
+  /// Render the current screen state
+  void renderScreen() {
+    glkDisplay.render(_screenModel);
+  }
+
+  /// Show exit message in root window and wait for keypress
+  Future<void> showExitAndWait(String message) async {
+    final targetWin = _screenModel.rootWindow?.id;
+    if (targetWin != null) {
+      _screenModel.putString(targetWin, '\n$message');
+    }
+    renderScreen();
+    await glkDisplay.readChar();
+  }
+
+  // Window ID to stream ID mapping (each window has its own stream)
+  final Map<int, int> _windowStreams = {};
 
   // File system simulation (for filerefs and streams)
   final Map<int, _GlkFile> _files = {};
@@ -67,7 +93,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
       case GlulxGestaltSelectors.glulxVersion:
         return 0x00030103;
       case GlulxGestaltSelectors.terpVersion:
-        return 0x00000100;
+        return 0x00010000; // Version 1.0.0
       case GlulxGestaltSelectors.resizeMem:
         return 1;
       case GlulxGestaltSelectors.undo:
@@ -83,9 +109,10 @@ class GlulxTerminalProvider implements GlkIoProvider {
       case GlulxGestaltSelectors.mAllocHeap:
         return getHeapStart?.call() ?? 0;
       case GlulxGestaltSelectors.acceleration:
-        return 0;
+        return 1; // We support acceleration (functions 1-13)
       case GlulxGestaltSelectors.accelFunc:
-        return 0;
+        // Return 1 if we support this function index (1-13)
+        return (arg >= 1 && arg <= 13) ? 1 : 0;
       case GlulxGestaltSelectors.float:
         return 1;
       case GlulxGestaltSelectors.extUndo:
@@ -244,21 +271,62 @@ class GlulxTerminalProvider implements GlkIoProvider {
         return 0;
 
       case GlkIoSelectors.windowOpen:
+        // args: splitFromId, method, size, type, rock
+        final splitFromId = args.isNotEmpty ? args[0] : 0;
+        final method = args.length > 1 ? args[1] : 0;
+        final size = args.length > 2 ? args[2] : 0;
+        final winType = args.length > 3 ? args[3] : 0;
         final rock = args.length > 4 ? args[4] : 0;
-        final winId = _nextWindowId++;
-        _windows[winId] = _GlkWindow(id: winId, rock: rock);
-        return winId;
+        // Map Glk window types to GlkWindowType enum
+        // Glk spec: pair=1, blank=2, textBuffer=3, textGrid=4, graphics=5
+        GlkWindowType type;
+        switch (winType) {
+          case 1:
+            type = GlkWindowType.pair; // Should not happen via windowOpen
+          case 2:
+            type = GlkWindowType.blank;
+          case 3:
+            type = GlkWindowType.textBuffer;
+          case 4:
+            type = GlkWindowType.textGrid;
+          case 5:
+            type = GlkWindowType.graphics;
+          default:
+            type = GlkWindowType.textBuffer;
+        }
+        final winId = _screenModel.windowOpen(splitFromId == 0 ? null : splitFromId, method, size, type, rock);
+        if (winId != null) {
+          // Create a stream for this window
+          final streamId = _nextStreamId++;
+          _streams[streamId] = _GlkStream(id: streamId, type: 1, windowId: winId);
+          _windowStreams[winId] = streamId;
+        }
+        return winId ?? 0;
       case GlkIoSelectors.windowClose:
+        final winId = args[0];
+        _screenModel.windowClose(winId);
+        // Remove associated stream
+        final streamId = _windowStreams.remove(winId);
+        if (streamId != null) _streams.remove(streamId);
         return 0;
       case GlkIoSelectors.windowGetSize:
-        if (args.length > 1 && args[1] != 0) writeMemory(args[1], 80, size: 4);
-        if (args.length > 2 && args[2] != 0) writeMemory(args[2], 24, size: 4);
+        final winId = args[0];
+        final (w, h) = _screenModel.windowGetSize(winId);
+        if (args.length > 1 && args[1] != 0) writeMemory(args[1], w, size: 4);
+        if (args.length > 2 && args[2] != 0) writeMemory(args[2], h, size: 4);
         return 0;
       case GlkIoSelectors.setWindow:
+        // Set current stream to the window's stream
+        final winId = args[0];
+        if (winId != 0 && _windowStreams.containsKey(winId)) {
+          _currentStreamId = _windowStreams[winId]!;
+        }
         return 0;
       case GlkIoSelectors.windowClear:
+        _screenModel.windowClear(args[0]);
         return 0;
       case GlkIoSelectors.windowMoveCursor:
+        _screenModel.windowMoveCursor(args[0], args[1], args[2]);
         return 0;
 
       case GlkIoSelectors.streamOpenFile:
@@ -366,7 +434,8 @@ class GlulxTerminalProvider implements GlkIoProvider {
       case GlkIoSelectors.windowIterate:
         final prevWin = args[0];
         final rockAddr = args.length > 1 ? args[1] : 0;
-        final windowIds = _windows.keys.toList()..sort();
+        final visible = _screenModel.getVisibleWindows();
+        final windowIds = visible.map((w) => w.windowId).toList();
         int? nextWin;
         if (prevWin == 0) {
           nextWin = windowIds.isNotEmpty ? windowIds.first : null;
@@ -376,33 +445,40 @@ class GlulxTerminalProvider implements GlkIoProvider {
         }
 
         if (nextWin != null) {
-          final win = _windows[nextWin]!;
-          if (rockAddr != 0 && rockAddr != 0xFFFFFFFF)
-            writeMemory(rockAddr, win.rock, size: 4);
-          else if (rockAddr == 0xFFFFFFFF)
-            pushToStack(win.rock);
+          final win = _screenModel.getWindow(nextWin);
+          if (win != null) {
+            if (rockAddr != 0 && rockAddr != 0xFFFFFFFF)
+              writeMemory(rockAddr, win.rock, size: 4);
+            else if (rockAddr == 0xFFFFFFFF)
+              pushToStack(win.rock);
+          }
           return nextWin;
         }
         return 0;
 
       case GlkIoSelectors.windowGetRock:
-        return _windows[args[0]]?.rock ?? 0;
+        return _screenModel.getWindow(args[0])?.rock ?? 0;
 
       case GlkIoSelectors.requestLineEvent:
       case GlkIoSelectors.requestLineEventUni:
         _pendingLineEventWin = args[0];
         _pendingLineEventAddr = args[1];
         _pendingLineEventMaxLen = args[2];
+        // Also register with screen model
+        _screenModel.requestLineEvent(args[0], args[1], args[2]);
         return 0;
       case GlkIoSelectors.requestCharEvent:
       case GlkIoSelectors.requestCharEventUni:
         _pendingCharEventWin = args[0];
+        _screenModel.requestCharEvent(args[0]);
         return 0;
       case GlkIoSelectors.cancelLineEvent:
         _pendingLineEventWin = null;
+        _screenModel.cancelLineEvent(args[0]);
         return 0;
       case GlkIoSelectors.cancelCharEvent:
         _pendingCharEventWin = null;
+        _screenModel.cancelCharEvent(args[0]);
         return 0;
       case GlkIoSelectors.select:
         return _handleSelect(args[0]);
@@ -442,10 +518,17 @@ class GlulxTerminalProvider implements GlkIoProvider {
     stream.writeCount++;
 
     if (stream.type == 1) {
+      // Window stream - route through screen model
       final codepoint = (value >= 0 && value <= 0x10FFFF) ? value : 0xFFFD;
       final char = String.fromCharCode(codepoint);
-      terminal.appendToWindow0(char);
-      if (value == 10) terminal.render();
+
+      // Write to screen model (explicit window or root window)
+      final targetWin = stream.windowId ?? _screenModel.rootWindow?.id;
+      if (targetWin != null) {
+        _screenModel.putString(targetWin, char);
+      }
+      // If no windows exist, output is silently discarded
+
       if (debugger.enabled && debugger.showScreen) {
         if (value == 10) {
           debugger.logScreenOutput(_screenOutputBuffer.toString());
@@ -544,9 +627,43 @@ class GlulxTerminalProvider implements GlkIoProvider {
   }
 
   Future<int> _handleSelect(int eventAddr) async {
+    // Check for pending input using screen model
+    final awaiting = _screenModel.getWindowsAwaitingInput();
+
+    if (awaiting.isNotEmpty) {
+      glkDisplay.render(_screenModel);
+      final focusedWin = _screenModel.focusedWindowId ?? awaiting.first;
+      final window = _screenModel.getWindow(focusedWin);
+
+      if (window != null && window.lineInputPending) {
+        final line = await glkDisplay.readLine();
+
+        // Echo input to the buffer (so it appears in transcript)
+        _screenModel.putString(focusedWin, '$line\n');
+
+        var count = 0;
+        for (var i = 0; i < line.length && i < window.lineInputMaxLen; i++) {
+          writeMemory(window.lineInputBufferAddr + i, line.codeUnitAt(i), size: 1);
+          count++;
+        }
+        _screenModel.cancelLineEvent(focusedWin);
+        _writeEventStruct(eventAddr, GlkEventTypes.lineInput, focusedWin, count, 0);
+        return 0;
+      }
+
+      if (window != null && window.charInputPending) {
+        final char = await glkDisplay.readChar();
+        final code = char.isNotEmpty ? char.codeUnitAt(0) : 0;
+        _screenModel.cancelCharEvent(focusedWin);
+        _writeEventStruct(eventAddr, GlkEventTypes.charInput, focusedWin, code, 0);
+        return 0;
+      }
+    }
+
+    // Legacy path for pending input tracked locally
     if (_pendingLineEventAddr != null) {
-      terminal.render();
-      final line = await terminal.readLine();
+      glkDisplay.render(_screenModel);
+      final line = await glkDisplay.readLine();
       var count = 0;
       for (var i = 0; i < line.length && i < _pendingLineEventMaxLen!; i++) {
         writeMemory(_pendingLineEventAddr! + i, line.codeUnitAt(i), size: 1);
@@ -557,8 +674,8 @@ class GlulxTerminalProvider implements GlkIoProvider {
       return 0;
     }
     if (_pendingCharEventWin != null) {
-      terminal.render();
-      final char = await terminal.readChar();
+      glkDisplay.render(_screenModel);
+      final char = await glkDisplay.readChar();
       final code = char.isNotEmpty ? char.codeUnitAt(0) : 0;
       _writeEventStruct(eventAddr, GlkEventTypes.charInput, _pendingCharEventWin!, code, 0);
       _pendingCharEventWin = null;
@@ -572,8 +689,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
       _writeEventStruct(eventAddr, GlkEventTypes.timer, 0, 0, 0);
       return 0;
     }
-    terminal.render();
-    final line = await terminal.readLine();
+    // Fallback: render and wait for input
+    glkDisplay.render(_screenModel);
+    final line = await glkDisplay.readLine();
     _writeEventStruct(eventAddr, GlkEventTypes.lineInput, 1, line.length, 0);
     return 0;
   }
@@ -593,13 +711,32 @@ class GlulxTerminalProvider implements GlkIoProvider {
   }
 
   int _handleGlkGestalt(int gestaltSelector, List<int> args) {
+    final arg = args.isNotEmpty ? args[0] : 0;
     switch (gestaltSelector) {
       case GlkGestaltSelectors.version:
         return 0x00070600;
-      case GlkGestaltSelectors.lineInput:
-        return 1;
       case GlkGestaltSelectors.charInput:
-        return 1;
+        // arg is the window type: 2=TextBuffer, 3=TextGrid
+        // Return 1 if we support char input for this window type
+        if (arg == 2 || arg == 3) return 1;
+        return 0;
+      case GlkGestaltSelectors.lineInput:
+        // arg is the window type: 2=TextBuffer, 3=TextGrid
+        // Return 1 if we support line input for this window type
+        if (arg == 2 || arg == 3) return 1;
+        return 0;
+      case GlkGestaltSelectors.charOutput:
+        // arg is a character, return if we can print it
+        return 2; // gestalt_CharOutput_ExactPrint
+      case GlkGestaltSelectors.mouseInput:
+        // arg is window type - we don't support mouse input
+        return 0;
+      case GlkGestaltSelectors.timer:
+        return 1; // We support timer events
+      case GlkGestaltSelectors.graphics:
+        return 0; // No graphics support in CLI
+      case GlkGestaltSelectors.drawImage:
+        return 0;
       case GlkGestaltSelectors.unicode:
         return 1;
       default:
@@ -616,6 +753,7 @@ class _GlkStream {
   final int bufLen;
   final bool isUnicode;
   final int frefId;
+  final int? windowId; // Associated window for window streams
   int writeCount = 0;
   int readCount = 0;
   int pos = 0;
@@ -627,16 +765,11 @@ class _GlkStream {
     this.bufLen = 0,
     this.isUnicode = false,
     this.frefId = 0,
+    this.windowId,
   });
 }
 
 class _GlkFile {
   Uint8List data = Uint8List(0);
   int length = 0;
-}
-
-class _GlkWindow {
-  final int id;
-  final int rock;
-  _GlkWindow({required this.id, this.rock = 0});
 }
