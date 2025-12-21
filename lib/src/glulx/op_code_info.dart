@@ -114,6 +114,10 @@ class OpcodeInfo {
     GlulxOp.malloc: OpcodeInfo(2, [false, true]),
     GlulxOp.mfree: OpcodeInfo(1, [false]),
 
+    // Acceleration opcodes
+    GlulxOp.accelfunc: OpcodeInfo(2, [false, false]),
+    GlulxOp.accelparam: OpcodeInfo(2, [false, false]),
+
     // System / Random
     GlulxOp.random: OpcodeInfo(2, [false, true]),
     GlulxOp.setrandom: OpcodeInfo(1, [false]),

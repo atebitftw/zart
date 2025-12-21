@@ -16,6 +16,7 @@ import 'package:zart/src/glulx/glulx_undo_state.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
+import 'package:zart/src/glulx/glulx_accel.dart';
 
 /// The Glulx interpreter.
 class GlulxInterpreter {
@@ -45,6 +46,10 @@ class GlulxInterpreter {
   /// Spec Section 2.4.9 / Reference: osdepend.c
   final Xoshiro128 _random = Xoshiro128();
   late GlulxStringDecoder _stringDecoder;
+
+  /// Function acceleration system.
+  /// Reference: accel.c in the C interpreter.
+  late GlulxAccel accel;
 
   final Float32List _f32 = Float32List(1);
   late Uint32List _u32 = _f32.buffer.asUint32List();
@@ -76,6 +81,9 @@ class GlulxInterpreter {
     _stringDecoder = GlulxStringDecoder(memoryMap);
     stack = GlulxStack(memoryMap.stackSize);
     _pc = memoryMap.ramStart;
+
+    // Initialize acceleration system
+    accel = GlulxAccel(memoryMap: memoryMap, getIosysMode: () => _iosysMode, streamChar: (c) => _streamChar(c));
 
     glkDispatcher.setMemoryAccess(
       write: (addr, val, {size = 1}) {
@@ -1486,6 +1494,22 @@ class GlulxInterpreter {
         memoryMap.setProtection(start, length);
         break;
 
+      // ========== Acceleration Opcodes (Spec Section: Accelerated Functions) ==========
+
+      /// Spec: "accelfunc L1 L2: Request that the VM function with address L2
+      /// be replaced by the accelerated function whose number is L1."
+      /// Reference: exec.c case op_accelfunc
+      case GlulxOp.accelfunc:
+        accel.setFunc(operands[0] as int, operands[1] as int);
+        break;
+
+      /// Spec: "accelparam L1 L2: Store the value L2 in the parameter table
+      /// at position L1."
+      /// Reference: exec.c case op_accelparam
+      case GlulxOp.accelparam:
+        accel.setParam(operands[0] as int, operands[1] as int);
+        break;
+
       default:
         throw GlulxException(
           'Unimplemented opcode: 0x${opcode.toRadixString(16)} (${GlulxDebugger.opCodeName[opcode]})',
@@ -1562,9 +1586,9 @@ class GlulxInterpreter {
       case GlulxGestaltSelectors.acceleration:
         return 1;
       case GlulxGestaltSelectors.accelFunc:
-        // We support none yet, but the opcode exists.
-        // Return 1 if we support the index in 'arg', 0 otherwise.
-        return 0;
+        // Return 1 if we support the specific function index in 'arg'.
+        // Reference: gestalt.c case gestulx_AccelFunc
+        return accel.supportsFunc(arg) ? 1 : 0;
       default:
         return glkDispatcher.vmGestalt(selector, arg);
     }
@@ -1915,9 +1939,19 @@ class GlulxInterpreter {
     _enterFunction(address, args);
   }
 
-  /// Sets up a new call frame and entries the function at the given address.
+  /// Sets up a new call frame and enters the function at the given address.
   /// Does NOT push a call stub. Reference: enter_function in funcs.c
   void _enterFunction(int address, List<int> args) {
+    // Check for accelerated function first.
+    // Reference: funcs.c enter_function() lines 25-32
+    final accelFunc = accel.getFunc(address);
+    if (accelFunc != null) {
+      // Call native implementation and return result via call stub
+      final result = accelFunc(args);
+      _popCallStubWithResult(result);
+      return;
+    }
+
     // Parse function header
     final func = GlulxFunction.parse(memoryMap, address);
 
@@ -1939,6 +1973,34 @@ class GlulxInterpreter {
 
     // Jump to entry point
     _pc = func.entryPoint;
+  }
+
+  /// Pops the call stub and stores the result.
+  /// Used by accelerated functions to return their value.
+  /// Reference: funcs.c pop_callstub()
+  void _popCallStubWithResult(int value) {
+    final stub = stack.popCallStub();
+    final destType = stub[0];
+    final destAddr = stub[1];
+    final oldPc = stub[2];
+    final oldFp = stub[3];
+
+    // Restore FP and update cached bases
+    stack.restoreFp(oldFp);
+
+    // Restore PC
+    _pc = oldPc;
+
+    // Store result using the same logic as _returnValue but simpler
+    // (accelerated functions don't need to handle string resume cases)
+    stack.storeResult(
+      value,
+      destType,
+      destAddr,
+      onMemoryWrite: (addr, val) {
+        memoryMap.writeWord(addr, val);
+      },
+    );
   }
 
   /// Returns from the current function with the given value.
