@@ -7,6 +7,9 @@ import 'package:zart/src/io/glk/glk_gestalt_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/logging.dart';
 
+/// The global Glulx debugger instance.
+final debugger = GlulxDebugger();
+
 /// A dedicated debugger for the Glulx interpreter.
 ///
 /// When enabled, logs header information, interpreter state, and
@@ -74,10 +77,7 @@ class GlulxDebugger {
     final endMem = memory.getUint32(GlulxHeader.endMemOffset, Endian.big);
     final stackSize = memory.getUint32(GlulxHeader.stackSizeOffset, Endian.big);
     final startFunc = memory.getUint32(GlulxHeader.startFuncOffset, Endian.big);
-    final decodingTbl = memory.getUint32(
-      GlulxHeader.decodingTblOffset,
-      Endian.big,
-    );
+    final decodingTbl = memory.getUint32(GlulxHeader.decodingTblOffset, Endian.big);
     final checksum = memory.getUint32(GlulxHeader.checksumOffset, Endian.big);
 
     // Format version as major.minor.patch
@@ -86,34 +86,21 @@ class GlulxDebugger {
     final patch = version & 0xFF;
 
     bufferedLog('=== Glulx Header ===');
-    bufferedLog(
-      'Magic:       0x${magic.toRadixString(16).padLeft(8, '0')} (${_magicToString(magic)})',
-    );
+    bufferedLog('Magic:       0x${magic.toRadixString(16).padLeft(8, '0')} (${_magicToString(magic)})');
     bufferedLog('Version:     $major.$minor.$patch');
     bufferedLog('RAMSTART:    0x${ramStart.toRadixString(16).padLeft(8, '0')}');
     bufferedLog('EXTSTART:    0x${extStart.toRadixString(16).padLeft(8, '0')}');
     bufferedLog('ENDMEM:      0x${endMem.toRadixString(16).padLeft(8, '0')}');
-    bufferedLog(
-      'Stack Size:  0x${stackSize.toRadixString(16).padLeft(8, '0')} ($stackSize bytes)',
-    );
-    bufferedLog(
-      'Start Func:  0x${startFunc.toRadixString(16).padLeft(8, '0')}',
-    );
-    bufferedLog(
-      'Decoding Tbl: 0x${decodingTbl.toRadixString(16).padLeft(8, '0')}',
-    );
+    bufferedLog('Stack Size:  0x${stackSize.toRadixString(16).padLeft(8, '0')} ($stackSize bytes)');
+    bufferedLog('Start Func:  0x${startFunc.toRadixString(16).padLeft(8, '0')}');
+    bufferedLog('Decoding Tbl: 0x${decodingTbl.toRadixString(16).padLeft(8, '0')}');
     bufferedLog('Checksum:    0x${checksum.toRadixString(16).padLeft(8, '0')}');
     bufferedLog('====================');
   }
 
   /// Converts a magic number to its ASCII string representation.
   String _magicToString(int magic) {
-    return String.fromCharCodes([
-      (magic >> 24) & 0xFF,
-      (magic >> 16) & 0xFF,
-      (magic >> 8) & 0xFF,
-      magic & 0xFF,
-    ]);
+    return String.fromCharCodes([(magic >> 24) & 0xFF, (magic >> 16) & 0xFF, (magic >> 8) & 0xFF, magic & 0xFF]);
   }
 
   /// Logs the current interpreter state.
@@ -122,9 +109,7 @@ class GlulxDebugger {
       return;
     }
     if (!_isInBounds(pc)) {
-      bufferedLog(
-        'WARNING: PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}',
-      );
+      bufferedLog('WARNING: PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}');
       return;
     }
 
@@ -158,9 +143,7 @@ class GlulxDebugger {
     }
 
     if (!_isInBounds(pc)) {
-      bufferedLog(
-        'WARNING: PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}',
-      );
+      bufferedLog('WARNING: PC out of bounds: 0x${pc.toRadixString(16).padLeft(8, '0')}');
       return;
     }
 
@@ -172,9 +155,7 @@ class GlulxDebugger {
     final buffer = StringBuffer();
 
     // Format: 0x00001234: @opname op1 op2 op3
-    buffer.write(
-      '(Step: $step) 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName',
-    );
+    buffer.write('(Step: $step) 0x${pc.toRadixString(16).padLeft(8, '0')}: @$opName');
 
     for (int i = 0; i < operands.length; i++) {
       buffer.write(' ');
@@ -198,15 +179,11 @@ class GlulxDebugger {
       return;
     }
     if (!_isInBounds(startAddr)) {
-      bufferedLog(
-        'WARNING: PC out of bounds: 0x${startAddr.toRadixString(16).padLeft(8, '0')}',
-      );
+      bufferedLog('WARNING: PC out of bounds: 0x${startAddr.toRadixString(16).padLeft(8, '0')}');
       return;
     }
 
-    final hexBytes = bytes
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join(' ');
+    final hexBytes = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
     bufferedLog('  $label [0x${startAddr.toRadixString(16)}]: $hexBytes');
   }
 
@@ -216,9 +193,7 @@ class GlulxDebugger {
     if (!_isInBounds(oldPC)) return;
 
     final delta = newPC - oldPC;
-    bufferedLog(
-      '  PC: 0x${oldPC.toRadixString(16)} -> 0x${newPC.toRadixString(16)} (+$delta bytes) [$reason]',
-    );
+    bufferedLog('  PC: 0x${oldPC.toRadixString(16)} -> 0x${newPC.toRadixString(16)} (+$delta bytes) [$reason]');
   }
 
   /// Logs addressing modes for operands.
@@ -292,9 +267,7 @@ class GlulxDebugger {
         if (rawValue != null && !isStore) {
           return '[0x${rawValue.toRadixString(16)}]';
         }
-        return isStore
-            ? '*0x${value.toRadixString(16)}'
-            : '[0x${value.toRadixString(16)}]';
+        return isStore ? '*0x${value.toRadixString(16)}' : '[0x${value.toRadixString(16)}]';
       case 8: // Stack push/pop
         return isStore ? '-(sp)' : '(sp)+';
       case 9: // Local (1 byte offset)
@@ -310,9 +283,7 @@ class GlulxDebugger {
         if (rawValue != null && !isStore) {
           return '[ram+0x${rawValue.toRadixString(16)}]';
         }
-        return isStore
-            ? '*ram+0x${value.toRadixString(16)}'
-            : '[ram+0x${value.toRadixString(16)}]';
+        return isStore ? '*ram+0x${value.toRadixString(16)}' : '[ram+0x${value.toRadixString(16)}]';
       default:
         // Unknown mode, just show value
         return value.toString();
@@ -369,9 +340,7 @@ class GlulxDebugger {
     if (!enabled || !showFlightRecorder) {
       return;
     }
-    bufferedLog(
-      '--- Flight Recorder (Last $flightRecorderSize Instructions) ---',
-    );
+    bufferedLog('--- Flight Recorder (Last $flightRecorderSize Instructions) ---');
     for (final line in _flightRecorder) {
       bufferedLog(line);
     }
@@ -405,10 +374,18 @@ class GlulxDebugger {
 
   /// Flushes the buffered logs to the logging system.
   void flushLogs() {
-    if (_logBuffer.isEmpty) return;
     for (final line in _logBuffer) {
       log.info(line);
     }
+
+    if (showScreen) {
+      dumpScreenOutput();
+    }
+
+    if (showFlightRecorder) {
+      dumpFlightRecorder();
+    }
+
     _logBuffer.clear();
   }
 

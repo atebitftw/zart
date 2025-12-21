@@ -2,6 +2,8 @@ import 'glk_cell.dart';
 import 'glk_styles.dart';
 import 'glk_window.dart';
 import 'glk_winmethod.dart';
+import '../render/render_cell.dart';
+import '../render/render_frame.dart';
 
 /// Info about a window for rendering.
 class GlkWindowRenderInfo {
@@ -528,5 +530,90 @@ class GlkScreenModel {
     screenCols = cols;
     screenRows = rows;
     recalculateLayout();
+  }
+
+  // === Unified Rendering API ===
+
+  /// Convert a GlkCell to a RenderCell.
+  RenderCell _cellToRenderCell(GlkCell cell) {
+    // Map Glk styles to bold/italic flags
+    bool bold = false;
+    bool italic = false;
+
+    switch (cell.style) {
+      case GlkStyle.header:
+      case GlkStyle.subheader:
+      case GlkStyle.input:
+        bold = true;
+      case GlkStyle.emphasized:
+      case GlkStyle.note:
+        italic = true;
+      case GlkStyle.alert:
+        bold = true;
+    }
+
+    return RenderCell(
+      cell.char,
+      fgColor: cell.fgColor,
+      bgColor: cell.bgColor,
+      bold: bold,
+      italic: italic,
+      reverse: false, // Glk doesn't have reverse video style
+    );
+  }
+
+  /// Convert the screen state to a RenderFrame for unified rendering.
+  ///
+  /// Returns all visible Glk windows converted to RenderWindows.
+  RenderFrame toRenderFrame() {
+    final windows = <RenderWindow>[];
+    final awaitingInput = getWindowsAwaitingInput();
+    int? focusedId;
+
+    for (final info in getVisibleWindows()) {
+      final window = _windowsById[info.windowId];
+      if (window == null) continue;
+
+      final cells = <List<RenderCell>>[];
+      final acceptsInput = awaitingInput.contains(info.windowId);
+      if (acceptsInput) focusedId = info.windowId;
+
+      int cursorX = 0, cursorY = 0;
+
+      if (window is GlkTextGridWindow) {
+        for (final row in window.grid) {
+          cells.add(row.map(_cellToRenderCell).toList());
+        }
+        cursorX = window.cursorX;
+        cursorY = window.cursorY;
+      } else if (window is GlkTextBufferWindow) {
+        for (final line in window.lines) {
+          cells.add(line.map(_cellToRenderCell).toList());
+        }
+        // Cursor at end of last line
+        if (window.lines.isNotEmpty) {
+          cursorY = window.lines.length - 1;
+          cursorX = window.lines.last.length;
+        }
+      }
+      // Blank and graphics windows emit empty cells (already handled)
+
+      windows.add(
+        RenderWindow(
+          id: info.windowId,
+          x: info.x,
+          y: info.y,
+          width: info.width,
+          height: info.height,
+          cells: cells,
+          acceptsInput: acceptsInput,
+          cursorX: cursorX,
+          cursorY: cursorY,
+          isTextBuffer: window is GlkTextBufferWindow,
+        ),
+      );
+    }
+
+    return RenderFrame(windows: windows, screenWidth: screenCols, screenHeight: screenRows, focusedWindowId: focusedId);
   }
 }

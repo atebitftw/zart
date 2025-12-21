@@ -25,9 +25,6 @@ class CapturingIoProvider implements IoProvider {
   int getFlags1() => 0;
 
   int getFlags2() => 0; // if needed
-
-  @override
-  Future<int> glulxGlk(int selector, List<int> args) => Future.value(0);
 }
 
 void main() {

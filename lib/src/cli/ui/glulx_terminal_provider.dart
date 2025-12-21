@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/glk_terminal_display.dart';
-import 'package:zart/src/glulx/glulx_debugger.dart';
+import 'package:zart/src/cli/ui/settings_screen.dart';
+import 'package:zart/src/glulx/glulx_debugger.dart' show GlulxDebugger, debugger;
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 import 'package:zart/src/io/glk/glk_gestalt_selectors.dart' show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_provider.dart';
@@ -14,21 +16,39 @@ class GlulxTerminalProvider implements GlkIoProvider {
   /// The Glk terminal display.
   late final GlkTerminalDisplay glkDisplay;
 
-  /// The debugger.
-  GlulxDebugger _debugger = GlulxDebugger();
-
-  GlulxDebugger get debugger => _debugger;
-  set debugger(GlulxDebugger value) {
-    _debugger = value;
-  }
+  /// The configuration manager.
+  final ConfigurationManager? config;
 
   /// Creates a terminal provider, optionally accepting a display for testing.
-  GlulxTerminalProvider({GlkTerminalDisplay? display}) {
+  GlulxTerminalProvider({GlkTerminalDisplay? display, this.config}) {
     glkDisplay = display ?? GlkTerminalDisplay();
+    glkDisplay.config = config;
     // ID 1001 is the default stream (terminal window0)
     _streams[1001] = _GlkStream(id: 1001, type: 1);
     // Initialize screen model with terminal dimensions
     _screenModel.setScreenSize(glkDisplay.cols, glkDisplay.rows);
+
+    // Wire up debug log to debugger buffer
+    glkDisplay.renderer.onDebugLog = (msg) => debugger.bufferedLog(msg);
+
+    // Wire up F-key callbacks for Glulx
+    glkDisplay.onOpenSettings = () async {
+      await SettingsScreen(glkDisplay, config ?? ConfigurationManager()).show(isGameStarted: true);
+    };
+
+    glkDisplay.renderer.onQuickSave = () {
+      glkDisplay.showTempMessage('Quick Save: Not implemented yet');
+    };
+
+    glkDisplay.renderer.onQuickLoad = () {
+      glkDisplay.showTempMessage('Quick Load: Not implemented yet');
+    };
+
+    glkDisplay.renderer.onCycleTextColor = () {
+      // Logic for color cycling if we want it for Glulx too
+      debugger.bufferedLog('F4 pressed: Cycle Text Color requested');
+      glkDisplay.showTempMessage('Color Cycling: Not implemented for Glulx yet');
+    };
   }
 
   int _tickCount = 0;
@@ -72,7 +92,10 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
   /// Render the current screen state
   void renderScreen() {
-    glkDisplay.render(_screenModel);
+    glkDisplay.renderGlk(_screenModel);
+    if (debugger.enabled) {
+      debugger.flushLogs();
+    }
   }
 
   /// Show exit message in root window and wait for keypress
@@ -644,7 +667,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
     final awaiting = _screenModel.getWindowsAwaitingInput();
 
     if (awaiting.isNotEmpty) {
-      glkDisplay.render(_screenModel);
+      glkDisplay.renderGlk(_screenModel);
       final focusedWin = _screenModel.focusedWindowId ?? awaiting.first;
       final window = _screenModel.getWindow(focusedWin);
 
@@ -675,7 +698,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
 
     // Legacy path for pending input tracked locally
     if (_pendingLineEventAddr != null) {
-      glkDisplay.render(_screenModel);
+      glkDisplay.renderGlk(_screenModel);
       final line = await glkDisplay.readLine();
       var count = 0;
       for (var i = 0; i < line.length && i < _pendingLineEventMaxLen!; i++) {
@@ -687,7 +710,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
       return 0;
     }
     if (_pendingCharEventWin != null) {
-      glkDisplay.render(_screenModel);
+      glkDisplay.renderGlk(_screenModel);
       final char = await glkDisplay.readChar();
       final code = char.isNotEmpty ? char.codeUnitAt(0) : 0;
       _writeEventStruct(eventAddr, GlkEventTypes.charInput, _pendingCharEventWin!, code, 0);
@@ -703,7 +726,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
       return 0;
     }
     // Fallback: render and wait for input
-    glkDisplay.render(_screenModel);
+    glkDisplay.renderGlk(_screenModel);
     final line = await glkDisplay.readLine();
     _writeEventStruct(eventAddr, GlkEventTypes.lineInput, 1, line.length, 0);
     return 0;

@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:zart/src/io/cell.dart';
+import 'package:zart/src/io/render/render_cell.dart';
+import 'package:zart/src/io/render/render_frame.dart';
 
 final _log = Logger('ScreenModel');
 
@@ -65,8 +67,7 @@ class ScreenModel {
   int wrapWidth = 0;
 
   /// Effective wrap width.
-  int get _effectiveWrapWidth =>
-      (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
+  int get _effectiveWrapWidth => (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
 
   /// The grid for Window 1 (upper/status window) content.
   /// Grid is [row][col]
@@ -85,9 +86,7 @@ class ScreenModel {
   void _recomputeEffectiveHeight() {
     final newHeight = max(_requestedHeight, _contentHeight);
     if (newHeight != _window1Height) {
-      _log.info(
-        'Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight',
-      );
+      _log.info('Auto-sizing Window 1: Requested $_requestedHeight, Content $_contentHeight -> Effective $newHeight');
       _window1Height = newHeight;
       _ensureGridRows(_window1Height);
     }
@@ -223,9 +222,7 @@ class ScreenModel {
   /// Write text to Window 1 at current cursor position.
   void writeToWindow1(String text) {
     // Log simplified text content
-    _log.info(
-      'writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol',
-    );
+    _log.info('writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol');
 
     for (int i = 0; i < text.length; i++) {
       final char = text[i];
@@ -279,15 +276,11 @@ class ScreenModel {
     if (_window1Height > _requestedHeight) {
       final trimmed = text.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        _log.info(
-          'Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
       if (trimmed.startsWith('[')) {
-        _log.info(
-          'Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
     }
@@ -320,8 +313,7 @@ class ScreenModel {
 
       if (word != null) {
         // Wrap if word doesn't fit
-        if (currentLine.isNotEmpty &&
-            currentLine.length + word.length > _effectiveWrapWidth) {
+        if (currentLine.isNotEmpty && currentLine.length + word.length > _effectiveWrapWidth) {
           newLine();
         }
 
@@ -331,9 +323,7 @@ class ScreenModel {
 
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(
-            Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
-          );
+          currentLine.add(Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
         }
       }
 
@@ -345,9 +335,7 @@ class ScreenModel {
           }
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(
-            Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle),
-          );
+          currentLine.add(Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
         }
       }
     }
@@ -368,15 +356,11 @@ class ScreenModel {
       'cols': cols,
       'rows': rows,
       'wrapWidth': wrapWidth,
-      'window1Grid': _window1Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'window1Grid': _window1Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'window1Height': _window1Height,
       'requestedHeight': _requestedHeight,
       'contentHeight': _contentHeight,
-      'window0Grid': _window0Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'window0Grid': _window0Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'cursorRow': _cursorRow,
       'cursorCol': _cursorCol,
       'currentStyle': currentStyle,
@@ -401,19 +385,13 @@ class ScreenModel {
       wrapWidth = state['wrapWidth'];
     }
 
-    _window1Grid = (state['window1Grid'] as List)
-        .map((row) => (row as List).cast<Cell>())
-        .toList();
+    _window1Grid = (state['window1Grid'] as List).map((row) => (row as List).cast<Cell>()).toList();
     _window1Height = state['window1Height'];
     _requestedHeight = state['requestedHeight'];
     _contentHeight = state['contentHeight'];
 
     _window0Grid.clear();
-    _window0Grid.addAll(
-      (state['window0Grid'] as List)
-          .map((row) => (row as List).cast<Cell>())
-          .toList(),
-    );
+    _window0Grid.addAll((state['window0Grid'] as List).map((row) => (row as List).cast<Cell>()).toList());
 
     _cursorRow = state['cursorRow'];
     _cursorCol = state['cursorCol'];
@@ -438,5 +416,83 @@ class ScreenModel {
         cell.fg = fg;
       }
     }
+  }
+
+  // === Unified Rendering API ===
+
+  /// Z-machine color codes to RGB mapping.
+  static const _zColorToRgb = <int, int>{
+    2: 0x000000, // Black
+    3: 0xCC0000, // Red
+    4: 0x00CC00, // Green
+    5: 0xCCCC00, // Yellow
+    6: 0x0000CC, // Blue
+    7: 0xCC00CC, // Magenta
+    8: 0x00CCCC, // Cyan
+    9: 0xFFFFFF, // White
+    10: 0xAAAAAA, // Light Grey
+    11: 0x777777, // Medium Grey
+    12: 0x444444, // Dark Grey
+  };
+
+  /// Convert a Z-machine Cell to a RenderCell.
+  RenderCell _cellToRenderCell(Cell cell) {
+    return RenderCell(
+      cell.char,
+      fgColor: cell.fg != 1 ? _zColorToRgb[cell.fg] : null,
+      bgColor: cell.bg != 1 && cell.bg != 2 ? _zColorToRgb[cell.bg] : null,
+      bold: (cell.style & 2) != 0,
+      italic: (cell.style & 4) != 0,
+      reverse: (cell.style & 1) != 0,
+    );
+  }
+
+  /// Convert the screen state to a RenderFrame for unified rendering.
+  ///
+  /// Returns two windows:
+  /// - Window ID 1: Status bar (text grid)
+  /// - Window ID 0: Main text area (text buffer)
+  RenderFrame toRenderFrame({int? focusedWindowId}) {
+    final windows = <RenderWindow>[];
+
+    // Window 1 (status bar) - if visible
+    if (_window1Height > 0) {
+      final w1Cells = <List<RenderCell>>[];
+      for (var row in _window1Grid) {
+        w1Cells.add(row.map(_cellToRenderCell).toList());
+      }
+      windows.add(
+        RenderWindow(
+          id: 1,
+          x: 0,
+          y: 0,
+          width: cols,
+          height: _window1Height,
+          cells: w1Cells,
+          acceptsInput: false,
+          cursorX: _cursorCol - 1,
+          cursorY: _cursorRow - 1,
+        ),
+      );
+    }
+
+    // Window 0 (main text area)
+    final w0Cells = <List<RenderCell>>[];
+    for (var row in _window0Grid) {
+      w0Cells.add(row.map(_cellToRenderCell).toList());
+    }
+    windows.add(
+      RenderWindow(
+        id: 0,
+        x: 0,
+        y: _window1Height,
+        width: cols,
+        height: rows - _window1Height,
+        cells: w0Cells,
+        acceptsInput: true, // Window 0 typically receives input
+      ),
+    );
+
+    return RenderFrame(windows: windows, screenWidth: cols, screenHeight: rows, focusedWindowId: focusedWindowId ?? 0);
   }
 }

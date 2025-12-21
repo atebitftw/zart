@@ -11,10 +11,8 @@ class MockGlkTerminalDisplay extends GlkTerminalDisplay {
   String nextInput = '';
   final StringBuffer output = StringBuffer();
 
-  MockGlkTerminalDisplay() : super() {
-    cols = 80;
-    rows = 24;
-  }
+  MockGlkTerminalDisplay() : super();
+  // Dimensions are now read-only (delegated to CliRenderer)
 
   @override
   Future<String> readLine() async => nextInput;
@@ -23,9 +21,44 @@ class MockGlkTerminalDisplay extends GlkTerminalDisplay {
   Future<String> readChar() async => nextInput.isNotEmpty ? nextInput[0] : '';
 
   @override
-  void render(GlkScreenModel model) {
+  void showTempMessage(String message, {int seconds = 3}) {
+    // No-op
+  }
+
+  @override
+  void renderGlk(GlkScreenModel model) {
     // Don't write to stdout in tests
   }
+
+  @override
+  void appendToWindow0(String text) {}
+
+  @override
+  void clearAll() {}
+
+  @override
+  void render() {}
+
+  @override
+  void restoreState() {}
+
+  @override
+  void saveState() {}
+
+  @override
+  void setColors(int fg, int bg) {}
+
+  @override
+  void splitWindow(int lines) {}
+
+  @override
+  bool get enableStatusBar => false;
+
+  @override
+  set enableStatusBar(bool value) {}
+
+  @override
+  Future<void> Function()? onOpenSettings;
 
   @override
   void enterFullScreen() {
@@ -46,8 +79,7 @@ void main() {
     setUp(() {
       mockDisplay = MockGlkTerminalDisplay();
       provider = GlulxTerminalProvider(display: mockDisplay);
-      provider.debugger = GlulxDebugger(); // Ensure debugger is initialized
-      provider.debugger.enabled = false;
+      debugger.enabled = false;
     });
 
     test('unknown Glk selector returns 0 instead of throwing', () async {
@@ -57,15 +89,10 @@ void main() {
     });
 
     test('getCharStream and getCharStreamUni return -1 (EOF)', () async {
-      final result1 = await provider.glkDispatch(GlkIoSelectors.getCharStream, [
-        0,
-      ]);
+      final result1 = await provider.glkDispatch(GlkIoSelectors.getCharStream, [0]);
       expect(result1, equals(-1));
 
-      final result2 = await provider.glkDispatch(
-        GlkIoSelectors.getCharStreamUni,
-        [0],
-      );
+      final result2 = await provider.glkDispatch(GlkIoSelectors.getCharStreamUni, [0]);
       expect(result2, equals(-1));
     });
 
@@ -156,10 +183,7 @@ void main() {
     test('gestalt with empty args does not crash', () async {
       // gestalt(charInput, window_type) should return 1 for text buffer (type 3)
       // Note: Glk window types are pair=1, blank=2, textBuffer=3, textGrid=4, graphics=5
-      final result = await provider.glkDispatch(GlkIoSelectors.gestalt, [
-        0x01,
-        3,
-      ]); // charInput, textBuffer
+      final result = await provider.glkDispatch(GlkIoSelectors.gestalt, [0x01, 3]); // charInput, textBuffer
       expect(result, equals(1));
     });
     test('putCharStream writes to memory stream', () async {
@@ -171,25 +195,20 @@ void main() {
       final memory = Uint8List(0x2000);
       provider.setMemoryAccess(
         write: (addr, val, {size = 1}) {
-          if (size == 1)
+          if (size == 1) {
             memory[addr] = val;
-          else if (size == 4)
+          } else if (size == 4) {
             ByteData.view(memory.buffer).setUint32(addr, val, Endian.big);
+          }
         },
         read: (addr, {size = 1}) => memory[addr],
       );
 
       // Open memory stream
-      final streamId = await provider.glkDispatch(
-        GlkIoSelectors.streamOpenMemory,
-        [bufAddr, bufLen, 1],
-      );
+      final streamId = await provider.glkDispatch(GlkIoSelectors.streamOpenMemory, [bufAddr, bufLen, 1]);
 
       // Write a char 'X' (0x58) to the stream
-      final result = await provider.glkDispatch(GlkIoSelectors.putCharStream, [
-        streamId,
-        0x58,
-      ]);
+      final result = await provider.glkDispatch(GlkIoSelectors.putCharStream, [streamId, 0x58]);
       expect(result, equals(0));
 
       // Verify it was written to memory at bufAddr
@@ -198,42 +217,24 @@ void main() {
 
     test('streamSetCurrent returns previous stream ID', () async {
       // Initial stream is 1001
-      final result1 = await provider.glkDispatch(
-        GlkIoSelectors.streamGetCurrent,
-        [],
-      );
+      final result1 = await provider.glkDispatch(GlkIoSelectors.streamGetCurrent, []);
       expect(result1, equals(1001));
 
       // Open new stream (will be 1002)
-      provider.setMemoryAccess(
-        write: (_, __, {size = 1}) {},
-        read: (_, {size = 1}) => 0,
-      ); // Stub memory
+      provider.setMemoryAccess(write: (_, __, {size = 1}) {}, read: (_, {size = 1}) => 0); // Stub memory
 
-      final newStreamId = await provider.glkDispatch(
-        GlkIoSelectors.streamOpenMemory,
-        [0x1000, 100, 1],
-      );
+      final newStreamId = await provider.glkDispatch(GlkIoSelectors.streamOpenMemory, [0x1000, 100, 1]);
 
       // Set current to new stream, should return 1001 (previous)
-      final prevStreamId = await provider.glkDispatch(
-        GlkIoSelectors.streamSetCurrent,
-        [newStreamId],
-      );
+      final prevStreamId = await provider.glkDispatch(GlkIoSelectors.streamSetCurrent, [newStreamId]);
       expect(prevStreamId, equals(1001));
 
       // Verify new current
-      final result2 = await provider.glkDispatch(
-        GlkIoSelectors.streamGetCurrent,
-        [],
-      );
+      final result2 = await provider.glkDispatch(GlkIoSelectors.streamGetCurrent, []);
       expect(result2, equals(newStreamId));
 
       // Restore old stream, should return 1002
-      final prevStreamId2 = await provider.glkDispatch(
-        GlkIoSelectors.streamSetCurrent,
-        [1001],
-      );
+      final prevStreamId2 = await provider.glkDispatch(GlkIoSelectors.streamSetCurrent, [1001]);
       expect(prevStreamId2, equals(newStreamId));
     });
   });

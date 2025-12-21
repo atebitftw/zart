@@ -23,9 +23,6 @@ class GlulxInterpreter {
   /// The Glk Dispatcher Interface
   final GlkIoProvider glkDispatcher;
 
-  /// Debugger
-  final GlulxDebugger debugger = GlulxDebugger();
-
   /// The memory map for this interpreter.
   late GlulxMemoryMap memoryMap;
 
@@ -66,9 +63,7 @@ class GlulxInterpreter {
   final List<GlulxUndoState> _undoChain = [];
 
   /// Creates a new Glulx interpreter.
-  GlulxInterpreter(this.glkDispatcher) {
-    glkDispatcher.debugger = debugger;
-  }
+  GlulxInterpreter(this.glkDispatcher) {}
 
   /// Loads a game file into memory.
   Future<void> load(Uint8List gameData) async {
@@ -81,11 +76,7 @@ class GlulxInterpreter {
     _pc = memoryMap.ramStart;
 
     // Initialize acceleration system
-    accel = GlulxAccel(
-      memoryMap: memoryMap,
-      getIosysMode: () => _iosysMode,
-      streamChar: (c) => _streamChar(c),
-    );
+    accel = GlulxAccel(memoryMap: memoryMap, getIosysMode: () => _iosysMode, streamChar: (c) => _streamChar(c));
 
     glkDispatcher.setMemoryAccess(
       write: (addr, val, {size = 1}) {
@@ -109,10 +100,7 @@ class GlulxInterpreter {
       },
     );
 
-    glkDispatcher.setStackAccess(
-      push: (val) => stack.push32(val),
-      pop: () => stack.pop32(),
-    );
+    glkDispatcher.setStackAccess(push: (val) => stack.push32(val), pop: () => stack.pop32());
   }
 
   /// Whether the program has finished execution.
@@ -158,28 +146,18 @@ class GlulxInterpreter {
             await result;
           }
         } catch (e, stackTrace) {
-          debugger.bufferedLog(
-            'Error at PC=0x${instructionPc.toRadixString(16)}, step=$steps: $e',
-          );
+          debugger.bufferedLog('Error at PC=0x${instructionPc.toRadixString(16)}, step=$steps: $e');
           debugger.bufferedLog('Stack trace: $stackTrace');
           if (debugger.showScreen) {
             debugger.dumpScreenOutput();
           }
-          print('Saving debug data to log...');
-          debugger.flushLogs();
-          print('Finished saving debug data.');
           rethrow;
         }
         steps++;
       }
 
       if (maxStep != -1 && steps >= maxStep) {
-        debugger.bufferedLog(
-          'Interpreter -> Max steps ($maxStep) exceeded. Terminating.',
-        );
-        print('Saving debug data to log...');
-        debugger.flushLogs();
-        print('Finished saving debug data.');
+        debugger.bufferedLog('Interpreter -> Max steps ($maxStep) exceeded. Terminating.');
         return;
       }
     } catch (e, stackTrace) {
@@ -197,9 +175,6 @@ class GlulxInterpreter {
       if (debugger.enabled && debugger.showFlightRecorder) {
         debugger.dumpFlightRecorder();
       }
-      print('Saving debug data to log...');
-      debugger.flushLogs();
-      print('Finished saving debug data.');
       rethrow;
     }
   }
@@ -270,9 +245,7 @@ class GlulxInterpreter {
           throw Exception('Division by zero (Spec Section 2.4.1)');
         }
         if (l1 == -0x80000000 && l2 == -1) {
-          throw Exception(
-            'Division overflow: -0x80000000 / -1 (Spec Section 2.4.1)',
-          );
+          throw Exception('Division overflow: -0x80000000 / -1 (Spec Section 2.4.1)');
         }
         _performStore(dest, (l1 ~/ l2) & 0xFFFFFFFF);
         break;
@@ -290,9 +263,7 @@ class GlulxInterpreter {
           throw Exception('Modulo by zero (Spec Section 2.4.1)');
         }
         if (l1 == -0x80000000 && l2 == -1) {
-          throw Exception(
-            'Modulo overflow: -0x80000000 % -1 (Spec Section 2.4.1)',
-          );
+          throw Exception('Modulo overflow: -0x80000000 % -1 (Spec Section 2.4.1)');
         }
         _performStore(dest, l1.remainder(l2) & 0xFFFFFFFF);
         break;
@@ -989,18 +960,7 @@ class GlulxInterpreter {
         final keyOffset = operands[5] as int;
         final options = operands[6] as int;
         final dest = operands[7] as StoreOperand;
-        _performStore(
-          dest,
-          _doLinearSearch(
-            key,
-            keySize,
-            start,
-            structSize,
-            numStructs,
-            keyOffset,
-            options,
-          ),
-        );
+        _performStore(dest, _doLinearSearch(key, keySize, start, structSize, numStructs, keyOffset, options));
         break;
 
       /// Spec Section 2.4.15: "binarysearch Key KeySize Start StructSize NumStructs KeyOffset Options Result"
@@ -1013,18 +973,7 @@ class GlulxInterpreter {
         final keyOffset = operands[5] as int;
         final options = operands[6] as int;
         final dest = operands[7] as StoreOperand;
-        _performStore(
-          dest,
-          _doBinarySearch(
-            key,
-            keySize,
-            start,
-            structSize,
-            numStructs,
-            keyOffset,
-            options,
-          ),
-        );
+        _performStore(dest, _doBinarySearch(key, keySize, start, structSize, numStructs, keyOffset, options));
         break;
 
       /// Spec Section 2.4.15: "linkedsearch Key KeySize Start KeyOffset NextOffset Options Result"
@@ -1036,37 +985,22 @@ class GlulxInterpreter {
         final nextOffset = operands[4] as int;
         final options = operands[5] as int;
         final dest = operands[6] as StoreOperand;
-        _performStore(
-          dest,
-          _doLinkedSearch(key, keySize, start, keyOffset, nextOffset, options),
-        );
+        _performStore(dest, _doLinkedSearch(key, keySize, start, keyOffset, nextOffset, options));
         break;
 
       // ========== Floating Point Opcodes (Spec Section 2.4.9) ==========
 
       case GlulxOp.fadd:
-        _performStore(
-          operands[2] as StoreOperand,
-          _f2u(_u2f(operands[0] as int) + _u2f(operands[1] as int)),
-        );
+        _performStore(operands[2] as StoreOperand, _f2u(_u2f(operands[0] as int) + _u2f(operands[1] as int)));
         break;
       case GlulxOp.fsub:
-        _performStore(
-          operands[2] as StoreOperand,
-          _f2u(_u2f(operands[0] as int) - _u2f(operands[1] as int)),
-        );
+        _performStore(operands[2] as StoreOperand, _f2u(_u2f(operands[0] as int) - _u2f(operands[1] as int)));
         break;
       case GlulxOp.fmul:
-        _performStore(
-          operands[2] as StoreOperand,
-          _f2u(_u2f(operands[0] as int) * _u2f(operands[1] as int)),
-        );
+        _performStore(operands[2] as StoreOperand, _f2u(_u2f(operands[0] as int) * _u2f(operands[1] as int)));
         break;
       case GlulxOp.fdiv:
-        _performStore(
-          operands[2] as StoreOperand,
-          _f2u(_u2f(operands[0] as int) / _u2f(operands[1] as int)),
-        );
+        _performStore(operands[2] as StoreOperand, _f2u(_u2f(operands[0] as int) / _u2f(operands[1] as int)));
         break;
       case GlulxOp.fmod:
         // Reference: exec.c case op_fmod
@@ -1097,68 +1031,37 @@ class GlulxInterpreter {
         _performStore(operands[2] as StoreOperand, _f2u(f1 % f2));
         break;
       case GlulxOp.sqrt:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.sqrt(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.sqrt(_u2f(operands[0] as int))));
         break;
       case GlulxOp.exp:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.exp(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.exp(_u2f(operands[0] as int))));
         break;
       case GlulxOp.log:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.log(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.log(_u2f(operands[0] as int))));
         break;
       case GlulxOp.pow:
         _performStore(
           operands[2] as StoreOperand,
-          _f2u(
-            math
-                .pow(_u2f(operands[0] as int), _u2f(operands[1] as int))
-                .toDouble(),
-          ),
+          _f2u(math.pow(_u2f(operands[0] as int), _u2f(operands[1] as int)).toDouble()),
         );
         break;
       case GlulxOp.sin:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.sin(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.sin(_u2f(operands[0] as int))));
         break;
       case GlulxOp.cos:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.cos(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.cos(_u2f(operands[0] as int))));
         break;
       case GlulxOp.tan:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.tan(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.tan(_u2f(operands[0] as int))));
         break;
       case GlulxOp.asin:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.asin(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.asin(_u2f(operands[0] as int))));
         break;
       case GlulxOp.acos:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.acos(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.acos(_u2f(operands[0] as int))));
         break;
       case GlulxOp.atan:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(math.atan(_u2f(operands[0] as int))),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(math.atan(_u2f(operands[0] as int))));
         break;
       case GlulxOp.atan2:
         _performStore(
@@ -1167,16 +1070,10 @@ class GlulxInterpreter {
         );
         break;
       case GlulxOp.ceil:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(_u2f(operands[0] as int).ceilToDouble()),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(_u2f(operands[0] as int).ceilToDouble()));
         break;
       case GlulxOp.floor:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u(_u2f(operands[0] as int).floorToDouble()),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u(_u2f(operands[0] as int).floorToDouble()));
         break;
       case GlulxOp.jisnan:
         if (_u2f(operands[0] as int).isNaN) {
@@ -1250,10 +1147,7 @@ class GlulxInterpreter {
         }
         break;
       case GlulxOp.numtof:
-        _performStore(
-          operands[1] as StoreOperand,
-          _f2u((operands[0] as int).toSigned(32).toDouble()),
-        );
+        _performStore(operands[1] as StoreOperand, _f2u((operands[0] as int).toSigned(32).toDouble()));
         break;
       case GlulxOp.ftonumz:
         // Check sign bit from raw representation (C uses signbit())
@@ -1305,34 +1199,22 @@ class GlulxInterpreter {
       // ========== Double Precision Opcodes (Spec Section 2.4.12) ==========
 
       case GlulxOp.dadd:
-        final res = _d2u(
-          _u2d(operands[0] as int, operands[1] as int) +
-              _u2d(operands[2] as int, operands[3] as int),
-        );
+        final res = _d2u(_u2d(operands[0] as int, operands[1] as int) + _u2d(operands[2] as int, operands[3] as int));
         _performStore(operands[4] as StoreOperand, res[0]);
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dsub:
-        final res = _d2u(
-          _u2d(operands[0] as int, operands[1] as int) -
-              _u2d(operands[2] as int, operands[3] as int),
-        );
+        final res = _d2u(_u2d(operands[0] as int, operands[1] as int) - _u2d(operands[2] as int, operands[3] as int));
         _performStore(operands[4] as StoreOperand, res[0]);
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dmul:
-        final res = _d2u(
-          _u2d(operands[0] as int, operands[1] as int) *
-              _u2d(operands[2] as int, operands[3] as int),
-        );
+        final res = _d2u(_u2d(operands[0] as int, operands[1] as int) * _u2d(operands[2] as int, operands[3] as int));
         _performStore(operands[4] as StoreOperand, res[0]);
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.ddiv:
-        final res = _d2u(
-          _u2d(operands[0] as int, operands[1] as int) /
-              _u2d(operands[2] as int, operands[3] as int),
-        );
+        final res = _d2u(_u2d(operands[0] as int, operands[1] as int) / _u2d(operands[2] as int, operands[3] as int));
         _performStore(operands[4] as StoreOperand, res[0]);
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
@@ -1358,109 +1240,80 @@ class GlulxInterpreter {
         var dmodqRes = _d2u(dmodqQuot);
         // When quotient is zero, sign is lost - set by hand from original args
         // res[0] is lo, res[1] is hi
-        if ((dmodqRes[1] == 0x0 || dmodqRes[1] == 0x80000000) &&
-            dmodqRes[0] == 0x0) {
+        if ((dmodqRes[1] == 0x0 || dmodqRes[1] == 0x80000000) && dmodqRes[0] == 0x0) {
           dmodqRes = [0, (dmodqHiRaw ^ dmodqHi2Raw) & 0x80000000];
         }
         _performStore(operands[4] as StoreOperand, dmodqRes[0]);
         _performStore(operands[5] as StoreOperand, dmodqRes[1]);
         break;
       case GlulxOp.dsqrt:
-        final res = _d2u(
-          math.sqrt(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.sqrt(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dexp:
-        final res = _d2u(
-          math.exp(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.exp(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dlog:
-        final res = _d2u(
-          math.log(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.log(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dpow:
         final res = _d2u(
           math
-              .pow(
-                _u2d(operands[0] as int, operands[1] as int),
-                _u2d(operands[2] as int, operands[3] as int),
-              )
+              .pow(_u2d(operands[0] as int, operands[1] as int), _u2d(operands[2] as int, operands[3] as int))
               .toDouble(),
         );
         _performStore(operands[4] as StoreOperand, res[0]);
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dsin:
-        final res = _d2u(
-          math.sin(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.sin(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dcos:
-        final res = _d2u(
-          math.cos(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.cos(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dtan:
-        final res = _d2u(
-          math.tan(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.tan(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dasin:
-        final res = _d2u(
-          math.asin(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.asin(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dacos:
-        final res = _d2u(
-          math.acos(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.acos(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.datan:
-        final res = _d2u(
-          math.atan(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        final res = _d2u(math.atan(_u2d(operands[0] as int, operands[1] as int)));
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.datan2:
         final res = _d2u(
-          math.atan2(
-            _u2d(operands[0] as int, operands[1] as int),
-            _u2d(operands[2] as int, operands[3] as int),
-          ),
+          math.atan2(_u2d(operands[0] as int, operands[1] as int), _u2d(operands[2] as int, operands[3] as int)),
         );
         _performStore(operands[4] as StoreOperand, res[0]);
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dceil:
-        final res = _d2u(
-          _u2d(operands[0] as int, operands[1] as int).ceilToDouble(),
-        );
+        final res = _d2u(_u2d(operands[0] as int, operands[1] as int).ceilToDouble());
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
       case GlulxOp.dfloor:
-        final res = _d2u(
-          _u2d(operands[0] as int, operands[1] as int).floorToDouble(),
-        );
+        final res = _d2u(_u2d(operands[0] as int, operands[1] as int).floorToDouble());
         _performStore(operands[2] as StoreOperand, res[0]);
         _performStore(operands[3] as StoreOperand, res[1]);
         break;
@@ -1608,10 +1461,7 @@ class GlulxInterpreter {
         _performStore(operands[2] as StoreOperand, res[1]);
         break;
       case GlulxOp.dtof:
-        _performStore(
-          operands[2] as StoreOperand,
-          _f2u(_u2d(operands[0] as int, operands[1] as int)),
-        );
+        _performStore(operands[2] as StoreOperand, _f2u(_u2d(operands[0] as int, operands[1] as int)));
         break;
 
       case GlulxOp.glk:
@@ -1754,13 +1604,9 @@ class GlulxInterpreter {
       return res.then((val) {
         if (debugger.enabled) {
           if (debugger.showInstructions) {
-            debugger.bufferedLog(
-              'Interpreter -> Glk selector: 0x${selector.toRadixString(16)} ret: $val',
-            );
+            debugger.bufferedLog('Interpreter -> Glk selector: 0x${selector.toRadixString(16)} ret: $val');
             if (debugger.showFlightRecorder) {
-              debugger.flightRecorderEvent(
-                'Glk(0x${selector.toRadixString(16)})$args -> $val',
-              );
+              debugger.flightRecorderEvent('Glk(0x${selector.toRadixString(16)})$args -> $val');
             }
           }
         }
@@ -1769,13 +1615,9 @@ class GlulxInterpreter {
     }
     if (debugger.enabled) {
       if (debugger.showInstructions) {
-        debugger.bufferedLog(
-          'Interpreter -> Glk selector: 0x${selector.toRadixString(16)} ret: $res',
-        );
+        debugger.bufferedLog('Interpreter -> Glk selector: 0x${selector.toRadixString(16)} ret: $res');
         if (debugger.showFlightRecorder) {
-          debugger.flightRecorderEvent(
-            'Glk(0x${selector.toRadixString(16)})$args -> $res',
-          );
+          debugger.flightRecorderEvent('Glk(0x${selector.toRadixString(16)})$args -> $res');
         }
       }
     }
@@ -2031,14 +1873,10 @@ class GlulxInterpreter {
   void _performStore(StoreOperand dest, int value) {
     if (debugger.enabled) {
       if (debugger.showInstructions) {
-        debugger.bufferedLog(
-          '[${debugger.step}]   StoreWord: $dest value: 0x${value.toRadixString(16)} ($value)',
-        );
+        debugger.bufferedLog('[${debugger.step}]   StoreWord: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
       if (debugger.showFlightRecorder) {
-        debugger.flightRecorderEvent(
-          'StoreWord: $dest value: 0x${value.toRadixString(16)} ($value)',
-        );
+        debugger.flightRecorderEvent('StoreWord: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
     }
     switch (dest.mode) {
@@ -2082,14 +1920,10 @@ class GlulxInterpreter {
   void _performStoreS(StoreOperand dest, int value) {
     if (debugger.enabled) {
       if (debugger.showInstructions) {
-        debugger.bufferedLog(
-          '[${debugger.step}]   StoreShort: $dest value: 0x${value.toRadixString(16)} ($value)',
-        );
+        debugger.bufferedLog('[${debugger.step}]   StoreShort: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
       if (debugger.showFlightRecorder) {
-        debugger.flightRecorderEvent(
-          'StoreShort: $dest value: 0x${value.toRadixString(16)} ($value)',
-        );
+        debugger.flightRecorderEvent('StoreShort: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
     }
     switch (dest.mode) {
@@ -2122,14 +1956,10 @@ class GlulxInterpreter {
   void _performStoreB(StoreOperand dest, int value) {
     if (debugger.enabled) {
       if (debugger.showInstructions) {
-        debugger.bufferedLog(
-          '[${debugger.step}]   StoreByte: $dest value: 0x${value.toRadixString(16)} ($value)',
-        );
+        debugger.bufferedLog('[${debugger.step}]   StoreByte: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
       if (debugger.showFlightRecorder) {
-        debugger.flightRecorderEvent(
-          'StoreByte: $dest value: 0x${value.toRadixString(16)} ($value)',
-        );
+        debugger.flightRecorderEvent('StoreByte: $dest value: 0x${value.toRadixString(16)} ($value)');
       }
     }
     switch (dest.mode) {
@@ -2444,9 +2274,7 @@ class GlulxInterpreter {
     if (inmiddle) {
       final resumed = _popCallstubString();
       if (resumed != null) {
-        throw GlulxException(
-          'String-on-string call stub while printing number.',
-        );
+        throw GlulxException('String-on-string call stub while printing number.');
       }
     }
   }
@@ -2566,9 +2394,7 @@ class GlulxInterpreter {
           break;
 
         default:
-          throw GlulxException(
-            'Unknown string type: 0x${currentType.toRadixString(16)}',
-          );
+          throw GlulxException('Unknown string type: 0x${currentType.toRadixString(16)}');
       }
 
       // done == 2 means restart loop with new string (nested string case)
@@ -2657,9 +2483,7 @@ class GlulxInterpreter {
   /// Reference: string.c lines 228-588
   void _streamStringE1Loop(int addr, int bitnum, bool substring) {
     if (_stringTableAddress == 0) {
-      throw GlulxException(
-        'Compressed string found but no string-decoding table set',
-      );
+      throw GlulxException('Compressed string found but no string-decoding table set');
     }
 
     // Use the existing decoder - it will throw if it encounters indirect refs or Filter mode
@@ -2698,12 +2522,7 @@ class GlulxInterpreter {
       // Reference: C interpreter string.c:330-340 - switches to E0/E2 processing
       callEmbeddedString: _iosysMode == 1
           ? (resumeAddr, resumeBit, dataAddr, stringType) {
-              throw _StringEmbeddedCall(
-                dataAddr,
-                stringType,
-                resumeAddr,
-                resumeBit,
-              );
+              throw _StringEmbeddedCall(dataAddr, stringType, resumeAddr, resumeBit);
             }
           : null,
     );
@@ -2749,9 +2568,7 @@ class GlulxInterpreter {
       // Resume compressed string at newPc with bit number destAddr
       return (newPc, destAddr);
     } else {
-      throw GlulxException(
-        'Function-terminator call stub at end of string (type 0x${destType.toRadixString(16)})',
-      );
+      throw GlulxException('Function-terminator call stub at end of string (type 0x${destType.toRadixString(16)})');
     }
   }
 
@@ -2804,15 +2621,7 @@ class GlulxInterpreter {
   /// Spec: "linearsearch L1 L2 L3 L4 L5 L6 L7 S1"
   /// Reference: search.c linear_search()
   /// Note: Key-match takes precedence over zero-key-termination.
-  int _doLinearSearch(
-    int key,
-    int keySize,
-    int start,
-    int structSize,
-    int numStructs,
-    int keyOffset,
-    int options,
-  ) {
+  int _doLinearSearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final zeroKeyTerminates = (options & 2) != 0;
     final returnIndex = (options & 4) != 0;
@@ -2826,12 +2635,7 @@ class GlulxInterpreter {
       final structAddr = start + (i * structSize);
 
       // Compare keys FIRST (key-match takes precedence over zero-match)
-      final cmp = _compareKeys(
-        key,
-        structAddr + keyOffset,
-        keySize,
-        keyIndirect,
-      );
+      final cmp = _compareKeys(key, structAddr + keyOffset, keySize, keyIndirect);
       if (cmp == 0) {
         return returnIndex ? i : structAddr;
       }
@@ -2850,15 +2654,7 @@ class GlulxInterpreter {
   /// Spec: "binarysearch L1 L2 L3 L4 L5 L6 L7 S1"
   /// Structures must be sorted in forward order of keys (big-endian unsigned).
   /// NumStructs must be exact length; cannot be -1.
-  int _doBinarySearch(
-    int key,
-    int keySize,
-    int start,
-    int structSize,
-    int numStructs,
-    int keyOffset,
-    int options,
-  ) {
+  int _doBinarySearch(int key, int keySize, int start, int structSize, int numStructs, int keyOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final returnIndex = (options & 4) != 0;
 
@@ -2870,12 +2666,7 @@ class GlulxInterpreter {
       final structAddr = start + (mid * structSize);
 
       // Compare keys: result is <0 if target<current, 0 if equal, >0 if target>current
-      final cmp = _compareKeys(
-        key,
-        structAddr + keyOffset,
-        keySize,
-        keyIndirect,
-      );
+      final cmp = _compareKeys(key, structAddr + keyOffset, keySize, keyIndirect);
 
       if (cmp == 0) {
         return returnIndex ? mid : structAddr;
@@ -2896,26 +2687,14 @@ class GlulxInterpreter {
   /// Spec: "linkedsearch L1 L2 L3 L4 L5 L6 S1"
   /// Reference: search.c linked_search()
   /// Note: Key-match takes precedence over zero-key-termination.
-  int _doLinkedSearch(
-    int key,
-    int keySize,
-    int start,
-    int keyOffset,
-    int nextOffset,
-    int options,
-  ) {
+  int _doLinkedSearch(int key, int keySize, int start, int keyOffset, int nextOffset, int options) {
     final keyIndirect = (options & 1) != 0;
     final zeroKeyTerminates = (options & 2) != 0;
 
     var currentAddr = start;
     while (currentAddr != 0) {
       // Compare keys FIRST (key-match takes precedence over zero-match)
-      final cmp = _compareKeys(
-        key,
-        currentAddr + keyOffset,
-        keySize,
-        keyIndirect,
-      );
+      final cmp = _compareKeys(key, currentAddr + keyOffset, keySize, keyIndirect);
       if (cmp == 0) {
         return currentAddr;
       }
@@ -3035,9 +2814,7 @@ class GlulxInterpreter {
 
       // Save stack state - just copy the raw stack data
       // Reference: serial.c write_stackstate
-      final stackData = Uint8List.fromList(
-        stack.rawData.sublist(0, stack.pointer),
-      );
+      final stackData = Uint8List.fromList(stack.rawData.sublist(0, stack.pointer));
 
       return GlulxUndoState(
         ramState: ramState,
@@ -3063,11 +2840,7 @@ class GlulxInterpreter {
       // Restore RAM state
       // Reference: serial.c read_memstate
       // Note: GlulxMemoryMap.restoreMemory will handle heap summary
-      memoryMap.restoreMemory(
-        state.ramState,
-        state.memorySize,
-        state.heapState,
-      );
+      memoryMap.restoreMemory(state.ramState, state.memorySize, state.heapState);
 
       // Restore stack state
       // Reference: serial.c read_stackstate
@@ -3101,20 +2874,6 @@ class GlulxInterpreter {
 
       // Serialize state
       final data = _serializeState(state);
-
-      // Write to Glk stream. We use a sequence of glk_put_buffer_stream calls.
-      // Since Glk doesn't have a direct "write Uint8List" from interpreter,
-      // and we don't want to pollute VM memory, we'll use a trick or just
-      // call glk_put_char_stream for small parts and glk_put_buffer_stream
-      // by temporarily copying large parts into a reused buffer at the END of RAM
-      // if possible, OR just loop. For now, let's just loop byte by byte
-      // or check if the provider has a faster way.
-      // Actually, let's just use glk_put_buffer_stream and temporarily
-      // allow the provider to read from our raw Uint8List if we can.
-
-      // Better: Use a dedicated "internal" selector if supported,
-      // or just write byte-by-byte for now (slow but safe).
-      // Wait, Glulxercise tests use temp streams which might be memory streams.
 
       final writeRes = _writeToStream(streamId, data);
       if (writeRes is Future<void>) {
@@ -3197,10 +2956,7 @@ class GlulxInterpreter {
     final view = ByteData.sublistView(data);
 
     // Magic
-    if (data[0] != 0x5A ||
-        data[1] != 0x41 ||
-        data[2] != 0x52 ||
-        data[3] != 0x54) {
+    if (data[0] != 0x5A || data[1] != 0x41 || data[2] != 0x52 || data[3] != 0x54) {
       return null;
     }
 
@@ -3227,9 +2983,7 @@ class GlulxInterpreter {
 
     if (data.length < offset + heapLength * 4) return null;
     final heapBytes = data.sublist(offset, offset + heapLength * 4);
-    final heapState = List<int>.from(
-      Uint32List.view(heapBytes.buffer, heapBytes.offsetInBytes, heapLength),
-    );
+    final heapState = List<int>.from(Uint32List.view(heapBytes.buffer, heapBytes.offsetInBytes, heapLength));
 
     return GlulxUndoState(
       ramState: ramState,
@@ -3249,10 +3003,7 @@ class GlulxInterpreter {
     // This is very slow but ensures compatibility with any GlkIoProvider.
     // In a real production app, we should add a more efficient way to GlkIoProvider.
     for (final b in buffer) {
-      final res = glkDispatcher.glkDispatch(GlkIoSelectors.putCharStream, [
-        streamId,
-        b,
-      ]);
+      final res = glkDispatcher.glkDispatch(GlkIoSelectors.putCharStream, [streamId, b]);
       if (res is Future<int>) {
         // This is getting complicated with nesting.
         // Let's assume most Glk implementations of putCharStream are sync.
@@ -3267,9 +3018,7 @@ class GlulxInterpreter {
 
     // First read header
     while (true) {
-      final res = glkDispatcher.glkDispatch(GlkIoSelectors.getCharStream, [
-        streamId,
-      ]);
+      final res = glkDispatcher.glkDispatch(GlkIoSelectors.getCharStream, [streamId]);
       if (res is int) {
         if (res == -1) break; // EOF
         builder.addByte(res);
@@ -3284,10 +3033,7 @@ class GlulxInterpreter {
           final totalToRead = 36 + ramLen + stackPtr + (heapLen * 4);
 
           while (builder.length < totalToRead) {
-            final next = glkDispatcher.glkDispatch(
-              GlkIoSelectors.getCharStream,
-              [streamId],
-            );
+            final next = glkDispatcher.glkDispatch(GlkIoSelectors.getCharStream, [streamId]);
             if (next is int) {
               if (next == -1) break;
               builder.addByte(next);
@@ -3334,8 +3080,7 @@ class GlulxInterpreterTestingHarness {
   int readOpCode() => interpreter._readOpCode();
 
   /// Exposes [_readAddressingModes] for testing.
-  List<int> readAddressingModes(int count) =>
-      interpreter._readAddressingModes(count);
+  List<int> readAddressingModes(int count) => interpreter._readAddressingModes(count);
 }
 
 /// Signal class thrown when a compressed string decoder encounters an indirect
@@ -3348,12 +3093,7 @@ class _StringFunctionCall {
   final int resumeAddr;
   final int resumeBit;
 
-  _StringFunctionCall(
-    this.funcAddr,
-    this.args,
-    this.resumeAddr,
-    this.resumeBit,
-  );
+  _StringFunctionCall(this.funcAddr, this.args, this.resumeAddr, this.resumeBit);
 }
 
 /// Signal class thrown when a compressed string decoder encounters an indirect
@@ -3388,10 +3128,5 @@ class _StringEmbeddedCall {
   final int resumeAddr;
   final int resumeBit;
 
-  _StringEmbeddedCall(
-    this.dataAddr,
-    this.stringType,
-    this.resumeAddr,
-    this.resumeBit,
-  );
+  _StringEmbeddedCall(this.dataAddr, this.stringType, this.resumeAddr, this.resumeBit);
 }

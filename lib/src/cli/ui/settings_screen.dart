@@ -1,12 +1,12 @@
 import 'package:zart/src/cli/ui/terminal_colors.dart';
-import 'package:zart/src/cli/ui/terminal_display.dart';
 import 'package:zart/src/cli/config/configuration_manager.dart';
+import 'package:zart/src/cli/ui/zart_terminal.dart';
 import 'package:zart/zart.dart';
 
 /// A settings screen for the Zart CLI application.
 class SettingsScreen {
   /// The terminal display.
-  final TerminalDisplay terminal;
+  final ZartTerminal terminal;
 
   /// The configuration manager.
   final ConfigurationManager config;
@@ -56,54 +56,31 @@ class SettingsScreen {
 
       while (true) {
         terminal.clearAll();
-        terminal.setColors(
-          TerminalColors.yellow,
-          TerminalColors.defaultColor,
-        ); // yellow
+        terminal.setColors(TerminalColors.yellow, TerminalColors.defaultColor); // yellow
         terminal.appendToWindow0(getPreamble().join('\n'));
         terminal.setColors(TerminalColors.white, TerminalColors.blue);
         terminal.appendToWindow0('\nSETTINGS\n');
-        terminal.setColors(
-          TerminalColors.defaultColor,
-          TerminalColors.defaultColor,
-        );
+        terminal.setColors(TerminalColors.defaultColor, TerminalColors.defaultColor);
         if (isGameStarted) {
           terminal.appendToWindow0('[R] Resume Game\n');
         } else {
           terminal.appendToWindow0('[R] Start Game\n');
         }
-        terminal.appendToWindow0(
-          '\n------------------------------------------------\n',
-        );
+        terminal.appendToWindow0('\n------------------------------------------------\n');
         terminal.setColors(TerminalColors.white, TerminalColors.blue);
         terminal.appendToWindow0('ZART BAR\n');
-        terminal.setColors(
-          TerminalColors.defaultColor,
-          TerminalColors.defaultColor,
-        );
-        terminal.appendToWindow0(
-          '[V] Visibility: ${config.zartBarVisible ? 'ON' : 'OFF'}\n',
-        );
+        terminal.setColors(TerminalColors.defaultColor, TerminalColors.defaultColor);
+        terminal.appendToWindow0('[V] Visibility: ${config.zartBarVisible ? 'ON' : 'OFF'}\n');
         terminal.appendToWindow0('[F] Foreground Color\n');
         terminal.appendToWindow0('[B] Background Color\n');
         terminal.setColors(config.zartBarForeground, config.zartBarBackground);
         terminal.appendToWindow0(' [ ZART BAR STYLE PREVIEW ] ');
-        terminal.setColors(
-          TerminalColors.defaultColor,
-          TerminalColors.defaultColor,
-        );
-        terminal.appendToWindow0(
-          '\n\n------------------------------------------------\n',
-        );
+        terminal.setColors(TerminalColors.defaultColor, TerminalColors.defaultColor);
+        terminal.appendToWindow0('\n\n------------------------------------------------\n');
         terminal.setColors(TerminalColors.white, TerminalColors.blue);
         terminal.appendToWindow0('CUSTOM KEY BINDINGS (Ctrl+Key)\n');
-        terminal.setColors(
-          TerminalColors.defaultColor,
-          TerminalColors.defaultColor,
-        );
-        terminal.appendToWindow0(
-          'Allowed Keys: ${_allowedKeys.join(', ')}\n\n',
-        );
+        terminal.setColors(TerminalColors.defaultColor, TerminalColors.defaultColor);
+        terminal.appendToWindow0('Allowed Keys: ${_allowedKeys.join(', ')}\n\n');
         terminal.appendToWindow0('[A] Add Binding\n');
         terminal.appendToWindow0('[D] Delete Binding\n');
 
@@ -158,9 +135,7 @@ class SettingsScreen {
   }
 
   Future<void> _addBinding() async {
-    terminal.appendToWindow0(
-      '\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ',
-    );
+    terminal.appendToWindow0('\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ');
     terminal.render();
 
     // We need to read a key and see if it is a Ctrl char
@@ -184,9 +159,7 @@ class SettingsScreen {
 
     final lowerKey = charKey.toLowerCase();
     if (!_allowedKeys.contains(lowerKey)) {
-      terminal.appendToWindow0(
-        '\nKey "$lowerKey" is not allowed for binding.\n',
-      );
+      terminal.appendToWindow0('\nKey "$lowerKey" is not allowed for binding.\n');
       terminal.appendToWindow0('Allowed: ${_allowedKeys.join(',')}\n');
       await _wait(2);
       return;

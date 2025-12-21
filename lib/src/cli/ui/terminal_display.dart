@@ -4,14 +4,15 @@ import 'dart:isolate';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/cli/config/configuration_manager.dart';
+import 'package:zart/src/cli/ui/cli_renderer.dart';
 import 'package:zart/src/cli/ui/terminal_colors.dart';
 import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/screen_model.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/cell.dart';
+import 'package:zart/src/cli/ui/zart_terminal.dart';
 
-const _zartBarText =
-    "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
 
 /// Layout:
 /// ```text
@@ -23,7 +24,17 @@ const _zartBarText =
 /// │ > [input line]                 │
 /// └────────────────────────────────┘
 /// ```
-class TerminalDisplay {
+class TerminalDisplay implements ZartTerminal {
+  /// Create standard terminal display.
+  TerminalDisplay();
+
+  /// Create with a shared renderer.
+  /// Note: Currently uses its own rendering; will migrate to CliRenderer.
+  factory TerminalDisplay.withRenderer(CliRenderer renderer) {
+    // TODO: Migrate to use CliRenderer for unified rendering
+    return TerminalDisplay();
+  }
+
   /// Terminal dimensions
   int _cols = 80;
   int _rows = 24;
@@ -32,9 +43,7 @@ class TerminalDisplay {
   int get cols => _cols;
 
   /// Terminal rows
-  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true))
-      ? _rows - 1
-      : _rows; // Dynamic sizing
+  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true)) ? _rows - 1 : _rows; // Dynamic sizing
 
   final ScreenModel _screen = ScreenModel();
 
@@ -59,8 +68,7 @@ class TerminalDisplay {
   bool enableStatusBar = false;
 
   String _inputBuffer = '';
-  int _inputLine =
-      -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
   String? _tempStatusMessage;
@@ -84,8 +92,7 @@ class TerminalDisplay {
   int _currentTextColorIndex = 0;
 
   void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _screen.forceWindow0Color(newColor);
 
@@ -151,9 +158,7 @@ class TerminalDisplay {
     sleep(Duration(seconds: seconds));
 
     final paddedText = _zartBarText.padRight(cols);
-    final finalText = paddedText.length > cols
-        ? paddedText.substring(0, cols)
-        : paddedText;
+    final finalText = paddedText.length > cols ? paddedText.substring(0, cols) : paddedText;
 
     // ANSI Sequence:
     // 1. Save Cursor (\x1b7)
@@ -173,8 +178,7 @@ class TerminalDisplay {
   int _inputCol = 0; // Column where input started
 
   // ANSI helper via console?
-  bool get _supportsAnsi =>
-      true; // dart_console handles this internally usually
+  bool get _supportsAnsi => true; // dart_console handles this internally usually
 
   // helper to get key string
   String _keyToString(Key key) {
@@ -312,11 +316,7 @@ class TerminalDisplay {
   /// Save screen state (for settings/menus).
   void saveState() {
     _screen.saveState();
-    _savedTerminalState = {
-      'inputLine': _inputLine,
-      'inputBuffer': _inputBuffer,
-      'inputCol': _inputCol,
-    };
+    _savedTerminalState = {'inputLine': _inputLine, 'inputBuffer': _inputBuffer, 'inputCol': _inputCol};
   }
 
   /// Restore screen state.
@@ -416,6 +416,16 @@ class TerminalDisplay {
   /// Append text to Window 0 (main scrollable area).
   void appendToWindow0(String text) => _screen.appendToWindow0(text);
 
+  /// Append player input text to Window 0 with forced white color.
+  /// This makes input stand out from game output when colors are changed.
+  void appendInputEcho(String text) {
+    // Save current color, force white (9), append, restore
+    final savedFg = _screen.fgColor;
+    _screen.fgColor = 9; // White
+    _screen.appendToWindow0(text);
+    _screen.fgColor = savedFg;
+  }
+
   /// Render the full screen.
   void render() {
     _detectTerminalSize(); // Updates _screen cols/rows
@@ -444,11 +454,7 @@ class TerminalDisplay {
     int lastStyle = -1;
 
     // Helper to render a row of cells
-    void renderRow(
-      int screenRow,
-      List<Cell> cells, {
-      required bool forceFullWidth,
-    }) {
+    void renderRow(int screenRow, List<Cell> cells, {required bool forceFullWidth}) {
       buf.write('\x1B[$screenRow;1H'); // Position cursor
 
       // Calculate effective cells
@@ -532,9 +538,7 @@ class TerminalDisplay {
 
     // Calculate maximum possible scroll
     // w0Grid.length is total history. window0Lines is viewport height.
-    final maxScroll = (w0Grid.length > window0Lines)
-        ? w0Grid.length - window0Lines
-        : 0;
+    final maxScroll = (w0Grid.length > window0Lines) ? w0Grid.length - window0Lines : 0;
 
     // Clamp offset
     if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
@@ -557,13 +561,7 @@ class TerminalDisplay {
 
     // Draw Scroll Bar if needed
     if (maxScroll > 0) {
-      _drawScrollBar(
-        buf,
-        window0Lines,
-        startLine,
-        w0Grid.length,
-        window1Lines + separatorLine + 1,
-      );
+      _drawScrollBar(buf, window0Lines, startLine, w0Grid.length, window1Lines + separatorLine + 1);
     }
 
     // Draw status bar
@@ -585,12 +583,9 @@ class TerminalDisplay {
       final inputRelativeRaw = _inputLine - startLine;
 
       if (inputRelativeRaw >= 0 && inputRelativeRaw < window0Lines) {
-        final inputScreenRow =
-            inputRelativeRaw + window1Lines + separatorLine + 1;
+        final inputScreenRow = inputRelativeRaw + window1Lines + separatorLine + 1;
 
-        if (inputScreenRow >= 1 &&
-            inputScreenRow <= _rows &&
-            inputScreenRow < _console.windowHeight) {
+        if (inputScreenRow >= 1 && inputScreenRow <= _rows && inputScreenRow < _console.windowHeight) {
           final cursorCol = w0Grid[_inputLine].length + 1;
           buf.write('\x1B[$inputScreenRow;${cursorCol}H');
           buf.write('\x1B[?25h'); // Show cursor
@@ -603,13 +598,7 @@ class TerminalDisplay {
     stdout.write(buf.toString());
   }
 
-  void _drawScrollBar(
-    StringBuffer buf,
-    int height,
-    int currentStart,
-    int totalLines,
-    int startRow,
-  ) {
+  void _drawScrollBar(StringBuffer buf, int height, int currentStart, int totalLines, int startRow) {
     if (totalLines <= height) return;
 
     // Calculate visible ratio
@@ -659,9 +648,7 @@ class TerminalDisplay {
   void _drawStatusBar(StringBuffer buf) {
     if (!(config?.zartBarVisible ?? true)) return;
 
-    if (_tempStatusMessage != null &&
-        _tempStatusExpiry != null &&
-        DateTime.now().isAfter(_tempStatusExpiry!)) {
+    if (_tempStatusMessage != null && _tempStatusExpiry != null && DateTime.now().isAfter(_tempStatusExpiry!)) {
       _tempStatusMessage = null;
     }
 
@@ -675,9 +662,7 @@ class TerminalDisplay {
     // Pad with spaces to fill width
     final paddedText = statusText.padRight(_cols);
     // Truncate if too long to prevent wrapping
-    final finalText = paddedText.length > _cols
-        ? paddedText.substring(0, _cols)
-        : paddedText;
+    final finalText = paddedText.length > _cols ? paddedText.substring(0, _cols) : paddedText;
 
     // Position at last row (using _console.windowHeight directly)
     // Note: _rows is now windowHeight - 1
@@ -757,17 +742,13 @@ class TerminalDisplay {
     _scrollOffset = 0;
 
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.length - 1
-        : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.last.length
-        : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
 
     render();
 
@@ -899,8 +880,7 @@ class TerminalDisplay {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) {
               rowList.removeLast();
@@ -937,8 +917,7 @@ class TerminalDisplay {
                 final btn = int.tryParse(parts[0]) ?? 0;
                 if (btn == 64) {
                   _scrollOffset++;
-                  final maxScroll =
-                      (_screen.window0Grid.length > _screen.window0Lines)
+                  final maxScroll = (_screen.window0Grid.length > _screen.window0Lines)
                       ? _screen.window0Grid.length - _screen.window0Lines
                       : 0;
                   if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
@@ -989,20 +968,12 @@ class TerminalDisplay {
           _inputBuffer += toProcess;
 
           // Update Grid
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             for (int i = 0; i < toProcess.length; i++) {
               if (rowList.length < _cols) {
                 // Force user input to be White (9) per user request
-                rowList.add(
-                  Cell(
-                    toProcess[i],
-                    fg: 9,
-                    bg: _screen.bgColor,
-                    style: _screen.currentStyle,
-                  ),
-                );
+                rowList.add(Cell(toProcess[i], fg: 9, bg: _screen.bgColor, style: _screen.currentStyle));
               }
             }
           }

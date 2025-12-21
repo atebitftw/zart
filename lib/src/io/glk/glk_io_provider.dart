@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:zart/src/glulx/glulx_debugger.dart';
-
 // Reference: packages/ifarchive-if-specs/glk-spec.md
 // The reference is written assuming C-style code.  It is also written to the
 // perspective of the interpreter developer.  Since we are building our own
@@ -13,9 +11,6 @@ import 'package:zart/src/glulx/glulx_debugger.dart';
 /// All methods implemented in this interface should be async to support
 /// asynchronous operations if needed.
 abstract class GlkIoProvider {
-  /// The debugger.
-  late GlulxDebugger debugger;
-
   /// Gestalt returns 0 for everything right now, and will expand as we implement more features.
   FutureOr<int> glkDispatch(int selector, List<int> args);
 
@@ -46,8 +41,5 @@ abstract class GlkIoProvider {
   int popFromStack() => 0;
 
   /// Configure stack access callbacks.
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  }) {}
+  void setStackAccess({required void Function(int value) push, required int Function() pop}) {}
 }

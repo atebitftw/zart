@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'mock_glk_io_provider.dart';
 
