@@ -1,21 +1,14 @@
-import 'dart:io';
-
 import 'package:zart/src/cli/ui/z_terminal_display.dart';
+import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/zart_internal.dart';
 
 /// Terminal provider for Z-Machine IO.
 class ZMachineIoDispatcher implements ZIoDispatcher {
   final ZTerminalDisplay _terminal;
-  final String _gameName;
-
-  /// Indicates if the mode is a quick-save or not.
-  bool isQuickSaveMode = false;
-
-  /// Indicates if the mode is an auto-restore or not.
-  bool isAutorestoreMode = false;
+  final PlatformProvider _provider;
 
   /// Default constructor.
-  ZMachineIoDispatcher(this._terminal, this._gameName);
+  ZMachineIoDispatcher(this._terminal, this._provider);
 
   @override
   int getFlags1() {
@@ -27,6 +20,18 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
     return 1 | 4 | 8 | 16 | 128; // Color, Bold, Italic, Fixed, Timed input
     // Note: Timed input isn't fully implemented in run loop yet but we claim it.
   }
+
+  @override
+  (int, int) getScreenSize() {
+    final caps = _provider.capabilities;
+    return (caps.screenWidth, caps.screenHeight);
+  }
+
+  @override
+  Future<String?> quickSave(List<int> data) => _provider.quickSave(data);
+
+  @override
+  Future<List<int>?> quickRestore() => _provider.quickRestore();
 
   // Method mapping implementation...
   @override
@@ -94,9 +99,7 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (_terminal.screen.window1Height < 1) {
@@ -120,8 +123,7 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         // 2. Calculate padding
         final width = _terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -138,108 +140,9 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         break;
       case ZIoCommands.save:
         final fileData = commandMessage['file_data'] as List<int>;
-
-        String filename;
-        if (isQuickSaveMode) {
-          // QuickSave logic
-          // Use format "quick_save_{game_name}.sav"
-          // Robustly handle path separators (both / and \) to get just the filename
-          String base = _gameName.split(RegExp(r'[/\\]')).last;
-          if (base.contains('.')) {
-            base = base.substring(0, base.lastIndexOf('.'));
-          }
-
-          filename = 'quick_save_$base.sav';
-
-          final f = File(filename);
-          f.writeAsBytesSync(fileData);
-
-          // Show transient message
-          _terminal.showTempMessage('Game saved...');
-
-          // Reset flag
-          isQuickSaveMode = false;
-          return true;
-        }
-
-        _terminal.appendToWindow0('\nEnter filename to save: ');
-        _terminal.render();
-        filename = await _terminal.readLine();
-        _terminal.appendToWindow0('$filename\n');
-
-        if (filename.isEmpty) return false;
-
-        if (!filename.toLowerCase().endsWith('.sav')) {
-          filename += '.sav';
-        }
-
-        try {
-          final f = File(filename);
-          f.writeAsBytesSync(fileData);
-          _terminal.appendToWindow0('Saved to "$filename".\n');
-          return true;
-        } catch (e) {
-          _terminal.appendToWindow0('Save failed: $e\n');
-          return false;
-        }
+        return _provider.saveGame(fileData);
       case ZIoCommands.restore:
-        String filename;
-
-        if (isAutorestoreMode) {
-          // Robustly handle path separators (both / and \) to get just the filename
-          String base = _gameName.split(RegExp(r'[/\\]')).last;
-          if (base.contains('.')) {
-            base = base.substring(0, base.lastIndexOf('.'));
-          }
-
-          filename = 'quick_save_$base.sav';
-
-          final f = File(filename);
-          if (!f.existsSync()) {
-            _terminal.showTempMessage(
-              'QuickSave File Not Found! Cannot Restore',
-              seconds: 3,
-            );
-            isAutorestoreMode = false;
-            return null;
-          }
-
-          final data = f.readAsBytesSync();
-          // We send success message only after we know we are returning data.
-          // Note: The Z-Machine might take a moment to process, but from UI perspective 'Restoring...' is valid.
-          // User asked for "Game restored." message after bytes sent.
-          // Since we return 'data' here, the Z-Machine uses it *immediately*.
-          // So "Game restored..." is appropriate here.
-          _terminal.showTempMessage('Game restored...', seconds: 3);
-
-          isAutorestoreMode = false;
-          return data;
-        }
-
-        _terminal.appendToWindow0('\nEnter filename to restore: ');
-        _terminal.render();
-        filename = await _terminal.readLine();
-        _terminal.appendToWindow0('$filename\n');
-
-        if (filename.isEmpty) return null;
-
-        if (!filename.toLowerCase().endsWith('.sav')) {
-          filename += '.sav';
-        }
-
-        try {
-          final f = File(filename);
-          if (!f.existsSync()) {
-            _terminal.appendToWindow0('File not found: "$filename"\n');
-            return null;
-          }
-          final data = f.readAsBytesSync();
-          _terminal.appendToWindow0('Restored from "$filename".\n');
-          return data;
-        } catch (e) {
-          _terminal.appendToWindow0('Restore failed: $e\n');
-          return null;
-        }
+        return _provider.restoreGame();
 
       default:
         break;

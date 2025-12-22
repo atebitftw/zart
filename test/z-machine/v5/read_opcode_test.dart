@@ -24,6 +24,15 @@ class CapturingIoProvider implements ZIoDispatcher {
   @override
   int getFlags1() => 0;
 
+  @override
+  (int, int) getScreenSize() => (80, 24);
+
+  @override
+  Future<String?> quickSave(List<int> data) async => null;
+
+  @override
+  Future<List<int>?> quickRestore() async => null;
+
   int getFlags2() => 0; // if needed
 }
 

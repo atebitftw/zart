@@ -28,7 +28,7 @@ import 'package:zart/src/io/render/render_frame.dart';
 class CliPlatformProvider implements PlatformProvider {
   final Console _console = Console();
   late final CliRenderer _renderer;
-  late final PlatformCapabilities _capabilities;
+  late PlatformCapabilities _capabilities;
 
   /// Configuration manager for settings.
   final ConfigurationManager? config;
@@ -44,10 +44,6 @@ class CliPlatformProvider implements PlatformProvider {
   ZTerminalDisplay? _zDisplay;
   ZMachineIoDispatcher? _zDispatcher;
 
-  // === Quick save/restore mode flags ===
-  bool isQuickSaveMode = false;
-  bool isAutorestoreMode = false;
-
   /// Create a CLI platform provider.
   CliPlatformProvider({this.config}) {
     _renderer = CliRenderer();
@@ -56,10 +52,7 @@ class CliPlatformProvider implements PlatformProvider {
   }
 
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(
-      width: _renderer.screenWidth,
-      height: _renderer.screenHeight,
-    );
+    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
   }
 
   // ============================================================
@@ -157,25 +150,9 @@ class CliPlatformProvider implements PlatformProvider {
 
   @override
   Future<String?> saveGame(List<int> data, {String? suggestedName}) async {
-    String filename;
-
-    if (isQuickSaveMode) {
-      String base = gameName.split(RegExp(r'[/\\]')).last;
-      if (base.contains('.')) {
-        base = base.substring(0, base.lastIndexOf('.'));
-      }
-      filename = 'quick_save_$base.sav';
-
-      final f = File(filename);
-      f.writeAsBytesSync(data);
-      _renderer.showTempMessage('Game saved...');
-      isQuickSaveMode = false;
-      return filename;
-    }
-
-    // Interactive save
+    // Manual/Interactive save
     stdout.write('\nEnter filename to save: ');
-    filename = await readLine();
+    var filename = await readLine();
 
     if (filename.isEmpty) return null;
 
@@ -195,31 +172,9 @@ class CliPlatformProvider implements PlatformProvider {
 
   @override
   Future<List<int>?> restoreGame({String? suggestedName}) async {
-    String filename;
-
-    if (isAutorestoreMode) {
-      String base = gameName.split(RegExp(r'[/\\]')).last;
-      if (base.contains('.')) {
-        base = base.substring(0, base.lastIndexOf('.'));
-      }
-      filename = 'quick_save_$base.sav';
-
-      final f = File(filename);
-      if (!f.existsSync()) {
-        _renderer.showTempMessage('QuickSave File Not Found!', seconds: 3);
-        isAutorestoreMode = false;
-        return null;
-      }
-
-      final data = f.readAsBytesSync();
-      _renderer.showTempMessage('Game restored...', seconds: 3);
-      isAutorestoreMode = false;
-      return data;
-    }
-
-    // Interactive restore
+    // Manual/Interactive restore
     stdout.write('\nEnter filename to restore: ');
-    filename = await readLine();
+    var filename = await readLine();
 
     if (filename.isEmpty) return null;
 
@@ -240,6 +195,49 @@ class CliPlatformProvider implements PlatformProvider {
     }
   }
 
+  @override
+  Future<String?> quickSave(List<int> data) async {
+    String base = gameName.split(RegExp(r'[/\\]')).last;
+    if (base.contains('.')) {
+      base = base.substring(0, base.lastIndexOf('.'));
+    }
+    String filename = 'quick_save_$base.sav';
+
+    try {
+      final f = File(filename);
+      f.writeAsBytesSync(data);
+      _renderer.showTempMessage('Game saved to $filename');
+      return filename;
+    } catch (e) {
+      onError('QuickSave failed: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<List<int>?> quickRestore() async {
+    String base = gameName.split(RegExp(r'[/\\]')).last;
+    if (base.contains('.')) {
+      base = base.substring(0, base.lastIndexOf('.'));
+    }
+    String filename = 'quick_save_$base.sav';
+
+    try {
+      final f = File(filename);
+      if (!f.existsSync()) {
+        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
+        return null;
+      }
+
+      final data = f.readAsBytesSync();
+      _renderer.showTempMessage('Game restored from $filename', seconds: 3);
+      return data;
+    } catch (e) {
+      onError('QuickRestore failed: $e');
+      return null;
+    }
+  }
+
   // ============================================================
   // GLULX / GLK SUPPORT
   // ============================================================
@@ -248,17 +246,11 @@ class CliPlatformProvider implements PlatformProvider {
   /// Called by GameRunner when starting a Glulx game.
   void initGlulx() {
     _glkDisplay = GlkTerminalDisplay();
-    _glulxProvider = GlulxTerminalProvider(
-      display: _glkDisplay,
-      config: config,
-    );
+    _glulxProvider = GlulxTerminalProvider(display: _glkDisplay, config: config);
 
     // Wire up settings callback
     _glkDisplay!.onOpenSettings = () async {
-      await SettingsScreen(
-        _glkDisplay!,
-        config ?? ConfigurationManager(),
-      ).show(isGameStarted: true);
+      await SettingsScreen(_glkDisplay!, config ?? ConfigurationManager()).show(isGameStarted: true);
     };
   }
 
@@ -279,10 +271,7 @@ class CliPlatformProvider implements PlatformProvider {
   }
 
   @override
-  void setGlkStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  }) {
+  void setGlkStackAccess({required void Function(int value) push, required int Function() pop}) {
     _glulxProvider?.setStackAccess(push: push, pop: pop);
   }
 
@@ -343,10 +332,7 @@ class CliPlatformProvider implements PlatformProvider {
   }
 
   @override
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  }) {
+  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
     _glulxProvider?.setStackAccess(push: push, pop: pop);
   }
 
@@ -363,21 +349,14 @@ class CliPlatformProvider implements PlatformProvider {
       _zDisplay!.applySavedSettings();
     }
 
-    _zDisplay!.onOpenSettings = () => SettingsScreen(
-      _zDisplay!,
-      config ?? ConfigurationManager(),
-    ).show(isGameStarted: true);
+    _zDisplay!.onOpenSettings = () =>
+        SettingsScreen(_zDisplay!, config ?? ConfigurationManager()).show(isGameStarted: true);
 
-    _zDispatcher = ZMachineIoDispatcher(_zDisplay!, gameName);
-
-    // Wire up quick save/restore callbacks
-    _zDisplay!.onAutosave = () => isQuickSaveMode = true;
-    _zDisplay!.onRestore = () => isAutorestoreMode = true;
+    _zDispatcher = ZMachineIoDispatcher(_zDisplay!, this);
   }
 
   @override
-  int getZMachineFlags1() =>
-      _zDispatcher?.getFlags1() ?? capabilities.getZMachineFlags1();
+  int getZMachineFlags1() => _zDispatcher?.getFlags1() ?? capabilities.getZMachineFlags1();
 
   @override
   Future<dynamic> zCommand(ZMachineIOCommand command) async {
@@ -395,36 +374,21 @@ class CliPlatformProvider implements PlatformProvider {
     // for backward compatibility with ZMachineIoDispatcher
     switch (command) {
       case PrintCommand():
-        return {
-          'command': ZIoCommands.print,
-          'window': command.window,
-          'buffer': command.text,
-        };
+        return {'command': ZIoCommands.print, 'window': command.window, 'buffer': command.text};
       case SplitWindowCommand():
         return {'command': ZIoCommands.splitWindow, 'lines': command.lines};
       case SetWindowCommand():
         return {'command': ZIoCommands.setWindow, 'window': command.window};
       case ClearScreenCommand():
-        return {
-          'command': ZIoCommands.clearScreen,
-          'window_id': command.windowId,
-        };
+        return {'command': ZIoCommands.clearScreen, 'window_id': command.windowId};
       case SetCursorCommand():
-        return {
-          'command': ZIoCommands.setCursor,
-          'line': command.row,
-          'column': command.column,
-        };
+        return {'command': ZIoCommands.setCursor, 'line': command.row, 'column': command.column};
       case GetCursorCommand():
         return {'command': ZIoCommands.getCursor};
       case SetTextStyleCommand():
         return {'command': ZIoCommands.setTextStyle, 'style': command.style};
       case SetColourCommand():
-        return {
-          'command': ZIoCommands.setColour,
-          'foreground': command.foreground,
-          'background': command.background,
-        };
+        return {'command': ZIoCommands.setColour, 'foreground': command.foreground, 'background': command.background};
       case SetTrueColourCommand():
         return {
           'command': ZIoCommands.setTrueColour,

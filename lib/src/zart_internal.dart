@@ -4,7 +4,7 @@ export 'package:zart/src/io/z_io_dispatcher.dart';
 export 'package:zart/src/io/default_provider.dart';
 export 'package:zart/src/loaders/blorb.dart';
 export 'package:zart/src/z_machine/game_exception.dart';
-export 'package:zart/src/z_machine/debugger.dart';
+
 export 'package:zart/src/z_machine/header.dart';
 export 'package:zart/src/io/z_screen_model.dart';
 export 'package:zart/src/io/z_io_commands.dart';

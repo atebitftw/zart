@@ -7,7 +7,7 @@ import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/loaders/blorb.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
-import 'package:zart/src/z_machine/debugger.dart';
+
 import 'package:zart/src/io/z_io_dispatcher.dart';
 
 /// Unified game runner for both Z-machine and Glulx games.
@@ -99,9 +99,7 @@ class GameRunner {
       if (provider is CliPlatformProvider) {
         final cliProvider = provider as CliPlatformProvider;
         cliProvider.glulxProvider?.renderScreen();
-        await cliProvider.glulxProvider?.showExitAndWait(
-          '[Zart: Press any key to exit]',
-        );
+        await cliProvider.glulxProvider?.showExitAndWait('[Zart: Press any key to exit]');
       }
 
       provider.exitDisplayMode();
@@ -116,12 +114,6 @@ class GameRunner {
     if (provider is CliPlatformProvider) {
       (provider as CliPlatformProvider).initZMachine();
     }
-
-    // Disable Z-machine debugger
-    Debugger.enableDebug = false;
-    Debugger.enableVerbose = false;
-    Debugger.enableTrace = false;
-    Debugger.enableStackTrace = false;
 
     // Set up Z-machine IO dispatcher
     if (provider is CliPlatformProvider) {
@@ -156,12 +148,12 @@ class GameRunner {
               if (commandQueue.isEmpty) {
                 zDisplay.render();
                 final line = await zDisplay.readLine();
+                if (line == '__RESTORED__') {
+                  state = await Z.runUntilInput();
+                  continue;
+                }
                 zDisplay.appendToWindow0('\n');
-                final commands = line
-                    .split('.')
-                    .map((c) => c.trim())
-                    .where((c) => c.isNotEmpty)
-                    .toList();
+                final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
                 if (commands.isEmpty) {
                   state = await Z.submitLineInput('');
                 } else {

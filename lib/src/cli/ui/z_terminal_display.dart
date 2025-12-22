@@ -307,6 +307,11 @@ class ZTerminalDisplay implements ZartTerminal {
         if (oldRows != rows || oldCols != _cols) {
           // Log verbose if needed, usually omitted to reduce spam
           // log.info('Updated Z-Header ScreenSize: ${_cols}x$rows (was ${oldCols}x${oldRows})');
+
+          // Signal a redraw to the game (Standard 1.1, Bit 2 of Flags 2)
+          // Flags 2 is at 0x10. Bit 2 is in the low byte at 0x11.
+          final currentFlags2 = Z.engine.mem.loadb(0x11);
+          Z.engine.mem.storeb(0x11, currentFlags2 | 0x04);
         }
       } catch (e) {
         log.warning('Failed to update Z-Header: $e');
@@ -732,40 +737,35 @@ class ZTerminalDisplay implements ZartTerminal {
     }
   }
 
-  /// Process global keys (F1-F4, etc). Returns true if handled.
-  Future<bool> _handleGlobalKeys(Key key) async {
+  /// Process global keys (F1-F4, etc). Returns (consumed, restored).
+  Future<(bool, bool)> _handleGlobalKeys(Key key) async {
     if (key.controlChar == ControlCharacter.F1) {
       if (onOpenSettings != null) {
         await onOpenSettings!();
         render(); // Re-render after returning
       }
-      return true;
+      return (true, false);
     } else if (key.controlChar == ControlCharacter.F2) {
-      if (onAutosave != null) {
-        onAutosave!();
-        // Return true to prevent default "Coming Soon" message
-        // But we actually want to trigger the game command.
-        // The issue is _handleGlobalKeys returns 'bool' meaning "Consumed".
-        // If we want to return "save" to the caller (readLine), we can't do it easily from here purely with bool.
-        // We need a side-channel or simply return false and let the caller handle it if it knows?
-        // OR: readLine calls this.
-        // Let's modify readLine/readChar to check for specific signal or just check here.
-        // Actually, F2 handling in `readLine` loop (below) was consuming it.
-        // Let's keep returning TRUE here so default logic doesn't run,
-        // AND handle the command injection in `readLine`.
-        return true;
+      final success = await Z.performQuickSave();
+      if (success) {
+        showTempMessage('Quick Save Successful', seconds: 2);
+      } else {
+        showTempMessage('Quick Save Failed', seconds: 2);
       }
-      return true; // Still consume it to prevent weird chars
+      return (true, false);
     } else if (key.controlChar == ControlCharacter.F3) {
-      if (onRestore != null) {
-        onRestore!();
-        return true;
+      final success = await Z.performQuickRestore();
+      if (success) {
+        showTempMessage('Quick Restore Successful', seconds: 2);
+        return (true, true);
+      } else {
+        showTempMessage('Quick Restore Failed', seconds: 2);
+        return (true, false);
       }
-      return true;
     } else if (key.controlChar == ControlCharacter.F4) {
       _cycleTextColor();
       render();
-      return true;
+      return (true, false);
     } else if (key.controlChar == ControlCharacter.pageUp) {
       // Scroll up (back in history)
       final maxScroll = (_screen.window0Grid.length > _screen.window0Lines)
@@ -774,15 +774,15 @@ class ZTerminalDisplay implements ZartTerminal {
       _scrollOffset += 5; // Scroll 5 lines at a time
       if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
       render();
-      return true;
+      return (true, false);
     } else if (key.controlChar == ControlCharacter.pageDown) {
       // Scroll down (toward current)
       _scrollOffset -= 5;
       if (_scrollOffset < 0) _scrollOffset = 0;
       render();
-      return true;
+      return (true, false);
     }
-    return false;
+    return (false, false);
   }
 
   /// Read a line of input from the user.
@@ -814,31 +814,12 @@ class ZTerminalDisplay implements ZartTerminal {
       // Blocking read (sync) but in async function
       final key = _console.readKey();
 
-      if (await _handleGlobalKeys(key)) {
-        if (key.controlChar == ControlCharacter.F2) {
-          // Autosave triggered in _handleGlobalKeys (callback fired).
-          // Now inject "save" command
-          _inputBuffer = 'save';
-          appendToWindow0('save\n');
-          render();
+      final (consumed, restored) = await _handleGlobalKeys(key);
+      if (consumed) {
+        if (restored) {
           _inputBuffer = '';
           _inputLine = -1;
-          return 'save';
-        }
-        if (key.controlChar == ControlCharacter.F3) {
-          // Autorestore triggered
-          _inputBuffer = 'restore';
-          appendToWindow0('restore\n');
-          render();
-          _inputBuffer = '';
-          _inputLine = -1;
-          return 'restore';
-        }
-
-        if (key.controlChar == ControlCharacter.F4) {
-          // Handled by _handleGlobalKeys, just refresh input line rendering if needed?
-          // Actually _handleGlobalKeys calls render().
-          // We just continue loop.
+          return '__RESTORED__';
         }
         continue;
       }
@@ -955,7 +936,13 @@ class ZTerminalDisplay implements ZartTerminal {
         throw Exception('User pressed Ctrl+C');
       }
 
-      if (await _handleGlobalKeys(key)) continue;
+      final (consumed, restored) = await _handleGlobalKeys(key);
+      if (consumed) {
+        if (restored) {
+          return '__RESTORED__';
+        }
+        continue;
+      }
 
       // Map control characters to their expected values
       if (key.controlChar == ControlCharacter.enter) return '\n';

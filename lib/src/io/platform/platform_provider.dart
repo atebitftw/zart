@@ -135,7 +135,7 @@ abstract class PlatformProvider implements GlkIoProvider {
   // FILE IO
   // ============================================================
 
-  /// Request to save game state.
+  /// Request to save game state (interactive).
   ///
   /// The platform should prompt the user for a filename (or use
   /// [suggestedName]) and save the data.
@@ -143,13 +143,29 @@ abstract class PlatformProvider implements GlkIoProvider {
   /// Returns the filename used, or null if the save was cancelled.
   Future<String?> saveGame(List<int> data, {String? suggestedName});
 
-  /// Request to restore game state.
+  /// Request to restore game state (interactive).
   ///
   /// The platform should prompt the user to select a save file
   /// (or use [suggestedName]) and return the data.
   ///
   /// Returns the save data, or null if cancelled/failed.
   Future<List<int>?> restoreGame({String? suggestedName});
+
+  /// Request to save game state (non-interactive).
+  ///
+  /// The platform should save the data to a default or internal location
+  /// without prompting the user.
+  ///
+  /// Returns the location used, or null if it failed.
+  Future<String?> quickSave(List<int> data);
+
+  /// Request to restore game state (non-interactive).
+  ///
+  /// The platform should restore data from a default or internal location
+  /// without prompting the user.
+  ///
+  /// Returns the save data, or null if not found/failed.
+  Future<List<int>?> quickRestore();
 
   // ============================================================
   // GLULX / GLK SUPPORT
@@ -179,10 +195,7 @@ abstract class PlatformProvider implements GlkIoProvider {
   ///
   /// Some Glk operations push/pop values from the VM stack
   /// (when addresses are -1).
-  void setGlkStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  });
+  void setGlkStackAccess({required void Function(int value) push, required int Function() pop});
 
   /// Configure VM state callbacks.
   ///

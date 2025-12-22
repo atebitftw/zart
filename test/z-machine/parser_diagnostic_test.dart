@@ -24,8 +24,7 @@ void main() {
       // Enable logging to see dictionary operations
       Logger.root.level = Level.FINE;
       Logger.root.onRecord.listen((record) {
-        if (record.message.contains('parse()') ||
-            record.message.contains('tokenize')) {
+        if (record.message.contains('parse()') || record.message.contains('tokenize')) {
           print('${record.level.name}: ${record.message}');
         }
       });
@@ -71,9 +70,7 @@ void main() {
         final length = parseResult[baseIdx + 2];
         final position = parseResult[baseIdx + 3];
 
-        print(
-          'Word $i: addr=0x${addr.toRadixString(16)}, length=$length, position=$position',
-        );
+        print('Word $i: addr=0x${addr.toRadixString(16)}, length=$length, position=$position');
 
         // Verify position is correct
         // In V5, text buffer format: byte0=max, byte1=count, byte2+=text
@@ -106,23 +103,13 @@ void main() {
       // Get a sample of dictionary entries
       print('First 20 dictionary entries:');
       // Note: _entries is private, but we can test via tokenize/parse
-      final testWords = [
-        'take',
-        'get',
-        'drop',
-        'look',
-        'wood',
-        'north',
-        'south',
-      ];
+      final testWords = ['take', 'get', 'drop', 'look', 'wood', 'north', 'south'];
 
       for (final word in testWords) {
         final tokens = dict.tokenize(word);
         final parseResult = dict.parse(tokens, word);
         final addr = (parseResult[1] << 8) | parseResult[2];
-        print(
-          '  "$word": ${addr > 0 ? "FOUND at 0x${addr.toRadixString(16)}" : "NOT FOUND"}',
-        );
+        print('  "$word": ${addr > 0 ? "FOUND at 0x${addr.toRadixString(16)}" : "NOT FOUND"}');
       }
     });
   });
@@ -136,6 +123,15 @@ class DiagnosticTestProvider implements ZIoDispatcher {
 
   @override
   int getFlags1() => 0x7F;
+
+  @override
+  (int, int) getScreenSize() => (80, 24);
+
+  @override
+  Future<String?> quickSave(List<int> data) async => null;
+
+  @override
+  Future<List<int>?> quickRestore() async => null;
 }
 
 String _findGameFile(String filename) {
@@ -147,7 +143,5 @@ String _findGameFile(String filename) {
     }
   }
 
-  throw Exception(
-    'Game file $filename not found. Tried: $paths. CWD: ${Directory.current.path}',
-  );
+  throw Exception('Game file $filename not found. Tried: $paths. CWD: ${Directory.current.path}');
 }

@@ -18,7 +18,7 @@ import 'package:zart/src/z_machine/z_machine.dart';
 /// explicitly saved with it.
 class Quetzal {
   /// Generates a stream of save bytes in the Quetzal format.
-  static List<int?> save(int pcAddr) {
+  static List<int> save(int pcAddr) {
     List<int> saveData = <int>[];
 
     IFF.writeChunk(saveData, Chunk.form);
@@ -40,11 +40,7 @@ class Quetzal {
     //compressed memory
     IFF.writeChunk(saveData, Chunk.cmem);
 
-    var compressedParams = _compressMem(
-      Z.engine.mem.memList,
-      Z.rawBytes,
-      Z.engine.mem.memList.length,
-    );
+    var compressedParams = _compressMem(Z.engine.mem.memList, Z.rawBytes, Z.engine.mem.memList.length);
 
     IFF.write4Byte(saveData, compressedParams.length);
     saveData.addAll(compressedParams);
@@ -61,12 +57,7 @@ class Quetzal {
     stackData.addFirst(StackFrame(0, 0));
 
     while (stackData.first.nextCallStackIndex != null) {
-      stackData.addFirst(
-        StackFrame(
-          stackData.first.nextCallStackIndex!,
-          stackData.first.nextEvalStackIndex!,
-        ),
-      );
+      stackData.addFirst(StackFrame(stackData.first.nextCallStackIndex!, stackData.first.nextEvalStackIndex!));
     }
 
     var totalStackBytes = 0;
@@ -94,9 +85,7 @@ class Quetzal {
 
       // return variable number
       // (ref 4.6)
-      saveData.add(
-        sd.returnVar != InterpreterV3.stackMarker ? sd.returnVar : 0,
-      );
+      saveData.add(sd.returnVar != InterpreterV3.stackMarker ? sd.returnVar : 0);
 
       //total args passed (4.3.4)
       saveData.add(BinaryHelper.setBottomBits(sd.totalArgsPassed));
@@ -159,20 +148,16 @@ class Quetzal {
           if (Z.engine.mem.loadw(Header.release) != IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.serialNumber) !=
-              IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.serialNumber) != IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.serialNumber + 2) !=
-              IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.serialNumber + 2) != IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.serialNumber + 4) !=
-              IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.serialNumber + 4) != IFF.read2Byte(fileBytes)) {
             return false;
           }
-          if (Z.engine.mem.loadw(Header.checkSumOfFile) !=
-              IFF.read2Byte(fileBytes)) {
+          if (Z.engine.mem.loadw(Header.checkSumOfFile) != IFF.read2Byte(fileBytes)) {
             return false;
           }
           pc = IFF.read3Byte(fileBytes); //PC
@@ -191,9 +176,7 @@ class Quetzal {
 
             var returnVar = IFF.nextByte(fileBytes);
 
-            sf.returnVar = BinaryHelper.isSet(flagByte, 4)
-                ? InterpreterV3.stackMarker
-                : returnVar!;
+            sf.returnVar = BinaryHelper.isSet(flagByte, 4) ? InterpreterV3.stackMarker : returnVar!;
 
             var numLocals = BinaryHelper.bottomBits(flagByte, 4);
 
@@ -328,11 +311,7 @@ class Quetzal {
   }
 
   /// Compresses the given memory.
-  static List<int> _compressMem(
-    List<int> currentMem,
-    List<int> originalMem,
-    int length,
-  ) {
+  static List<int> _compressMem(List<int> currentMem, List<int> originalMem, int length) {
     var result = <int>[];
     var xorMem = <int>[];
 
@@ -360,10 +339,7 @@ class Quetzal {
     return result;
   }
 
-  static List<int> _decompressMem(
-    List<int> compressedBytes,
-    List<int> originalMem,
-  ) {
+  static List<int> _decompressMem(List<int> compressedBytes, List<int> originalMem) {
     var result = <int>[];
     var i = 0;
     while (i < compressedBytes.length) {
@@ -438,9 +414,7 @@ class StackFrame {
   StackFrame.empty() : locals = Queue<int>(), evals = Queue<int>();
 
   /// Instantiates a [StackFrame] from the current call stack and evaluation stack.
-  StackFrame(int callIndex, int evalIndex)
-    : locals = Queue<int>(),
-      evals = Queue<int>() {
+  StackFrame(int callIndex, int evalIndex) : locals = Queue<int>(), evals = Queue<int>() {
     returnAddr = Z.engine.callStack[callIndex];
     returnVar = Z.engine.callStack[++callIndex];
 

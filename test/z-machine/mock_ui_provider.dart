@@ -13,4 +13,13 @@ class MockUIProvider implements ZIoDispatcher {
 
   @override
   int getFlags1() => 0;
+
+  @override
+  (int, int) getScreenSize() => (80, 24);
+
+  @override
+  Future<String?> quickSave(List<int> data) async => 'quick_save.sav';
+
+  @override
+  Future<List<int>?> quickRestore() async => null;
 }

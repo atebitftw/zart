@@ -36,7 +36,7 @@ class InterpreterV7 extends InterpreterV5 {
 
     var str = ZSCII.readZStringAndPop(addr);
 
-    Debugger.verbose('${pcHex()} "$str"');
+    //Debugger.verbose('${pcHex()} "$str"');
 
     Z.sbuff.write(str);
   }
