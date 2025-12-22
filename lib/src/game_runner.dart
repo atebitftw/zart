@@ -99,7 +99,9 @@ class GameRunner {
       if (provider is CliPlatformProvider) {
         final cliProvider = provider as CliPlatformProvider;
         cliProvider.glulxProvider?.renderScreen();
-        await cliProvider.glulxProvider?.showExitAndWait('[Zart: Press any key to exit]');
+        await cliProvider.glulxProvider?.showExitAndWait(
+          '[Zart: Press any key to exit]',
+        );
       }
 
       provider.exitDisplayMode();
@@ -153,7 +155,11 @@ class GameRunner {
                   continue;
                 }
                 zDisplay.appendToWindow0('\n');
-                final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+                final commands = line
+                    .split('.')
+                    .map((c) => c.trim())
+                    .where((c) => c.isNotEmpty)
+                    .toList();
                 if (commands.isEmpty) {
                   state = await Z.submitLineInput('');
                 } else {

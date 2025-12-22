@@ -195,7 +195,10 @@ abstract class PlatformProvider implements GlkIoProvider {
   ///
   /// Some Glk operations push/pop values from the VM stack
   /// (when addresses are -1).
-  void setGlkStackAccess({required void Function(int value) push, required int Function() pop});
+  void setGlkStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  });
 
   /// Configure VM state callbacks.
   ///

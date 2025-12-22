@@ -22,7 +22,10 @@ void main() {
   const maxTestRoutineLength = (testRoutineEndAddr + 1) - testRoutineAddr;
   const stackPointer = 0;
 
-  final testRoutineRestoreBytes = Z.engine.mem.getRange(testRoutineAddr, maxTestRoutineLength);
+  final testRoutineRestoreBytes = Z.engine.mem.getRange(
+    testRoutineAddr,
+    maxTestRoutineLength,
+  );
 
   void injectRoutine(List<int> locals, List<int> instructionBytes) {
     Z.engine.mem.storeb(testRoutineAddr, locals.length);
@@ -96,16 +99,29 @@ void main() {
     paramList.add(Operand(kindList[2]));
     paramList.add(Operand(kindList[3]));
 
-    paramList[1].rawValue = (kindList[0] == OperandType.variable) ? convertToVariableLiteral(item1) : item1;
-    paramList[2].rawValue = (kindList[1] == OperandType.variable) ? convertToVariableLiteral(item2) : item2;
-    paramList[3].rawValue = (kindList[2] == OperandType.variable) ? convertToVariableLiteral(item3) : item3;
-    paramList[4].rawValue = (kindList[3] == OperandType.variable) ? convertToVariableLiteral(item4) : item4;
+    paramList[1].rawValue = (kindList[0] == OperandType.variable)
+        ? convertToVariableLiteral(item1)
+        : item1;
+    paramList[2].rawValue = (kindList[1] == OperandType.variable)
+        ? convertToVariableLiteral(item2)
+        : item2;
+    paramList[3].rawValue = (kindList[2] == OperandType.variable)
+        ? convertToVariableLiteral(item3)
+        : item3;
+    paramList[4].rawValue = (kindList[3] == OperandType.variable)
+        ? convertToVariableLiteral(item4)
+        : item4;
 
     return paramList;
   }
 
   runRoutine([param1, param2, param3]) {
-    var operandList = createVarParamList(Z.engine.pack(testRoutineAddr), param1, param2, param3);
+    var operandList = createVarParamList(
+      Z.engine.pack(testRoutineAddr),
+      param1,
+      param2,
+      param3,
+    );
     Z.quit = false;
 
     var callInstruction = [224];
@@ -175,8 +191,14 @@ void main() {
     group('setup>', () {
       test('test routine check', () {
         //first/last byte of testRoutineRestore is correct
-        expect(Z.engine.mem.loadb(testRoutineAddr), equals(testRoutineRestoreBytes[0]));
-        expect(Z.engine.mem.loadb(testRoutineEndAddr), equals(testRoutineRestoreBytes.last));
+        expect(
+          Z.engine.mem.loadb(testRoutineAddr),
+          equals(testRoutineRestoreBytes[0]),
+        );
+        expect(
+          Z.engine.mem.loadb(testRoutineEndAddr),
+          equals(testRoutineRestoreBytes.last),
+        );
       });
 
       test('routine restore check', () {

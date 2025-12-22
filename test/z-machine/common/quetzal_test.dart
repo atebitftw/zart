@@ -17,7 +17,9 @@ void main() {
       // Push order (bottom to top) to achieve [ReturnAddr, ReturnVar, TotalLocals, ArgsPassed] at indices 0, 1, 2, 3
       Z.engine.callStack.clear();
       Z.engine.callStack.push(0); // Args passed (index 3)
-      Z.engine.callStack.push(0); // Local count (index 2) -> implies no locals pushed
+      Z.engine.callStack.push(
+        0,
+      ); // Local count (index 2) -> implies no locals pushed
       Z.engine.callStack.push(0); // Return Var (index 1)
       Z.engine.callStack.push(0x1234); // Return Addr (index 0)
 
@@ -109,7 +111,11 @@ void main() {
       // Total size - 8
       var expectedSize = saveBytes.length - 8;
       // saveBytes is List<int?>, but we know it contains ints.
-      var actualSize = (saveBytes[4] << 24) | (saveBytes[5] << 16) | (saveBytes[6] << 8) | saveBytes[7];
+      var actualSize =
+          (saveBytes[4] << 24) |
+          (saveBytes[5] << 16) |
+          (saveBytes[6] << 8) |
+          saveBytes[7];
       expect(actualSize, equals(expectedSize));
 
       // Check IFZS (Bytes 8-11)
