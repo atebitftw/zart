@@ -490,6 +490,9 @@ class ZScreenModel {
         height: rows - _window1Height,
         cells: w0Cells,
         acceptsInput: true, // Window 0 typically receives input
+        cursorX: _window0Grid.isNotEmpty ? _window0Grid.last.length : 0,
+        cursorY: _window0Grid.isNotEmpty ? _window0Grid.length - 1 : 0,
+        isTextBuffer: true,
       ),
     );
 
