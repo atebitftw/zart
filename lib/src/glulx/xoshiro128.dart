@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'package:zart/src/glulx/glulx_binary_helper.dart';
 
 /// xoshiro128** random number generator implementation.
 /// Reference: osdepend.c - "xoshiro128**" random-number generator
@@ -51,12 +52,12 @@ class Xoshiro128 {
   /// Reference: osdepend.c xo_seed_random()
   void _seedRandom(int seed) {
     for (int ix = 0; ix < 4; ix++) {
-      seed = (seed + 0x9E3779B9) & 0xFFFFFFFF;
+      seed = GlulxBinaryHelper.add32(seed, 0x9E3779B9);
       int s = seed;
       s ^= s >> 15;
-      s = (s * 0x85EBCA6B) & 0xFFFFFFFF;
+      s = GlulxBinaryHelper.mul32(s, 0x85EBCA6B);
       s ^= s >> 13;
-      s = (s * 0xC2B2AE35) & 0xFFFFFFFF;
+      s = GlulxBinaryHelper.mul32(s, 0xC2B2AE35);
       s ^= s >> 16;
       _table[ix] = s;
     }
@@ -66,11 +67,14 @@ class Xoshiro128 {
   /// Reference: osdepend.c xo_random()
   int _random() {
     // rotl(x, k) => (x << k) | (x >> (32 - k))
-    final t1x5 = (_table[1] * 5) & 0xFFFFFFFF;
-    final result =
-        ((((t1x5 << 7) | (t1x5 >> 25)) & 0xFFFFFFFF) * 9) & 0xFFFFFFFF;
+    final t1x5 = GlulxBinaryHelper.mul32(_table[1], 5);
+    final rotl7 = GlulxBinaryHelper.or32(
+      GlulxBinaryHelper.shl32(t1x5, 7),
+      GlulxBinaryHelper.shr32(t1x5, 25),
+    );
+    final result = GlulxBinaryHelper.mul32(rotl7, 9);
 
-    final t1s9 = (_table[1] << 9) & 0xFFFFFFFF;
+    final t1s9 = GlulxBinaryHelper.shl32(_table[1], 9);
 
     _table[2] ^= _table[0];
     _table[3] ^= _table[1];
@@ -80,7 +84,10 @@ class Xoshiro128 {
     _table[2] ^= t1s9;
 
     final t3 = _table[3];
-    _table[3] = ((t3 << 11) | (t3 >> 21)) & 0xFFFFFFFF;
+    _table[3] = GlulxBinaryHelper.or32(
+      GlulxBinaryHelper.shl32(t3, 11),
+      GlulxBinaryHelper.shr32(t3, 21),
+    );
 
     return result;
   }

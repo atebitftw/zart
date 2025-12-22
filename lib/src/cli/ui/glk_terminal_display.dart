@@ -29,7 +29,8 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   Future<void> Function()? get onOpenSettings => _renderer.onOpenSettings;
   @override
-  set onOpenSettings(Future<void> Function()? value) => _renderer.onOpenSettings = value;
+  set onOpenSettings(Future<void> Function()? value) =>
+      _renderer.onOpenSettings = value;
 
   @override
   bool get enableStatusBar => _renderer.zartBarVisible;
@@ -134,7 +135,10 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   void _ensureUiModel() {
     if (_uiModel == null) {
-      _uiModel = ZScreenModel(cols: _renderer.screenWidth, rows: _renderer.screenHeight);
+      _uiModel = ZScreenModel(
+        cols: _renderer.screenWidth,
+        rows: _renderer.screenHeight,
+      );
     }
   }
 }

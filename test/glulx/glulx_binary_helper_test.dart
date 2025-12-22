@@ -104,7 +104,10 @@ void main() {
       });
 
       test('double negation returns original', () {
-        expect(GlulxBinaryHelper.neg32(GlulxBinaryHelper.neg32(42)), equals(42));
+        expect(
+          GlulxBinaryHelper.neg32(GlulxBinaryHelper.neg32(42)),
+          equals(42),
+        );
       });
     });
 
@@ -117,7 +120,10 @@ void main() {
 
       test('handles high bit set', () {
         /// Critical JS test: values with bit 31 set
-        expect(GlulxBinaryHelper.and32(0x80000000, 0xFFFFFFFF), equals(0x80000000));
+        expect(
+          GlulxBinaryHelper.and32(0x80000000, 0xFFFFFFFF),
+          equals(0x80000000),
+        );
       });
 
       test('AND with 0 yields 0', () {
@@ -125,7 +131,10 @@ void main() {
       });
 
       test('AND with 0xFFFFFFFF yields original', () {
-        expect(GlulxBinaryHelper.and32(0xDEADBEEF, 0xFFFFFFFF), equals(0xDEADBEEF));
+        expect(
+          GlulxBinaryHelper.and32(0xDEADBEEF, 0xFFFFFFFF),
+          equals(0xDEADBEEF),
+        );
       });
     });
 
@@ -136,7 +145,10 @@ void main() {
       });
 
       test('handles high bit set', () {
-        expect(GlulxBinaryHelper.or32(0x80000000, 0x00000001), equals(0x80000001));
+        expect(
+          GlulxBinaryHelper.or32(0x80000000, 0x00000001),
+          equals(0x80000001),
+        );
       });
 
       test('OR with 0 yields original', () {
@@ -170,7 +182,10 @@ void main() {
       });
 
       test('double NOT returns original', () {
-        expect(GlulxBinaryHelper.not32(GlulxBinaryHelper.not32(0x12345678)), equals(0x12345678));
+        expect(
+          GlulxBinaryHelper.not32(GlulxBinaryHelper.not32(0x12345678)),
+          equals(0x12345678),
+        );
       });
 
       test('handles max value', () {
@@ -293,7 +308,10 @@ void main() {
       test('bitwise AND with negative-looking result in JS', () {
         /// In JS: (0x80000000 & 0x80000000) could return -2147483648
         /// We need 0x80000000 (2147483648)
-        expect(GlulxBinaryHelper.and32(0x80000000, 0x80000000), equals(0x80000000));
+        expect(
+          GlulxBinaryHelper.and32(0x80000000, 0x80000000),
+          equals(0x80000000),
+        );
       });
 
       test('rotl pattern (used in xoshiro)', () {
@@ -301,7 +319,10 @@ void main() {
         /// Test the pattern from xoshiro128.dart
         final x = 0x12345678;
         const k = 7;
-        final rotl = GlulxBinaryHelper.or32(GlulxBinaryHelper.shl32(x, k), GlulxBinaryHelper.shr32(x, 32 - k));
+        final rotl = GlulxBinaryHelper.or32(
+          GlulxBinaryHelper.shl32(x, k),
+          GlulxBinaryHelper.shr32(x, 32 - k),
+        );
         // Manual calculation: (0x12345678 << 7) | (0x12345678 >> 25)
         expect(rotl, equals(0x1A2B3C09));
       });

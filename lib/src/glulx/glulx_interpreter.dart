@@ -17,6 +17,7 @@ import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 import 'package:zart/src/glulx/glulx_accel.dart';
+import 'package:zart/src/glulx/glulx_binary_helper.dart';
 
 /// The Glulx interpreter.
 class GlulxInterpreter {
@@ -225,7 +226,7 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        _performStore(dest, (l1 + l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.add32(l1, l2));
         break;
 
       /// Spec Section 2.4.1: "sub L1 L2 S1: Compute (L1 - L2), and store the result in S1."
@@ -233,7 +234,7 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        _performStore(dest, (l1 - l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.sub32(l1, l2));
         break;
 
       /// Spec Section 2.4.1: "mul L1 L2 S1: Compute (L1 * L2), and store the result in S1.
@@ -242,7 +243,7 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        _performStore(dest, (l1 * l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.mul32(l1, l2));
         break;
 
       /// Spec Section 2.4.1: "div L1 L2 S1: Compute (L1 / L2), and store the result in S1.
@@ -260,7 +261,7 @@ class GlulxInterpreter {
             'Division overflow: -0x80000000 / -1 (Spec Section 2.4.1)',
           );
         }
-        _performStore(dest, (l1 ~/ l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.toU32(l1 ~/ l2));
         break;
 
       /// Spec Section 2.4.1: "mod L1 L2 S1: Compute (L1 % L2), and store the result in S1.
@@ -280,14 +281,14 @@ class GlulxInterpreter {
             'Modulo overflow: -0x80000000 % -1 (Spec Section 2.4.1)',
           );
         }
-        _performStore(dest, l1.remainder(l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.toU32(l1.remainder(l2)));
         break;
 
       /// Spec Section 2.4.1: "neg L1 S1: Compute the negative of L1."
       case GlulxOp.neg:
         final l1 = operands[0] as int;
         final dest = operands[1] as StoreOperand;
-        _performStore(dest, (-l1) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.neg32(l1));
         break;
 
       /// Spec Section 2.4.2: "bitand L1 L2 S1: Compute the bitwise AND of L1 and L2."
@@ -295,7 +296,7 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        _performStore(dest, (l1 & l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.and32(l1, l2));
         break;
 
       /// Spec Section 2.4.2: "bitor L1 L2 S1: Compute the bitwise OR of L1 and L2."
@@ -303,7 +304,7 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        _performStore(dest, (l1 | l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.or32(l1, l2));
         break;
 
       /// Spec Section 2.4.2: "bitxor L1 L2 S1: Compute the bitwise XOR of L1 and L2."
@@ -311,14 +312,14 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        _performStore(dest, (l1 ^ l2) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.xor32(l1, l2));
         break;
 
       /// Spec Section 2.4.2: "bitnot L1 S1: Compute the bitwise negation of L1."
       case GlulxOp.bitnot:
         final l1 = operands[0] as int;
         final dest = operands[1] as StoreOperand;
-        _performStore(dest, (~l1) & 0xFFFFFFFF);
+        _performStore(dest, GlulxBinaryHelper.not32(l1));
         break;
 
       /// Spec Section 2.4.2: "shiftl L1 L2 S1: Shift the bits of L1 to the left by L2 places.
@@ -327,13 +328,10 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        // L2 is treated as unsigned per spec
-        final shift = l2 & 0xFFFFFFFF;
-        if (shift >= 32) {
-          _performStore(dest, 0);
-        } else {
-          _performStore(dest, (l1 << shift) & 0xFFFFFFFF);
-        }
+        _performStore(
+          dest,
+          GlulxBinaryHelper.shl32(l1, GlulxBinaryHelper.toU32(l2)),
+        );
         break;
 
       /// Spec Section 2.4.2: "ushiftr L1 L2 S1: Shift the bits of L1 to the right by L2 places.
@@ -342,30 +340,23 @@ class GlulxInterpreter {
         final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        final shift = l2 & 0xFFFFFFFF;
-        if (shift >= 32) {
-          _performStore(dest, 0);
-        } else {
-          // Ensure unsigned shift by masking l1 to 32 bits
-          _performStore(dest, ((l1 & 0xFFFFFFFF) >> shift) & 0xFFFFFFFF);
-        }
+        _performStore(
+          dest,
+          GlulxBinaryHelper.shr32(l1, GlulxBinaryHelper.toU32(l2)),
+        );
         break;
 
       /// Spec Section 2.4.2: "sshiftr L1 L2 S1: Shift the bits of L1 to the right by L2 places.
       /// The top L2 bits are filled with copies of the top bit of L1.
       /// If L2 is 32 or more, the result is always zero or FFFFFFFF, depending on the top bit of L1."
       case GlulxOp.sshiftr:
-        final l1 = (operands[0] as int).toSigned(32);
+        final l1 = operands[0] as int;
         final l2 = operands[1] as int;
         final dest = operands[2] as StoreOperand;
-        final shift = l2 & 0xFFFFFFFF;
-        if (shift >= 32) {
-          // Result depends on sign bit
-          _performStore(dest, (l1 < 0) ? 0xFFFFFFFF : 0);
-        } else {
-          // Dart's >> on signed int does sign extension
-          _performStore(dest, (l1 >> shift) & 0xFFFFFFFF);
-        }
+        _performStore(
+          dest,
+          GlulxBinaryHelper.sar32(l1, GlulxBinaryHelper.toU32(l2)),
+        );
         break;
 
       // ========== Branch Opcodes (Spec Section 2.4.3) ==========
