@@ -15,7 +15,7 @@ library;
 
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:logging/logging.dart';
 
 void main() {

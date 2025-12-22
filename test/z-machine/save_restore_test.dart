@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 
 /// A mock IO provider that stores saved games in memory.
 class MemoryIoProvider extends ZIoDispatcher {

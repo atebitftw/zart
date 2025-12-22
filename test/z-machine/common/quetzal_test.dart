@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:zart/src/io/quetzal.dart';
 import '../test_utils.dart';
 

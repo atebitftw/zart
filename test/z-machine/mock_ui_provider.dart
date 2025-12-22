@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:zart/zart.dart' show ZIoDispatcher;
+import 'package:zart/src/zart_internal.dart' show ZIoDispatcher;
 
 /// Mock UI Provider for Unit Testing
 class MockUIProvider implements ZIoDispatcher {

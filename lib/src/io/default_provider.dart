@@ -1,6 +1,6 @@
 import 'dart:collection';
 import 'dart:async';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 
 /// Default provider with word-wrap support.
 ///

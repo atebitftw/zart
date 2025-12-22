@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:zart/src/z_machine/interpreters/interpreter_v5.dart';
 import 'dart:async';
 

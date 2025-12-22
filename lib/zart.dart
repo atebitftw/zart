@@ -1,20 +1,25 @@
-export 'package:zart/src/z_machine/z_machine.dart' show Z, ZMachineRunState;
-export 'package:zart/src/io/z_io_dispatcher.dart';
-export 'package:zart/src/io/default_provider.dart';
-export 'package:zart/src/loaders/blorb.dart';
-export 'package:zart/src/z_machine/game_exception.dart';
-export 'package:zart/src/z_machine/debugger.dart';
-export 'package:zart/src/z_machine/header.dart';
-export 'package:zart/src/io/z_screen_model.dart';
-export 'package:zart/src/io/z_io_commands.dart';
-export 'package:zart/src/io/cell.dart';
+// ============================================================
+// Zart - Z-Machine and Glulx Interpreter Library
+// ============================================================
+//
+// This is the public API for the Zart library.
 
-/// Returns a simple preamble that can be outputed by [IoProvider]s.
+// Implement PlatformProvider to run games on your platform.
+
+export 'package:zart/src/game_runner.dart' show GameRunner, GameRunnerException;
+export 'package:zart/src/io/platform/platform_provider.dart';
+export 'package:zart/src/io/platform/platform_capabilities.dart';
+export 'package:zart/src/io/platform/input_event.dart';
+export 'package:zart/src/io/platform/z_machine_io_command.dart';
+export 'package:zart/src/io/render/render_frame.dart';
+export 'package:zart/src/io/render/render_cell.dart';
+
+/// Returns a simple preamble that can be output by platform providers.
 List<String> getPreamble() {
   return [
     "-----------------------------",
-    "Zart: A Z-Machine Interpreter Library",
-    "Version 1.9",
+    "Zart: Interactive Fiction Interpreter",
+    "Version 2.0",
     "https://pub.dev/packages/zart",
     "-----------------------------",
     "",

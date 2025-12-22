@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
 import 'package:zart/src/z_machine/math_helper.dart';
 import 'package:zart/src/z_machine/operand.dart';
-import 'package:zart/zart.dart'; // Added for Z
+import 'package:zart/src/zart_internal.dart'; // Added for Z
 import '../test_utils.dart';
 
 int fst(int word) => word >> 8;

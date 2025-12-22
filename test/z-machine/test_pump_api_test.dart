@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:test/test.dart';
 
 /// Test IoProvider that collects output for verification

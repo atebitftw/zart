@@ -1,6 +1,5 @@
 import 'package:zart/src/z_machine/interpreters/interpreter_v5.dart';
-import 'package:zart/src/z_machine/z_machine.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:zart/src/z_machine/zscii.dart';
 
 /// Implementation of Z-Machine v7

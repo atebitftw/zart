@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:test/test.dart';
 
 /// Comprehensive test provider that captures and handles all IoCommands

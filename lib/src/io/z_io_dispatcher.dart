@@ -1,4 +1,4 @@
-import 'package:zart/zart.dart' show ZIoCommands;
+import 'package:zart/src/io/z_io_commands.dart' show ZIoCommands;
 
 /// Dispatch layer interface for Z-Machine IO.
 abstract class ZIoDispatcher {

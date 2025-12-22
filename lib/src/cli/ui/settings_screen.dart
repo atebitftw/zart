@@ -1,7 +1,7 @@
 import 'package:zart/src/cli/ui/z_terminal_colors.dart';
 import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/cli/ui/zart_terminal.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/zart.dart' show getPreamble;
 
 /// A settings screen for the Zart CLI application.
 class SettingsScreen {

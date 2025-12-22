@@ -70,7 +70,9 @@ void main() {
         0x00,
       ]);
       // Fill some garbage at 0x300
-      for (var i = 0x300; i < 0x310; i++) gameData[i] = 0xFF;
+      for (var i = 0x300; i < 0x310; i++) {
+        gameData[i] = 0xFF;
+      }
 
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);

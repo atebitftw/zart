@@ -191,8 +191,9 @@ class GlulxAccel {
     final tb = memoryMap.readByte(addr);
     if (tb >= 0xE0) return 3; // String
     if (tb >= 0xC0) return 2; // Function
-    if (tb >= 0x70 && tb <= 0x7F && addr >= memoryMap.ramStart)
+    if (tb >= 0x70 && tb <= 0x7F && addr >= memoryMap.ramStart) {
       return 1; // Object
+    }
     return 0;
   }
 
@@ -261,8 +262,9 @@ class GlulxAccel {
       if (obj == _params[2] ||
           obj == _params[5] ||
           obj == _params[4] ||
-          obj == _params[3])
+          obj == _params[3]) {
         return 1;
+      }
       return 0;
     }
     if (cla == _params[3]) {
@@ -271,8 +273,9 @@ class GlulxAccel {
       if (obj == _params[2] ||
           obj == _params[5] ||
           obj == _params[4] ||
-          obj == _params[3])
+          obj == _params[3]) {
         return 0;
+      }
       return 1;
     }
     if (cla == _params[5] || cla == _params[4]) return 0;
@@ -406,8 +409,9 @@ class GlulxAccel {
       if (obj == _params[2] ||
           obj == _params[5] ||
           obj == _params[4] ||
-          obj == _params[3])
+          obj == _params[3]) {
         return 1;
+      }
       return 0;
     }
     if (cla == _params[3]) {
@@ -415,8 +419,9 @@ class GlulxAccel {
       if (obj == _params[2] ||
           obj == _params[5] ||
           obj == _params[4] ||
-          obj == _params[3])
+          obj == _params[3]) {
         return 0;
+      }
       return 1;
     }
     if (cla == _params[5] || cla == _params[4]) return 0;

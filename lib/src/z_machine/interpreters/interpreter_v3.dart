@@ -8,9 +8,8 @@ import 'package:zart/src/z_machine/math_helper.dart';
 import 'package:zart/src/z_machine/memory_map.dart';
 import 'package:zart/src/z_machine/operand.dart';
 import 'package:zart/src/z_machine/stack.dart';
-import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/z_machine/zscii.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 
 /// Base interpreter that is compatible with Z-Machine V1 - V3.
 class InterpreterV3 {

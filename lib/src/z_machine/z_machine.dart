@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/z_machine/memory_map.dart' show MemoryMap;
 import 'package:zart/src/z_machine/zscii.dart' show ZSCII;
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart'
     show InterpreterV3;
 import 'package:zart/src/z_machine/interpreters/interpreter_v4.dart'

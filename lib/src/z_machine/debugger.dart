@@ -4,8 +4,7 @@ import 'package:zart/src/z_machine/interpreters/interpreter_v5.dart';
 import 'package:zart/src/z_machine/interpreters/interpreter_v7.dart';
 import 'package:zart/src/z_machine/interpreters/interpreter_v8.dart';
 import 'package:zart/src/z_machine/memory_map.dart';
-import 'package:zart/src/z_machine/z_machine.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 
 /// A runtime debugger for Z-Machine.
 class Debugger {

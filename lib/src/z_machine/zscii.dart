@@ -1,6 +1,5 @@
 import 'package:zart/src/z_machine/z_char.dart';
-import 'package:zart/src/z_machine/z_machine.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 
 /// The ZString reader function.
 typedef ZStringReader =

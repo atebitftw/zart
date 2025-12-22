@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:zart/src/z_machine/game_object.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 
 /// Returns a string containing a pretty-print visual tree of game objects.
 /// This function crawls the tree structure until all objects have been found

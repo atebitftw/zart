@@ -489,9 +489,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
         if (str != null) {
           final pos = args[1];
           final seekMode = args[2];
-          if (seekMode == 0)
+          if (seekMode == 0) {
             str.pos = pos;
-          else if (seekMode == 1)
+          } else if (seekMode == 1)
             str.pos += pos;
           else if (seekMode == 2) {
             final len = str.type == 2
@@ -531,16 +531,17 @@ class GlulxTerminalProvider implements GlkIoProvider {
           nextWin = windowIds.isNotEmpty ? windowIds.first : null;
         } else {
           final idx = windowIds.indexOf(prevWin);
-          if (idx >= 0 && idx + 1 < windowIds.length)
+          if (idx >= 0 && idx + 1 < windowIds.length) {
             nextWin = windowIds[idx + 1];
+          }
         }
 
         if (nextWin != null) {
           final win = _screenModel.getWindow(nextWin);
           if (win != null) {
-            if (rockAddr != 0 && rockAddr != 0xFFFFFFFF)
+            if (rockAddr != 0 && rockAddr != 0xFFFFFFFF) {
               writeMemory(rockAddr, win.rock, size: 4);
-            else if (rockAddr == 0xFFFFFFFF)
+            } else if (rockAddr == 0xFFFFFFFF)
               pushToStack(win.rock);
           }
           return nextWin;
@@ -631,10 +632,11 @@ class GlulxTerminalProvider implements GlkIoProvider {
     } else if (stream.type == 2) {
       if (stream.bufAddr == 0) return;
       if (stream.pos < stream.bufLen) {
-        if (stream.isUnicode)
+        if (stream.isUnicode) {
           writeMemory(stream.bufAddr + (stream.pos * 4), value, size: 4);
-        else
+        } else {
           writeMemory(stream.bufAddr + stream.pos, value & 0xFF, size: 1);
+        }
         stream.pos++;
       }
     } else if (stream.type == 3) {
@@ -700,9 +702,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
     if (addr == 0) return;
     var p = addr;
     final typeByte = readMemory(p, size: 1);
-    if (typeByte == 0xE0)
+    if (typeByte == 0xE0) {
       p += 1;
-    else if (typeByte == 0xE2)
+    } else if (typeByte == 0xE2)
       p += 4;
 
     while (true) {
@@ -808,8 +810,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
           ? DateTime.now().difference(_lastTimerEvent!).inMilliseconds
           : 0;
       final remaining = _timerInterval - elapsed;
-      if (remaining > 0)
+      if (remaining > 0) {
         await Future<void>.delayed(Duration(milliseconds: remaining));
+      }
       _lastTimerEvent = DateTime.now();
       _writeEventStruct(eventAddr, GlkEventTypes.timer, 0, 0, 0);
       return 0;

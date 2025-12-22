@@ -1,8 +1,8 @@
-/// Unit tests for GlkScreenModel word wrap and window type fixes.
-///
-/// Tests cover:
-/// - Word-boundary wrapping in text buffer windows
-/// - Window type mapping (Glk spec: pair=1, blank=2, textBuffer=3, textGrid=4, graphics=5)
+// Unit tests for GlkScreenModel word wrap and window type fixes.
+//
+// Tests cover:
+// - Word-boundary wrapping in text buffer windows
+// - Window type mapping (Glk spec: pair=1, blank=2, textBuffer=3, textGrid=4, graphics=5)
 import 'package:test/test.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/glk/glk_window.dart';

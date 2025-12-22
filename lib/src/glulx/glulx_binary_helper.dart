@@ -9,8 +9,6 @@ import 'dart:typed_data';
 ///
 /// This class uses `Uint32List` to guarantee correct 32-bit unsigned semantics
 /// in both native Dart and JavaScript environments.
-///
-/// Reference: JAVASCRIPT_COMPATIBILITY.md (Option 2: Uint32List for Intermediate Storage)
 class GlulxBinaryHelper {
   /// Shared buffer for 32-bit conversions.
   /// Using a static instance avoids allocation overhead on each operation.

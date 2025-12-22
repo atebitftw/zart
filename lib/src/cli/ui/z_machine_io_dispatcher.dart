@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:zart/src/cli/ui/z_terminal_display.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 
 /// Terminal provider for Z-Machine IO.
 class ZMachineIoDispatcher implements ZIoDispatcher {

@@ -3,9 +3,8 @@ import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
 import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/z_machine/math_helper.dart';
 import 'package:zart/src/z_machine/operand.dart';
-import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/quetzal.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'package:zart/src/z_machine/zscii.dart';
 import 'package:zart/src/z_machine/dictionary.dart';
 

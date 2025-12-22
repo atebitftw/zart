@@ -232,8 +232,9 @@ class GlulxStringDecoder {
       }
 
       if (node is TerminatorNode) break;
-      if (node is SingleCharNode)
+      if (node is SingleCharNode) {
         printChar(node.char, currentBitAddr, currentBit);
+      }
       if (node is StringNode) {
         // For Filter mode, signal to switch to E0 processing
         if (callEmbeddedString != null) {
@@ -250,8 +251,9 @@ class GlulxStringDecoder {
           printChar(b, currentBitAddr, currentBit);
         }
       }
-      if (node is UnicodeCharNode)
+      if (node is UnicodeCharNode) {
         printUnicode(node.char, currentBitAddr, currentBit);
+      }
       if (node is UnicodeStringNode) {
         // For Filter mode, signal to switch to E2 processing
         if (callEmbeddedString != null) {
@@ -278,8 +280,9 @@ class GlulxStringDecoder {
           callFunc,
           currentBitAddr,
           currentBit,
-        ))
+        )) {
           return;
+        }
       }
       if (node is DoubleIndirectNode) {
         // Spec: "The address refers to a four-byte field in memory, and *that*
@@ -292,8 +295,9 @@ class GlulxStringDecoder {
           callFunc,
           currentBitAddr,
           currentBit,
-        ))
+        )) {
           return;
+        }
       }
       if (node is IndirectArgsNode) {
         // If string, args are ignored. If function, args are passed.
@@ -304,8 +308,9 @@ class GlulxStringDecoder {
           callFunc,
           currentBitAddr,
           currentBit,
-        ))
+        )) {
           return;
+        }
       }
       if (node is DoubleIndirectArgsNode) {
         final target = memory.readWord(node.address);
@@ -316,8 +321,9 @@ class GlulxStringDecoder {
           callFunc,
           currentBitAddr,
           currentBit,
-        ))
+        )) {
           return;
+        }
       }
     }
   }

@@ -1,40 +1,38 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:zart/src/cli/config/configuration_manager.dart';
-import 'package:zart/src/cli/ui/cli_renderer.dart';
-import 'package:zart/src/cli/ui/glk_terminal_display.dart';
-import 'package:zart/src/cli/ui/glulx_terminal_provider.dart';
-import 'package:zart/src/cli/ui/settings_screen.dart';
-import 'package:zart/src/cli/ui/z_terminal_display.dart';
-import 'package:zart/src/cli/ui/z_machine_io_dispatcher.dart';
+import 'package:zart/src/cli/ui/cli_platform_provider.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart' show debugger;
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/loaders/blorb.dart';
+import 'package:zart/src/z_machine/z_machine.dart';
+import 'package:zart/src/z_machine/debugger.dart';
+import 'package:zart/src/io/z_io_dispatcher.dart';
 
 /// Unified game runner for both Z-machine and Glulx games.
 ///
-/// Takes a single [CliRenderer] - the same display works for both game types.
+/// Takes a [PlatformProvider] implementation to handle all platform-specific
+/// IO operations (rendering, input, save/restore).
 ///
 /// Example:
 /// ```dart
-/// final renderer = CliRenderer();
-/// final runner = GameRunner(renderer);
+/// final provider = CliPlatformProvider();
+/// final runner = GameRunner(provider);
 /// await runner.run(gameBytes, filename: 'game.z5');
 /// ```
 class GameRunner {
-  final CliRenderer renderer;
-  final ConfigurationManager? config;
+  /// The platform provider for IO operations.
+  final PlatformProvider provider;
+
+  /// Debug configuration options.
   final Map<String, dynamic> debugConfig;
 
   // Internal state
   GlulxInterpreter? _glulx;
-  GlulxTerminalProvider? _glulxProvider;
-  ZTerminalDisplay? _zDisplay;
-  ZMachineIoDispatcher? _zProvider;
 
-  /// Create a GameRunner with a renderer.
-  GameRunner(this.renderer, {this.config, this.debugConfig = const {}});
+  /// Create a GameRunner with a platform provider.
+  GameRunner(this.provider, {this.debugConfig = const {}});
 
   /// Run a game from raw bytes.
   ///
@@ -51,6 +49,11 @@ class GameRunner {
       throw GameRunnerException('Unable to extract game data from file');
     }
 
+    // Set the game name for save/restore operations
+    if (provider is CliPlatformProvider) {
+      (provider as CliPlatformProvider).gameName = filename;
+    }
+
     // Each game type manages its own full-screen mode
     switch (fileType) {
       case GameFileType.glulx:
@@ -61,11 +64,15 @@ class GameRunner {
   }
 
   Future<void> _runGlulx(Uint8List gameData) async {
-    // Create Glk display
-    final display = GlkTerminalDisplay();
-    _glulxProvider = GlulxTerminalProvider(display: display, config: config);
-    _glulx = GlulxInterpreter(_glulxProvider!);
+    // Initialize Glulx support in the provider
+    if (provider is CliPlatformProvider) {
+      (provider as CliPlatformProvider).initGlulx();
+    }
 
+    // Create the interpreter with the platform provider
+    _glulx = GlulxInterpreter(provider);
+
+    // Configure debugger from debug config
     debugger.enabled = debugConfig['debug'] ?? false;
     debugger.startStep = debugConfig['startstep'];
     debugger.endStep = debugConfig['endstep'];
@@ -82,112 +89,115 @@ class GameRunner {
 
     _glulx!.load(gameData);
 
-    display.enterFullScreen();
+    provider.enterDisplayMode();
 
     try {
       final maxStep = debugConfig['maxstep'] ?? -1;
       await _glulx!.run(maxStep: maxStep);
-      _glulxProvider!.renderScreen();
 
-      await _glulxProvider!.showExitAndWait('[Zart: Press any key to exit]');
-      display.exitFullScreen();
+      // Final render and exit message
+      if (provider is CliPlatformProvider) {
+        final cliProvider = provider as CliPlatformProvider;
+        cliProvider.glulxProvider?.renderScreen();
+        await cliProvider.glulxProvider?.showExitAndWait(
+          '[Zart: Press any key to exit]',
+        );
+      }
+
+      provider.exitDisplayMode();
     } catch (e) {
-      display.exitFullScreen();
+      provider.exitDisplayMode();
       rethrow;
     }
   }
 
   Future<void> _runZMachine(Uint8List gameData, String filename) async {
-    var isGameRunning = false;
-    // Create Z-machine display (uses its own terminal handling)
-    _zDisplay = ZTerminalDisplay();
-
-    if (config != null) {
-      _zDisplay!.config = config;
-      _zDisplay!.applySavedSettings();
+    // Initialize Z-machine support in the provider
+    if (provider is CliPlatformProvider) {
+      (provider as CliPlatformProvider).initZMachine();
     }
 
-    _zDisplay!.onOpenSettings = () => SettingsScreen(
-      _zDisplay!,
-      config ?? ConfigurationManager(),
-    ).show(isGameStarted: isGameRunning);
-
+    // Disable Z-machine debugger
     Debugger.enableDebug = false;
     Debugger.enableVerbose = false;
     Debugger.enableTrace = false;
     Debugger.enableStackTrace = false;
 
-    _zProvider = ZMachineIoDispatcher(_zDisplay!, filename);
-    Z.io = _zProvider as ZIoDispatcher;
-
-    _zDisplay!.onAutosave = () => _zProvider!.isQuickSaveMode = true;
-    _zDisplay!.onRestore = () => _zProvider!.isAutorestoreMode = true;
+    // Set up Z-machine IO dispatcher
+    if (provider is CliPlatformProvider) {
+      final cliProvider = provider as CliPlatformProvider;
+      Z.io = cliProvider.zDispatcher as ZIoDispatcher;
+    }
 
     Z.load(gameData);
 
+    // Handle Ctrl+C
     ProcessSignal.sigint.watch().listen((_) {
-      _zDisplay?.exitFullScreen();
+      provider.exitDisplayMode();
       stdout.writeln('Interrupted.');
       exit(0);
     });
 
-    // Enter full-screen with Z-machine's mouse support
-    _zDisplay!.enterFullScreen();
-    isGameRunning = true;
-    _zDisplay!.enableStatusBar = true;
+    provider.enterDisplayMode();
 
-    final commandQueue = <String>[];
-    var state = await Z.runUntilInput();
+    // Access Z-machine specific display functionality
+    if (provider is CliPlatformProvider) {
+      final cliProvider = provider as CliPlatformProvider;
+      final zDisplay = cliProvider.zDisplay;
+      if (zDisplay != null) {
+        zDisplay.enableStatusBar = true;
 
-    while (state != ZMachineRunState.quit) {
-      switch (state) {
-        case ZMachineRunState.needsLineInput:
-          if (commandQueue.isEmpty) {
-            _zDisplay!.render();
-            final line = await _zDisplay!.readLine();
-            _zDisplay!.appendToWindow0('\n');
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
-            if (commands.isEmpty) {
-              state = await Z.submitLineInput('');
-            } else {
-              commandQueue.addAll(commands);
-              state = await Z.submitLineInput(commandQueue.removeAt(0));
-            }
-          } else {
-            final cmd = commandQueue.removeAt(0);
-            _zDisplay!.appendInputEcho('$cmd\n');
-            state = await Z.submitLineInput(cmd);
+        final commandQueue = <String>[];
+        var state = await Z.runUntilInput();
+
+        while (state != ZMachineRunState.quit) {
+          switch (state) {
+            case ZMachineRunState.needsLineInput:
+              if (commandQueue.isEmpty) {
+                zDisplay.render();
+                final line = await zDisplay.readLine();
+                zDisplay.appendToWindow0('\n');
+                final commands = line
+                    .split('.')
+                    .map((c) => c.trim())
+                    .where((c) => c.isNotEmpty)
+                    .toList();
+                if (commands.isEmpty) {
+                  state = await Z.submitLineInput('');
+                } else {
+                  commandQueue.addAll(commands);
+                  state = await Z.submitLineInput(commandQueue.removeAt(0));
+                }
+              } else {
+                final cmd = commandQueue.removeAt(0);
+                zDisplay.appendInputEcho('$cmd\n');
+                state = await Z.submitLineInput(cmd);
+              }
+            case ZMachineRunState.needsCharInput:
+              zDisplay.render();
+              final char = await zDisplay.readChar();
+              if (char.isNotEmpty) {
+                state = await Z.submitCharInput(char);
+              }
+            case ZMachineRunState.quit:
+            case ZMachineRunState.error:
+            case ZMachineRunState.running:
+              break;
           }
-        case ZMachineRunState.needsCharInput:
-          _zDisplay!.render();
-          final char = await _zDisplay!.readChar();
-          if (char.isNotEmpty) {
-            state = await Z.submitCharInput(char);
-          }
-        case ZMachineRunState.quit:
-        case ZMachineRunState.error:
-        case ZMachineRunState.running:
-          break;
+        }
+
+        zDisplay.appendToWindow0('\n[Press any key to exit]');
+        zDisplay.render();
+        await zDisplay.readChar();
       }
     }
 
-    _zDisplay!.appendToWindow0('\n[Press any key to exit]');
-    _zDisplay!.render();
-    await _zDisplay!.readChar();
-
-    // Cleanup Z-machine display (restores terminal state)
-    _zDisplay!.exitFullScreen();
+    provider.exitDisplayMode();
   }
 
   void dispose() {
     _glulx = null;
-    _glulxProvider = null;
-    _zDisplay = null;
-    _zProvider = null;
+    provider.dispose();
   }
 }
 

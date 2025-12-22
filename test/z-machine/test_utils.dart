@@ -1,5 +1,5 @@
 import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart';
-import 'package:zart/zart.dart';
+import 'package:zart/src/zart_internal.dart';
 import 'mock_ui_provider.dart';
 import 'mock_v3_machine.dart';
 import 'dart:io';
