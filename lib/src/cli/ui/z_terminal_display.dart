@@ -12,7 +12,7 @@ import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/cell.dart';
 import 'package:zart/src/cli/ui/zart_terminal.dart';
 
-const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
 /// Z-Machine Terminal Display.
 /// Used by the unified [CliRenderer] for rendering.
@@ -191,10 +191,6 @@ class ZTerminalDisplay implements ZartTerminal {
   void enterFullScreen() {
     // Try to switch to alternate buffer manually
     stdout.write('\x1B[?1049h');
-    // Enable Mouse Reporting (Click + Scroll)
-    // 1000: Send Mouse X & Y on button press and release.
-    // 1006: SGR Extended Mouse Mode (supports > 223 cols/rows).
-    stdout.write('\x1B[?1000h\x1B[?1006h');
 
     _console.rawMode = true;
     _console.hideCursor();
@@ -211,8 +207,6 @@ class ZTerminalDisplay implements ZartTerminal {
     _console.rawMode = false;
     _console.resetColorAttributes();
 
-    // Disable Mouse Reporting
-    stdout.write('\x1B[?1000l\x1B[?1006l');
     // Switch back to main screen buffer
     stdout.write('\x1B[?1049l');
   }
@@ -711,6 +705,21 @@ class ZTerminalDisplay implements ZartTerminal {
       _cycleTextColor();
       render();
       return true;
+    } else if (key.controlChar == ControlCharacter.pageUp) {
+      // Scroll up (back in history)
+      final maxScroll = (_screen.window0Grid.length > _screen.window0Lines)
+          ? _screen.window0Grid.length - _screen.window0Lines
+          : 0;
+      _scrollOffset += 5; // Scroll 5 lines at a time
+      if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
+      render();
+      return true;
+    } else if (key.controlChar == ControlCharacter.pageDown) {
+      // Scroll down (toward current)
+      _scrollOffset -= 5;
+      if (_scrollOffset < 0) _scrollOffset = 0;
+      render();
+      return true;
     }
     return false;
   }
@@ -736,55 +745,6 @@ class ZTerminalDisplay implements ZartTerminal {
     while (true) {
       // Blocking read (sync) but in async function
       final key = _console.readKey();
-
-      if (key.controlChar == ControlCharacter.escape) {
-        _pendingMouseSequence.clear();
-        _pendingMouseSequence.write('\x1B');
-        continue;
-      }
-
-      if (_pendingMouseSequence.isNotEmpty) {
-        // We are in a potential sequence
-        _pendingMouseSequence.write(_keyChar(key));
-
-        final seq = _pendingMouseSequence.toString();
-        // Valid SGR Mouse: \x1B[<...M or m
-        // If it matches pattern start...
-
-        if (seq.startsWith('\x1B[<')) {
-          if (seq.endsWith('M') || seq.endsWith('m')) {
-            _parseMouse(seq);
-            _pendingMouseSequence.clear();
-            render();
-            continue;
-          }
-          // Continue gathering
-          continue;
-        } else if (seq.startsWith('\x1B[')) {
-          // Could be mouse or other CSI
-          if (seq.length > 2 && !_isDigit(key) && key.char != ';') {
-            // Not a mouse sequence compatible char?
-            if (key.char == '<') {
-              // Good, continue
-              continue;
-            }
-            // Invalid or other sequence we don't care about (e.g. arrow keys we already handle?)
-            // Actually `readKey` handles arrows.
-            // So if we are here, it's something `readKey` split up.
-
-            // Flush buffer as input?
-            // This is dangerous.
-
-            // Fallback: Just clear buffer and process current key as normal?
-            _pendingMouseSequence.clear();
-          } else {
-            continue;
-          }
-        } else {
-          // Not a sequence we are tracking
-          _pendingMouseSequence.clear();
-        }
-      }
 
       if (await _handleGlobalKeys(key)) {
         if (key.controlChar == ControlCharacter.F2) {
@@ -832,28 +792,27 @@ class ZTerminalDisplay implements ZartTerminal {
       // Check for Ctrl+Key Macros
       // We assume mapped control attributes effectively.
       // Note: dart_console often maps Ctrl+A to unit separator etc or ControlCharacter.ctrlA
-      key.controlChar.toString().startsWith('ControlCharacter.ctrl')) {
-        // ... existing macro logic ...
+      key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
         // Extract letter
-        // format is ControlCharacter.ctrlA
         final s = key.controlChar.toString();
-        final letter = s.substring(s.length - 1).toLowerCase();
-        final bindingKey = 'ctrl+$letter';
+        // Handle both ControlCharacter.ctrlA and ctrlA formats
+        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
+        if (match != null) {
+          final letter = match.group(1)!.toLowerCase();
+          final bindingKey = 'ctrl+$letter';
 
-        // Skip ctrl+c since we handle it above
-        if (letter == 'c') continue;
-
-        if (config != null) {
-          final cmd = config!.getBinding(bindingKey);
-          if (cmd != null) {
-            _inputBuffer = cmd;
-            appendToWindow0(cmd); // Echo it
-            appendToWindow0('\n');
-            _scrollOffset = 0; // Reset scroll
-            render();
-            _inputBuffer = '';
-            _inputLine = -1;
-            return cmd;
+          if (config != null) {
+            final cmd = config!.getBinding(bindingKey);
+            if (cmd != null) {
+              _inputBuffer = cmd;
+              appendToWindow0(cmd); // Echo it
+              appendToWindow0('\n');
+              _scrollOffset = 0; // Reset scroll
+              render();
+              _inputBuffer = '';
+              _inputLine = -1;
+              return cmd;
+            }
           }
         }
       } else if (key.controlChar == ControlCharacter.backspace) {
@@ -887,49 +846,6 @@ class ZTerminalDisplay implements ZartTerminal {
     }
   }
 
-  // Buffer for mouse sequence parsing (Header based)
-  final StringBuffer _pendingMouseSequence = StringBuffer();
-
-  String _keyChar(Key key) {
-    if (key.char.isNotEmpty) return key.char;
-    return '';
-  }
-
-  bool _isDigit(Key key) {
-    return key.char.isNotEmpty && int.tryParse(key.char) != null;
-  }
-
-  void _parseMouse(String seq) {
-    // Format: \x1B[<B;X;YM
-    // Remove Prefix `\x1B[<` and Suffix `M` or `m`
-    // Or if leak: 64;X;YM
-
-    String content = seq;
-    if (seq.startsWith('\x1B[<')) {
-      content = seq.substring(3, seq.length - 1);
-    } else {
-      return; // Not a supported sequence
-    }
-
-    final parts = content.split(';');
-    if (parts.length >= 3) {
-      final btn = int.tryParse(parts[0]) ?? 0;
-
-      // Scroll Up is 64, Scroll Down is 65
-      if (btn == 64) {
-        _scrollOffset++;
-        // Calculate maxScroll to clamp
-        final maxScroll = (_screen.window0Grid.length > _screen.window0Lines)
-            ? _screen.window0Grid.length - _screen.window0Lines
-            : 0;
-        if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
-      } else if (btn == 65) {
-        _scrollOffset--;
-        if (_scrollOffset < 0) _scrollOffset = 0;
-      }
-    }
-  }
-
   /// Read a single character for char input mode.
   Future<String> readChar() async {
     while (true) {
@@ -938,40 +854,6 @@ class ZTerminalDisplay implements ZartTerminal {
       // Handle Ctrl+C to exit
       if (key.controlChar == ControlCharacter.ctrlC) {
         throw Exception('User pressed Ctrl+C');
-      }
-
-      // Standard Header-based Mouse Handling (Escape)
-      if (key.controlChar == ControlCharacter.escape) {
-        _pendingMouseSequence.clear();
-        _pendingMouseSequence.write('\x1B');
-        continue;
-      }
-
-      if (_pendingMouseSequence.isNotEmpty) {
-        _pendingMouseSequence.write(_keyChar(key));
-        final seq = _pendingMouseSequence.toString();
-
-        if (seq.startsWith('\x1B[<')) {
-          if (seq.endsWith('M') || seq.endsWith('m')) {
-            _parseMouse(seq);
-            _pendingMouseSequence.clear();
-            render();
-            continue;
-          }
-          continue; // Wait for more
-        } else if (seq.startsWith('\x1B[')) {
-          if (seq.length > 2 && !_isDigit(key) && key.char != ';') {
-            if (key.char == '<') {
-              continue;
-            }
-            // Invalid sequence
-            _pendingMouseSequence.clear();
-          } else {
-            continue;
-          }
-        } else {
-          _pendingMouseSequence.clear();
-        }
       }
 
       if (await _handleGlobalKeys(key)) continue;

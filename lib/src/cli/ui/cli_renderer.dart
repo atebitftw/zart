@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
+import 'package:zart/src/cli/config/configuration_manager.dart';
 import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/render/render_frame.dart';
 import 'package:zart/src/io/render/capability_provider.dart';
 
-const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
 /// Unified CLI renderer for both Z-machine and Glulx games.
 ///
@@ -55,6 +56,9 @@ class CliRenderer with TerminalCapabilities {
   /// Last rendered frame (for re-rendering during scroll).
   RenderFrame? _lastFrame;
 
+  /// The configuration manager.
+  ConfigurationManager? config;
+
   /// Cursor position for input (row, col in screen coords).
   int _cursorRow = 0;
   int _cursorCol = 0;
@@ -78,10 +82,6 @@ class CliRenderer with TerminalCapabilities {
   /// Enter full-screen mode using alternate screen buffer.
   void enterFullScreen() {
     stdout.write('\x1B[?1049h'); // Alternate screen buffer
-    // Enable Mouse Reporting (Click + Scroll)
-    // 1000: Send Mouse X & Y on button press and release.
-    // 1006: SGR Extended Mouse Mode (supports > 223 cols/rows).
-    stdout.write('\x1B[?1000h\x1B[?1006h');
     stdout.write('\x1B[?25l'); // Hide cursor
     stdout.write('\x1B[2J'); // Clear screen
     _console.rawMode = true;
@@ -90,8 +90,6 @@ class CliRenderer with TerminalCapabilities {
   /// Exit full-screen mode and restore normal terminal.
   void exitFullScreen() {
     stdout.write('\x1B[?25h'); // Show cursor
-    // Disable Mouse Reporting
-    stdout.write('\x1B[?1000l\x1B[?1006l');
     stdout.write('\x1B[?1049l'); // Exit alternate screen buffer
     _console.rawMode = false;
   }
@@ -363,54 +361,13 @@ class CliRenderer with TerminalCapabilities {
     }
   }
 
-  /// Buffer for pending mouse escape sequences.
-  final StringBuffer _pendingMouseSeq = StringBuffer();
-
-  /// Read a line of input from the terminal with mouse/scroll support.
+  /// Read a line of input from the terminal.
   Future<String> readLine() async {
     stdout.write('\x1B[?25h'); // Show cursor
     final buf = StringBuffer();
 
     while (true) {
       final key = _console.readKey();
-
-      // Handle escape sequences (mouse) - dart_console detects escape as ControlCharacter.escape
-      if (key.controlChar == ControlCharacter.escape) {
-        _pendingMouseSeq.clear();
-        _pendingMouseSeq.write('\x1B');
-        continue;
-      }
-
-      // Continue building escape sequence if one is started
-      if (_pendingMouseSeq.isNotEmpty) {
-        final c = key.char.isNotEmpty ? key.char : '';
-        _pendingMouseSeq.write(c);
-        final seq = _pendingMouseSeq.toString();
-
-        // SGR Mouse format: \x1B[<B;X;YM or m
-        if (seq.startsWith('\x1B[<')) {
-          if (seq.endsWith('M') || seq.endsWith('m')) {
-            _handleMouseEvent(seq);
-            _pendingMouseSeq.clear();
-            continue;
-          }
-          // Still building - keep going
-          continue;
-        } else if (seq.startsWith('\x1B[')) {
-          // Could be CSI sequence - check if valid
-          if (seq.length > 2) {
-            if (c == '<') {
-              continue; // Starting SGR mouse
-            }
-            // Other CSI sequence - ignore and clear
-            _pendingMouseSeq.clear();
-          }
-          continue;
-        } else {
-          // Invalid sequence - clear
-          _pendingMouseSeq.clear();
-        }
-      }
 
       // Handle regular keys
       if (key.controlChar == ControlCharacter.enter) {
@@ -440,6 +397,33 @@ class CliRenderer with TerminalCapabilities {
           onCycleTextColor!();
           rerender();
         }
+      } else if (key.controlChar == ControlCharacter.pageUp) {
+        // Scroll up (back in history)
+        scrollOffset += 5;
+        rerender();
+      } else if (key.controlChar == ControlCharacter.pageDown) {
+        // Scroll down (toward current)
+        scrollOffset -= 5;
+        if (scrollOffset < 0) scrollOffset = 0;
+        rerender();
+      } else if (key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
+        // Handle Ctrl+Key Macros
+        final s = key.controlChar.toString();
+        // Handle both ControlCharacter.ctrlA and ctrlA formats
+        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
+        if (match != null) {
+          final letter = match.group(1)!.toLowerCase();
+          final bindingKey = 'ctrl+$letter';
+
+          if (config != null) {
+            final cmd = config!.getBinding(bindingKey);
+            if (cmd != null) {
+              buf.write(cmd);
+              stdout.write('$cmd\n');
+              return buf.toString();
+            }
+          }
+        }
       } else if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
         buf.write(key.char);
         stdout.write(key.char);
@@ -448,26 +432,6 @@ class CliRenderer with TerminalCapabilities {
 
     stdout.write('\x1B[?25l'); // Hide cursor
     return buf.toString();
-  }
-
-  void _handleMouseEvent(String seq) {
-    // Format: \x1B[<B;X;YM or \x1B[<B;X;Ym
-    String content = seq.substring(3, seq.length - 1);
-    final parts = content.split(';');
-    if (parts.length >= 3) {
-      final btn = int.tryParse(parts[0]) ?? 0;
-      // Scroll Up is 64, Scroll Down is 65
-      if (btn == 64) {
-        onDebugLog?.call('Mouse scroll up detected (SGR)');
-        scrollOffset++;
-        rerender();
-      } else if (btn == 65) {
-        onDebugLog?.call('Mouse scroll down detected (SGR)');
-        scrollOffset--;
-        if (scrollOffset < 0) scrollOffset = 0;
-        rerender();
-      }
-    }
   }
 
   /// Read a single character from the terminal.

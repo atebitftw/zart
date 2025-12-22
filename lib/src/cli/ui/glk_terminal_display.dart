@@ -18,7 +18,12 @@ class GlkTerminalDisplay implements ZartTerminal {
   ZScreenModel? _uiModel;
 
   /// The configuration manager.
-  ConfigurationManager? config;
+  ConfigurationManager? _config;
+  ConfigurationManager? get config => _config;
+  set config(ConfigurationManager? value) {
+    _config = value;
+    renderer.config = value;
+  }
 
   /// Hook for opening settings.
   @override
