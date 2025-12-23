@@ -1,4 +1,4 @@
-import 'package:zart/src/cli/ui/z_terminal_display.dart';
+import 'z_terminal_display.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/zart_internal.dart';
 

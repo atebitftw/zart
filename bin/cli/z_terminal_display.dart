@@ -3,14 +3,15 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:dart_console/dart_console.dart';
-import 'package:zart/src/cli/config/configuration_manager.dart';
-import 'package:zart/src/cli/ui/cli_renderer.dart';
-import 'package:zart/src/cli/ui/z_terminal_colors.dart';
+import 'configuration_manager.dart';
+import 'cli_renderer.dart';
+import 'z_terminal_colors.dart';
 import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/z_screen_model.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/cell.dart';
-import 'package:zart/src/cli/ui/zart_terminal.dart';
+import 'package:zart/src/io/platform/platform_provider.dart' show ZMachineDisplay;
+import 'zart_terminal.dart';
 
 const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
@@ -27,7 +28,7 @@ const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Co
 /// │ > [input line]                 │
 /// └────────────────────────────────┘
 /// ```
-class ZTerminalDisplay implements ZartTerminal {
+class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   /// Create standard terminal display.
   ZTerminalDisplay() {
     detectTerminalSize();

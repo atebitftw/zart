@@ -1,13 +1,12 @@
 import 'package:test/test.dart';
-import 'package:zart/src/cli/ui/cli_platform_provider.dart';
+import '../../bin/cli/cli_platform_provider.dart';
 
 void main() {
   group('QuickSave Injection', () {
     late CliPlatformProvider provider;
 
     setUp(() {
-      provider = CliPlatformProvider();
-      provider.gameName = 'testgame';
+      provider = CliPlatformProvider(null, gameName: 'testgame');
     });
 
     test('F2 should inject "save\\n" and automate filename', () async {

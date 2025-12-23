@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:zart/src/cli/ui/z_terminal_display.dart';
-import 'package:zart/src/cli/ui/z_machine_io_dispatcher.dart';
+import '../../bin/cli/z_terminal_display.dart';
+import '../../bin/cli/z_machine_io_dispatcher.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/zart_internal.dart';
@@ -71,8 +71,10 @@ class MockTerminalDisplay extends ZTerminalDisplay {
 
 class MockPlatformProvider extends PlatformProvider {
   @override
-  PlatformCapabilities get capabilities =>
-      const PlatformCapabilities.terminal(width: 80, height: 24);
+  String get gameName => 'test_game';
+
+  @override
+  PlatformCapabilities get capabilities => const PlatformCapabilities.terminal(width: 80, height: 24);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -88,43 +90,35 @@ void main() {
       provider = ZMachineIoDispatcher(mockDisplay, MockPlatformProvider());
     });
 
-    test(
-      'IoCommands.status renders correctly with Bold+Reverse style',
-      () async {
-        final command = {
-          'command': ZIoCommands.status,
-          'room_name': 'Kitchen',
-          'score_one': '10',
-          'score_two': '20',
-          'game_type': 'SCORE', // Score/Moves game
-        };
+    test('IoCommands.status renders correctly with Bold+Reverse style', () async {
+      final command = {
+        'command': ZIoCommands.status,
+        'room_name': 'Kitchen',
+        'score_one': '10',
+        'score_two': '20',
+        'game_type': 'SCORE', // Score/Moves game
+      };
 
-        await provider.command(command);
+      await provider.command(command);
 
-        // Verify Split Window forced (since default height 0)
-        expect(mockDisplay.splitLines, equals(1));
+      // Verify Split Window forced (since default height 0)
+      expect(mockDisplay.splitLines, equals(1));
 
-        // Verify Style was set to 3 (Bold + Reverse)
-        expect(mockDisplay.stylesSet, contains(3));
+      // Verify Style was set to 3 (Bold + Reverse)
+      expect(mockDisplay.stylesSet, contains(3));
 
-        // Verify Content Written
-        // Room Name
-        expect(mockDisplay.window1Writes, contains(' Kitchen'));
+      // Verify Content Written
+      // Room Name
+      expect(mockDisplay.window1Writes, contains(' Kitchen'));
 
-        // Padding (spaces)
-        expect(
-          mockDisplay.window1Writes.any(
-            (s) => s.trim().isEmpty && s.isNotEmpty,
-          ),
-          isTrue,
-        );
+      // Padding (spaces)
+      expect(mockDisplay.window1Writes.any((s) => s.trim().isEmpty && s.isNotEmpty), isTrue);
 
-        // Score
-        expect(mockDisplay.window1Writes, contains('Score: 10 Moves: 20 '));
+      // Score
+      expect(mockDisplay.window1Writes, contains('Score: 10 Moves: 20 '));
 
-        // Verify Reset Style
-        expect(mockDisplay.stylesSet.last, equals(0));
-      },
-    );
+      // Verify Reset Style
+      expect(mockDisplay.stylesSet.last, equals(0));
+    });
   });
 }

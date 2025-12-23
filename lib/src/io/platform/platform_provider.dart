@@ -5,6 +5,8 @@ import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/z_machine_io_command.dart';
 import 'package:zart/src/io/render/render_frame.dart';
+import 'package:zart/src/io/z_io_dispatcher.dart';
+import 'package:zart/src/loaders/blorb.dart';
 
 /// Unified platform provider interface for running Z-machine and Glulx games.
 ///
@@ -68,6 +70,16 @@ import 'package:zart/src/io/render/render_frame.dart';
 /// await runner.run(gameBytes);
 /// ```
 abstract class PlatformProvider implements GlkIoProvider {
+  /// Name of the game being run (usually the filename, or some component of it).
+  String get gameName;
+
+  /// Initialize the platform provider for a specific game type.
+  ///
+  /// Called by [GameRunner] before starting a game. Implementations should
+  /// set up game-type-specific resources (e.g., Glk display for Glulx,
+  /// ZIoDispatcher for Z-machine).
+  void init(GameFileType fileType);
+
   // ============================================================
   // CAPABILITIES
   // ============================================================
@@ -195,10 +207,7 @@ abstract class PlatformProvider implements GlkIoProvider {
   ///
   /// Some Glk operations push/pop values from the VM stack
   /// (when addresses are -1).
-  void setGlkStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  });
+  void setGlkStackAccess({required void Function(int value) push, required int Function() pop});
 
   /// Configure VM state callbacks.
   ///
@@ -209,6 +218,18 @@ abstract class PlatformProvider implements GlkIoProvider {
   ///
   /// This is separate from Glk gestalt - it queries the VM capabilities.
   int vmGestalt(int selector, int arg);
+
+  /// Render the Glk screen immediately.
+  ///
+  /// Forces a refresh of the Glk display. Called after game execution
+  /// completes to ensure final output is shown.
+  void renderScreen();
+
+  /// Show an exit message and wait for user input.
+  ///
+  /// Displays [message] and blocks until the user presses any key.
+  /// Used for the "Press any key to exit" prompt at game end.
+  Future<void> showExitAndWait(String message);
 
   // ============================================================
   // Z-MACHINE SUPPORT
@@ -229,6 +250,16 @@ abstract class PlatformProvider implements GlkIoProvider {
   /// GetCursorCommand returns cursor position).
   Future<dynamic> zCommand(ZMachineIOCommand command);
 
+  /// Get the Z-machine IO dispatcher.
+  ///
+  /// Returns null if Z-machine is not initialized.
+  ZIoDispatcher? get zDispatcher;
+
+  /// Get the Z-machine display interface for input/output.
+  ///
+  /// Returns null if Z-machine is not initialized.
+  ZMachineDisplay? get zDisplay;
+
   // ============================================================
   // LIFECYCLE
   // ============================================================
@@ -247,4 +278,38 @@ abstract class PlatformProvider implements GlkIoProvider {
   ///
   /// Called when the game runner is done with the provider.
   void dispose() {}
+}
+
+/// Abstract interface for Z-machine display operations.
+///
+/// Represents the display/input surface for Z-machine games.
+/// [GameRunner] uses this interface to drive the Z-machine game loop
+/// without knowing the concrete display implementation.
+abstract class ZMachineDisplay {
+  /// Whether the status bar is enabled.
+  bool get enableStatusBar;
+  set enableStatusBar(bool value);
+
+  /// Render the current display state.
+  void render();
+
+  /// Detect and update terminal size.
+  void detectTerminalSize();
+
+  /// Read a line of text input.
+  ///
+  /// Returns the input text, or `'__RESTORED__'` if a quick restore
+  /// was triggered and the game state was restored.
+  Future<String> readLine();
+
+  /// Read a single character.
+  ///
+  /// Returns the character as a string.
+  Future<String> readChar();
+
+  /// Append text to window 0 (main window).
+  void appendToWindow0(String text);
+
+  /// Append echoed input text to the display.
+  void appendInputEcho(String text);
 }

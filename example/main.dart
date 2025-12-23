@@ -3,17 +3,17 @@ import 'dart:io';
 import 'package:logging/logging.dart' show Level;
 import 'package:zart/src/logging.dart' show log;
 import 'package:zart/zart.dart';
-import 'package:zart/src/cli/ui/cli_platform_provider.dart';
-import 'package:zart/src/cli/config/configuration_manager.dart';
+import '../bin/cli/cli_platform_provider.dart';
+import '../bin/cli/configuration_manager.dart';
 
 /// Example of using Zart with the PlatformProvider API.
 ///
 /// This demonstrates the recommended way to run Z-Machine and Glulx games.
 ///
 /// ```dart
-/// final provider = CliPlatformProvider(config: config);
+/// final provider = CliPlatformProvider(config, gameName: 'game.z5');
 /// final runner = GameRunner(provider);
-/// await runner.run(gameBytes, filename: 'game.z5');
+/// await runner.run(gameBytes);
 /// ```
 void main(List<String> args) async {
   log.level = Level.INFO;
@@ -35,14 +35,14 @@ void main(List<String> args) async {
   final config = ConfigurationManager()..load();
 
   // Create the platform provider
-  final provider = CliPlatformProvider(config: config);
+  final provider = CliPlatformProvider(config, gameName: filename);
 
   // Create game runner
   final runner = GameRunner(provider);
 
   try {
     // Run the game
-    await runner.run(f.readAsBytesSync(), filename: filename);
+    await runner.run(f.readAsBytesSync());
     runner.dispose();
     exit(0);
   } on GameRunnerException catch (e) {

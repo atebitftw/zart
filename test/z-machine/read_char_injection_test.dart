@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/cli/ui/cli_renderer.dart';
+import '../../bin/cli/cli_renderer.dart';
 
 void main() {
   test('readChar should consume injected input character by character', () async {

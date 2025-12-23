@@ -2,18 +2,19 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'package:zart/src/cli/config/configuration_manager.dart';
-import 'package:zart/src/cli/ui/cli_renderer.dart';
-import 'package:zart/src/cli/ui/glk_terminal_display.dart';
-import 'package:zart/src/cli/ui/glulx_terminal_provider.dart';
-import 'package:zart/src/cli/ui/settings_screen.dart';
-import 'package:zart/src/cli/ui/z_machine_io_dispatcher.dart';
-import 'package:zart/src/cli/ui/z_terminal_display.dart';
+import 'configuration_manager.dart';
+import 'cli_renderer.dart';
+import 'glk_terminal_display.dart';
+import 'glulx_terminal_provider.dart';
+import 'settings_screen.dart';
+import 'z_machine_io_dispatcher.dart';
+import 'z_terminal_display.dart';
 import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/io/platform/z_machine_io_command.dart';
 import 'package:zart/src/io/render/render_frame.dart';
+import 'package:zart/src/loaders/blorb.dart';
 
 /// CLI/Terminal implementation of [PlatformProvider].
 ///
@@ -25,17 +26,16 @@ import 'package:zart/src/io/render/render_frame.dart';
 /// - [GlulxTerminalProvider] for Glk dispatch
 /// - [ZMachineIoDispatcher] for Z-machine commands
 /// - Terminal input for keyboard/mouse handling
-class CliPlatformProvider implements PlatformProvider {
+class CliPlatformProvider extends PlatformProvider {
   final Console _console = Console();
   late final CliRenderer _renderer;
+
+  /// Renderer for emitting [RenderFrame]s.
   CliRenderer get renderer => _renderer;
   late PlatformCapabilities _capabilities;
 
   /// Configuration manager for settings.
   final ConfigurationManager? config;
-
-  /// Game filename (for save/restore operations).
-  String gameName = 'game';
 
   // === Glulx/Glk Support ===
   GlulxTerminalProvider? _glulxProvider;
@@ -50,7 +50,7 @@ class CliPlatformProvider implements PlatformProvider {
   bool _isQuickRestore = false;
 
   /// Create a CLI platform provider.
-  CliPlatformProvider({this.config}) {
+  CliPlatformProvider(this.config, {required String gameName}) : _gameName = gameName {
     _renderer = CliRenderer();
     _renderer.config = config;
     _updateCapabilities();
@@ -68,6 +68,11 @@ class CliPlatformProvider implements PlatformProvider {
     };
   }
 
+  String _gameName;
+
+  @override
+  String get gameName => _gameName;
+
   void _updateCapabilities() {
     _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
   }
@@ -80,6 +85,16 @@ class CliPlatformProvider implements PlatformProvider {
   PlatformCapabilities get capabilities {
     _updateCapabilities();
     return _capabilities;
+  }
+
+  @override
+  void init(GameFileType fileType) {
+    switch (fileType) {
+      case GameFileType.glulx:
+        _initGlulx();
+      case GameFileType.z:
+        _initZMachine();
+    }
   }
 
   // ============================================================
@@ -284,7 +299,7 @@ class CliPlatformProvider implements PlatformProvider {
 
   /// Initialize Glulx/Glk support.
   /// Called by GameRunner when starting a Glulx game.
-  void initGlulx() {
+  void _initGlulx() {
     _glkDisplay = GlkTerminalDisplay();
     _glulxProvider = GlulxTerminalProvider(display: _glkDisplay, config: config);
 
@@ -330,6 +345,16 @@ class CliPlatformProvider implements PlatformProvider {
 
   /// Get the Glk display for direct access.
   GlkTerminalDisplay? get glkDisplay => _glkDisplay;
+
+  @override
+  void renderScreen() {
+    _glulxProvider?.renderScreen();
+  }
+
+  @override
+  Future<void> showExitAndWait(String message) async {
+    await _glulxProvider?.showExitAndWait(message);
+  }
 
   // ============================================================
   // GLKIOPROVIDER INTERFACE IMPLEMENTATION
@@ -382,7 +407,7 @@ class CliPlatformProvider implements PlatformProvider {
 
   /// Initialize Z-machine support.
   /// Called by GameRunner when starting a Z-machine game.
-  void initZMachine() {
+  void _initZMachine() {
     _zDisplay = ZTerminalDisplay();
     if (config != null) {
       _zDisplay!.config = config;
@@ -478,8 +503,8 @@ class CliPlatformProvider implements PlatformProvider {
     }
   }
 
-  /// Get the Z-machine display for direct access.
-  ZTerminalDisplay? get zDisplay => _zDisplay;
+  @override
+  ZMachineDisplay? get zDisplay => _zDisplay;
 
   /// Get the Z-machine dispatcher for direct access.
   ZMachineIoDispatcher? get zDispatcher => _zDispatcher;

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'package:zart/src/cli/config/configuration_manager.dart';
+import 'configuration_manager.dart';
 import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/render/render_frame.dart';
 import 'package:zart/src/io/render/capability_provider.dart';
