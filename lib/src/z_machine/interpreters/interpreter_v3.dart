@@ -177,17 +177,13 @@ class InterpreterV3 {
       if (!restoreResult) {
         branch(false);
       } else {
-        // Update the status line immediately
+        // After successful restore, PC is at the save opcode's branch data.
+        // Branch on success to follow the "save succeeded" path (shows "Ok.").
         if (version.index <= ZMachineVersions.v3.index) {
           sendStatus();
         }
+        branch(true);
       }
-    }
-
-    //PC should be set by restore here
-    // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
-    if (!Z.isPumpMode) {
-      Z.callAsync(Z.runIt);
     }
   }
 
@@ -207,45 +203,17 @@ class InterpreterV3 {
 
     Z.inInterrupt = true;
 
-    //calculates the local jump offset (ref 4.7)
-    int jumpToLabelOffset(int jumpByte) {
-      if (BinaryHelper.isSet(jumpByte, 6)) {
-        //single byte offset
-        return BinaryHelper.bottomBits(jumpByte, 6);
-      } else {
-        //create the 14-bit offset value with next byte
-        final val = (BinaryHelper.bottomBits(jumpByte, 6) << 8) | readb();
+    final result = await Z.sendIO({"command": ZIoCommands.save, "file_data": Quetzal.save(programCounter)});
 
-        //convert to Dart signed int (14-bit MSB is the sign bit)
-        return ((val & 0x2000) == 0x2000) ? -(16384 - val) : val;
-      }
-    }
+    Z.inInterrupt = false;
 
-    final jumpByte = readb();
-
-    bool branchOn = BinaryHelper.isSet(jumpByte, 7);
-
-    final offset = jumpToLabelOffset(jumpByte);
-
-    if (branchOn) {
-      final result = await Z.sendIO({
-        "command": ZIoCommands.save,
-        "file_data": Quetzal.save(programCounter + (offset - 2)),
-      });
-      Z.inInterrupt = false;
-      if (result != null) programCounter += offset - 2;
-      // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
-      if (!Z.isPumpMode) {
-        Z.callAsync(Z.runIt);
-      }
+    if (version.index <= ZMachineVersions.v3.index) {
+      // V1-3: branch on success
+      branch(result != null);
     } else {
-      final result = await Z.sendIO({"command": ZIoCommands.save, "file_data": Quetzal.save(programCounter)});
-      Z.inInterrupt = false;
-      if (result == null) programCounter += offset - 2;
-      // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
-      if (!Z.isPumpMode) {
-        Z.callAsync(Z.runIt);
-      }
+      // V4+: store result (0=fail, 1=success)
+      final resultTo = readb();
+      writeVariable(resultTo, result != null ? 1 : 0);
     }
   }
 

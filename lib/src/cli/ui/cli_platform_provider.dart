@@ -28,6 +28,7 @@ import 'package:zart/src/io/render/render_frame.dart';
 class CliPlatformProvider implements PlatformProvider {
   final Console _console = Console();
   late final CliRenderer _renderer;
+  CliRenderer get renderer => _renderer;
   late PlatformCapabilities _capabilities;
 
   /// Configuration manager for settings.
@@ -44,11 +45,27 @@ class CliPlatformProvider implements PlatformProvider {
   ZTerminalDisplay? _zDisplay;
   ZMachineIoDispatcher? _zDispatcher;
 
+  /// Whether a quick action is in progress.
+  bool _isQuickSave = false;
+  bool _isQuickRestore = false;
+
   /// Create a CLI platform provider.
   CliPlatformProvider({this.config}) {
     _renderer = CliRenderer();
     _renderer.config = config;
     _updateCapabilities();
+
+    _renderer.onQuickSave = () {
+      _isQuickSave = true;
+      stdout.write('save\n');
+      _renderer.pushInput('save\n');
+    };
+
+    _renderer.onQuickLoad = () {
+      _isQuickRestore = true;
+      stdout.write('restore\n');
+      _renderer.pushInput('restore\n');
+    };
   }
 
   void _updateCapabilities() {
@@ -151,9 +168,20 @@ class CliPlatformProvider implements PlatformProvider {
 
   @override
   Future<String?> saveGame(List<int> data, {String? suggestedName}) async {
-    // Manual/Interactive save
-    stdout.write('\nEnter filename to save: ');
-    var filename = await readLine();
+    String filename;
+    if (_isQuickSave) {
+      _isQuickSave = false;
+      // Extract basename and remove extension
+      String base = gameName.split(RegExp(r'[/\\]')).last;
+      if (base.contains('.')) {
+        base = base.substring(0, base.lastIndexOf('.'));
+      }
+      filename = 'quick_save_$base.sav';
+    } else {
+      // Manual/Interactive save
+      stdout.write('\nEnter filename to save: ');
+      filename = await readLine();
+    }
 
     if (filename.isEmpty) return null;
 
@@ -173,9 +201,20 @@ class CliPlatformProvider implements PlatformProvider {
 
   @override
   Future<List<int>?> restoreGame({String? suggestedName}) async {
-    // Manual/Interactive restore
-    stdout.write('\nEnter filename to restore: ');
-    var filename = await readLine();
+    String filename;
+    if (_isQuickRestore) {
+      _isQuickRestore = false;
+      // Extract basename and remove extension
+      String base = gameName.split(RegExp(r'[/\\]')).last;
+      if (base.contains('.')) {
+        base = base.substring(0, base.lastIndexOf('.'));
+      }
+      filename = 'quick_save_$base.sav';
+    } else {
+      // Manual/Interactive restore
+      stdout.write('\nEnter filename to restore: ');
+      filename = await readLine();
+    }
 
     if (filename.isEmpty) return null;
 
@@ -352,6 +391,15 @@ class CliPlatformProvider implements PlatformProvider {
 
     _zDisplay!.onOpenSettings = () =>
         SettingsScreen(_zDisplay!, config ?? ConfigurationManager()).show(isGameStarted: true);
+
+    // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
+    _zDisplay!.onQuickSave = () {
+      _isQuickSave = true;
+    };
+
+    _zDisplay!.onQuickLoad = () {
+      _isQuickRestore = true;
+    };
 
     _zDispatcher = ZMachineIoDispatcher(_zDisplay!, this);
   }

@@ -69,6 +69,12 @@ class ZTerminalDisplay implements ZartTerminal {
   /// Hook for autorestore trigger
   void Function()? onRestore;
 
+  /// Hook for quicksave trigger (injected input)
+  void Function()? onQuickSave;
+
+  /// Hook for quickload trigger (injected input)
+  void Function()? onQuickLoad;
+
   /// Whether to show the bottom status bar (default false)
   bool enableStatusBar = false;
 
@@ -748,22 +754,25 @@ class ZTerminalDisplay implements ZartTerminal {
       }
       return (true, false);
     } else if (key.controlChar == ControlCharacter.F2) {
-      final success = await Z.performQuickSave();
-      if (success) {
-        showTempMessage('Quick Save Successful', seconds: 2);
-      } else {
-        showTempMessage('Quick Save Failed', seconds: 2);
-      }
+      // Set quicksave flag so platform auto-fills filename
+      onQuickSave?.call();
+      // Inject "save" command and signal input should return it
+      _inputBuffer = 'save';
+      appendToWindow0('save\n');
+      _scrollOffset = 0;
+      render();
+      _inputLine = -1;
       return (true, false);
     } else if (key.controlChar == ControlCharacter.F3) {
-      final success = await Z.performQuickRestore();
-      if (success) {
-        showTempMessage('Quick Restore Successful', seconds: 2);
-        return (true, true);
-      } else {
-        showTempMessage('Quick Restore Failed', seconds: 2);
-        return (true, false);
-      }
+      // Set quickrestore flag so platform auto-fills filename
+      onQuickLoad?.call();
+      // Inject "restore" command and signal input should return it
+      _inputBuffer = 'restore';
+      appendToWindow0('restore\n');
+      _scrollOffset = 0;
+      render();
+      _inputLine = -1;
+      return (true, false);
     } else if (key.controlChar == ControlCharacter.F4) {
       _cycleTextColor();
       render();
@@ -822,6 +831,12 @@ class ZTerminalDisplay implements ZartTerminal {
           _inputBuffer = '';
           _inputLine = -1;
           return '__RESTORED__';
+        }
+        // F2/F3 may have set _inputBuffer directly - return it
+        if (_inputBuffer.isNotEmpty && _inputLine == -1) {
+          final result = _inputBuffer;
+          _inputBuffer = '';
+          return result;
         }
         continue;
       }

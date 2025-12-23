@@ -63,6 +63,35 @@ class CliRenderer with TerminalCapabilities {
   int _cursorRow = 0;
   int _cursorCol = 0;
 
+  /// Input queue for injected commands (e.g. quicksave).
+  final List<String> _inputQueue = [];
+
+  /// Push text into the input queue to be processed as terminal input.
+  void pushInput(String text) {
+    _inputQueue.add(text);
+  }
+
+  String _popQueueLine() {
+    if (_inputQueue.isEmpty) return '';
+    final input = _inputQueue.removeAt(0);
+    return input.endsWith('\n') ? input.substring(0, input.length - 1) : input;
+  }
+
+  String _popQueueChar() {
+    if (_inputQueue.isEmpty) return '';
+    final input = _inputQueue[0];
+    if (input.isEmpty) {
+      _inputQueue.removeAt(0);
+      return _popQueueChar();
+    }
+    final char = input[0];
+    _inputQueue[0] = input.substring(1);
+    if (_inputQueue[0].isEmpty) {
+      _inputQueue.removeAt(0);
+    }
+    return char;
+  }
+
   CliRenderer() {
     _detectTerminalSize();
   }
@@ -364,6 +393,7 @@ class CliRenderer with TerminalCapabilities {
 
   /// Read a line of input from the terminal.
   Future<String> readLine() async {
+    if (_inputQueue.isNotEmpty) return _popQueueLine();
     stdout.write('\x1B[?25h'); // Show cursor
     final buf = StringBuffer();
 
@@ -391,8 +421,10 @@ class CliRenderer with TerminalCapabilities {
         }
       } else if (key.controlChar == ControlCharacter.F2) {
         onQuickSave?.call();
+        if (_inputQueue.isNotEmpty) return _popQueueLine();
       } else if (key.controlChar == ControlCharacter.F3) {
         onQuickLoad?.call();
+        if (_inputQueue.isNotEmpty) return _popQueueLine();
       } else if (key.controlChar == ControlCharacter.F4) {
         if (onCycleTextColor != null) {
           onCycleTextColor!();
@@ -437,6 +469,7 @@ class CliRenderer with TerminalCapabilities {
 
   /// Read a single character from the terminal.
   Future<String> readChar() async {
+    if (_inputQueue.isNotEmpty) return _popQueueChar();
     stdout.write('\x1B[?25h'); // Show cursor
     final key = _console.readKey();
     stdout.write('\x1B[?25l'); // Hide cursor

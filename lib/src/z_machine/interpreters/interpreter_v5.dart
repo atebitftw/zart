@@ -823,11 +823,6 @@ class InterpreterV5 extends InterpreterV4 {
 
     // V5+ uses store semantics: 0 = failure, 1 = success
     writeVariable(resultTo, result != null ? 1 : 0);
-
-    // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
-    if (!Z.isPumpMode) {
-      Z.callAsync(Z.runIt);
-    }
   }
 
   /// V5+ extended restore opcode (EXT:1).
@@ -877,11 +872,6 @@ class InterpreterV5 extends InterpreterV4 {
         final restoredResultTo = readb();
         writeVariable(restoredResultTo, 2); // 2 = restored successfully
       }
-    }
-
-    // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
-    if (!Z.isPumpMode) {
-      Z.callAsync(Z.runIt);
     }
   }
 
