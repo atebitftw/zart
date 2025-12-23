@@ -50,7 +50,8 @@ class CliPlatformProvider extends PlatformProvider {
   bool _isQuickRestore = false;
 
   /// Create a CLI platform provider.
-  CliPlatformProvider(this.config, {required String gameName}) : _gameName = gameName {
+  CliPlatformProvider(this.config, {required String gameName})
+    : _gameName = gameName {
     _renderer = CliRenderer();
     _renderer.config = config;
     _updateCapabilities();
@@ -74,7 +75,10 @@ class CliPlatformProvider extends PlatformProvider {
   String get gameName => _gameName;
 
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
+    _capabilities = PlatformCapabilities.terminal(
+      width: _renderer.screenWidth,
+      height: _renderer.screenHeight,
+    );
   }
 
   // ============================================================
@@ -280,7 +284,10 @@ class CliPlatformProvider extends PlatformProvider {
     try {
       final f = File(filename);
       if (!f.existsSync()) {
-        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
+        _renderer.showTempMessage(
+          'QuickSave File Not Found ($filename)',
+          seconds: 3,
+        );
         return null;
       }
 
@@ -301,11 +308,17 @@ class CliPlatformProvider extends PlatformProvider {
   /// Called by GameRunner when starting a Glulx game.
   void _initGlulx() {
     _glkDisplay = GlkTerminalDisplay();
-    _glulxProvider = GlulxTerminalProvider(display: _glkDisplay, config: config);
+    _glulxProvider = GlulxTerminalProvider(
+      display: _glkDisplay,
+      config: config,
+    );
 
     // Wire up settings callback
     _glkDisplay!.onOpenSettings = () async {
-      await SettingsScreen(_glkDisplay!, config ?? ConfigurationManager()).show(isGameStarted: true);
+      await SettingsScreen(
+        _glkDisplay!,
+        config ?? ConfigurationManager(),
+      ).show(isGameStarted: true);
     };
   }
 
@@ -326,7 +339,10 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  void setGlkStackAccess({required void Function(int value) push, required int Function() pop}) {
+  void setGlkStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {
     _glulxProvider?.setStackAccess(push: push, pop: pop);
   }
 
@@ -397,7 +413,10 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {
     _glulxProvider?.setStackAccess(push: push, pop: pop);
   }
 
@@ -414,8 +433,10 @@ class CliPlatformProvider extends PlatformProvider {
       _zDisplay!.applySavedSettings();
     }
 
-    _zDisplay!.onOpenSettings = () =>
-        SettingsScreen(_zDisplay!, config ?? ConfigurationManager()).show(isGameStarted: true);
+    _zDisplay!.onOpenSettings = () => SettingsScreen(
+      _zDisplay!,
+      config ?? ConfigurationManager(),
+    ).show(isGameStarted: true);
 
     // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
     _zDisplay!.onQuickSave = () {
@@ -430,7 +451,8 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  int getZMachineFlags1() => _zDispatcher?.getFlags1() ?? capabilities.getZMachineFlags1();
+  int getZMachineFlags1() =>
+      _zDispatcher?.getFlags1() ?? capabilities.getZMachineFlags1();
 
   @override
   Future<dynamic> zCommand(ZMachineIOCommand command) async {
@@ -448,21 +470,36 @@ class CliPlatformProvider extends PlatformProvider {
     // for backward compatibility with ZMachineIoDispatcher
     switch (command) {
       case PrintCommand():
-        return {'command': ZIoCommands.print, 'window': command.window, 'buffer': command.text};
+        return {
+          'command': ZIoCommands.print,
+          'window': command.window,
+          'buffer': command.text,
+        };
       case SplitWindowCommand():
         return {'command': ZIoCommands.splitWindow, 'lines': command.lines};
       case SetWindowCommand():
         return {'command': ZIoCommands.setWindow, 'window': command.window};
       case ClearScreenCommand():
-        return {'command': ZIoCommands.clearScreen, 'window_id': command.windowId};
+        return {
+          'command': ZIoCommands.clearScreen,
+          'window_id': command.windowId,
+        };
       case SetCursorCommand():
-        return {'command': ZIoCommands.setCursor, 'line': command.row, 'column': command.column};
+        return {
+          'command': ZIoCommands.setCursor,
+          'line': command.row,
+          'column': command.column,
+        };
       case GetCursorCommand():
         return {'command': ZIoCommands.getCursor};
       case SetTextStyleCommand():
         return {'command': ZIoCommands.setTextStyle, 'style': command.style};
       case SetColourCommand():
-        return {'command': ZIoCommands.setColour, 'foreground': command.foreground, 'background': command.background};
+        return {
+          'command': ZIoCommands.setColour,
+          'foreground': command.foreground,
+          'background': command.background,
+        };
       case SetTrueColourCommand():
         return {
           'command': ZIoCommands.setTrueColour,

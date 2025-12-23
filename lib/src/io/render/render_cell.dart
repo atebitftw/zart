@@ -1,37 +1,75 @@
+import 'z_colors.dart';
+
 /// A universal cell representation for rendering.
 ///
-/// Both Z-machine's [Cell] and Glulx's [GlkCell] convert to this format,
-/// allowing presentation layers to be VM-agnostic.
+/// This is the unified cell type used throughout the project.
+/// Both Z-machine and Glulx screen models use this directly.
 class RenderCell {
   /// The character to display.
-  final String char;
+  String char;
 
   /// Foreground color in 0xRRGGBB format, or null for terminal default.
-  final int? fgColor;
+  int? fgColor;
 
   /// Background color in 0xRRGGBB format, or null for terminal default.
-  final int? bgColor;
+  int? bgColor;
 
   /// Whether to render in bold.
-  final bool bold;
+  bool bold;
 
   /// Whether to render in italic.
-  final bool italic;
+  bool italic;
 
   /// Whether to swap foreground/background (reverse video).
-  final bool reverse;
+  bool reverse;
 
-  const RenderCell(
+  /// Whether to use fixed-width font.
+  bool fixed;
+
+  RenderCell(
     this.char, {
     this.fgColor,
     this.bgColor,
     this.bold = false,
     this.italic = false,
     this.reverse = false,
+    this.fixed = false,
   });
 
   /// An empty cell (space with default styling).
-  static const empty = RenderCell(' ');
+  factory RenderCell.empty() => RenderCell(' ');
+
+  /// Create a cell with Z-machine style bitmask and color codes.
+  ///
+  /// Z-machine style bitmask: 1=Reverse, 2=Bold, 4=Italic, 8=Fixed
+  /// Z-machine colors: 1-12 (see [ZColors])
+  factory RenderCell.fromZMachine(
+    String char, {
+    int style = 0,
+    int fgColor = 1,
+    int bgColor = 1,
+  }) {
+    return RenderCell(
+      char,
+      fgColor: ZColors.toRgb(fgColor),
+      bgColor: ZColors.toRgb(bgColor),
+      reverse: (style & 1) != 0,
+      bold: (style & 2) != 0,
+      italic: (style & 4) != 0,
+      fixed: (style & 8) != 0,
+    );
+  }
+
+  /// Create a copy of this cell.
+  RenderCell clone() => RenderCell(
+    char,
+    fgColor: fgColor,
+    bgColor: bgColor,
+    bold: bold,
+    italic: italic,
+    reverse: reverse,
+    fixed: fixed,
+  );
 
   /// Create a copy with optional overrides.
   RenderCell copyWith({
@@ -41,6 +79,7 @@ class RenderCell {
     bool? bold,
     bool? italic,
     bool? reverse,
+    bool? fixed,
   }) {
     return RenderCell(
       char ?? this.char,
@@ -49,7 +88,22 @@ class RenderCell {
       bold: bold ?? this.bold,
       italic: italic ?? this.italic,
       reverse: reverse ?? this.reverse,
+      fixed: fixed ?? this.fixed,
     );
+  }
+
+  /// Update this cell's style from a Z-machine style bitmask.
+  void setZMachineStyle(int style) {
+    reverse = (style & 1) != 0;
+    bold = (style & 2) != 0;
+    italic = (style & 4) != 0;
+    fixed = (style & 8) != 0;
+  }
+
+  /// Update this cell's colors from Z-machine color codes.
+  void setZMachineColors(int fg, int bg) {
+    fgColor = ZColors.toRgb(fg);
+    bgColor = ZColors.toRgb(bg);
   }
 
   @override
@@ -60,13 +114,14 @@ class RenderCell {
       other.bgColor == bgColor &&
       other.bold == bold &&
       other.italic == italic &&
-      other.reverse == reverse;
+      other.reverse == reverse &&
+      other.fixed == fixed;
 
   @override
   int get hashCode =>
-      Object.hash(char, fgColor, bgColor, bold, italic, reverse);
+      Object.hash(char, fgColor, bgColor, bold, italic, reverse, fixed);
 
   @override
   String toString() =>
-      'RenderCell("$char"${bold ? ", bold" : ""}${italic ? ", italic" : ""}${reverse ? ", reverse" : ""})';
+      'RenderCell("$char"${bold ? ", bold" : ""}${italic ? ", italic" : ""}${reverse ? ", reverse" : ""}${fixed ? ", fixed" : ""})';
 }

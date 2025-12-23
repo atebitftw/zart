@@ -1,15 +1,15 @@
 import 'dart:math';
 import 'package:logging/logging.dart';
-import 'package:zart/src/io/cell.dart';
 import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/render/render_frame.dart';
+import 'package:zart/src/io/render/z_colors.dart';
 
 final _log = Logger('ScreenModel');
 
 /// Screen Model for the Zart Z-Machine Interpreter.
 ///
 /// The screen model presents a common API for any player app to use,
-/// and then manages the presentation layer logic.  It emits [Cell]
+/// and then manages the presentation layer logic.  It emits [RenderCell]
 /// objects for the player app to render.  Each cell contains a character with
 /// styling information.
 ///
@@ -67,11 +67,12 @@ class ZScreenModel {
   int wrapWidth = 0;
 
   /// Effective wrap width.
-  int get _effectiveWrapWidth => (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
+  int get _effectiveWrapWidth =>
+      (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
 
   /// The grid for Window 1 (upper/status window) content.
   /// Grid is [row][col]
-  List<List<Cell>> _window1Grid = [];
+  List<List<RenderCell>> _window1Grid = [];
 
   /// The effective visible height of Window 1.
   int _window1Height = 0;
@@ -103,7 +104,7 @@ class ZScreenModel {
   }
 
   /// The grid for Window 0 (lower/main window) scroll buffer.
-  final List<List<Cell>> _window0Grid = [];
+  final List<List<RenderCell>> _window0Grid = [];
 
   /// The maximum number of lines to keep in the scroll buffer.
   int maxScrollback = 1000;
@@ -115,26 +116,26 @@ class ZScreenModel {
   /// The current text style (bitmask: 1=Reverse, 2=Bold, 4=Italic, 8=Fixed).
   int currentStyle = 0;
 
-  /// The current foreground color (1-9).
+  /// The current foreground color (Z-machine code 1-12).
   int fgColor = 1;
 
-  /// The current background color (1-9).
+  /// The current background color (Z-machine code 1-12).
   int bgColor = 1;
 
-  /// The user's preferred color for Window 0 (overrides default/1).
+  /// The user's preferred color for Window 0 (Z-machine code, overrides default/1).
   int _window0ColorPref = 1;
 
-  /// The user's preferred color for Window 0 (overrides default/1).
+  /// The user's preferred color for Window 0 (Z-machine code, overrides default/1).
   int get window0ColorPref => _window0ColorPref;
 
   /// Creates a new screen model.
   ZScreenModel({this.cols = 80, this.rows = 24});
 
   /// The grid for Window 1 (upper/status window) content.
-  List<List<Cell>> get window1Grid => _window1Grid;
+  List<List<RenderCell>> get window1Grid => _window1Grid;
 
   /// The grid for Window 0 (lower/main window) scroll buffer.
-  List<List<Cell>> get window0Grid => _window0Grid;
+  List<List<RenderCell>> get window0Grid => _window0Grid;
 
   /// The height of Window 1 (upper/status window).
   int get window1Height => _window1Height;
@@ -162,7 +163,7 @@ class ZScreenModel {
     for (var row in _window1Grid) {
       if (newCols > oldCols) {
         // Growing - add missing cells
-        row.addAll(List.generate(newCols - oldCols, (_) => Cell.empty()));
+        row.addAll(List.generate(newCols - oldCols, (_) => RenderCell.empty()));
       } else if (newCols < oldCols) {
         // Shrinking - truncate
         row.removeRange(newCols, oldCols);
@@ -176,7 +177,7 @@ class ZScreenModel {
   /// Grows the grid if needed, preserving existing content.
   void _ensureGridRows(int count) {
     while (_window1Grid.length < count) {
-      _window1Grid.add(List.generate(cols, (_) => Cell.empty()));
+      _window1Grid.add(List.generate(cols, (_) => RenderCell.empty()));
     }
   }
 
@@ -240,10 +241,26 @@ class ZScreenModel {
     if (bg != 0) bgColor = bg;
   }
 
+  /// Create a RenderCell from the current Z-machine style state.
+  RenderCell _createCell(String char, {int? overrideFg}) {
+    final effectiveFg = overrideFg ?? fgColor;
+    return RenderCell(
+      char,
+      fgColor: ZColors.toRgb(effectiveFg),
+      bgColor: ZColors.toRgb(bgColor),
+      reverse: (currentStyle & 1) != 0,
+      bold: (currentStyle & 2) != 0,
+      italic: (currentStyle & 4) != 0,
+      fixed: (currentStyle & 8) != 0,
+    );
+  }
+
   /// Write text to Window 1 at current cursor position.
   void writeToWindow1(String text) {
     // Log simplified text content
-    _log.info('writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol');
+    _log.info(
+      'writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol',
+    );
 
     for (int i = 0; i < text.length; i++) {
       final char = text[i];
@@ -272,9 +289,9 @@ class ZScreenModel {
           if (_cursorCol <= rowList.length) {
             final cell = rowList[_cursorCol - 1];
             cell.char = char;
-            cell.fg = fgColor;
-            cell.bg = bgColor;
-            cell.style = currentStyle;
+            cell.fgColor = ZColors.toRgb(fgColor);
+            cell.bgColor = ZColors.toRgb(bgColor);
+            cell.setZMachineStyle(currentStyle);
           }
         }
 
@@ -297,11 +314,15 @@ class ZScreenModel {
     if (_window1Height > _requestedHeight) {
       final trimmed = text.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        _log.info('Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"');
+        _log.info(
+          'Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"',
+        );
         return;
       }
       if (trimmed.startsWith('[')) {
-        _log.info('Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"');
+        _log.info(
+          'Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"',
+        );
         return;
       }
     }
@@ -312,7 +333,7 @@ class ZScreenModel {
 
     // Get current line or start new one
     if (_window0Grid.isEmpty) _window0Grid.add([]);
-    List<Cell> currentLine = _window0Grid.last;
+    List<RenderCell> currentLine = _window0Grid.last;
 
     void newLine() {
       _window0Grid.add([]);
@@ -334,7 +355,8 @@ class ZScreenModel {
 
       if (word != null) {
         // Wrap if word doesn't fit
-        if (currentLine.isNotEmpty && currentLine.length + word.length > _effectiveWrapWidth) {
+        if (currentLine.isNotEmpty &&
+            currentLine.length + word.length > _effectiveWrapWidth) {
           newLine();
         }
 
@@ -344,7 +366,7 @@ class ZScreenModel {
 
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(Cell(word[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
+          currentLine.add(_createCell(word[i], overrideFg: effectiveFg));
         }
       }
 
@@ -356,7 +378,7 @@ class ZScreenModel {
           }
           // Apply preference if fgColor is default (1), otherwise respect game color
           final effectiveFg = (fgColor == 1) ? _window0ColorPref : fgColor;
-          currentLine.add(Cell(space[i], fg: effectiveFg, bg: bgColor, style: currentStyle));
+          currentLine.add(_createCell(space[i], overrideFg: effectiveFg));
         }
       }
     }
@@ -377,11 +399,15 @@ class ZScreenModel {
       'cols': cols,
       'rows': rows,
       'wrapWidth': wrapWidth,
-      'window1Grid': _window1Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
+      'window1Grid': _window1Grid
+          .map((row) => row.map((c) => c.clone()).toList())
+          .toList(),
       'window1Height': _window1Height,
       'requestedHeight': _requestedHeight,
       'contentHeight': _contentHeight,
-      'window0Grid': _window0Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
+      'window0Grid': _window0Grid
+          .map((row) => row.map((c) => c.clone()).toList())
+          .toList(),
       'cursorRow': _cursorRow,
       'cursorCol': _cursorCol,
       'currentStyle': currentStyle,
@@ -406,13 +432,19 @@ class ZScreenModel {
       wrapWidth = state['wrapWidth'];
     }
 
-    _window1Grid = (state['window1Grid'] as List).map((row) => (row as List).cast<Cell>()).toList();
+    _window1Grid = (state['window1Grid'] as List)
+        .map((row) => (row as List).cast<RenderCell>())
+        .toList();
     _window1Height = state['window1Height'];
     _requestedHeight = state['requestedHeight'];
     _contentHeight = state['contentHeight'];
 
     _window0Grid.clear();
-    _window0Grid.addAll((state['window0Grid'] as List).map((row) => (row as List).cast<Cell>()).toList());
+    _window0Grid.addAll(
+      (state['window0Grid'] as List)
+          .map((row) => (row as List).cast<RenderCell>())
+          .toList(),
+    );
 
     _cursorRow = state['cursorRow'];
     _cursorCol = state['cursorCol'];
@@ -431,42 +463,16 @@ class ZScreenModel {
   void forceWindow0Color(int fg) {
     _log.info('forceWindow0Color: $fg');
     _window0ColorPref = fg;
-    // We treat this as a theme change, so we update all cells.
+    // Convert Z-machine color to RGB and update all cells
+    final rgbColor = ZColors.toRgb(fg);
     for (var row in _window0Grid) {
       for (var cell in row) {
-        cell.fg = fg;
+        cell.fgColor = rgbColor;
       }
     }
   }
 
   // === Unified Rendering API ===
-
-  /// Z-machine color codes to RGB mapping.
-  static const _zColorToRgb = <int, int>{
-    2: 0x000000, // Black
-    3: 0xCC0000, // Red
-    4: 0x00CC00, // Green
-    5: 0xCCCC00, // Yellow
-    6: 0x0000CC, // Blue
-    7: 0xCC00CC, // Magenta
-    8: 0x00CCCC, // Cyan
-    9: 0xFFFFFF, // White
-    10: 0xAAAAAA, // Light Grey
-    11: 0x777777, // Medium Grey
-    12: 0x444444, // Dark Grey
-  };
-
-  /// Convert a Z-machine Cell to a RenderCell.
-  RenderCell _cellToRenderCell(Cell cell) {
-    return RenderCell(
-      cell.char,
-      fgColor: cell.fg != 1 ? _zColorToRgb[cell.fg] : null,
-      bgColor: cell.bg != 1 && cell.bg != 2 ? _zColorToRgb[cell.bg] : null,
-      bold: (cell.style & 2) != 0,
-      italic: (cell.style & 4) != 0,
-      reverse: (cell.style & 1) != 0,
-    );
-  }
 
   /// Convert the screen state to a RenderFrame for unified rendering.
   ///
@@ -478,9 +484,10 @@ class ZScreenModel {
 
     // Window 1 (status bar) - if visible
     if (_window1Height > 0) {
+      // Cells are already RenderCell, just copy for immutability
       final w1Cells = <List<RenderCell>>[];
       for (var row in _window1Grid) {
-        w1Cells.add(row.map(_cellToRenderCell).toList());
+        w1Cells.add(row.map((c) => c.clone()).toList());
       }
       windows.add(
         RenderWindow(
@@ -500,7 +507,7 @@ class ZScreenModel {
     // Window 0 (main text area)
     final w0Cells = <List<RenderCell>>[];
     for (var row in _window0Grid) {
-      w0Cells.add(row.map(_cellToRenderCell).toList());
+      w0Cells.add(row.map((c) => c.clone()).toList());
     }
     windows.add(
       RenderWindow(
@@ -517,6 +524,11 @@ class ZScreenModel {
       ),
     );
 
-    return RenderFrame(windows: windows, screenWidth: cols, screenHeight: rows, focusedWindowId: focusedWindowId ?? 0);
+    return RenderFrame(
+      windows: windows,
+      screenWidth: cols,
+      screenHeight: rows,
+      focusedWindowId: focusedWindowId ?? 0,
+    );
   }
 }

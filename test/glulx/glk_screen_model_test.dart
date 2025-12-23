@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/glk/glk_window.dart';
-import 'package:zart/src/io/glk/glk_cell.dart';
+import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/glk/glk_styles.dart';
 import 'package:zart/src/io/glk/glk_winmethod.dart';
 
@@ -375,8 +375,10 @@ void main() {
         model.putString(id, 'B');
 
         final lines = model.getTextBufferLines(id);
-        expect(lines![0][0].style, GlkStyle.normal);
-        expect(lines[0][1].style, GlkStyle.emphasized);
+        // Normal style = not italic
+        expect(lines![0][0].italic, false);
+        // Emphasized style = italic
+        expect(lines[0][1].italic, true);
       });
     });
 
@@ -453,26 +455,28 @@ void main() {
     });
   });
 
-  group('GlkCell', () {
-    test('creates cell with character and style', () {
-      final cell = GlkCell('A', style: GlkStyle.header);
+  group('RenderCell', () {
+    test('creates cell with character and style flags', () {
+      final cell = RenderCell('A', bold: true);
       expect(cell.char, 'A');
-      expect(cell.style, GlkStyle.header);
+      expect(cell.bold, true);
+      expect(cell.italic, false);
     });
 
-    test('empty cell has space and normal style', () {
-      final cell = GlkCell.empty();
+    test('empty cell has space and default style', () {
+      final cell = RenderCell.empty();
       expect(cell.char, ' ');
-      expect(cell.style, GlkStyle.normal);
+      expect(cell.bold, false);
+      expect(cell.italic, false);
     });
 
     test('clone creates independent copy', () {
-      final cell = GlkCell('X', style: GlkStyle.emphasized, fgColor: 0xFF0000);
+      final cell = RenderCell('X', italic: true, fgColor: 0xFF0000);
       final copy = cell.clone();
 
       cell.char = 'Y';
       expect(copy.char, 'X');
-      expect(copy.style, GlkStyle.emphasized);
+      expect(copy.italic, true);
       expect(copy.fgColor, 0xFF0000);
     });
   });

@@ -1,4 +1,3 @@
-import 'glk_cell.dart';
 import 'glk_styles.dart';
 import 'glk_window.dart';
 import 'glk_winmethod.dart';
@@ -278,7 +277,11 @@ class GlkScreenModel {
       } else {
         // Add the character to current line
         window.currentLine.add(
-          GlkCell(String.fromCharCode(char), style: window.style),
+          RenderCell(
+            String.fromCharCode(char),
+            bold: _isGlkStyleBold(window.style),
+            italic: _isGlkStyleItalic(window.style),
+          ),
         );
 
         // Check if we need to wrap (line exceeds window width)
@@ -321,9 +324,10 @@ class GlkScreenModel {
         }
       } else if (window.cursorY < window.height &&
           window.cursorX < window.width) {
-        window.grid[window.cursorY][window.cursorX] = GlkCell(
+        window.grid[window.cursorY][window.cursorX] = RenderCell(
           String.fromCharCode(char),
-          style: window.style,
+          bold: _isGlkStyleBold(window.style),
+          italic: _isGlkStyleItalic(window.style),
         );
         window.cursorX++;
         if (window.cursorX >= window.width) {
@@ -477,7 +481,7 @@ class GlkScreenModel {
   }
 
   /// Get the cell grid for a text grid window.
-  List<List<GlkCell>>? getTextGridCells(int windowId) {
+  List<List<RenderCell>>? getTextGridCells(int windowId) {
     final window = _windowsById[windowId];
     if (window is GlkTextGridWindow) {
       return window.grid;
@@ -486,7 +490,7 @@ class GlkScreenModel {
   }
 
   /// Get the line buffer for a text buffer window.
-  List<List<GlkCell>>? getTextBufferLines(int windowId) {
+  List<List<RenderCell>>? getTextBufferLines(int windowId) {
     final window = _windowsById[windowId];
     if (window is GlkTextBufferWindow) {
       return window.lines;
@@ -557,32 +561,17 @@ class GlkScreenModel {
 
   // === Unified Rendering API ===
 
-  /// Convert a GlkCell to a RenderCell.
-  RenderCell _cellToRenderCell(GlkCell cell) {
-    // Map Glk styles to bold/italic flags
-    bool bold = false;
-    bool italic = false;
+  /// Helper to determine if a Glk style should be bold.
+  bool _isGlkStyleBold(int style) {
+    return style == GlkStyle.header ||
+        style == GlkStyle.subheader ||
+        style == GlkStyle.input ||
+        style == GlkStyle.alert;
+  }
 
-    switch (cell.style) {
-      case GlkStyle.header:
-      case GlkStyle.subheader:
-      case GlkStyle.input:
-        bold = true;
-      case GlkStyle.emphasized:
-      case GlkStyle.note:
-        italic = true;
-      case GlkStyle.alert:
-        bold = true;
-    }
-
-    return RenderCell(
-      cell.char,
-      fgColor: cell.fgColor,
-      bgColor: cell.bgColor,
-      bold: bold,
-      italic: italic,
-      reverse: false, // Glk doesn't have reverse video style
-    );
+  /// Helper to determine if a Glk style should be italic.
+  bool _isGlkStyleItalic(int style) {
+    return style == GlkStyle.emphasized || style == GlkStyle.note;
   }
 
   /// Convert the screen state to a RenderFrame for unified rendering.
@@ -605,13 +594,13 @@ class GlkScreenModel {
 
       if (window is GlkTextGridWindow) {
         for (final row in window.grid) {
-          cells.add(row.map(_cellToRenderCell).toList());
+          cells.add(row.map((c) => c.clone()).toList());
         }
         cursorX = window.cursorX;
         cursorY = window.cursorY;
       } else if (window is GlkTextBufferWindow) {
         for (final line in window.lines) {
-          cells.add(line.map(_cellToRenderCell).toList());
+          cells.add(line.map((c) => c.clone()).toList());
         }
         // Cursor at end of last line
         if (window.lines.isNotEmpty) {

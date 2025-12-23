@@ -14,7 +14,11 @@ void main() {
     // 2. Resize to 120 columns
     screen.resize(120, 24);
     expect(screen.cols, 120);
-    expect(screen.window1Grid[0].length, 120, reason: 'Row 0 should be resized to 120');
+    expect(
+      screen.window1Grid[0].length,
+      120,
+      reason: 'Row 0 should be resized to 120',
+    );
 
     // 3. Write to a column > 80
     screen.setCursor(1, 100);

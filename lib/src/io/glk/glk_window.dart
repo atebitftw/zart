@@ -1,4 +1,4 @@
-import 'glk_cell.dart';
+import '../render/render_cell.dart';
 import 'glk_styles.dart';
 
 /// Enum for Glk window types.
@@ -87,10 +87,10 @@ class GlkTextBufferWindow extends GlkWindow {
   /// Lines of text, each line is a list of cells.
   /// New text is appended to the last line (or a new line after newlines).
   /// Lines are trimmed to visible height - old text scrolls off forever.
-  final List<List<GlkCell>> lines = [];
+  final List<List<RenderCell>> lines = [];
 
   /// Current line being written to.
-  List<GlkCell> get currentLine {
+  List<RenderCell> get currentLine {
     if (lines.isEmpty) {
       lines.add([]);
     }
@@ -128,7 +128,7 @@ class GlkTextBufferWindow extends GlkWindow {
 /// Characters are written at cursor position, which advances automatically.
 class GlkTextGridWindow extends GlkWindow {
   /// 2D grid of cells: grid[row][col].
-  late List<List<GlkCell>> grid;
+  late List<List<RenderCell>> grid;
 
   /// Cursor X position (0-indexed, unlike Z-machine which is 1-indexed).
   int cursorX = 0;
@@ -149,7 +149,7 @@ class GlkTextGridWindow extends GlkWindow {
         newWidth,
         (col) => (row < grid.length && col < grid[row].length)
             ? grid[row][col].clone()
-            : GlkCell.empty(),
+            : RenderCell.empty(),
       ),
     );
     grid = newGrid;
@@ -171,7 +171,7 @@ class GlkTextGridWindow extends GlkWindow {
   void clear() {
     for (final row in grid) {
       for (var i = 0; i < row.length; i++) {
-        row[i] = GlkCell.empty();
+        row[i] = RenderCell.empty();
       }
     }
     cursorX = 0;

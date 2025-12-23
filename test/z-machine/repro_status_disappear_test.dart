@@ -36,10 +36,14 @@ void main() {
     await Z.runUntilInput();
 
     // Check status line commands sent during init/Turn 1
-    var statusCalls = mockUi.commandLog.where((c) => c['command'] == ZIoCommands.status).toList();
+    var statusCalls = mockUi.commandLog
+        .where((c) => c['command'] == ZIoCommands.status)
+        .toList();
     print('Turn 1 status calls: ${statusCalls.length}');
     for (var call in statusCalls) {
-      print('  Status: room="${call['room_name']}", score=${call['score_one']}, moves=${call['score_two']}');
+      print(
+        '  Status: room="${call['room_name']}", score=${call['score_one']}, moves=${call['score_two']}',
+      );
     }
 
     expect(statusCalls, isNotEmpty, reason: 'Should send status initially');
@@ -52,17 +56,29 @@ void main() {
     await Z.submitLineInput('south');
 
     // 3. Check status line commands after Turn 1 processing
-    statusCalls = mockUi.commandLog.where((c) => c['command'] == ZIoCommands.status).toList();
+    statusCalls = mockUi.commandLog
+        .where((c) => c['command'] == ZIoCommands.status)
+        .toList();
     print('Turn 2 status calls: ${statusCalls.length}');
     for (var call in statusCalls) {
-      print('  Status: room="${call['room_name']}", score=${call['score_one']}, moves=${call['score_two']}');
+      print(
+        '  Status: room="${call['room_name']}", score=${call['score_one']}, moves=${call['score_two']}',
+      );
     }
 
     // According to user, after first input, it disappears.
     // If it disappears, we might see room_name = "" or empty status call.
-    expect(statusCalls, isNotEmpty, reason: 'Status should be updated for Turn 2');
+    expect(
+      statusCalls,
+      isNotEmpty,
+      reason: 'Status should be updated for Turn 2',
+    );
     var turn2Status = statusCalls.last;
-    expect(turn2Status['room_name'], isNotEmpty, reason: 'Room name should not be empty');
+    expect(
+      turn2Status['room_name'],
+      isNotEmpty,
+      reason: 'Room name should not be empty',
+    );
   });
 }
 
