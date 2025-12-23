@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:zart/src/game_runner_exception.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart' show debugger;
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
@@ -148,11 +149,7 @@ class GameRunner {
                 continue;
               }
               zDisplay.appendToWindow0('\n');
-              final commands = line
-                  .split('.')
-                  .map((c) => c.trim())
-                  .where((c) => c.isNotEmpty)
-                  .toList();
+              final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
               if (commands.isEmpty) {
                 state = await Z.submitLineInput('');
               } else {
@@ -185,16 +182,9 @@ class GameRunner {
     provider.exitDisplayMode();
   }
 
+  /// Dispose of resources used by the runner.
   void dispose() {
     _glulx = null;
     provider.dispose();
   }
-}
-
-class GameRunnerException implements Exception {
-  final String message;
-  GameRunnerException(this.message);
-
-  @override
-  String toString() => 'GameRunnerException: $message';
 }
