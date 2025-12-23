@@ -52,8 +52,7 @@ class InterpreterV3 {
   late DRandom _r;
 
   /// Gets the program counter in hex format.
-  String pcHex({int offset = 0}) =>
-      '[0x${(programCounter + offset).toRadixString(16)}]';
+  String pcHex({int offset = 0}) => '[0x${(programCounter + offset).toRadixString(16)}]';
 
   /// Memory map
   late MemoryMap mem;
@@ -156,13 +155,11 @@ class InterpreterV3 {
 
   /// Throws a [GameException] for an unsupported op code.
   void notFound() {
-    throw GameException(
-      'Unsupported Op Code: ${mem.loadb(programCounter - 1)}',
-    );
+    throw GameException('Unsupported Op Code: ${mem.loadb(programCounter - 1)}');
   }
 
   /// Restores the game state from a save file.
-  void restore() async {
+  Future<void> restore() async {
     if (Z.inInterrupt) {
       return;
     }
@@ -179,6 +176,11 @@ class InterpreterV3 {
       final restoreResult = Quetzal.restore(result);
       if (!restoreResult) {
         branch(false);
+      } else {
+        // Update the status line immediately
+        if (version.index <= ZMachineVersions.v3.index) {
+          sendStatus();
+        }
       }
     }
 
@@ -231,18 +233,15 @@ class InterpreterV3 {
         "file_data": Quetzal.save(programCounter + (offset - 2)),
       });
       Z.inInterrupt = false;
-      if (result) programCounter += offset - 2;
+      if (result != null) programCounter += offset - 2;
       // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
       if (!Z.isPumpMode) {
         Z.callAsync(Z.runIt);
       }
     } else {
-      final result = await Z.sendIO({
-        "command": ZIoCommands.save,
-        "file_data": Quetzal.save(programCounter),
-      });
+      final result = await Z.sendIO({"command": ZIoCommands.save, "file_data": Quetzal.save(programCounter)});
       Z.inInterrupt = false;
-      if (!result) programCounter += offset - 2;
+      if (result == null) programCounter += offset - 2;
       // Only call runIt in traditional mode - in pump mode, the caller's loop resumes execution
       if (!Z.isPumpMode) {
         Z.callAsync(Z.runIt);
@@ -274,8 +273,7 @@ class InterpreterV3 {
     if (BinaryHelper.isSet(jumpByte, 7) == testResult) {
       // If the offset is 0 or 1 (FALSE or TRUE), perform a return
       // operation.
-      if (offset == InterpreterV3.gameFalse ||
-          offset == InterpreterV3.gameTrue) {
+      if (offset == InterpreterV3.gameFalse || offset == InterpreterV3.gameTrue) {
         doReturn(offset);
         return;
       }
@@ -343,9 +341,11 @@ class InterpreterV3 {
     log.finest("read()");
     //Debugger.verbose('${pcHex(-1)} [read]');
 
-    sendStatus();
-
     await Z.printBuffer();
+
+    if (version.index <= ZMachineVersions.v3.index) {
+      sendStatus();
+    }
 
     final operands = visitOperandsVar(4, true);
 
@@ -544,7 +544,7 @@ class InterpreterV3 {
   void showStatus() {
     //Debugger.verbose('${pcHex(-1)} [show_status]');
 
-    //treat as NOP
+    sendStatus();
   }
 
   /// Always verifies the game.
@@ -610,9 +610,7 @@ class InterpreterV3 {
 
     // Get the actual target variable number
     // For variable-type operands, we dereference to get the target
-    final targetVarNum = operand.oType == OperandType.variable
-        ? readVariable(operand.rawValue!)
-        : operand.rawValue!;
+    final targetVarNum = operand.oType == OperandType.variable ? readVariable(operand.rawValue!) : operand.rawValue!;
 
     // Per Z-Machine spec 6.3.4: indirect reference to sp reads/writes in place
     if (targetVarNum == InterpreterV3.stackPointer) {
@@ -633,9 +631,7 @@ class InterpreterV3 {
 
     // Get the actual target variable number
     // For variable-type operands, we dereference to get the target
-    final targetVarNum = operand.oType == OperandType.variable
-        ? readVariable(operand.rawValue!)
-        : operand.rawValue!;
+    final targetVarNum = operand.oType == OperandType.variable ? readVariable(operand.rawValue!) : operand.rawValue!;
 
     // Per Z-Machine spec 6.3.4: indirect reference to sp reads/writes in place
     if (targetVarNum == InterpreterV3.stackPointer) {
@@ -653,9 +649,7 @@ class InterpreterV3 {
     //Debugger.verbose('${pcHex(-1)} [test]');
     //final pp = PC - 1;
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     // final jumpByte = mem.loadb(PC);
 
@@ -672,9 +666,7 @@ class InterpreterV3 {
   void decChk() {
     //Debugger.verbose('${pcHex(-1)} [dec_chk]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     // Get the actual target variable number
     // For variable-type operands, we dereference to get the target
@@ -701,9 +693,7 @@ class InterpreterV3 {
   void incChk() {
     //Debugger.verbose('${pcHex(-1)} [inc_chk]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     // Get the actual target variable number
     // For variable-type operands, we dereference to get the target
@@ -730,9 +720,7 @@ class InterpreterV3 {
   void testAttr() {
     //Debugger.verbose('${pcHex(-1)} [test_attr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -744,9 +732,7 @@ class InterpreterV3 {
   void jin() {
     //Debugger.verbose('${pcHex(-1)} [jin]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final child = GameObject(operands[0].value);
     final parent = GameObject(operands[1].value);
@@ -784,11 +770,7 @@ class InterpreterV3 {
     //Debugger.verbose('${pcHex(-1)} [quit]');
 
     Z.inInterrupt = true;
-    await Z.sendIO({
-      "command": ZIoCommands.print,
-      "window": currentWindow,
-      "buffer": Z.sbuff.toString(),
-    });
+    await Z.sendIO({"command": ZIoCommands.print, "window": currentWindow, "buffer": Z.sbuff.toString()});
 
     Z.inInterrupt = false;
     Z.sbuff.clear();
@@ -823,28 +805,18 @@ class InterpreterV3 {
   void jl() {
     //Debugger.verbose('${pcHex(-1)} [jl]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
-    branch(
-      MathHelper.toSigned(operands[0].value!) <
-          MathHelper.toSigned(operands[1].value!),
-    );
+    branch(MathHelper.toSigned(operands[0].value!) < MathHelper.toSigned(operands[1].value!));
   }
 
   /// Branches if the first operand is greater than the second.
   void jg() {
     //Debugger.verbose('${pcHex(-1)} [jg]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
-    branch(
-      MathHelper.toSigned(operands[0].value!) >
-          MathHelper.toSigned(operands[1].value!),
-    );
+    branch(MathHelper.toSigned(operands[0].value!) > MathHelper.toSigned(operands[1].value!));
   }
 
   /// Branches if the first operand is equal to any of the others (2OP:1).
@@ -984,9 +956,7 @@ class InterpreterV3 {
   void insertObj() {
     //Debugger.verbose('${pcHex(-1)} [insert_obj]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject from = GameObject(operands[0].value);
 
@@ -1013,9 +983,7 @@ class InterpreterV3 {
   void store() {
     //Debugger.verbose('${pcHex(-1)} [store]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     assert(operands[0].rawValue! <= 0xff);
 
@@ -1044,9 +1012,7 @@ class InterpreterV3 {
 
     // Get the actual target variable number
     // For variable-type operands, we dereference to get the target
-    final targetVarNum = operand.oType == OperandType.variable
-        ? readVariable(operand.rawValue!)
-        : operand.rawValue!;
+    final targetVarNum = operand.oType == OperandType.variable ? readVariable(operand.rawValue!) : operand.rawValue!;
 
     // Per Z-Machine spec 6.3.4: indirect reference to sp reads in place
     if (targetVarNum == InterpreterV3.stackPointer) {
@@ -1099,9 +1065,7 @@ class InterpreterV3 {
   void clearAttr() {
     //Debugger.verbose('${pcHex(-1)} [clear_attr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -1113,9 +1077,7 @@ class InterpreterV3 {
   void setAttr() {
     //Debugger.verbose('${pcHex(-1)} [set_attr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     GameObject obj = GameObject(operands[0].value);
 
@@ -1127,9 +1089,7 @@ class InterpreterV3 {
   void or() {
     //Debugger.verbose('${pcHex(-1)} [or]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1140,9 +1100,7 @@ class InterpreterV3 {
   void and() {
     //Debugger.verbose('${pcHex(-1)} [and]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1153,15 +1111,11 @@ class InterpreterV3 {
   void sub() {
     //Debugger.verbose('${pcHex(-1)} [sub]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
-    final result =
-        MathHelper.toSigned(operands[0].value!) -
-        MathHelper.toSigned(operands[1].value!);
+    final result = MathHelper.toSigned(operands[0].value!) - MathHelper.toSigned(operands[1].value!);
     //Debugger.verbose('    >>> (sub ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) - ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
     writeVariable(resultTo, result);
   }
@@ -1170,15 +1124,11 @@ class InterpreterV3 {
   void add() {
     //Debugger.verbose('${pcHex(-1)} [add]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
-    final result =
-        MathHelper.toSigned(operands[0].value!) +
-        MathHelper.toSigned(operands[1].value!);
+    final result = MathHelper.toSigned(operands[0].value!) + MathHelper.toSigned(operands[1].value!);
 
     //Debugger.verbose('    >>> (add ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) + ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1189,15 +1139,11 @@ class InterpreterV3 {
   void mul() {
     //Debugger.verbose('${pcHex(-1)} [mul]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
-    final result =
-        MathHelper.toSigned(operands[0].value!) *
-        MathHelper.toSigned(operands[1].value!);
+    final result = MathHelper.toSigned(operands[0].value!) * MathHelper.toSigned(operands[1].value!);
 
     //Debugger.verbose('    >>> (mul ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) * ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1208,9 +1154,7 @@ class InterpreterV3 {
   void div() {
     //Debugger.verbose('${pcHex(-1)} [div]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1222,9 +1166,7 @@ class InterpreterV3 {
     }
 
     // final result = (toSigned(operands[0].value) / toSigned(operands[1].value)).toInt();
-    final result =
-        MathHelper.toSigned(operands[0].value!) ~/
-        MathHelper.toSigned(operands[1].value!);
+    final result = MathHelper.toSigned(operands[0].value!) ~/ MathHelper.toSigned(operands[1].value!);
 
     //Debugger.verbose('    >>> (div ${pc.toRadixString(16)}) ${operands[0].value}(${toSigned(operands[0].value)}) / ${operands[1].value}(${toSigned(operands[1].value)}) = $result');
 
@@ -1248,9 +1190,7 @@ class InterpreterV3 {
   void mod() {
     //Debugger.verbose('${pcHex(-1)} [mod]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1298,9 +1238,7 @@ class InterpreterV3 {
   void getNextProp() {
     //Debugger.verbose('${pcHex(-1)} [get_next_prop]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1315,9 +1253,7 @@ class InterpreterV3 {
   void getPropAddr() {
     //Debugger.verbose('${pcHex(-1)} [get_prop_addr]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1334,9 +1270,7 @@ class InterpreterV3 {
   void getProp() {
     //Debugger.verbose('${pcHex(-1)} [get_prop]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1366,9 +1300,7 @@ class InterpreterV3 {
   void loadByte() {
     //Debugger.verbose('${pcHex(-1)} [loadb]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1385,9 +1317,7 @@ class InterpreterV3 {
   void loadWord() {
     //Debugger.verbose('${pcHex(-1)} [loadw]');
 
-    final operands = mem.loadb(programCounter - 1) < 193
-        ? visitOperandsLongForm()
-        : visitOperandsVar(2, false);
+    final operands = mem.loadb(programCounter - 1) < 193 ? visitOperandsLongForm() : visitOperandsVar(2, false);
 
     final resultTo = readb();
 
@@ -1452,13 +1382,9 @@ class InterpreterV3 {
   List<Operand> visitOperandsLongForm() {
     final oc = mem.loadb(programCounter - 1);
 
-    final o1 = BinaryHelper.isSet(oc, 6)
-        ? Operand(OperandType.variable)
-        : Operand(OperandType.small);
+    final o1 = BinaryHelper.isSet(oc, 6) ? Operand(OperandType.variable) : Operand(OperandType.small);
 
-    final o2 = BinaryHelper.isSet(oc, 5)
-        ? Operand(OperandType.variable)
-        : Operand(OperandType.small);
+    final o2 = BinaryHelper.isSet(oc, 5) ? Operand(OperandType.variable) : Operand(OperandType.small);
 
     o1.rawValue = readb();
     o2.rawValue = readb();
@@ -1510,9 +1436,7 @@ class InterpreterV3 {
     //    });
 
     if (!isVariable && (operands.length != howMany)) {
-      throw Exception(
-        'Operand count mismatch.  Expected $howMany, found ${operands.length}',
-      );
+      throw Exception('Operand count mismatch.  Expected $howMany, found ${operands.length}');
     }
 
     return operands;
@@ -1541,19 +1465,10 @@ class InterpreterV3 {
     // These are words at 0x22 (width units) and 0x24 (height units)
     // For text-based interpreters, 1 unit = 1 character
     if (version.index >= ZMachineVersions.v5.index) {
-      mem.storew(
-        Header.screenWidthUnits,
-        screenWidth,
-      ); // 0x22: screen width in units
-      mem.storew(
-        Header.screenHeightUnits,
-        screenHeight,
-      ); // 0x24: screen height in units
+      mem.storew(Header.screenWidthUnits, screenWidth); // 0x22: screen width in units
+      mem.storew(Header.screenHeightUnits, screenHeight); // 0x24: screen height in units
       // Font height/width in "units" - set to 1x1 for character-based display
-      mem.storew(
-        Header.fontWidthUnits,
-        0x0101,
-      ); // 0x26: both font width and height = 1
+      mem.storew(Header.fontWidthUnits, 0x0101); // 0x26: both font width and height = 1
     }
 
     // Set Interpreter Version (ASCII char) to 'S' (Standard) - Ref 0x1F
@@ -1646,9 +1561,7 @@ class InterpreterV3 {
   void writeVariable(int varNum, int? value) {
     assert(varNum >= 0 && varNum <= 0xff);
     if (varNum < 0 || varNum > 0xff) {
-      log.warning(
-        "writeVariable expected range >= 0 and <=${0xff}, but got $varNum",
-      );
+      log.warning("writeVariable expected range >= 0 and <=${0xff}, but got $varNum");
     }
 
     if (varNum > 0x0f) {

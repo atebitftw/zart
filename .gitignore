@@ -34,6 +34,7 @@
 tool/ai_testing/
 gemini.md
 packages/
+*.sav
 
 # Android related
 **/android/**/gradle-wrapper.jar

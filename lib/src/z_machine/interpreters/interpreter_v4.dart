@@ -13,6 +13,7 @@ class InterpreterV4 extends InterpreterV3 {
   /// Creates a new instance of [InterpreterV4].
   InterpreterV4() {
     ops[247] = scanTable;
+    ops[188] = verify;
   }
 
   // VAR:247 17 4 scan_table x table len form -> (result)
@@ -43,24 +44,16 @@ class InterpreterV4 extends InterpreterV3 {
     }
 
     if (operands.length != 4) {
-      throw GameException(
-        "scan_table() expected 4 operands.  Found: ${operands.length}",
-      );
+      throw GameException("scan_table() expected 4 operands.  Found: ${operands.length}");
     }
 
     final form = operands[3].value!;
     final fieldLen = form & 0x7F;
     final isWord = BinaryHelper.isSet(form, 7);
 
-    log.fine(
-      "scan_table operands: search: $searchWord, table: $tableAddress, table-length: $tableLength, form: $form",
-    );
+    log.fine("scan_table operands: search: $searchWord, table: $tableAddress, table-length: $tableLength, form: $form");
 
-    log.fine(
-      isWord
-          ? "form is set for word scanning"
-          : "form is set for byte scanning",
-    );
+    log.fine(isWord ? "form is set for word scanning" : "form is set for byte scanning");
 
     // Read the result store byte BEFORE the search
     final resultTo = readb();

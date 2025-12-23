@@ -3,11 +3,17 @@ import 'package:zart/src/zart_internal.dart' show ZIoDispatcher;
 
 /// Mock UI Provider for Unit Testing
 class MockUIProvider implements ZIoDispatcher {
+  final List<Map<String, dynamic>> commandLog = [];
+  Future<dynamic> Function(Map<String, dynamic>)? onCommand;
+
   Future<int> glulxGlk(int selector, List<int> args) => Future.value(0);
 
   @override
-  Future<Object?> command(Map<String, dynamic> command) async {
-    print('Command received: ${command['command']} ');
+  Future<dynamic> command(Map<String, dynamic> command) async {
+    commandLog.add(command);
+    if (onCommand != null) {
+      return await onCommand!(command);
+    }
     return null;
   }
 

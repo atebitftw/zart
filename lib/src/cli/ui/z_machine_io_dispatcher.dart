@@ -99,18 +99,12 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (_terminal.screen.window1Height < 1) {
           _terminal.splitWindow(1); // Force 1 line for status
         }
-
-        // We want to construct a single line of text with padding
-        // But writeToWindow1 writes sequentially.
-        // And we want INVERSE VIDEO.
 
         // Enable White on Grey + Bold
         _terminal.setStyle(3); // 3=Bold+Reverse
@@ -125,8 +119,7 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         // 2. Calculate padding
         final width = _terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {
@@ -136,7 +129,6 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         // 3. Write Score/Moves
         _terminal.writeToWindow1('$rightText ');
 
-        // Reset style
         // Reset style
         _terminal.setStyle(0);
         _terminal.setColors(1, 1); // Reset to defaults
