@@ -7,8 +7,7 @@ import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/render/render_frame.dart';
 import 'package:zart/src/io/render/capability_provider.dart';
 
-const _zartBarText =
-    "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
 /// Unified CLI renderer for both Z-machine and Glulx games.
 ///
@@ -86,6 +85,7 @@ class CliRenderer with TerminalCapabilities {
     stdout.write('\x1B[?25l'); // Hide cursor
     stdout.write('\x1B[2J'); // Clear screen
     _console.rawMode = true;
+    _detectTerminalSize();
   }
 
   /// Exit full-screen mode and restore normal terminal.
@@ -114,10 +114,7 @@ class CliRenderer with TerminalCapabilities {
     buf.write('\x1B[H'); // Home position
 
     // Create screen buffer
-    final screen = List.generate(
-      screenHeight,
-      (_) => List.generate(_cols, (_) => RenderCell.empty),
-    );
+    final screen = List.generate(screenHeight, (_) => List.generate(_cols, (_) => RenderCell.empty));
 
     // Composite windows to screen buffer
     for (final window in frame.windows) {
@@ -153,11 +150,7 @@ class CliRenderer with TerminalCapabilities {
     }
   }
 
-  void _compositeWindow(
-    List<List<RenderCell>> screen,
-    RenderWindow window,
-    bool isFocused,
-  ) {
+  void _compositeWindow(List<List<RenderCell>> screen, RenderWindow window, bool isFocused) {
     // Determine which rows of content to show (for buffer windows with scroll)
     int contentStartRow = 0;
     if (window.cells.length > window.height) {
@@ -173,11 +166,7 @@ class CliRenderer with TerminalCapabilities {
 
       final contentRow = contentStartRow + row;
       if (contentRow >= 0 && contentRow < window.cells.length) {
-        for (
-          var col = 0;
-          col < window.width && col < window.cells[contentRow].length;
-          col++
-        ) {
+        for (var col = 0; col < window.width && col < window.cells[contentRow].length; col++) {
           final screenCol = window.x + col;
           if (screenCol >= _cols) break;
           screen[screenRow][screenCol] = window.cells[contentRow][col];
@@ -204,23 +193,18 @@ class CliRenderer with TerminalCapabilities {
     );
 
     // Draw scrollbar for text buffer windows with scrollable content
-    if (window.isTextBuffer &&
-        window.cells.length > window.height &&
-        window.width > 1) {
+    if (window.isTextBuffer && window.cells.length > window.height && window.width > 1) {
       final totalLines = window.cells.length;
       final visibleHeight = window.height;
       final maxScroll = totalLines - visibleHeight;
       final effectiveOffset = scrollOffset.clamp(0, maxScroll);
 
       // Proportion-based thumb height (at least 1 cell)
-      final thumbHeight = ((visibleHeight / totalLines) * visibleHeight)
-          .round()
-          .clamp(1, visibleHeight);
+      final thumbHeight = ((visibleHeight / totalLines) * visibleHeight).round().clamp(1, visibleHeight);
 
       // Positioning: scrollOffset=0 is bottom, scrollOffset=maxScroll is top
       final scrollRatio = maxScroll > 0 ? effectiveOffset / maxScroll : 0.0;
-      final thumbTop = ((1.0 - scrollRatio) * (visibleHeight - thumbHeight))
-          .round();
+      final thumbTop = ((1.0 - scrollRatio) * (visibleHeight - thumbHeight)).round();
 
       final scrollBarCol = window.x + window.width - 1;
       for (var row = 0; row < visibleHeight; row++) {
@@ -306,17 +290,13 @@ class CliRenderer with TerminalCapabilities {
 
   void _drawZartBar(StringBuffer buf) {
     // Check for expired temp message
-    if (_tempMessage != null &&
-        _tempMessageExpiry != null &&
-        DateTime.now().isAfter(_tempMessageExpiry!)) {
+    if (_tempMessage != null && _tempMessageExpiry != null && DateTime.now().isAfter(_tempMessageExpiry!)) {
       _tempMessage = null;
     }
 
     final text = _tempMessage ?? _zartBarText;
     final paddedText = text.padRight(_cols);
-    final finalText = paddedText.length > _cols
-        ? paddedText.substring(0, _cols)
-        : paddedText;
+    final finalText = paddedText.length > _cols ? paddedText.substring(0, _cols) : paddedText;
 
     final barRow = _rows; // Last row (1-indexed)
     buf.write('\x1B[$barRow;1H');
@@ -427,15 +407,11 @@ class CliRenderer with TerminalCapabilities {
         scrollOffset -= 5;
         if (scrollOffset < 0) scrollOffset = 0;
         rerender();
-      } else if (key.controlChar.toString().contains('.ctrl') &&
-          key.controlChar != ControlCharacter.ctrlC) {
+      } else if (key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
         // Handle Ctrl+Key Macros
         final s = key.controlChar.toString();
         // Handle both ControlCharacter.ctrlA and ctrlA formats
-        final match = RegExp(
-          r'ctrl([a-z])$',
-          caseSensitive: false,
-        ).firstMatch(s);
+        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
         if (match != null) {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
@@ -449,8 +425,7 @@ class CliRenderer with TerminalCapabilities {
             }
           }
         }
-      } else if (key.char.isNotEmpty &&
-          key.controlChar == ControlCharacter.none) {
+      } else if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
         buf.write(key.char);
         stdout.write(key.char);
       }
