@@ -94,7 +94,7 @@ abstract class PlatformProvider implements GlkIoProvider {
   // RENDERING
   // ============================================================
 
-  /// Render a frame to the display.
+  /// Render a frame update to the display.
   ///
   /// Called by the game engine when the screen needs updating.
   /// The [frame] contains all windows and their cell grids.
@@ -207,10 +207,7 @@ abstract class PlatformProvider implements GlkIoProvider {
   ///
   /// Some Glk operations push/pop values from the VM stack
   /// (when addresses are -1).
-  void setGlkStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  });
+  void setGlkStackAccess({required void Function(int value) push, required int Function() pop});
 
   /// Configure VM state callbacks.
   ///

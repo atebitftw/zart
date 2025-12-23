@@ -24,15 +24,17 @@ The Zart library handles running the interpreter for whichever type of game you 
 ```
 ┌───────────────────────────────────────────────────────┐
 │            Presentation Layer (CLI/Web/Flutter)       │
-│  - Provides capabilities (screen size, colors, etc.)  │
-│  - Receives unified cells and renders them            │
-│  - Handles input and returns to the abstraction layer │
+│  - Extends PlatformProvider and implements:           │
+│    - Gestalt query interface                          │
+│    - Receives unified cells and renders them          │
+│    - Handles input events                             │
+│    - Save/Restore events                              │
 └───────────────────────────────────────────────────────┘
                            ▲
                            │  Unified Cell Grid + Events
                            │
 ┌───────────────────────────────────────────────────────┐
-│              Unified Screen Abstraction               │
+│                  PlatformProvider                     │
 │  - Common cell type (char, fg, bg, bold, italic)      │
 │  - Window regions with positions                      │
 │  - Capability query interface (gestalt-like)          │
@@ -40,7 +42,7 @@ The Zart library handles running the interpreter for whichever type of game you 
                 ▲                       ▲
                 │                       │
     ┌───────────────────┐   ┌───────────────────┐
-    │  Z-Machine   IO   │   │  Glulx/Glk IO     │
+    │  Z-Machine IO     │   │  Glulx/Glk IO     │
     │  (ScreenModel)    │   │  (GlkScreenModel) │
     └───────────────────┘   └───────────────────┘
 ```
