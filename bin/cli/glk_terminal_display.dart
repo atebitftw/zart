@@ -4,6 +4,7 @@ import 'configuration_manager.dart';
 import 'cli_renderer.dart';
 import 'zart_terminal.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
+import 'package:zart/src/io/render/screen_compositor.dart';
 import 'package:zart/src/io/z_screen_model.dart';
 
 /// Terminal display for Glk/Glulx games.
@@ -29,8 +30,7 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   Future<void> Function()? get onOpenSettings => _renderer.onOpenSettings;
   @override
-  set onOpenSettings(Future<void> Function()? value) =>
-      _renderer.onOpenSettings = value;
+  set onOpenSettings(Future<void> Function()? value) => _renderer.onOpenSettings = value;
 
   @override
   bool get enableStatusBar => _renderer.zartBarVisible;
@@ -57,10 +57,18 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Exit full-screen mode.
   void exitFullScreen() => _renderer.exitFullScreen();
 
+  /// Screen compositor for converting RenderFrames to ScreenFrames.
+  final ScreenCompositor _compositor = ScreenCompositor();
+
   /// Render the entire screen from the GlkScreenModel.
   void renderGlk(GlkScreenModel model) {
     final frame = model.toRenderFrame();
-    _renderer.render(frame);
+    final screenFrame = _compositor.composite(
+      frame,
+      screenWidth: _renderer.screenWidth,
+      screenHeight: _renderer.screenHeight,
+    );
+    _renderer.renderScreen(screenFrame);
   }
 
   /// Show a temporary status message.
@@ -92,7 +100,13 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   void render() {
     if (_uiModel != null) {
-      _renderer.render(_uiModel!.toRenderFrame(), saveFrame: false);
+      final frame = _uiModel!.toRenderFrame();
+      final screenFrame = _compositor.composite(
+        frame,
+        screenWidth: _renderer.screenWidth,
+        screenHeight: _renderer.screenHeight,
+      );
+      _renderer.renderScreen(screenFrame, saveFrame: false);
     } else {
       // Synchronize settings from config only when back in game mode
       if (config != null) {
@@ -135,10 +149,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   void _ensureUiModel() {
     if (_uiModel == null) {
-      _uiModel = ZScreenModel(
-        cols: _renderer.screenWidth,
-        rows: _renderer.screenHeight,
-      );
+      _uiModel = ZScreenModel(cols: _renderer.screenWidth, rows: _renderer.screenHeight);
     }
   }
 }

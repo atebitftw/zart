@@ -5,10 +5,11 @@ import 'package:dart_console/dart_console.dart';
 import 'configuration_manager.dart';
 import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/render/render_frame.dart';
+import 'package:zart/src/io/render/screen_compositor.dart';
+import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/io/render/capability_provider.dart';
 
-const _zartBarText =
-    "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
 /// Unified CLI renderer for both Z-machine and Glulx games.
 ///
@@ -51,18 +52,23 @@ class CliRenderer with TerminalCapabilities {
   String? _tempMessage;
   DateTime? _tempMessageExpiry;
 
-  /// Scroll offset for buffer windows (0 = at bottom).
-  int scrollOffset = 0;
+  /// Screen compositor for window-to-screen compositing.
+  final ScreenCompositor _compositor = ScreenCompositor();
+
+  /// Get current scroll offset (delegates to compositor).
+  int get scrollOffset => _compositor.scrollOffset;
+
+  /// Set scroll offset (delegates to compositor).
+  set scrollOffset(int value) => _compositor.setScrollOffset(value);
+
+  /// Scroll by specified lines (delegates to compositor).
+  void scroll(int lines) => _compositor.scroll(lines);
 
   /// Last rendered frame (for re-rendering during scroll).
   RenderFrame? _lastFrame;
 
   /// The configuration manager.
   ConfigurationManager? config;
-
-  /// Cursor position for input (row, col in screen coords).
-  int _cursorRow = 0;
-  int _cursorCol = 0;
 
   /// Input queue for injected commands (e.g. quicksave).
   final List<String> _inputQueue = [];
@@ -131,33 +137,24 @@ class CliRenderer with TerminalCapabilities {
     _tempMessageExpiry = DateTime.now().add(Duration(seconds: seconds));
   }
 
-  /// Render a frame to the terminal.
-  void render(RenderFrame frame, {bool saveFrame = true}) {
-    if (saveFrame) _lastFrame = frame; // Store for re-rendering on scroll
-    _detectTerminalSize();
+  /// Last composited ScreenFrame (for re-rendering).
+  ScreenFrame? _lastScreenFrame;
 
-    _cursorRow = -1;
-    _cursorCol = -1;
+  /// Render a pre-composited ScreenFrame to the terminal.
+  ///
+  /// This is the primary rendering method used by PlatformProvider.
+  void renderScreen(ScreenFrame frame, {bool saveFrame = true}) {
+    if (saveFrame) _lastScreenFrame = frame;
+    _detectTerminalSize();
 
     final buf = StringBuffer();
     buf.write('\x1B[?25l'); // Hide cursor during render
     buf.write('\x1B[H'); // Home position
 
-    // Create screen buffer
-    final screen = List.generate(
-      screenHeight,
-      (_) => List.generate(_cols, (_) => RenderCell.empty()),
-    );
-
-    // Composite windows to screen buffer
-    for (final window in frame.windows) {
-      _compositeWindow(screen, window, frame.focusedWindowId == window.id);
-    }
-
     // Render screen buffer to terminal
-    for (var row = 0; row < screenHeight; row++) {
-      buf.write(_renderRow(screen[row], row));
-      if (row < screenHeight - 1) buf.write('\n');
+    for (var row = 0; row < frame.height; row++) {
+      buf.write(_renderRow(frame.cells[row], row));
+      if (row < frame.height - 1) buf.write('\n');
     }
 
     buf.write('\x1B[0m'); // Reset styles
@@ -167,105 +164,34 @@ class CliRenderer with TerminalCapabilities {
       _drawZartBar(buf);
     }
 
-    // Position cursor
-    if (_cursorRow >= 0 && _cursorCol >= 0) {
-      buf.write('\x1B[${_cursorRow + 1};${_cursorCol + 1}H');
+    // Position cursor using frame's tracked position
+    if (frame.cursorVisible && frame.cursorY >= 0 && frame.cursorX >= 0) {
+      buf.write('\x1B[${frame.cursorY + 1};${frame.cursorX + 1}H');
       buf.write('\x1B[?25h'); // Show cursor
     }
 
     stdout.write(buf.toString());
   }
 
+  /// Render a RenderFrame by compositing it first.
+  ///
+  /// Used internally when we have a RenderFrame (e.g., from rerender()).
+  void render(RenderFrame frame, {bool saveFrame = true}) {
+    if (saveFrame) _lastFrame = frame;
+    _detectTerminalSize();
+
+    // Use compositor to create flat screen buffer
+    final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: screenHeight);
+
+    renderScreen(screenFrame, saveFrame: saveFrame);
+  }
+
   /// Re-render last frame (for scroll updates).
   void rerender() {
     if (_lastFrame != null) {
       render(_lastFrame!);
-    }
-  }
-
-  void _compositeWindow(
-    List<List<RenderCell>> screen,
-    RenderWindow window,
-    bool isFocused,
-  ) {
-    // Determine which rows of content to show (for buffer windows with scroll)
-    int contentStartRow = 0;
-    if (window.cells.length > window.height) {
-      // Scrollable content
-      final maxScroll = window.cells.length - window.height;
-      final effectiveOffset = scrollOffset.clamp(0, maxScroll);
-      contentStartRow = maxScroll - effectiveOffset;
-    }
-
-    for (var row = 0; row < window.height; row++) {
-      final screenRow = window.y + row;
-      if (screenRow >= screenHeight) break;
-
-      final contentRow = contentStartRow + row;
-      if (contentRow >= 0 && contentRow < window.cells.length) {
-        for (
-          var col = 0;
-          col < window.width && col < window.cells[contentRow].length;
-          col++
-        ) {
-          final screenCol = window.x + col;
-          if (screenCol >= _cols) break;
-          screen[screenRow][screenCol] = window.cells[contentRow][col];
-        }
-      }
-    }
-
-    // Track cursor position for focused window
-    if (isFocused && window.acceptsInput) {
-      final cursorContentRow = window.cursorY;
-      final relativeRow = cursorContentRow - contentStartRow;
-      if (relativeRow >= 0 && relativeRow < window.height) {
-        _cursorRow = window.y + relativeRow;
-        _cursorCol = window.x + window.cursorX;
-        if (_cursorCol >= window.x + window.width) {
-          _cursorCol = window.x + window.width - 1;
-        }
-      }
-    }
-
-    // DEBUG: Log window info
-    onDebugLog?.call(
-      'Window ${window.id}: isTextBuffer=${window.isTextBuffer}, cells=${window.cells.length}, height=${window.height}, width=${window.width}',
-    );
-
-    // Draw scrollbar for text buffer windows with scrollable content
-    if (window.isTextBuffer &&
-        window.cells.length > window.height &&
-        window.width > 1) {
-      final totalLines = window.cells.length;
-      final visibleHeight = window.height;
-      final maxScroll = totalLines - visibleHeight;
-      final effectiveOffset = scrollOffset.clamp(0, maxScroll);
-
-      // Proportion-based thumb height (at least 1 cell)
-      final thumbHeight = ((visibleHeight / totalLines) * visibleHeight)
-          .round()
-          .clamp(1, visibleHeight);
-
-      // Positioning: scrollOffset=0 is bottom, scrollOffset=maxScroll is top
-      final scrollRatio = maxScroll > 0 ? effectiveOffset / maxScroll : 0.0;
-      final thumbTop = ((1.0 - scrollRatio) * (visibleHeight - thumbHeight))
-          .round();
-
-      final scrollBarCol = window.x + window.width - 1;
-      for (var row = 0; row < visibleHeight; row++) {
-        final screenRow = window.y + row;
-        if (screenRow >= screenHeight) break;
-        if (scrollBarCol >= _cols) break;
-
-        // Draw scrollbar: thumb is bright, track is dim
-        final isThumb = row >= thumbTop && row < (thumbTop + thumbHeight);
-        screen[screenRow][scrollBarCol] = RenderCell(
-          isThumb ? '█' : '│',
-          fgColor: isThumb ? 0xFFFFFF : 0x444444, // White thumb, grey track
-          bgColor: 0x000000,
-        );
-      }
+    } else if (_lastScreenFrame != null) {
+      renderScreen(_lastScreenFrame!);
     }
   }
 
@@ -336,17 +262,13 @@ class CliRenderer with TerminalCapabilities {
 
   void _drawZartBar(StringBuffer buf) {
     // Check for expired temp message
-    if (_tempMessage != null &&
-        _tempMessageExpiry != null &&
-        DateTime.now().isAfter(_tempMessageExpiry!)) {
+    if (_tempMessage != null && _tempMessageExpiry != null && DateTime.now().isAfter(_tempMessageExpiry!)) {
       _tempMessage = null;
     }
 
     final text = _tempMessage ?? _zartBarText;
     final paddedText = text.padRight(_cols);
-    final finalText = paddedText.length > _cols
-        ? paddedText.substring(0, _cols)
-        : paddedText;
+    final finalText = paddedText.length > _cols ? paddedText.substring(0, _cols) : paddedText;
 
     final barRow = _rows; // Last row (1-indexed)
     buf.write('\x1B[$barRow;1H');
@@ -453,22 +375,17 @@ class CliRenderer with TerminalCapabilities {
         }
       } else if (key.controlChar == ControlCharacter.pageUp) {
         // Scroll up (back in history)
-        scrollOffset += 5;
+        scroll(5);
         rerender();
       } else if (key.controlChar == ControlCharacter.pageDown) {
         // Scroll down (toward current)
-        scrollOffset -= 5;
-        if (scrollOffset < 0) scrollOffset = 0;
+        scroll(-5);
         rerender();
-      } else if (key.controlChar.toString().contains('.ctrl') &&
-          key.controlChar != ControlCharacter.ctrlC) {
+      } else if (key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
         // Handle Ctrl+Key Macros
         final s = key.controlChar.toString();
         // Handle both ControlCharacter.ctrlA and ctrlA formats
-        final match = RegExp(
-          r'ctrl([a-z])$',
-          caseSensitive: false,
-        ).firstMatch(s);
+        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
         if (match != null) {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
@@ -482,8 +399,7 @@ class CliRenderer with TerminalCapabilities {
             }
           }
         }
-      } else if (key.char.isNotEmpty &&
-          key.controlChar == ControlCharacter.none) {
+      } else if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
         buf.write(key.char);
         stdout.write(key.char);
       }

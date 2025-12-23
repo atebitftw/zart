@@ -4,7 +4,7 @@ import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/z_machine_io_command.dart';
-import 'package:zart/src/io/render/render_frame.dart';
+import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/io/z_io_dispatcher.dart';
 import 'package:zart/src/loaders/blorb.dart';
 
@@ -94,11 +94,11 @@ abstract class PlatformProvider implements GlkIoProvider {
   // RENDERING
   // ============================================================
 
-  /// Render a frame update to the display.
+  /// Render a pre-composited frame to the display.
   ///
   /// Called by the game engine when the screen needs updating.
-  /// The [frame] contains all windows and their cell grids.
-  void render(RenderFrame frame);
+  /// The [frame] is a flat grid of cells ready for direct rendering.
+  void render(ScreenFrame frame);
 
   /// Enter game display mode (full-screen, alternate buffer, etc).
   ///

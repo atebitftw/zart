@@ -13,7 +13,7 @@ import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/io/platform/z_machine_io_command.dart';
-import 'package:zart/src/io/render/render_frame.dart';
+import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/loaders/blorb.dart';
 
 /// CLI/Terminal implementation of [PlatformProvider].
@@ -104,8 +104,8 @@ class CliPlatformProvider extends PlatformProvider {
   // ============================================================
 
   @override
-  void render(RenderFrame frame) {
-    _renderer.render(frame);
+  void render(ScreenFrame frame) {
+    _renderer.renderScreen(frame);
   }
 
   @override
@@ -302,7 +302,8 @@ class CliPlatformProvider extends PlatformProvider {
   /// Initialize Glulx/Glk support.
   /// Called by GameRunner when starting a Glulx game.
   void _initGlulx() {
-    _glkDisplay = GlkTerminalDisplay();
+    // Share the renderer with GlkTerminalDisplay to ensure unified rendering path
+    _glkDisplay = GlkTerminalDisplay.withRenderer(_renderer);
     _glulxProvider = GlulxTerminalProvider(display: _glkDisplay, config: _config);
 
     // Wire up settings callback
@@ -410,7 +411,8 @@ class CliPlatformProvider extends PlatformProvider {
   /// Initialize Z-machine support.
   /// Called by GameRunner when starting a Z-machine game.
   void _initZMachine() {
-    _zDisplay = ZTerminalDisplay();
+    // Share the renderer with ZTerminalDisplay to ensure unified rendering path
+    _zDisplay = ZTerminalDisplay.withRenderer(_renderer);
     _zDisplay!.config = _config;
     _zDisplay!.applySavedSettings();
 

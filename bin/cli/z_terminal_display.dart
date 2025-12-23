@@ -10,12 +10,11 @@ import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/z_screen_model.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/render/render_cell.dart';
-import 'package:zart/src/io/platform/platform_provider.dart'
-    show ZMachineDisplay;
+import 'package:zart/src/io/platform/platform_provider.dart' show ZMachineDisplay;
+import 'package:zart/src/io/render/screen_compositor.dart';
 import 'zart_terminal.dart';
 
-const _zartBarText =
-    "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
 /// Z-Machine Terminal Display.
 /// Used by the unified [CliRenderer] for rendering.
@@ -31,16 +30,21 @@ const _zartBarText =
 /// └────────────────────────────────┘
 /// ```
 class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
-  /// Create standard terminal display.
+  /// Shared CLI renderer for unified rendering.
+  CliRenderer? _renderer;
+
+  /// Screen compositor for converting RenderFrames to ScreenFrames.
+  final ScreenCompositor _compositor = ScreenCompositor();
+
+  /// Create standard terminal display (creates own renderer).
   ZTerminalDisplay() {
+    _renderer = CliRenderer();
     detectTerminalSize();
   }
 
-  /// Create with a shared renderer.
-  /// Note: Currently uses its own rendering; will migrate to CliRenderer.
-  factory ZTerminalDisplay.withRenderer(CliRenderer renderer) {
-    // TODO: Migrate to use CliRenderer for unified rendering
-    return ZTerminalDisplay();
+  /// Create with a shared renderer for unified rendering path.
+  ZTerminalDisplay.withRenderer(CliRenderer renderer) : _renderer = renderer {
+    detectTerminalSize();
   }
 
   /// Terminal dimensions
@@ -51,9 +55,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int get cols => _cols;
 
   /// Terminal rows
-  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true))
-      ? _rows - 1
-      : _rows; // Dynamic sizing
+  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true)) ? _rows - 1 : _rows; // Dynamic sizing
 
   final ZScreenModel _screen = ZScreenModel();
 
@@ -84,8 +86,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   bool enableStatusBar = false;
 
   String _inputBuffer = '';
-  int _inputLine =
-      -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
   String? _tempStatusMessage;
@@ -109,8 +110,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int _currentTextColorIndex = 0;
 
   void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _screen.forceWindow0Color(newColor);
 
@@ -236,9 +236,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     sleep(Duration(seconds: seconds));
 
     final paddedText = _zartBarText.padRight(cols);
-    final finalText = paddedText.length > cols
-        ? paddedText.substring(0, cols)
-        : paddedText;
+    final finalText = paddedText.length > cols ? paddedText.substring(0, cols) : paddedText;
 
     // ANSI Sequence:
     // 1. Save Cursor (\x1b7)
@@ -258,8 +256,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int _inputCol = 0; // Column where input started
 
   // ANSI helper via console?
-  bool get _supportsAnsi =>
-      true; // dart_console handles this internally usually
+  bool get _supportsAnsi => true; // dart_console handles this internally usually
 
   // helper to get key string
 
@@ -374,11 +371,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   /// Save screen state (for settings/menus).
   void saveState() {
     _screen.saveState();
-    _savedTerminalState = {
-      'inputLine': _inputLine,
-      'inputBuffer': _inputBuffer,
-      'inputCol': _inputCol,
-    };
+    _savedTerminalState = {'inputLine': _inputLine, 'inputBuffer': _inputBuffer, 'inputCol': _inputCol};
   }
 
   /// Restore screen state.
@@ -466,12 +459,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     }
   }
 
-  /// Reset ANSI colors to default.
-  String get _resetAnsi {
-    if (!_supportsAnsi) return '';
-    return '\x1B[0m';
-  }
-
   /// Write text to Window 1 .
   void writeToWindow1(String text) => _screen.writeToWindow1(text);
 
@@ -497,253 +484,32 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       return;
     }
 
-    final buf = StringBuffer();
-    // Hide cursor during render
-    buf.write('\x1B[?25l');
-    // Move to home
-    buf.write('\x1B[H');
+    // Use the compositor to create a flat ScreenFrame from the ZScreenModel
+    final frame = _screen.toRenderFrame(focusedWindowId: 0);
 
-    // Calculate layout
-    final separatorLine = _screen.separatorLine;
-    final window1Lines = _screen.window1Height;
-    final window0Lines = _screen.window0Lines;
+    // Sync scroll offset with compositor
+    _compositor.setScrollOffset(_scrollOffset);
 
-    int currentRow = 1;
+    final screenFrame = _compositor.composite(
+      frame,
+      screenWidth: _cols,
+      screenHeight: rows, // Use rows getter which accounts for status bar
+    );
 
-    // Helper to render a row of cells
-    void renderRow(
-      int screenRow,
-      List<RenderCell> cells, {
-      required bool forceFullWidth,
-    }) {
-      buf.write('\x1B[$screenRow;1H'); // Position cursor
+    // Update our scroll offset from compositor (in case it was clamped)
+    _scrollOffset = _compositor.scrollOffset;
 
-      // Calculate effective cells
-      final effectiveCols = _cols;
-      final limit = forceFullWidth ? effectiveCols : cells.length;
-
-      // ignore: unused_local_variable
-      int colCount = 0;
-      for (int j = 0; j < limit || (forceFullWidth && j < effectiveCols); j++) {
-        if (j >= effectiveCols) break;
-
-        RenderCell cell;
-        if (j < cells.length) {
-          cell = cells[j];
-        } else {
-          cell = RenderCell.empty();
-        }
-
-        // Get RGB colors (null = default)
-        int? fg = cell.fgColor;
-        int? bg = cell.bgColor;
-        final hasReverse = cell.reverse;
-
-        // Build style changes
-        buf.write(_resetAnsi);
-
-        // Apply RGB colors using true-color ANSI escape sequences
-        if (fg != null) {
-          final r = (fg >> 16) & 0xFF;
-          final g = (fg >> 8) & 0xFF;
-          final b = fg & 0xFF;
-          buf.write('\x1B[38;2;$r;$g;${b}m');
-        }
-        if (bg != null) {
-          final r = (bg >> 16) & 0xFF;
-          final g = (bg >> 8) & 0xFF;
-          final b = bg & 0xFF;
-          buf.write('\x1B[48;2;$r;$g;${b}m');
-        }
-
-        if (hasReverse) buf.write('\x1B[7m'); // Reverse
-        if (cell.bold) buf.write('\x1B[1m'); // Bold
-        if (cell.italic) buf.write('\x1B[3m'); // Italic
-
-        buf.write(cell.char);
-        colCount++;
+    // Sync status bar settings before render
+    if (_renderer != null) {
+      _renderer!.zartBarVisible = enableStatusBar && (config?.zartBarVisible ?? true);
+      if (config != null) {
+        _renderer!.zartBarForeground = config!.zartBarForeground;
+        _renderer!.zartBarBackground = config!.zartBarBackground;
       }
-
-      // Reset styles at EOL
-      buf.write(_resetAnsi);
     }
 
-    // Render Window 1
-    final w1Grid = _screen.window1Grid;
-    for (int i = 0; i < window1Lines && i < w1Grid.length; i++) {
-      renderRow(currentRow, w1Grid[i], forceFullWidth: true);
-      currentRow++;
-    }
-
-    // Render Window 0 (main scrollable content)
-    final w0Grid = _screen.window0Grid;
-
-    // Calculate maximum possible scroll
-    // w0Grid.length is total history. window0Lines is viewport height.
-    final maxScroll = (w0Grid.length > window0Lines)
-        ? w0Grid.length - window0Lines
-        : 0;
-
-    // Clamp offset
-    if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
-    if (_scrollOffset < 0) _scrollOffset = 0;
-
-    // Calculate start index based on scroll offset from bottom
-    // If offset=0, start = maxScroll (which is length - window0Lines)
-    final startLine = maxScroll - _scrollOffset;
-
-    for (int i = 0; i < window0Lines; i++) {
-      buf.write('\x1B[$currentRow;1H');
-      buf.write('\x1B[K'); // Clear line to remove artifacts
-
-      final lineIndex = startLine + i;
-      if (lineIndex >= 0 && lineIndex < w0Grid.length) {
-        renderRow(currentRow, w0Grid[lineIndex], forceFullWidth: false);
-      }
-      currentRow++;
-    }
-
-    // Draw Scroll Bar if needed
-    if (maxScroll > 0) {
-      _drawScrollBar(
-        buf,
-        window0Lines,
-        startLine,
-        w0Grid.length,
-        window1Lines + separatorLine + 1,
-      );
-    }
-
-    // Draw status bar
-    if (enableStatusBar) {
-      _drawStatusBar(buf);
-    }
-
-    // Position cursor at end of input line if we're in input mode
-    // Only show cursor if we are at the bottom (scrollOffset == 0)
-    // AND we are actually waiting for input.
-    // However, if the user scrolls up, they usually want to see where they are scrolling.
-    // The cursor should logically stay with the input line. If input line is scrolled off, cursor should hide.
-
-    if (_inputLine >= 0 && _inputLine < w0Grid.length && _scrollOffset == 0) {
-      // Calculate which screen row the input line is on
-      // It's usually the last drawn line, or close to it.
-      // inputLine is an index in window0Grid.
-      // Our viewport starts at 'startLine'.
-      final inputRelativeRaw = _inputLine - startLine;
-
-      if (inputRelativeRaw >= 0 && inputRelativeRaw < window0Lines) {
-        final inputScreenRow =
-            inputRelativeRaw + window1Lines + separatorLine + 1;
-
-        if (inputScreenRow >= 1 &&
-            inputScreenRow <= _rows &&
-            inputScreenRow < _console.windowHeight) {
-          final cursorCol = w0Grid[_inputLine].length + 1;
-          buf.write('\x1B[$inputScreenRow;${cursorCol}H');
-          buf.write('\x1B[?25h'); // Show cursor
-        }
-      }
-    } else {
-      buf.write('\x1B[?25l'); // Hide cursor if scrolled up or not input
-    }
-
-    stdout.write(buf.toString());
-  }
-
-  void _drawScrollBar(
-    StringBuffer buf,
-    int height,
-    int currentStart,
-    int totalLines,
-    int startRow,
-  ) {
-    // Guard against division by zero or invalid dimensions
-    if (totalLines <= 0 || height <= 0 || totalLines <= height) return;
-
-    // Calculate visible ratio
-    final double ratio = height / totalLines;
-    final int thumbSize = (height * ratio).ceil().clamp(1, height);
-
-    // Calculate thumb position
-    // currentStart ranges from 0 to (totalLines - height)
-    final int maxStart = totalLines - height;
-    final double posRatio = (maxStart > 0) ? currentStart / maxStart : 0.0;
-
-    // Position 0 = Top of scrollbar area
-    // Max Pos = height - thumbSize
-    final int thumbPos = ((height - thumbSize) * posRatio).round();
-
-    // Draw
-    // We are overlaying on the rightmost column (_cols)
-    final int col = _cols;
-
-    // Save current cursor? We just move it and reset at end of render anyway.
-    // Use slightly different colors for scrollbar track vs thumb
-
-    // Track (Dark Grey or just standard background?)
-    // Thumb (White or Bright)
-
-    // Standard ASCII Block chars
-    // Thumb: █ (\u2588)
-    // Track: │ (\u2502) or just dimmer
-
-    for (int i = 0; i < height; i++) {
-      final int row = startRow + i;
-      buf.write('\x1B[$row;${col}H');
-
-      if (i >= thumbPos && i < thumbPos + thumbSize) {
-        // Thumb
-        buf.write('\x1B[37;40m'); // White on Black
-        buf.write('█');
-      } else {
-        // Track
-        buf.write('\x1B[90;40m'); // Dark Grey on Black
-        buf.write('│');
-      }
-      buf.write('\x1B[0m'); // Reset
-    }
-  }
-
-  void _drawStatusBar(StringBuffer buf) {
-    if (!(config?.zartBarVisible ?? true)) return;
-
-    if (_tempStatusMessage != null &&
-        _tempStatusExpiry != null &&
-        DateTime.now().isAfter(_tempStatusExpiry!)) {
-      _tempStatusMessage = null;
-    }
-
-    String statusText;
-    if (_tempStatusMessage != null) {
-      statusText = " $_tempStatusMessage"; // Add leading space
-    } else {
-      statusText = _zartBarText;
-    }
-
-    // Pad with spaces to fill width
-    final paddedText = statusText.padRight(_cols);
-    // Truncate if too long to prevent wrapping
-    final finalText = paddedText.length > _cols
-        ? paddedText.substring(0, _cols)
-        : paddedText;
-
-    // Position at last row (using _console.windowHeight directly)
-    // Note: _rows is now windowHeight - 1
-    final statusRow = _console.windowHeight;
-
-    buf.write('\x1B[$statusRow;1H'); // Move to last row
-
-    // Configurable Colors (Default White on Dark Grey)
-    final fg = config?.zartBarForeground ?? 9;
-    final bg = config?.zartBarBackground ?? 10;
-
-    buf.write(_fgAnsi(fg));
-    buf.write(_bgAnsi(bg));
-    buf.write(finalText);
-    buf.write('\x1B[0m'); // Reset attributes
-    // Cursor is now at end of status bar, need to move it back if we want input?
-    // The render() method handles moving it back for input immediately after this call.
+    // Delegate to CliRenderer for actual terminal output
+    _renderer?.renderScreen(screenFrame);
   }
 
   /// Fallback render for non-ANSI terminals.
@@ -826,17 +592,13 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     _scrollOffset = 0;
 
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.length - 1
-        : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.last.length
-        : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
 
     render();
 
@@ -877,15 +639,11 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       // Check for Ctrl+Key Macros
       // We assume mapped control attributes effectively.
       // Note: dart_console often maps Ctrl+A to unit separator etc or ControlCharacter.ctrlA
-      key.controlChar.toString().contains('.ctrl') &&
-          key.controlChar != ControlCharacter.ctrlC) {
+      key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
         // Extract letter
         final s = key.controlChar.toString();
         // Handle both ControlCharacter.ctrlA and ctrlA formats
-        final match = RegExp(
-          r'ctrl([a-z])$',
-          caseSensitive: false,
-        ).firstMatch(s);
+        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
         if (match != null) {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
@@ -909,8 +667,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) {
               rowList.removeLast();
@@ -940,8 +697,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
             // Strip the mouse sequence from buffer
             _inputBuffer = _inputBuffer.substring(0, match.start);
             // Re-sync the grid - remove chars from end
-            if (_screen.window0Grid.isNotEmpty &&
-                _inputLine < _screen.window0Grid.length) {
+            if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
               final rowList = _screen.window0Grid[_inputLine];
               while (rowList.length > _inputCol + _inputBuffer.length) {
                 if (rowList.isNotEmpty) rowList.removeLast();
@@ -953,18 +709,12 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         }
 
         // Update Grid (add cell for this char)
-        if (_screen.window0Grid.isNotEmpty &&
-            _inputLine < _screen.window0Grid.length) {
+        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
             // Force user input to be White using RenderCell with RGB
             rowList.add(
-              RenderCell.fromZMachine(
-                char,
-                fgColor: 9,
-                bgColor: _screen.bgColor,
-                style: _screen.currentStyle,
-              ),
+              RenderCell.fromZMachine(char, fgColor: 9, bgColor: _screen.bgColor, style: _screen.currentStyle),
             );
           }
         }
