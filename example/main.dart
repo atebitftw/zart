@@ -4,7 +4,6 @@ import 'package:logging/logging.dart' show Level;
 import 'package:zart/src/logging.dart' show log;
 import 'package:zart/zart.dart';
 import '../bin/cli/cli_platform_provider.dart';
-import '../bin/cli/configuration_manager.dart';
 
 /// Example of using Zart with the PlatformProvider API.
 ///
@@ -31,11 +30,8 @@ void main(List<String> args) async {
     exit(1);
   }
 
-  // Initialize configuration
-  final config = ConfigurationManager()..load();
-
   // Create the platform provider
-  final provider = CliPlatformProvider(config, gameName: filename);
+  final provider = CliPlatformProvider(gameName: filename);
 
   // Create game runner
   final runner = GameRunner(provider);

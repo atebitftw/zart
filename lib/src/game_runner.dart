@@ -23,13 +23,27 @@ class GameRunner {
   final PlatformProvider provider;
 
   /// Debug configuration options.
-  final Map<String, dynamic> debugConfig;
+  final _debugConfig = const <String, dynamic>{
+    'debug': false,
+    'startstep': null,
+    'endstep': null,
+    'showheader': false,
+    'showbytes': false,
+    'showmodes': false,
+    'showinstructions': false,
+    'showpc': false,
+    'flight-recorder': false,
+    'flight-recorder-size': 100,
+    'show-screen': false,
+    'logfilter': null,
+    'maxstep': -1,
+  };
 
   // Internal state
   GlulxInterpreter? _glulx;
 
   /// Create a GameRunner with a platform provider.
-  GameRunner(this.provider, {this.debugConfig = const {}});
+  GameRunner(this.provider);
 
   /// Run a game from raw bytes.
   ///
@@ -63,18 +77,18 @@ class GameRunner {
     _glulx = GlulxInterpreter(provider);
 
     // Configure debugger from debug config
-    debugger.enabled = debugConfig['debug'] ?? false;
-    debugger.startStep = debugConfig['startstep'];
-    debugger.endStep = debugConfig['endstep'];
-    debugger.showHeader = debugConfig['showheader'] ?? false;
-    debugger.showBytes = debugConfig['showbytes'] ?? false;
-    debugger.showModes = debugConfig['showmodes'] ?? false;
-    debugger.showInstructions = debugConfig['showinstructions'] ?? false;
-    debugger.showPCAdvancement = debugConfig['showpc'] ?? false;
-    debugger.showFlightRecorder = debugConfig['flight-recorder'] ?? false;
-    debugger.flightRecorderSize = debugConfig['flight-recorder-size'] ?? 100;
-    debugger.showScreen = debugConfig['show-screen'] ?? false;
-    debugger.logFilter = debugConfig['logfilter'];
+    debugger.enabled = _debugConfig['debug'] ?? false;
+    debugger.startStep = _debugConfig['startstep'];
+    debugger.endStep = _debugConfig['endstep'];
+    debugger.showHeader = _debugConfig['showheader'] ?? false;
+    debugger.showBytes = _debugConfig['showbytes'] ?? false;
+    debugger.showModes = _debugConfig['showmodes'] ?? false;
+    debugger.showInstructions = _debugConfig['showinstructions'] ?? false;
+    debugger.showPCAdvancement = _debugConfig['showpc'] ?? false;
+    debugger.showFlightRecorder = _debugConfig['flight-recorder'] ?? false;
+    debugger.flightRecorderSize = _debugConfig['flight-recorder-size'] ?? 100;
+    debugger.showScreen = _debugConfig['show-screen'] ?? false;
+    debugger.logFilter = _debugConfig['logfilter'];
     debugger.dumpDebugSettings();
 
     _glulx!.load(gameData);
@@ -82,7 +96,7 @@ class GameRunner {
     provider.enterDisplayMode();
 
     try {
-      final maxStep = debugConfig['maxstep'] ?? -1;
+      final maxStep = _debugConfig['maxstep'] ?? -1;
       await _glulx!.run(maxStep: maxStep);
 
       // Final render and exit message using abstract provider methods

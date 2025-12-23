@@ -6,13 +6,15 @@
 
 // Implement PlatformProvider to run games on your platform.
 
-export 'package:zart/src/game_runner.dart' show GameRunner, GameRunnerException;
-export 'package:zart/src/io/platform/platform_provider.dart';
-export 'package:zart/src/io/platform/platform_capabilities.dart';
-export 'package:zart/src/io/platform/input_event.dart';
-export 'package:zart/src/io/platform/z_machine_io_command.dart';
-export 'package:zart/src/io/render/render_frame.dart';
-export 'package:zart/src/io/render/render_cell.dart';
+export 'package:zart/src/game_runner.dart' show GameRunner;
+export 'package:zart/src/game_runner_exception.dart' show GameRunnerException;
+export 'package:zart/src/io/platform/platform_provider.dart'
+    show PlatformProvider;
+export 'package:zart/src/io/platform/platform_capabilities.dart'
+    show PlatformCapabilities;
+export 'package:zart/src/io/platform/input_event.dart' show InputEvent;
+export 'package:zart/src/io/render/render_frame.dart' show RenderFrame;
+export 'package:zart/src/io/render/render_cell.dart' show RenderCell;
 
 /// Returns a simple preamble that can be output by platform providers.
 List<String> getPreamble() {

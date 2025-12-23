@@ -6,7 +6,7 @@ void main() {
     late CliPlatformProvider provider;
 
     setUp(() {
-      provider = CliPlatformProvider(null, gameName: 'testgame');
+      provider = CliPlatformProvider(gameName: 'testgame');
     });
 
     test('F2 should inject "save\\n" and automate filename', () async {

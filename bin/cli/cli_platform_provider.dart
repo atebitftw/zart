@@ -34,9 +34,6 @@ class CliPlatformProvider extends PlatformProvider {
   CliRenderer get renderer => _renderer;
   late PlatformCapabilities _capabilities;
 
-  /// Configuration manager for settings.
-  final ConfigurationManager? config;
-
   // === Glulx/Glk Support ===
   GlulxTerminalProvider? _glulxProvider;
   GlkTerminalDisplay? _glkDisplay;
@@ -49,11 +46,15 @@ class CliPlatformProvider extends PlatformProvider {
   bool _isQuickSave = false;
   bool _isQuickRestore = false;
 
+  late final ConfigurationManager _config;
+
   /// Create a CLI platform provider.
-  CliPlatformProvider(this.config, {required String gameName})
-    : _gameName = gameName {
+  CliPlatformProvider({required String gameName}) : _gameName = gameName {
+    _config = ConfigurationManager()..load();
+
     _renderer = CliRenderer();
-    _renderer.config = config;
+
+    _renderer.config = _config;
     _updateCapabilities();
 
     _renderer.onQuickSave = () {
@@ -310,15 +311,12 @@ class CliPlatformProvider extends PlatformProvider {
     _glkDisplay = GlkTerminalDisplay();
     _glulxProvider = GlulxTerminalProvider(
       display: _glkDisplay,
-      config: config,
+      config: _config,
     );
 
     // Wire up settings callback
     _glkDisplay!.onOpenSettings = () async {
-      await SettingsScreen(
-        _glkDisplay!,
-        config ?? ConfigurationManager(),
-      ).show(isGameStarted: true);
+      await SettingsScreen(_glkDisplay!, _config).show(isGameStarted: true);
     };
   }
 
@@ -428,15 +426,11 @@ class CliPlatformProvider extends PlatformProvider {
   /// Called by GameRunner when starting a Z-machine game.
   void _initZMachine() {
     _zDisplay = ZTerminalDisplay();
-    if (config != null) {
-      _zDisplay!.config = config;
-      _zDisplay!.applySavedSettings();
-    }
+    _zDisplay!.config = _config;
+    _zDisplay!.applySavedSettings();
 
-    _zDisplay!.onOpenSettings = () => SettingsScreen(
-      _zDisplay!,
-      config ?? ConfigurationManager(),
-    ).show(isGameStarted: true);
+    _zDisplay!.onOpenSettings = () =>
+        SettingsScreen(_zDisplay!, _config).show(isGameStarted: true);
 
     // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
     _zDisplay!.onQuickSave = () {
