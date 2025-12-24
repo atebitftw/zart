@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:dart_console/dart_console.dart';
 import 'configuration_manager.dart';
@@ -13,8 +11,6 @@ import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/platform/platform_provider.dart' show ZMachineDisplay;
 import 'package:zart/src/io/render/screen_compositor.dart';
 import 'zart_terminal.dart';
-
-const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
 /// Z-Machine Terminal Display.
 /// Used by the unified [CliRenderer] for rendering.
@@ -89,10 +85,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
-  String? _tempStatusMessage;
-  DateTime? _tempStatusExpiry;
-  // We use an isolate to update the UI while the main isolate is blocked on readKey
-  Isolate? _statusResetIsolate;
+  // Isolate logic removed as rendering is now handled by CliRenderer
 
   // Custom Text Color Cycling Options
   final List<int> _customTextColors = [
@@ -195,61 +188,11 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Shows a temporary status message in the bottom bar.
   void showTempMessage(String message, {int seconds = 3}) {
-    _tempStatusMessage = message;
-    _tempStatusExpiry = DateTime.now().add(Duration(seconds: seconds));
-
-    // Kill existing reset isolate if any
-    _statusResetIsolate?.kill(priority: Isolate.immediate);
-
-    // Render immediate message
-    // Only if visible
+    _renderer?.showTempMessage(message, seconds: seconds);
+    // Render immediate message if visible
     if (config?.zartBarVisible ?? true) {
       render();
     }
-
-    // Spawn isolate to visually reset the status bar after [seconds]
-    // The isolate writes directly to stdout using ANSI codes since main loop is blocked.
-    // It blindly overwrites the status bar area with the default text.
-    final row = _console.windowHeight; // Status bar row
-    final col = _cols;
-
-    Isolate.spawn(_restoreStatusBarIsolate, {
-      'seconds': seconds,
-      'row': row,
-      'cols': col,
-      'fgAnsi': _fgAnsi(config?.zartBarForeground ?? 9),
-      'bgAnsi': _bgAnsi(config?.zartBarBackground ?? 10),
-      'visible': config?.zartBarVisible ?? true,
-    }).then((iso) => _statusResetIsolate = iso);
-  }
-
-  /// Static function for the isolate to run
-  static void _restoreStatusBarIsolate(Map<String, dynamic> args) {
-    final seconds = args['seconds'] as int;
-    final row = args['row'] as int;
-    final visible = args['visible'] as bool;
-
-    if (!visible) return;
-
-    final cols = args['cols'] as int; // Width to pad
-
-    sleep(Duration(seconds: seconds));
-
-    final paddedText = _zartBarText.padRight(cols);
-    final finalText = paddedText.length > cols ? paddedText.substring(0, cols) : paddedText;
-
-    // ANSI Sequence:
-    // 1. Save Cursor (\x1b7)
-    // 2. Move to Status Row (\x1b[<row>;1H)
-    // 3. Set Inverse Video (\x1b[7m)
-    // 4. Write Text
-    // 5. Reset Attributes (\x1b[0m)
-    // 6. Restore Cursor (\x1b8)
-
-    final fgAnsi = args['fgAnsi'] as String;
-    final bgAnsi = args['bgAnsi'] as String;
-
-    stdout.write('\x1b7\x1b[$row;1H$fgAnsi$bgAnsi$finalText\x1b[0m\x1b8');
   }
 
   // ignore: unused_field
@@ -398,66 +341,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Set text colors.
   void setColors(int fg, int bg) => _screen.setColors(fg, bg);
-
-  /// Convert Z-Machine color code to ANSI foreground code.
-  String _fgAnsi(int zColor) {
-    if (!_supportsAnsi) return '';
-    switch (zColor) {
-      case 1:
-        return '\x1B[39m'; // Default
-      case 2:
-        return '\x1B[30m'; // Black
-      case 3:
-        return '\x1B[31m'; // Red
-      case 4:
-        return '\x1B[32m'; // Green
-      case 5:
-        return '\x1B[33m'; // Yellow
-      case 6:
-        return '\x1B[34m'; // Blue
-      case 7:
-        return '\x1B[35m'; // Magenta
-      case 8:
-        return '\x1B[36m'; // Cyan
-      case 9:
-        return '\x1B[97m'; // Bright White
-      case 10:
-        return '\x1B[90m'; // Bright Black (Dark Grey)
-      default:
-        return '';
-    }
-  }
-
-  /// Convert Z-Machine color code to ANSI background code.
-  String _bgAnsi(int zColor) {
-    if (!_supportsAnsi) return '';
-    switch (zColor) {
-      case 1:
-        return '\x1B[49m'; // Default
-      case 2:
-        // Map Z-Machine Black to ANSI Default Background (\x1B[49m)
-        // This prevents "Dark Grey" blocks on terminals where "Black" != "Background"
-        return '\x1B[49m';
-      case 3:
-        return '\x1B[41m'; // Red
-      case 4:
-        return '\x1B[42m'; // Green
-      case 5:
-        return '\x1B[43m'; // Yellow
-      case 6:
-        return '\x1B[44m'; // Blue
-      case 7:
-        return '\x1B[45m'; // Magenta
-      case 8:
-        return '\x1B[46m'; // Cyan
-      case 9:
-        return '\x1B[47m'; // White
-      case 10:
-        return '\x1B[100m'; // Bright Black (Dark Grey)
-      default:
-        return '';
-    }
-  }
 
   /// Write text to Window 1 .
   void writeToWindow1(String text) => _screen.writeToWindow1(text);

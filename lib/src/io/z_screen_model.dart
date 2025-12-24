@@ -468,7 +468,8 @@ class ZScreenModel {
     if (_window1Height > 0) {
       // Cells are already RenderCell, just copy for immutability
       final w1Cells = <List<RenderCell>>[];
-      for (var row in _window1Grid) {
+      for (int i = 0; i < _window1Height && i < _window1Grid.length; i++) {
+        final row = _window1Grid[i];
         w1Cells.add(row.map((c) => c.clone()).toList());
       }
       windows.add(
