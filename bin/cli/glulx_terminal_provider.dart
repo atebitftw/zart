@@ -8,13 +8,12 @@ import 'package:zart/src/glulx/glulx_debugger.dart'
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 import 'package:zart/src/io/glk/glk_gestalt_selectors.dart'
     show GlkGestaltSelectors;
-import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/glk/glk_window.dart';
 
 /// IO provider for Glulx interpreter.
-class GlulxTerminalProvider implements GlkIoProvider {
+class GlulxTerminalProvider {
   /// The Glk terminal display.
   late final GlkTerminalDisplay glkDisplay;
 
@@ -125,7 +124,6 @@ class GlulxTerminalProvider implements GlkIoProvider {
   final Map<int, _GlkFile> _files = {};
   int _nextFileRefId = 2001;
 
-  @override
   int vmGestalt(int selector, int arg) {
     switch (selector) {
       case GlulxGestaltSelectors.glulxVersion:
@@ -162,17 +160,14 @@ class GlulxTerminalProvider implements GlkIoProvider {
     }
   }
 
-  @override
   void writeMemory(int addr, int value, {int size = 1}) {
     _writeMemory?.call(addr, value, size: size);
   }
 
-  @override
   int readMemory(int addr, {int size = 1}) {
     return _readMemory?.call(addr, size: size) ?? 0;
   }
 
-  @override
   void setMemoryAccess({
     required void Function(int addr, int value, {int size}) write,
     required int Function(int addr, {int size}) read,
@@ -181,22 +176,18 @@ class GlulxTerminalProvider implements GlkIoProvider {
     _readMemory = read;
   }
 
-  @override
   void setVMState({int Function()? getHeapStart}) {
     this.getHeapStart = getHeapStart;
   }
 
-  @override
   void pushToStack(int value) {
     _pushToStack.call(value);
   }
 
-  @override
   int popFromStack() {
     return _popFromStack.call();
   }
 
-  @override
   void setStackAccess({
     required void Function(int value) push,
     required int Function() pop,
@@ -205,8 +196,7 @@ class GlulxTerminalProvider implements GlkIoProvider {
     _popFromStack = pop;
   }
 
-  @override
-  FutureOr<int> glkDispatch(int selector, List<int> args) {
+  FutureOr<int> dispatch(int selector, List<int> args) {
     if (debugger.enabled && debugger.showInstructions) {
       debugger.bufferedLog(
         '[${debugger.step}] Glk -> selector: 0x${selector.toRadixString(16)}(${GlulxDebugger.glkSelectorNames[selector] ?? 'UNKNOWN'}) args: $args',
@@ -491,9 +481,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
           final seekMode = args[2];
           if (seekMode == 0) {
             str.pos = pos;
-          } else if (seekMode == 1)
+          } else if (seekMode == 1) {
             str.pos += pos;
-          else if (seekMode == 2) {
+          } else if (seekMode == 2) {
             final len = str.type == 2
                 ? str.bufLen
                 : (_files[str.frefId]?.length ?? 0);
@@ -541,8 +531,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
           if (win != null) {
             if (rockAddr != 0 && rockAddr != 0xFFFFFFFF) {
               writeMemory(rockAddr, win.rock, size: 4);
-            } else if (rockAddr == 0xFFFFFFFF)
+            } else if (rockAddr == 0xFFFFFFFF) {
               pushToStack(win.rock);
+            }
           }
           return nextWin;
         }
@@ -704,8 +695,9 @@ class GlulxTerminalProvider implements GlkIoProvider {
     final typeByte = readMemory(p, size: 1);
     if (typeByte == 0xE0) {
       p += 1;
-    } else if (typeByte == 0xE2)
+    } else if (typeByte == 0xE2) {
       p += 4;
+    }
 
     while (true) {
       final ch = unicode ? readMemory(p, size: 4) : readMemory(p, size: 1);

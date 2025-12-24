@@ -14,9 +14,17 @@ void main() {
 
     group('composite()', () {
       test('creates empty screen for empty frame', () {
-        final frame = RenderFrame(windows: [], screenWidth: 80, screenHeight: 24);
+        final frame = RenderFrame(
+          windows: [],
+          screenWidth: 80,
+          screenHeight: 24,
+        );
 
-        final result = compositor.composite(frame, screenWidth: 80, screenHeight: 24);
+        final result = compositor.composite(
+          frame,
+          screenWidth: 80,
+          screenHeight: 24,
+        );
 
         expect(result.width, equals(80));
         expect(result.height, equals(24));
@@ -32,12 +40,18 @@ void main() {
         ];
 
         final frame = RenderFrame(
-          windows: [RenderWindow(id: 1, x: 0, y: 0, width: 2, height: 2, cells: cells)],
+          windows: [
+            RenderWindow(id: 1, x: 0, y: 0, width: 2, height: 2, cells: cells),
+          ],
           screenWidth: 10,
           screenHeight: 5,
         );
 
-        final result = compositor.composite(frame, screenWidth: 10, screenHeight: 5);
+        final result = compositor.composite(
+          frame,
+          screenWidth: 10,
+          screenHeight: 5,
+        );
 
         expect(result.cells[0][0].char, equals('A'));
         expect(result.cells[0][1].char, equals('B'));
@@ -53,12 +67,18 @@ void main() {
         ];
 
         final frame = RenderFrame(
-          windows: [RenderWindow(id: 1, x: 5, y: 3, width: 1, height: 1, cells: cells)],
+          windows: [
+            RenderWindow(id: 1, x: 5, y: 3, width: 1, height: 1, cells: cells),
+          ],
           screenWidth: 10,
           screenHeight: 5,
         );
 
-        final result = compositor.composite(frame, screenWidth: 10, screenHeight: 5);
+        final result = compositor.composite(
+          frame,
+          screenWidth: 10,
+          screenHeight: 5,
+        );
 
         // Check position (5, 3)
         expect(result.cells[3][5].char, equals('X'));
@@ -76,14 +96,32 @@ void main() {
 
         final frame = RenderFrame(
           windows: [
-            RenderWindow(id: 1, x: 0, y: 0, width: 1, height: 1, cells: window1Cells),
-            RenderWindow(id: 2, x: 0, y: 0, width: 1, height: 1, cells: window2Cells),
+            RenderWindow(
+              id: 1,
+              x: 0,
+              y: 0,
+              width: 1,
+              height: 1,
+              cells: window1Cells,
+            ),
+            RenderWindow(
+              id: 2,
+              x: 0,
+              y: 0,
+              width: 1,
+              height: 1,
+              cells: window2Cells,
+            ),
           ],
           screenWidth: 10,
           screenHeight: 5,
         );
 
-        final result = compositor.composite(frame, screenWidth: 10, screenHeight: 5);
+        final result = compositor.composite(
+          frame,
+          screenWidth: 10,
+          screenHeight: 5,
+        );
 
         // Window 2 should overwrite window 1 (rendered later)
         expect(result.cells[0][0].char, equals('2'));
@@ -113,7 +151,11 @@ void main() {
           focusedWindowId: 1,
         );
 
-        final result = compositor.composite(frame, screenWidth: 10, screenHeight: 5);
+        final result = compositor.composite(
+          frame,
+          screenWidth: 10,
+          screenHeight: 5,
+        );
 
         expect(result.cursorVisible, isTrue);
         expect(result.cursorX, equals(3)); // 2 + 1
@@ -140,7 +182,11 @@ void main() {
           screenHeight: 5,
         );
 
-        final result = compositor.composite(frame, screenWidth: 10, screenHeight: 5);
+        final result = compositor.composite(
+          frame,
+          screenWidth: 10,
+          screenHeight: 5,
+        );
 
         expect(result.cells[0][8].char, equals('A'));
         expect(result.cells[0][9].char, equals('B'));
@@ -211,7 +257,11 @@ void main() {
         );
 
         // At bottom (scrollOffset = 0), should show rows 7, 8, 9
-        var result = compositor.composite(frame, screenWidth: 10, screenHeight: 5);
+        var result = compositor.composite(
+          frame,
+          screenWidth: 10,
+          screenHeight: 5,
+        );
 
         expect(result.cells[0][0].char, equals('7'));
         expect(result.cells[1][0].char, equals('8'));
@@ -250,7 +300,11 @@ void main() {
         );
 
         // At bottom, cursor should be visible
-        var result = compositor.composite(frame, screenWidth: 10, screenHeight: 5);
+        var result = compositor.composite(
+          frame,
+          screenWidth: 10,
+          screenHeight: 5,
+        );
         expect(result.cursorVisible, isTrue);
 
         // Scroll up, cursor should be hidden
@@ -309,20 +363,32 @@ void main() {
       const screenHeight = 24;
 
       // Status bar: 1 row at top
-      final statusCells = [List.generate(screenWidth, (col) => RenderCell('S', fgColor: 0xFFFFFF))];
+      final statusCells = [
+        List.generate(screenWidth, (col) => RenderCell('S', fgColor: 0xFFFFFF)),
+      ];
 
       // Main text buffer: fill with realistic content (300 lines of text)
       final mainCells = List.generate(
         300, // Scrollback buffer
         (row) => List.generate(
           screenWidth,
-          (col) => RenderCell(String.fromCharCode(32 + ((row + col) % 94)), fgColor: 0xCCCCCC),
+          (col) => RenderCell(
+            String.fromCharCode(32 + ((row + col) % 94)),
+            fgColor: 0xCCCCCC,
+          ),
         ),
       );
 
       final frame = RenderFrame(
         windows: [
-          RenderWindow(id: 1, x: 0, y: 0, width: screenWidth, height: 1, cells: statusCells),
+          RenderWindow(
+            id: 1,
+            x: 0,
+            y: 0,
+            width: screenWidth,
+            height: 1,
+            cells: statusCells,
+          ),
           RenderWindow(
             id: 0,
             x: 0,
@@ -342,13 +408,21 @@ void main() {
       );
 
       // Warm up
-      compositor.composite(frame, screenWidth: screenWidth, screenHeight: screenHeight);
+      compositor.composite(
+        frame,
+        screenWidth: screenWidth,
+        screenHeight: screenHeight,
+      );
 
       // Measure
       final stopwatch = Stopwatch()..start();
       const iterations = 10;
       for (var i = 0; i < iterations; i++) {
-        compositor.composite(frame, screenWidth: screenWidth, screenHeight: screenHeight);
+        compositor.composite(
+          frame,
+          screenWidth: screenWidth,
+          screenHeight: screenHeight,
+        );
       }
       stopwatch.stop();
 
@@ -359,7 +433,8 @@ void main() {
       expect(
         avgMs,
         lessThan(5),
-        reason: 'Screen composition should complete in under 5ms (actual: ${avgMs.toStringAsFixed(2)}ms)',
+        reason:
+            'Screen composition should complete in under 5ms (actual: ${avgMs.toStringAsFixed(2)}ms)',
       );
     });
   });

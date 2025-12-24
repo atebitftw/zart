@@ -12,13 +12,14 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
 
   @override
   int getFlags1() {
-    // Flag 1 = Color available (bit 0)
-    // Flag 4 = Bold available (bit 2)
-    // Flag 5 = Italic available (bit 3)
-    // Flag 6 = Fixed-width font available (bit 4)
-    // Flag 8 = Timed input available (bit 7)
-    return 1 | 4 | 8 | 16 | 128; // Color, Bold, Italic, Fixed, Timed input
-    // Note: Timed input isn't fully implemented in run loop yet but we claim it.
+    final caps = _provider.capabilities;
+    int flags = 0;
+    if (caps.supportsColors) flags |= 1;
+    if (caps.supportsBold) flags |= 4;
+    if (caps.supportsItalic) flags |= 8;
+    if (caps.supportsFixedPitch) flags |= 16;
+    if (caps.supportsTimedInput) flags |= 128;
+    return flags;
   }
 
   @override

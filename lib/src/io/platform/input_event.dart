@@ -75,14 +75,22 @@ class InputEvent {
     : this._(type: InputEventType.character, character: char, keyCode: keyCode);
 
   /// Create a special key event (arrows, function keys, etc).
-  const InputEvent.specialKey(int keyCode) : this._(type: InputEventType.character, character: '', keyCode: keyCode);
+  const InputEvent.specialKey(int keyCode)
+    : this._(type: InputEventType.character, character: '', keyCode: keyCode);
 
   /// Create a mouse click event.
   const InputEvent.mouseClick(int x, int y, MouseButton button, {int? windowId})
-    : this._(type: InputEventType.mouse, x: x, y: y, button: button, windowId: windowId);
+    : this._(
+        type: InputEventType.mouse,
+        x: x,
+        y: y,
+        button: button,
+        windowId: windowId,
+      );
 
   /// Create a timer/timeout event.
-  const InputEvent.timeout() : this._(type: InputEventType.timer, isTimeout: true);
+  const InputEvent.timeout()
+    : this._(type: InputEventType.timer, isTimeout: true);
 
   /// Create a resize event.
   const InputEvent.resize(int width, int height)
@@ -92,7 +100,10 @@ class InputEvent {
   const InputEvent.none() : this._(type: InputEventType.none);
 
   /// True if this is a printable character (not a special key).
-  bool get isPrintable => type == InputEventType.character && character != null && character!.isNotEmpty;
+  bool get isPrintable =>
+      type == InputEventType.character &&
+      character != null &&
+      character!.isNotEmpty;
 
   @override
   String toString() {

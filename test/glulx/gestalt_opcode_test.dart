@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'mock_glk_io_provider.dart';
+import '../../bin/cli/cli_platform_provider.dart';
 
 void main() {
   /// Glulx Spec Section 2.4.5: Miscellaneous Opcodes
@@ -52,7 +52,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(TestGlkIoProvider());
+      interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
     });
 
     test('gestalt GlulxVersion returns 0x00030103', () async {

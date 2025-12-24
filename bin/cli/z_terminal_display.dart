@@ -8,7 +8,7 @@ import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/z_screen_model.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/render/render_cell.dart';
-import 'package:zart/src/io/platform/platform_provider.dart' show ZMachineDisplay;
+import 'package:zart/src/io/platform/z_machine_display.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
 import 'zart_terminal.dart';
 
@@ -51,7 +51,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int get cols => _cols;
 
   /// Terminal rows
-  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true)) ? _rows - 1 : _rows; // Dynamic sizing
+  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true))
+      ? _rows - 1
+      : _rows; // Dynamic sizing
 
   final ZScreenModel _screen = ZScreenModel();
 
@@ -82,7 +84,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   bool enableStatusBar = false;
 
   String _inputBuffer = '';
-  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine =
+      -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
   // Isolate logic removed as rendering is now handled by CliRenderer
@@ -103,7 +106,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int _currentTextColorIndex = 0;
 
   void _cycleTextColor() {
-    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex =
+        (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _screen.forceWindow0Color(newColor);
 
@@ -199,7 +203,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int _inputCol = 0; // Column where input started
 
   // ANSI helper via console?
-  bool get _supportsAnsi => true; // dart_console handles this internally usually
+  bool get _supportsAnsi =>
+      true; // dart_console handles this internally usually
 
   // helper to get key string
 
@@ -314,7 +319,11 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   /// Save screen state (for settings/menus).
   void saveState() {
     _screen.saveState();
-    _savedTerminalState = {'inputLine': _inputLine, 'inputBuffer': _inputBuffer, 'inputCol': _inputCol};
+    _savedTerminalState = {
+      'inputLine': _inputLine,
+      'inputBuffer': _inputBuffer,
+      'inputCol': _inputCol,
+    };
   }
 
   /// Restore screen state.
@@ -384,7 +393,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
     // Sync status bar settings before render
     if (_renderer != null) {
-      _renderer!.zartBarVisible = enableStatusBar && (config?.zartBarVisible ?? true);
+      _renderer!.zartBarVisible =
+          enableStatusBar && (config?.zartBarVisible ?? true);
       if (config != null) {
         _renderer!.zartBarForeground = config!.zartBarForeground;
         _renderer!.zartBarBackground = config!.zartBarBackground;
@@ -475,13 +485,17 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     _scrollOffset = 0;
 
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty
+        ? _screen.window0Grid.length - 1
+        : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty
+        ? _screen.window0Grid.last.length
+        : 0;
 
     render();
 
@@ -522,11 +536,15 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       // Check for Ctrl+Key Macros
       // We assume mapped control attributes effectively.
       // Note: dart_console often maps Ctrl+A to unit separator etc or ControlCharacter.ctrlA
-      key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
+      key.controlChar.toString().contains('.ctrl') &&
+          key.controlChar != ControlCharacter.ctrlC) {
         // Extract letter
         final s = key.controlChar.toString();
         // Handle both ControlCharacter.ctrlA and ctrlA formats
-        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
+        final match = RegExp(
+          r'ctrl([a-z])$',
+          caseSensitive: false,
+        ).firstMatch(s);
         if (match != null) {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
@@ -550,7 +568,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
           // Update display grid
-          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty &&
+              _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) {
               rowList.removeLast();
@@ -580,7 +599,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
             // Strip the mouse sequence from buffer
             _inputBuffer = _inputBuffer.substring(0, match.start);
             // Re-sync the grid - remove chars from end
-            if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+            if (_screen.window0Grid.isNotEmpty &&
+                _inputLine < _screen.window0Grid.length) {
               final rowList = _screen.window0Grid[_inputLine];
               while (rowList.length > _inputCol + _inputBuffer.length) {
                 if (rowList.isNotEmpty) rowList.removeLast();
@@ -592,12 +612,18 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         }
 
         // Update Grid (add cell for this char)
-        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+        if (_screen.window0Grid.isNotEmpty &&
+            _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
             // Force user input to be White using RenderCell with RGB
             rowList.add(
-              RenderCell.fromZMachine(char, fgColor: 9, bgColor: _screen.bgColor, style: _screen.currentStyle),
+              RenderCell.fromZMachine(
+                char,
+                fgColor: 9,
+                bgColor: _screen.bgColor,
+                style: _screen.currentStyle,
+              ),
             );
           }
         }

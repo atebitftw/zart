@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'mock_glk_io_provider.dart';
+import '../../bin/cli/cli_platform_provider.dart';
 
 void main() {
   group('Tailcall Regression Test', () {
@@ -9,7 +9,7 @@ void main() {
     late GlulxInterpreterTestingHarness harness;
 
     setUp(() async {
-      interpreter = GlulxInterpreter(TestGlkIoProvider());
+      interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
     });
 
     Uint8List createRecursiveTailcallGame() {

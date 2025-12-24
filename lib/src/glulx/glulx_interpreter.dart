@@ -14,15 +14,16 @@ import 'package:zart/src/glulx/glulx_string_decoder.dart';
 import 'package:zart/src/glulx/xoshiro128.dart';
 import 'package:zart/src/glulx/glulx_undo_state.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
-import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 import 'package:zart/src/glulx/glulx_accel.dart';
 import 'package:zart/src/glulx/glulx_binary_helper.dart';
+import 'package:zart/src/glulx/store_operand.dart';
+import 'package:zart/src/io/platform/platform_provider.dart';
 
 /// The Glulx interpreter.
 class GlulxInterpreter {
-  /// The Glk Dispatcher Interface
-  final GlkIoProvider glkDispatcher;
+  /// The platform provider.
+  final PlatformProvider platform;
 
   /// The memory map for this interpreter.
   late GlulxMemoryMap memoryMap;
@@ -64,12 +65,12 @@ class GlulxInterpreter {
   final List<GlulxUndoState> _undoChain = [];
 
   /// Creates a new Glulx interpreter.
-  GlulxInterpreter(this.glkDispatcher) {}
+  GlulxInterpreter(this.platform) {}
 
   /// Loads a game file into memory.
   Future<void> load(Uint8List gameData) async {
     memoryMap = GlulxMemoryMap(gameData);
-    glkDispatcher.setVMState(getHeapStart: () => memoryMap.heapStart);
+    platform.setVMState(getHeapStart: () => memoryMap.heapStart);
     final header = GlulxHeader(memoryMap.rawMemory);
     _stringTableAddress = header.decodingTbl;
     _stringDecoder = GlulxStringDecoder(memoryMap);
@@ -83,7 +84,7 @@ class GlulxInterpreter {
       streamChar: (c) => _streamChar(c),
     );
 
-    glkDispatcher.setMemoryAccess(
+    platform.setMemoryAccess(
       write: (addr, val, {size = 1}) {
         if (size == 1) {
           memoryMap.writeByte(addr, val);
@@ -105,7 +106,7 @@ class GlulxInterpreter {
       },
     );
 
-    glkDispatcher.setStackAccess(
+    platform.setStackAccess(
       push: (val) => stack.push32(val),
       pop: () => stack.pop32(),
     );
@@ -1726,7 +1727,7 @@ class GlulxInterpreter {
 
   // / Calls the Glk dispatcher.
   FutureOr<int> _callGlk(int selector, List<int> args) {
-    final res = glkDispatcher.glkDispatch(selector, args);
+    final res = platform.dispatch(selector, args);
     if (res is Future<int>) {
       return res.then((val) {
         if (debugger.enabled) {
@@ -1743,20 +1744,9 @@ class GlulxInterpreter {
         }
         return val;
       });
+    } else {
+      return res;
     }
-    if (debugger.enabled) {
-      if (debugger.showInstructions) {
-        debugger.bufferedLog(
-          'Interpreter -> Glk selector: 0x${selector.toRadixString(16)} ret: $res',
-        );
-        if (debugger.showFlightRecorder) {
-          debugger.flightRecorderEvent(
-            'Glk(0x${selector.toRadixString(16)})$args -> $res',
-          );
-        }
-      }
-    }
-    return res;
   }
 
   /// Sets the I/O system mode and rock.
@@ -1805,7 +1795,7 @@ class GlulxInterpreter {
         // Reference: gestalt.c case gestulx_AccelFunc
         return accel.supportsFunc(arg) ? 1 : 0;
       default:
-        return glkDispatcher.vmGestalt(selector, arg);
+        return platform.vmGestalt(selector, arg);
     }
   }
 
@@ -3212,7 +3202,7 @@ class GlulxInterpreter {
     // This is very slow but ensures compatibility with any GlkIoProvider.
     // In a real production app, we should add a more efficient way to GlkIoProvider.
     for (final b in buffer) {
-      final res = glkDispatcher.glkDispatch(GlkIoSelectors.putCharStream, [
+      final res = platform.dispatch(GlkIoSelectors.putCharStream, [
         streamId,
         b,
       ]);
@@ -3230,9 +3220,7 @@ class GlulxInterpreter {
 
     // First read header
     while (true) {
-      final res = glkDispatcher.glkDispatch(GlkIoSelectors.getCharStream, [
-        streamId,
-      ]);
+      final res = platform.dispatch(GlkIoSelectors.getCharStream, [streamId]);
       if (res is int) {
         if (res == -1) break; // EOF
         builder.addByte(res);
@@ -3247,36 +3235,19 @@ class GlulxInterpreter {
           final totalToRead = 36 + ramLen + stackPtr + (heapLen * 4);
 
           while (builder.length < totalToRead) {
-            final next = glkDispatcher.glkDispatch(
-              GlkIoSelectors.getCharStream,
-              [streamId],
-            );
+            final next = platform.dispatch(GlkIoSelectors.getCharStream, [
+              streamId,
+            ]);
             if (next is int) {
               if (next == -1) break;
               builder.addByte(next);
-            } else {
-              // Handle future... (skipping for now as it's unlikely for getCharStream)
             }
           }
           break;
         }
-      } else {
-        // Handle future
-        return (res).then((_) => _readFromStream(streamId));
       }
     }
     return builder.toBytes();
-  }
-}
-
-class StoreOperand {
-  final int mode;
-  final int addr;
-  StoreOperand(this.mode, this.addr);
-
-  @override
-  String toString() {
-    return 'Store(mode: $mode, addr: $addr)';
   }
 }
 

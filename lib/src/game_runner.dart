@@ -149,7 +149,11 @@ class GameRunner {
                 continue;
               }
               zDisplay.appendToWindow0('\n');
-              final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+              final commands = line
+                  .split('.')
+                  .map((c) => c.trim())
+                  .where((c) => c.isNotEmpty)
+                  .toList();
               if (commands.isEmpty) {
                 state = await Z.submitLineInput('');
               } else {

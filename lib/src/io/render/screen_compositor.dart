@@ -47,9 +47,16 @@ class ScreenCompositor {
   /// The returned [ScreenFrame] contains:
   /// - A flat grid of cells ready for direct rendering
   /// - Cursor position in screen coordinates
-  ScreenFrame composite(RenderFrame frame, {required int screenWidth, required int screenHeight}) {
+  ScreenFrame composite(
+    RenderFrame frame, {
+    required int screenWidth,
+    required int screenHeight,
+  }) {
     // Create the screen buffer
-    final screen = List.generate(screenHeight, (_) => List.generate(screenWidth, (_) => RenderCell.empty()));
+    final screen = List.generate(
+      screenHeight,
+      (_) => List.generate(screenWidth, (_) => RenderCell.empty()),
+    );
 
     // Track cursor position
     int cursorX = -1;
@@ -59,7 +66,13 @@ class ScreenCompositor {
     // Composite each window onto the screen buffer
     for (final window in frame.windows) {
       final isFocused = frame.focusedWindowId == window.id;
-      final result = _compositeWindow(screen, window, isFocused, screenWidth, screenHeight);
+      final result = _compositeWindow(
+        screen,
+        window,
+        isFocused,
+        screenWidth,
+        screenHeight,
+      );
 
       // Track cursor from focused window
       if (result.cursorVisible) {
@@ -111,7 +124,11 @@ class ScreenCompositor {
 
       final contentRow = contentStartRow + row;
       if (contentRow >= 0 && contentRow < window.cells.length) {
-        for (var col = 0; col < window.width && col < window.cells[contentRow].length; col++) {
+        for (
+          var col = 0;
+          col < window.width && col < window.cells[contentRow].length;
+          col++
+        ) {
           final screenCol = window.x + col;
           if (screenCol >= screenWidth) break;
           if (screenCol < 0) continue;
@@ -136,8 +153,17 @@ class ScreenCompositor {
     }
 
     // Draw scrollbar for text buffer windows with scrollable content
-    if (window.isTextBuffer && window.cells.length > window.height && window.width > 1) {
-      _drawScrollbar(screen, window, maxScroll, effectiveOffset, screenWidth, screenHeight);
+    if (window.isTextBuffer &&
+        window.cells.length > window.height &&
+        window.width > 1) {
+      _drawScrollbar(
+        screen,
+        window,
+        maxScroll,
+        effectiveOffset,
+        screenWidth,
+        screenHeight,
+      );
     }
 
     return cursorInfo;
@@ -156,11 +182,14 @@ class ScreenCompositor {
     final visibleHeight = window.height;
 
     // Proportion-based thumb height (at least 1 cell)
-    final thumbHeight = ((visibleHeight / totalLines) * visibleHeight).round().clamp(1, visibleHeight);
+    final thumbHeight = ((visibleHeight / totalLines) * visibleHeight)
+        .round()
+        .clamp(1, visibleHeight);
 
     // Positioning: scrollOffset=0 is bottom, scrollOffset=maxScroll is top
     final scrollRatio = maxScroll > 0 ? effectiveOffset / maxScroll : 0.0;
-    final thumbTop = ((1.0 - scrollRatio) * (visibleHeight - thumbHeight)).round();
+    final thumbTop = ((1.0 - scrollRatio) * (visibleHeight - thumbHeight))
+        .round();
 
     final scrollBarCol = window.x + window.width - 1;
     for (var row = 0; row < visibleHeight; row++) {

@@ -111,22 +111,6 @@ class PlatformCapabilities {
         supportsTimedInput: true,
       );
 
-  /// Get Z-machine Flags1 capability bits.
-  ///
-  /// These are used to populate the header byte that tells the game
-  /// what the interpreter supports.
-  int getZMachineFlags1() {
-    int flags = 0;
-    if (supportsColors) flags |= 0x01; // Bit 0: Colors available
-    // Bit 1: Picture display (not supported in terminal)
-    if (supportsBold) flags |= 0x04; // Bit 2: Bold available
-    if (supportsItalic) flags |= 0x08; // Bit 3: Italic available
-    if (supportsFixedPitch) flags |= 0x10; // Bit 4: Fixed-pitch available
-    // Bit 5: Sound effects (not in terminal typically)
-    if (supportsTimedInput) flags |= 0x80; // Bit 7: Timed input available
-    return flags;
-  }
-
   /// Query Glk gestalt value for a given selector.
   ///
   /// [selector] is a Glk gestalt constant (e.g., gestalt_Version).

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
+import '../../bin/cli/cli_platform_provider.dart';
 import 'mock_glk_io_provider.dart';
 
 /// Unit tests for the Glulx acceleration system (accelfunc, accelparam opcodes).
@@ -15,7 +16,6 @@ import 'mock_glk_io_provider.dart';
 /// - Integration with the interpreter
 void main() {
   late GlulxInterpreter interpreter;
-  late TestGlkIoProvider mockGlk;
   late Uint8List gameData;
 
   /// Load the test game file (glulxercise.ulx for comprehensive testing).
@@ -25,8 +25,7 @@ void main() {
   });
 
   setUp(() async {
-    mockGlk = TestGlkIoProvider();
-    interpreter = GlulxInterpreter(mockGlk);
+    interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
     await interpreter.load(gameData);
   });
 

@@ -1,18 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'mock_glk_io_provider.dart';
-
-class MockGlkIoProvider extends TestGlkIoProvider {
-  @override
-  Future<int> glkDispatch(int selector, List<int> args) async => 0;
-
-  @override
-  int readMemory(int addr, {int size = 1}) => 0;
-
-  @override
-  void writeMemory(int addr, int value, {int size = 1}) {}
-}
+import '../../bin/cli/cli_platform_provider.dart';
 
 void main() {
   late GlulxInterpreter interpreter;
@@ -50,7 +39,7 @@ void main() {
 
   setUp(() async {
     final gameData = createDummyGame();
-    interpreter = GlulxInterpreter(TestGlkIoProvider());
+    interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
     await interpreter.load(gameData);
     harness = GlulxInterpreterTestingHarness(interpreter);
   });

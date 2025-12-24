@@ -84,20 +84,19 @@ void main() {
 
     test('unknown Glk selector returns 0 instead of throwing', () async {
       // 0x1234 is a non-existent selector
-      final result = await provider.glkDispatch(0x1234, []);
+      final result = await provider.dispatch(0x1234, []);
       expect(result, equals(0));
     });
 
     test('getCharStream and getCharStreamUni return -1 (EOF)', () async {
-      final result1 = await provider.glkDispatch(GlkIoSelectors.getCharStream, [
+      final result1 = await provider.dispatch(GlkIoSelectors.getCharStream, [
         0,
       ]);
       expect(result1, equals(-1));
 
-      final result2 = await provider.glkDispatch(
-        GlkIoSelectors.getCharStreamUni,
-        [0],
-      );
+      final result2 = await provider.dispatch(GlkIoSelectors.getCharStreamUni, [
+        0,
+      ]);
       expect(result2, equals(-1));
     });
 
@@ -115,7 +114,7 @@ void main() {
         read: (addr, {size = 1}) => 0,
       );
 
-      final result = await provider.glkDispatch(GlkIoSelectors.selectPoll, [0]);
+      final result = await provider.dispatch(GlkIoSelectors.selectPoll, [0]);
       expect(result, equals(0));
 
       final bd = ByteData.view(memory.buffer);
@@ -126,7 +125,7 @@ void main() {
     // GlkTerminalDisplay which reads from real stdin. Functionality verified manually.
     test('line input event works', () async {
       // 1. Request line event: window=1, buffer=100, maxlen=10
-      await provider.glkDispatch(GlkIoSelectors.requestLineEvent, [1, 100, 10]);
+      await provider.dispatch(GlkIoSelectors.requestLineEvent, [1, 100, 10]);
 
       // 2. Setup mock memory and user input
       final memory = Uint8List(120);
@@ -145,7 +144,7 @@ void main() {
 
       // 3. Dispatch select
       // Mock event struct memory (0-15)
-      final result = await provider.glkDispatch(GlkIoSelectors.select, [0]);
+      final result = await provider.dispatch(GlkIoSelectors.select, [0]);
       expect(result, equals(0));
 
       // 4. Verify memory
@@ -160,7 +159,7 @@ void main() {
 
     test('char input event works', () async {
       // 1. Request char event: window=1
-      await provider.glkDispatch(GlkIoSelectors.requestCharEvent, [1]);
+      await provider.dispatch(GlkIoSelectors.requestCharEvent, [1]);
 
       // 2. Setup mock memory and user input
       final memory = Uint8List(16);
@@ -176,7 +175,7 @@ void main() {
       mockDisplay.nextInput = 'A';
 
       // 3. Dispatch select
-      final result = await provider.glkDispatch(GlkIoSelectors.select, [0]);
+      final result = await provider.dispatch(GlkIoSelectors.select, [0]);
       expect(result, equals(0));
 
       // 4. Verify event struct
@@ -188,7 +187,7 @@ void main() {
     test('gestalt with empty args does not crash', () async {
       // gestalt(charInput, window_type) should return 1 for text buffer (type 3)
       // Note: Glk window types are pair=1, blank=2, textBuffer=3, textGrid=4, graphics=5
-      final result = await provider.glkDispatch(GlkIoSelectors.gestalt, [
+      final result = await provider.dispatch(GlkIoSelectors.gestalt, [
         0x01,
         3,
       ]); // charInput, textBuffer
@@ -213,13 +212,13 @@ void main() {
       );
 
       // Open memory stream
-      final streamId = await provider.glkDispatch(
+      final streamId = await provider.dispatch(
         GlkIoSelectors.streamOpenMemory,
         [bufAddr, bufLen, 1],
       );
 
       // Write a char 'X' (0x58) to the stream
-      final result = await provider.glkDispatch(GlkIoSelectors.putCharStream, [
+      final result = await provider.dispatch(GlkIoSelectors.putCharStream, [
         streamId,
         0x58,
       ]);
@@ -231,7 +230,7 @@ void main() {
 
     test('streamSetCurrent returns previous stream ID', () async {
       // Initial stream is 1001
-      final result1 = await provider.glkDispatch(
+      final result1 = await provider.dispatch(
         GlkIoSelectors.streamGetCurrent,
         [],
       );
@@ -243,27 +242,27 @@ void main() {
         read: (_, {size = 1}) => 0,
       ); // Stub memory
 
-      final newStreamId = await provider.glkDispatch(
+      final newStreamId = await provider.dispatch(
         GlkIoSelectors.streamOpenMemory,
         [0x1000, 100, 1],
       );
 
       // Set current to new stream, should return 1001 (previous)
-      final prevStreamId = await provider.glkDispatch(
+      final prevStreamId = await provider.dispatch(
         GlkIoSelectors.streamSetCurrent,
         [newStreamId],
       );
       expect(prevStreamId, equals(1001));
 
       // Verify new current
-      final result2 = await provider.glkDispatch(
+      final result2 = await provider.dispatch(
         GlkIoSelectors.streamGetCurrent,
         [],
       );
       expect(result2, equals(newStreamId));
 
       // Restore old stream, should return 1002
-      final prevStreamId2 = await provider.glkDispatch(
+      final prevStreamId2 = await provider.dispatch(
         GlkIoSelectors.streamSetCurrent,
         [1001],
       );

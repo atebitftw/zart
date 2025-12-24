@@ -2,15 +2,23 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'mock_glk_io_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
+import 'package:zart/src/io/platform/input_event.dart';
+import 'package:zart/src/io/platform/platform_capabilities.dart';
+import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/io/platform/z_machine_display.dart';
+import 'package:zart/src/io/platform/z_machine_io_command.dart';
+import 'package:zart/src/io/render/screen_frame.dart';
+import 'package:zart/src/io/z_io_dispatcher.dart';
+import 'package:zart/src/loaders/blorb.dart';
+import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 
 void main() {
   group('Stream Opcodes', () {
     late GlulxInterpreter interpreter;
     late GlulxInterpreterTestingHarness harness;
     late Uint8List gameData;
-    late MockGlkIoProvider mockIo;
+    late MockPlatformProvider mockIo;
 
     Uint8List createGameData(List<int> opcodeBytes) {
       final data = Uint8List(1024);
@@ -29,7 +37,7 @@ void main() {
     }
 
     setUp(() async {
-      mockIo = MockGlkIoProvider();
+      mockIo = MockPlatformProvider();
       interpreter = GlulxInterpreter(mockIo);
     });
 
@@ -164,15 +172,143 @@ void main() {
   });
 }
 
-class MockGlkIoProvider extends TestGlkIoProvider {
+/// Mock PlatformProvider that captures output for testing stream opcodes.
+class MockPlatformProvider implements PlatformProvider {
   final List<int> output = [];
 
   @override
-  FutureOr<int> glkDispatch(int selector, List<int> args) {
+  String get gameName => 'test';
+
+  @override
+  void init(GameFileType fileType) {}
+
+  @override
+  PlatformCapabilities get capabilities =>
+      PlatformCapabilities(screenWidth: 80, screenHeight: 24);
+
+  @override
+  void render(ScreenFrame frame) {}
+
+  @override
+  void enterDisplayMode() {}
+
+  @override
+  void exitDisplayMode() {}
+
+  @override
+  Future<String> readLine({int? maxLength, int? timeout}) async => '';
+
+  @override
+  Future<InputEvent> readInput({int? timeout}) async =>
+      const InputEvent.character('');
+
+  @override
+  InputEvent? pollInput() => null;
+
+  @override
+  Future<String?> saveGame(List<int> data, {String? suggestedName}) async =>
+      null;
+
+  @override
+  Future<List<int>?> restoreGame({String? suggestedName}) async => null;
+
+  @override
+  Future<String?> quickSave(List<int> data) async => null;
+
+  @override
+  Future<List<int>?> quickRestore() async => null;
+
+  @override
+  FutureOr<int> dispatch(int selector, List<int> args) {
     if (selector == GlkIoSelectors.putChar ||
         selector == GlkIoSelectors.putCharUni) {
       output.add(args[0]);
     }
     return 0;
   }
+
+  @override
+  int vmGestalt(int selector, int arg) {
+    switch (selector) {
+      case GlulxGestaltSelectors.glulxVersion:
+        return 0x00030103;
+      case GlulxGestaltSelectors.terpVersion:
+        return 0x00000100;
+      case GlulxGestaltSelectors.resizeMem:
+        return 1;
+      case GlulxGestaltSelectors.undo:
+        return 1;
+      case GlulxGestaltSelectors.ioSystem:
+        return (arg >= 0 && arg <= 2) ? 1 : 0;
+      case GlulxGestaltSelectors.unicode:
+        return 1;
+      case GlulxGestaltSelectors.memCopy:
+        return 1;
+      case GlulxGestaltSelectors.mAlloc:
+        return 1;
+      case GlulxGestaltSelectors.float:
+        return 1;
+      case GlulxGestaltSelectors.extUndo:
+        return 1;
+      case GlulxGestaltSelectors.doubleValue:
+        return 1;
+      default:
+        return 0;
+    }
+  }
+
+  @override
+  void renderScreen() {}
+
+  @override
+  Future<void> showExitAndWait(String message) async {}
+
+  @override
+  Future<dynamic> zCommand(ZMachineIOCommand command) async => null;
+
+  @override
+  ZIoDispatcher? get zDispatcher => null;
+
+  @override
+  ZMachineDisplay? get zDisplay => null;
+
+  @override
+  void onQuit() {}
+
+  @override
+  void onError(String message) {}
+
+  @override
+  void dispose() {}
+
+  @override
+  int popFromStack() {
+    return 0;
+  }
+
+  @override
+  void pushToStack(int value) {}
+
+  @override
+  int readMemory(int addr, {int size = 1}) {
+    return 0;
+  }
+
+  @override
+  void setMemoryAccess({
+    required void Function(int addr, int value, {int size}) write,
+    required int Function(int addr, {int size}) read,
+  }) {}
+
+  @override
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {}
+
+  @override
+  void setVMState({int Function()? getHeapStart}) {}
+
+  @override
+  void writeMemory(int addr, int value, {int size = 1}) {}
 }

@@ -12,6 +12,7 @@ import 'z_terminal_display.dart';
 import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/io/platform/z_machine_display.dart';
 import 'package:zart/src/io/platform/z_machine_io_command.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/loaders/blorb.dart';
@@ -76,7 +77,10 @@ class CliPlatformProvider extends PlatformProvider {
   String get gameName => _gameName;
 
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
+    _capabilities = PlatformCapabilities.terminal(
+      width: _renderer.screenWidth,
+      height: _renderer.screenHeight,
+    );
   }
 
   // ============================================================
@@ -282,7 +286,10 @@ class CliPlatformProvider extends PlatformProvider {
     try {
       final f = File(filename);
       if (!f.existsSync()) {
-        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
+        _renderer.showTempMessage(
+          'QuickSave File Not Found ($filename)',
+          seconds: 3,
+        );
         return null;
       }
 
@@ -304,7 +311,10 @@ class CliPlatformProvider extends PlatformProvider {
   void _initGlulx() {
     // Share the renderer with GlkTerminalDisplay to ensure unified rendering path
     _glkDisplay = GlkTerminalDisplay.withRenderer(_renderer);
-    _glulxProvider = GlulxTerminalProvider(display: _glkDisplay, config: _config);
+    _glulxProvider = GlulxTerminalProvider(
+      display: _glkDisplay,
+      config: _config,
+    );
 
     // Wire up settings callback
     _glkDisplay!.onOpenSettings = () async {
@@ -313,34 +323,52 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  FutureOr<int> glkDispatch(int selector, List<int> args) {
+  FutureOr<int> dispatch(int selector, List<int> args) {
     if (_glulxProvider == null) {
       throw StateError('Glulx not initialized. Call initGlulx() first.');
     }
-    return _glulxProvider!.glkDispatch(selector, args);
-  }
-
-  @override
-  void setGlkMemoryAccess({
-    required void Function(int addr, int value, {int size}) write,
-    required int Function(int addr, {int size}) read,
-  }) {
-    _glulxProvider?.setMemoryAccess(write: write, read: read);
-  }
-
-  @override
-  void setGlkStackAccess({required void Function(int value) push, required int Function() pop}) {
-    _glulxProvider?.setStackAccess(push: push, pop: pop);
-  }
-
-  @override
-  void setGlkVMState({int Function()? getHeapStart}) {
-    _glulxProvider?.setVMState(getHeapStart: getHeapStart);
+    return _glulxProvider!.dispatch(selector, args);
   }
 
   @override
   int vmGestalt(int selector, int arg) {
-    return _glulxProvider?.vmGestalt(selector, arg) ?? 0;
+    if (_glulxProvider != null) {
+      return _glulxProvider!.vmGestalt(selector, arg);
+    }
+    // Fallback implementation for unit tests that don't initialize Glulx
+    return _defaultVmGestalt(selector, arg);
+  }
+
+  /// Default Glulx gestalt values.
+  /// Used when _glulxProvider is not initialized (e.g., in unit tests).
+  int _defaultVmGestalt(int selector, int arg) {
+    // Reference: packages/glulxe/gestalt.c
+    switch (selector) {
+      case 0: // GlulxVersion
+        return 0x00030103; // Glulx spec 3.1.3
+      case 1: // TerpVersion
+        return 0x00000100; // Zart 0.1.0
+      case 2: // ResizeMem
+        return 1;
+      case 3: // Undo
+        return 1;
+      case 4: // IOSystem
+        return (arg >= 0 && arg <= 2) ? 1 : 0;
+      case 5: // Unicode
+        return 1;
+      case 6: // MemCopy
+        return 1;
+      case 7: // MAlloc
+        return 1;
+      case 11: // Float
+        return 1;
+      case 12: // ExtUndo
+        return 1;
+      case 13: // Double
+        return 1;
+      default:
+        return 0;
+    }
   }
 
   /// Get the Glulx provider for direct access (e.g., for rendering).
@@ -400,7 +428,10 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {
     _glulxProvider?.setStackAccess(push: push, pop: pop);
   }
 
@@ -416,7 +447,8 @@ class CliPlatformProvider extends PlatformProvider {
     _zDisplay!.config = _config;
     _zDisplay!.applySavedSettings();
 
-    _zDisplay!.onOpenSettings = () => SettingsScreen(_zDisplay!, _config).show(isGameStarted: true);
+    _zDisplay!.onOpenSettings = () =>
+        SettingsScreen(_zDisplay!, _config).show(isGameStarted: true);
 
     // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
     _zDisplay!.onQuickSave = () {
@@ -428,80 +460,6 @@ class CliPlatformProvider extends PlatformProvider {
     };
 
     _zDispatcher = ZMachineIoDispatcher(_zDisplay!, this);
-  }
-
-  @override
-  int getZMachineFlags1() => _zDispatcher?.getFlags1() ?? capabilities.getZMachineFlags1();
-
-  @override
-  Future<dynamic> zCommand(ZMachineIOCommand command) async {
-    if (_zDispatcher == null) {
-      throw StateError('Z-machine not initialized. Call initZMachine() first.');
-    }
-
-    // Convert typed command to legacy command map
-    final commandMessage = _commandToMap(command);
-    return _zDispatcher!.command(commandMessage);
-  }
-
-  Map<String, dynamic> _commandToMap(ZMachineIOCommand command) {
-    // This converts the new typed commands to the old map format
-    // for backward compatibility with ZMachineIoDispatcher
-    switch (command) {
-      case PrintCommand():
-        return {'command': _ZIoCommands.print, 'window': command.window, 'buffer': command.text};
-      case SplitWindowCommand():
-        return {'command': _ZIoCommands.splitWindow, 'lines': command.lines};
-      case SetWindowCommand():
-        return {'command': _ZIoCommands.setWindow, 'window': command.window};
-      case ClearScreenCommand():
-        return {'command': _ZIoCommands.clearScreen, 'window_id': command.windowId};
-      case SetCursorCommand():
-        return {'command': _ZIoCommands.setCursor, 'line': command.row, 'column': command.column};
-      case GetCursorCommand():
-        return {'command': _ZIoCommands.getCursor};
-      case SetTextStyleCommand():
-        return {'command': _ZIoCommands.setTextStyle, 'style': command.style};
-      case SetColourCommand():
-        return {'command': _ZIoCommands.setColour, 'foreground': command.foreground, 'background': command.background};
-      case SetTrueColourCommand():
-        return {
-          'command': _ZIoCommands.setTrueColour,
-          'foreground': command.foreground,
-          'background': command.background,
-        };
-      case EraseLineCommand():
-        return {'command': _ZIoCommands.eraseLine};
-      case SetFontCommand():
-        return {'command': _ZIoCommands.setFont, 'font': command.font};
-      case SaveCommand():
-        return {'command': _ZIoCommands.save, 'file_data': command.fileData};
-      case RestoreCommand():
-        return {'command': _ZIoCommands.restore};
-      case StatusCommand():
-        return {
-          'command': _ZIoCommands.status,
-          'room_name': command.roomName,
-          'score_one': command.scoreOne,
-          'score_two': command.scoreTwo,
-          'game_type': command.gameType,
-        };
-      case SoundEffectCommand():
-        return {
-          'command': _ZIoCommands.soundEffect,
-          'sound': command.sound,
-          'effect': command.effect,
-          'volume': command.volume,
-        };
-      case InputStreamCommand():
-        return {'command': _ZIoCommands.inputStream, 'stream': command.stream};
-      case QuitCommand():
-        return {'command': _ZIoCommands.quit};
-      case PrintDebugCommand():
-        return {'command': _ZIoCommands.printDebug, 'message': command.message};
-      case AsyncCommand():
-        return {'command': _ZIoCommands.async, 'operation': command.operation};
-    }
   }
 
   @override

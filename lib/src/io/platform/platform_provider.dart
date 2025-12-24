@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:zart/src/io/glk/glk_io_provider.dart';
 import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
-import 'package:zart/src/io/platform/z_machine_io_command.dart';
+import 'package:zart/src/io/platform/z_machine_display.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/io/z_io_dispatcher.dart';
 import 'package:zart/src/loaders/blorb.dart';
@@ -13,8 +12,6 @@ import 'package:zart/src/loaders/blorb.dart';
 /// Any presentation layer (CLI, web, Flutter, etc.) should implement this
 /// interface to run interactive fiction games. The same implementation can
 /// run both Z-machine and Glulx games.
-///
-/// Extends [GlkIoProvider] to provide direct compatibility with [GlulxInterpreter].
 ///
 /// ## Architecture
 ///
@@ -69,7 +66,7 @@ import 'package:zart/src/loaders/blorb.dart';
 /// final runner = GameRunner(provider);
 /// await runner.run(gameBytes);
 /// ```
-abstract class PlatformProvider implements GlkIoProvider {
+abstract class PlatformProvider {
   /// Name of the game being run (usually the filename, or some component of it).
   String get gameName;
 
@@ -180,39 +177,46 @@ abstract class PlatformProvider implements GlkIoProvider {
   Future<List<int>?> quickRestore();
 
   // ============================================================
-  // GLULX / GLK SUPPORT
+  // VM IO SUPPORT
   // ============================================================
 
-  /// Handle a Glk dispatch call.
-  ///
-  /// Glulx games use Glk for all IO. This method receives Glk function
-  /// calls and should return the appropriate result.
-  ///
-  /// [selector] - The Glk function selector (e.g., glk_put_char = 0x80).
-  /// [args] - The function arguments.
-  ///
-  /// Returns the Glk function result.
-  FutureOr<int> glkDispatch(int selector, List<int> args);
+  /// Write a value to memory.
+  void writeMemory(int addr, int value, {int size = 1});
 
-  /// Configure memory access callbacks for Glk operations.
-  ///
-  /// Glk needs to read/write game memory for certain operations
-  /// (e.g., reading strings, writing event structures).
-  void setGlkMemoryAccess({
+  /// Read a value from memory.
+  int readMemory(int addr, {int size = 1});
+
+  /// Set memory access callbacks for Glk operations.
+  void setMemoryAccess({
     required void Function(int addr, int value, {int size}) write,
     required int Function(int addr, {int size}) read,
   });
 
-  /// Configure stack access callbacks for Glk operations.
-  ///
-  /// Some Glk operations push/pop values from the VM stack
-  /// (when addresses are -1).
-  void setGlkStackAccess({required void Function(int value) push, required int Function() pop});
+  /// Set VM state for Glk operations.
+  void setVMState({int Function()? getHeapStart});
 
-  /// Configure VM state callbacks.
+  /// Push a value onto the stack.
+  void pushToStack(int value);
+
+  /// Pop a value from the stack.
+  int popFromStack();
+
+  /// Set stack access callbacks for Glk operations.
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  });
+
+  /// Unified IO dispatch using Glk selectors.
   ///
-  /// Provides access to VM state that Glk needs (e.g., heap start address).
-  void setGlkVMState({int Function()? getHeapStart});
+  /// Both Glulx and Z-machine use this for all IO operations.
+  /// Z-machine commands are translated to Glk selectors before dispatch.
+  ///
+  /// [selector] - Glk function selector (e.g., glk_put_char = 0x80).
+  /// [args] - The function arguments.
+  ///
+  /// Returns the operation result.
+  FutureOr<int> dispatch(int selector, List<int> args);
 
   /// Handle Glulx VM-level gestalt queries (the @gestalt opcode).
   ///
@@ -230,25 +234,6 @@ abstract class PlatformProvider implements GlkIoProvider {
   /// Displays [message] and blocks until the user presses any key.
   /// Used for the "Press any key to exit" prompt at game end.
   Future<void> showExitAndWait(String message);
-
-  // ============================================================
-  // Z-MACHINE SUPPORT
-  // ============================================================
-
-  /// Get Z-machine capability flags (for header byte Flags1).
-  ///
-  /// This tells the Z-machine what features the interpreter supports.
-  /// Use [PlatformCapabilities.getZMachineFlags1] for default implementation.
-  int getZMachineFlags1() => capabilities.getZMachineFlags1();
-
-  /// Execute a Z-machine IO command.
-  ///
-  /// Z-machine games use commands for IO (print, clear, colors, etc).
-  /// This method receives typed command objects and should execute them.
-  ///
-  /// Returns a result value for commands that produce output (e.g.,
-  /// GetCursorCommand returns cursor position).
-  Future<dynamic> zCommand(ZMachineIOCommand command);
 
   /// Get the Z-machine IO dispatcher.
   ///
@@ -278,38 +263,4 @@ abstract class PlatformProvider implements GlkIoProvider {
   ///
   /// Called when the game runner is done with the provider.
   void dispose() {}
-}
-
-/// Abstract interface for Z-machine display operations.
-///
-/// Represents the display/input surface for Z-machine games.
-/// [GameRunner] uses this interface to drive the Z-machine game loop
-/// without knowing the concrete display implementation.
-abstract class ZMachineDisplay {
-  /// Whether the status bar is enabled.
-  bool get enableStatusBar;
-  set enableStatusBar(bool value);
-
-  /// Render the current display state.
-  void render();
-
-  /// Detect and update terminal size.
-  void detectTerminalSize();
-
-  /// Read a line of text input.
-  ///
-  /// Returns the input text, or `'__RESTORED__'` if a quick restore
-  /// was triggered and the game state was restored.
-  Future<String> readLine();
-
-  /// Read a single character.
-  ///
-  /// Returns the character as a string.
-  Future<String> readChar();
-
-  /// Append text to window 0 (main window).
-  void appendToWindow0(String text);
-
-  /// Append echoed input text to the display.
-  void appendInputEcho(String text);
 }
