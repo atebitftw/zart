@@ -3,7 +3,6 @@ import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import '../../bin/cli/cli_platform_provider.dart';
-import 'mock_glk_io_provider.dart';
 
 void main() {
   /// Glulx Spec Section 2.4.4: Function Call Opcodes

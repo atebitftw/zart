@@ -5,7 +5,6 @@ import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/glulx/glulx_exception.dart';
 import '../../bin/cli/cli_platform_provider.dart';
-import 'mock_glk_io_provider.dart';
 
 /// Unit tests for the Glulx acceleration system (accelfunc, accelparam opcodes).
 ///

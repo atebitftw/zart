@@ -263,7 +263,6 @@ class MockPlatformProvider implements PlatformProvider {
   @override
   Future<void> showExitAndWait(String message) async {}
 
-  @override
   Future<dynamic> zCommand(ZMachineIOCommand command) async => null;
 
   @override
