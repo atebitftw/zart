@@ -3,11 +3,16 @@ import 'package:zart/src/logging.dart' show log;
 import 'package:zart/src/z_machine/memory_map.dart' show MemoryMap;
 import 'package:zart/src/z_machine/zscii.dart' show ZSCII;
 import 'package:zart/src/zart_internal.dart';
-import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart' show InterpreterV3;
-import 'package:zart/src/z_machine/interpreters/interpreter_v4.dart' show InterpreterV4;
-import 'package:zart/src/z_machine/interpreters/interpreter_v5.dart' show InterpreterV5;
-import 'package:zart/src/z_machine/interpreters/interpreter_v7.dart' show InterpreterV7;
-import 'package:zart/src/z_machine/interpreters/interpreter_v8.dart' show InterpreterV8;
+import 'package:zart/src/z_machine/interpreters/interpreter_v3.dart'
+    show InterpreterV3;
+import 'package:zart/src/z_machine/interpreters/interpreter_v4.dart'
+    show InterpreterV4;
+import 'package:zart/src/z_machine/interpreters/interpreter_v5.dart'
+    show InterpreterV5;
+import 'package:zart/src/z_machine/interpreters/interpreter_v7.dart'
+    show InterpreterV7;
+import 'package:zart/src/z_machine/interpreters/interpreter_v8.dart'
+    show InterpreterV8;
 import 'package:zart/src/io/quetzal.dart';
 
 /// The Z-Machine singleton.
@@ -167,7 +172,9 @@ class ZMachine {
 
     ver = ZMachine.intToVer(rawBytes[Header.version]);
 
-    final result = _supportedEngines.where(((m) => m().version == ver)).toList();
+    final result = _supportedEngines
+        .where(((m) => m().version == ver))
+        .toList();
 
     if (result.length != 1) {
       throw Exception('Z-Machine version $ver not supported.');
@@ -231,7 +238,11 @@ class ZMachine {
       //if (text.isNotEmpty) {
       //  print('[PRINT DEBUG] window=${engine.currentWindow} text="${text.replaceAll('\n', '\\n')}"');
       //}
-      await sendIO({"command": ZIoCommands.print, "window": engine.currentWindow, "buffer": text});
+      await sendIO({
+        "command": ZIoCommands.print,
+        "window": engine.currentWindow,
+        "buffer": text,
+      });
       sbuff.clear();
     }
   }
@@ -289,7 +300,8 @@ class ZMachine {
   /// Submits line input (for read opcode) and continues execution.
   /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsLineInput].
   Future<ZMachineRunState> submitLineInput(String input) async {
-    if (_pendingLineCallback == null || _runState != ZMachineRunState.needsLineInput) {
+    if (_pendingLineCallback == null ||
+        _runState != ZMachineRunState.needsLineInput) {
       throw Exception('Not waiting for line input');
     }
 
@@ -314,7 +326,8 @@ class ZMachine {
   /// Submits character input (for read_char opcode) and continues execution.
   /// Only call this after [runUntilInput()] returns [ZMachineRunState.needsCharInput].
   Future<ZMachineRunState> submitCharInput(String char) async {
-    if (_pendingCharCallback == null || _runState != ZMachineRunState.needsCharInput) {
+    if (_pendingCharCallback == null ||
+        _runState != ZMachineRunState.needsCharInput) {
       throw Exception('Not waiting for character input');
     }
 
@@ -342,7 +355,13 @@ class ZMachine {
   /// [initialText]: Text to pre-fill the input buffer with.
   /// [time]: Time in tenths of a second for timed input (optional).
   /// [routine]: Routine to call periodically during timed input (optional).
-  void requestLineInput(void Function(String) callback, {int? maxChars, String? initialText, int? time, int? routine}) {
+  void requestLineInput(
+    void Function(String) callback, {
+    int? maxChars,
+    String? initialText,
+    int? time,
+    int? routine,
+  }) {
     _runState = ZMachineRunState.needsLineInput;
     _pendingLineCallback = callback;
     // TODO: Store these additional parameters if needed for the frontend
@@ -352,7 +371,11 @@ class ZMachine {
   /// Stores the callback and signals that input is needed.
   /// [time]: Time in tenths of a second for timed input (optional).
   /// [routine]: Routine to call periodically during timed input (optional).
-  void requestCharInput(void Function(String) callback, {int? time, int? routine}) {
+  void requestCharInput(
+    void Function(String) callback, {
+    int? time,
+    int? routine,
+  }) {
     _runState = ZMachineRunState.needsCharInput;
     _pendingCharCallback = callback;
     // TODO: Store these additional parameters if needed for the frontend

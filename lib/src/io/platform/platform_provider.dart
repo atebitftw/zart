@@ -92,7 +92,10 @@ abstract class PlatformProvider {
   ///
   /// The platform should display its settings UI and return when complete.
   /// [terminal] is the display interface for settings to render to.
-  Future<void> openSettings(covariant dynamic terminal, {bool isGameStarted = false});
+  Future<void> openSettings(
+    covariant dynamic terminal, {
+    bool isGameStarted = false,
+  });
 
   // ============================================================
   // INPUT

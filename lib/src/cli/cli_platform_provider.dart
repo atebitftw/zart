@@ -55,7 +55,10 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
+    _capabilities = PlatformCapabilities.terminal(
+      width: _renderer.screenWidth,
+      height: _renderer.screenHeight,
+    );
   }
 
   // ============================================================
@@ -93,7 +96,10 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  Future<void> openSettings(dynamic terminal, {bool isGameStarted = false}) async {
+  Future<void> openSettings(
+    dynamic terminal, {
+    bool isGameStarted = false,
+  }) async {
     await CliSettingsScreen(terminal).show(isGameStarted: isGameStarted);
   }
 
@@ -260,7 +266,10 @@ class CliPlatformProvider extends PlatformProvider {
     try {
       final f = File(filename);
       if (!f.existsSync()) {
-        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
+        _renderer.showTempMessage(
+          'QuickSave File Not Found ($filename)',
+          seconds: 3,
+        );
         return null;
       }
 

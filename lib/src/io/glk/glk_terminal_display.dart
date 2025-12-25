@@ -72,13 +72,18 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Render the entire screen from the GlkScreenModel.
   void renderGlk(GlkScreenModel model) {
     final frame = model.toRenderFrame();
-    final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: rows);
+    final screenFrame = _compositor.composite(
+      frame,
+      screenWidth: _cols,
+      screenHeight: rows,
+    );
     onScreenReady?.call(screenFrame);
   }
 
   /// Show a temporary status message.
   @override
-  void showTempMessage(String message, {int seconds = 3}) => onShowTempMessage?.call(message, seconds: seconds);
+  void showTempMessage(String message, {int seconds = 3}) =>
+      onShowTempMessage?.call(message, seconds: seconds);
 
   /// Read a line of input.
   /// This must be provided by the platform layer via a callback.
@@ -116,7 +121,11 @@ class GlkTerminalDisplay implements ZartTerminal {
   void render() {
     if (_uiModel != null) {
       final frame = _uiModel!.toRenderFrame();
-      final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: rows);
+      final screenFrame = _compositor.composite(
+        frame,
+        screenWidth: _cols,
+        screenHeight: rows,
+      );
       onScreenReady?.call(screenFrame);
     } else {
       // Synchronize settings from config only when back in game mode
