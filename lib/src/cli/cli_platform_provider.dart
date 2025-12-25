@@ -2,11 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'package:zart/src/io/glk/glk_terminal_display.dart';
-import 'package:zart/src/io/glk/glulx_terminal_provider.dart' show GlulxTerminalProvider;
 import 'package:zart/src/cli/cli_renderer.dart' show CliRenderer;
 import 'package:zart/src/cli/cli_configuration_manager.dart' show configManager;
-import 'package:zart/src/cli/cli_settings_screen.dart';
 import 'package:zart/zart.dart';
 
 /// CLI/Terminal implementation of [PlatformProvider].
@@ -16,8 +13,6 @@ import 'package:zart/zart.dart';
 ///
 /// This implementation delegates to:
 /// - [CliRenderer] for rendering RenderFrames
-/// - [GlulxTerminalProvider] for Glk dispatch
-/// - [ZMachineIoDispatcher] for Z-machine commands
 /// - Terminal input for keyboard/mouse handling
 class CliPlatformProvider extends PlatformProvider {
   final Console _console = Console();
@@ -26,10 +21,6 @@ class CliPlatformProvider extends PlatformProvider {
   /// Renderer for emitting [RenderFrame]s.
   CliRenderer get renderer => _renderer;
   late PlatformCapabilities _capabilities;
-
-  // === Glulx/Glk Support ===
-  GlulxTerminalProvider? _glulxProvider;
-  GlkTerminalDisplay? _glkDisplay;
 
   /// Whether a quick action is in progress.
   bool _isQuickSave = false;
@@ -60,7 +51,10 @@ class CliPlatformProvider extends PlatformProvider {
   String get gameName => _gameName;
 
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
+    _capabilities = PlatformCapabilities.terminal(
+      width: _renderer.screenWidth,
+      height: _renderer.screenHeight,
+    );
   }
 
   // ============================================================
@@ -71,16 +65,6 @@ class CliPlatformProvider extends PlatformProvider {
   PlatformCapabilities get capabilities {
     _updateCapabilities();
     return _capabilities;
-  }
-
-  @override
-  void init(GameFileType fileType) {
-    switch (fileType) {
-      case GameFileType.glulx:
-        _initGlulx();
-      default:
-        break;
-    }
   }
 
   // ============================================================
@@ -265,7 +249,10 @@ class CliPlatformProvider extends PlatformProvider {
     try {
       final f = File(filename);
       if (!f.existsSync()) {
-        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
+        _renderer.showTempMessage(
+          'QuickSave File Not Found ($filename)',
+          seconds: 3,
+        );
         return null;
       }
 
@@ -276,133 +263,6 @@ class CliPlatformProvider extends PlatformProvider {
       onError('QuickRestore failed: $e');
       return null;
     }
-  }
-
-  // ============================================================
-  // GLULX / GLK SUPPORT
-  // ============================================================
-
-  /// Initialize Glulx/Glk support.
-  /// Called by GameRunner when starting a Glulx game.
-  void _initGlulx() {
-    // Share the renderer with GlkTerminalDisplay to ensure unified rendering path
-    _glkDisplay = GlkTerminalDisplay.withRenderer(_renderer);
-    _glulxProvider = GlulxTerminalProvider(display: _glkDisplay);
-
-    // Wire up settings callback
-    _glkDisplay!.onOpenSettings = () async {
-      await CliSettingsScreen(_glkDisplay!).show(isGameStarted: true);
-    };
-  }
-
-  @override
-  FutureOr<int> dispatch(int selector, List<int> args) {
-    if (_glulxProvider == null) {
-      throw StateError('Glulx not initialized. Call initGlulx() first.');
-    }
-    return _glulxProvider!.dispatch(selector, args);
-  }
-
-  @override
-  int vmGestalt(int selector, int arg) {
-    if (_glulxProvider != null) {
-      return _glulxProvider!.vmGestalt(selector, arg);
-    }
-    // Fallback implementation for unit tests that don't initialize Glulx
-    return _defaultVmGestalt(selector, arg);
-  }
-
-  /// Default Glulx gestalt values.
-  /// Used when _glulxProvider is not initialized (e.g., in unit tests).
-  int _defaultVmGestalt(int selector, int arg) {
-    // Reference: packages/glulxe/gestalt.c
-    switch (selector) {
-      case 0: // GlulxVersion
-        return 0x00030103; // Glulx spec 3.1.3
-      case 1: // TerpVersion
-        return 0x00000100; // Zart 0.1.0
-      case 2: // ResizeMem
-        return 1;
-      case 3: // Undo
-        return 1;
-      case 4: // IOSystem
-        return (arg >= 0 && arg <= 2) ? 1 : 0;
-      case 5: // Unicode
-        return 1;
-      case 6: // MemCopy
-        return 1;
-      case 7: // MAlloc
-        return 1;
-      case 11: // Float
-        return 1;
-      case 12: // ExtUndo
-        return 1;
-      case 13: // Double
-        return 1;
-      default:
-        return 0;
-    }
-  }
-
-  /// Get the Glulx provider for direct access (e.g., for rendering).
-  GlulxTerminalProvider? get glulxProvider => _glulxProvider;
-
-  /// Get the Glk display for direct access.
-  GlkTerminalDisplay? get glkDisplay => _glkDisplay;
-
-  @override
-  void renderScreen() {
-    _glulxProvider?.renderScreen();
-  }
-
-  @override
-  Future<void> showExitAndWait(String message) async {
-    await _glulxProvider?.showExitAndWait(message);
-  }
-
-  // ============================================================
-  // GLKIOPROVIDER INTERFACE IMPLEMENTATION
-  // ============================================================
-
-  // These methods are required by GlkIoProvider interface.
-  // They delegate to _glulxProvider when Glulx is initialized.
-
-  @override
-  void writeMemory(int addr, int value, {int size = 1}) {
-    _glulxProvider?.writeMemory(addr, value, size: size);
-  }
-
-  @override
-  int readMemory(int addr, {int size = 1}) {
-    return _glulxProvider?.readMemory(addr, size: size) ?? 0;
-  }
-
-  @override
-  void setMemoryAccess({
-    required void Function(int addr, int value, {int size}) write,
-    required int Function(int addr, {int size}) read,
-  }) {
-    _glulxProvider?.setMemoryAccess(write: write, read: read);
-  }
-
-  @override
-  void setVMState({int Function()? getHeapStart}) {
-    _glulxProvider?.setVMState(getHeapStart: getHeapStart);
-  }
-
-  @override
-  void pushToStack(int value) {
-    _glulxProvider?.pushToStack(value);
-  }
-
-  @override
-  int popFromStack() {
-    return _glulxProvider?.popFromStack() ?? 0;
-  }
-
-  @override
-  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
-    _glulxProvider?.setStackAccess(push: push, pop: pop);
   }
 
   // ============================================================
@@ -421,7 +281,6 @@ class CliPlatformProvider extends PlatformProvider {
 
   @override
   void dispose() {
-    _glulxProvider = null;
-    _glkDisplay = null;
+    // Nothing special to clean up
   }
 }

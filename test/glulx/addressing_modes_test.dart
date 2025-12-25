@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import '../../lib/src/cli/cli_platform_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   late GlulxInterpreter interpreter;
@@ -39,7 +39,7 @@ void main() {
 
   setUp(() async {
     final gameData = createDummyGame();
-    interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
+    interpreter = GlulxInterpreter(MockGlkProvider());
     await interpreter.load(gameData);
     harness = GlulxInterpreterTestingHarness(interpreter);
   });

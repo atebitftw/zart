@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import '../../lib/src/cli/cli_platform_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   group('Array Opcodes', () {
@@ -50,14 +50,23 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
+      interpreter = GlulxInterpreter(MockGlkProvider());
     });
 
     test('aload reads a 32-bit word from an array', () async {
       // Data at 0x200: [0x11223344]
       // Opcode: aload 0x200, 0, stack
       // Modes: L1=3 (4-byte), L2=1 (1-byte), S1=8 (push) -> 0x13, 0x08
-      gameData = createGameData([GlulxOp.aload, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x00]);
+      gameData = createGameData([
+        GlulxOp.aload,
+        0x13,
+        0x08,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x00,
+      ]);
       gameData[0x200] = 0x11;
       gameData[0x201] = 0x22;
       gameData[0x202] = 0x33;
@@ -76,7 +85,16 @@ void main() {
       // Data at 0x204: [0x55667788]
       // Opcode: aload 0x200, 1, stack (index 1 = offset 4)
       // Modes: L1=3, L2=1, S1=8 -> 0x13, 0x08
-      gameData = createGameData([GlulxOp.aload, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x01]);
+      gameData = createGameData([
+        GlulxOp.aload,
+        0x13,
+        0x08,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x01,
+      ]);
       gameData[0x204] = 0x55;
       gameData[0x205] = 0x66;
       gameData[0x206] = 0x77;
@@ -94,7 +112,20 @@ void main() {
     test('astore writes a 32-bit word to an array', () async {
       // Opcode: astore 0x200, 1, 0xAABBCCDD (index 1 = offset 4)
       // Modes: L1=3, L2=1, L3=3 -> 0x13, 0x03
-      gameData = createGameData([GlulxOp.astore, 0x13, 0x03, 0x00, 0x00, 0x02, 0x00, 0x01, 0xAA, 0xBB, 0xCC, 0xDD]);
+      gameData = createGameData([
+        GlulxOp.astore,
+        0x13,
+        0x03,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x01,
+        0xAA,
+        0xBB,
+        0xCC,
+        0xDD,
+      ]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -108,7 +139,16 @@ void main() {
       // Data at 0x202: [0x1122]
       // Opcode: aloads 0x200, 1, stack (index 1 = offset 2)
       // Modes: L1=3, L2=1, S1=8 -> 0x13, 0x08
-      gameData = createGameData([GlulxOp.aloads, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x01]);
+      gameData = createGameData([
+        GlulxOp.aloads,
+        0x13,
+        0x08,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x01,
+      ]);
       gameData[0x202] = 0x11;
       gameData[0x203] = 0x22;
 
@@ -124,7 +164,16 @@ void main() {
 
     test('aloads does not sign-extend negative short', () async {
       // Data at 0x202: [0x8899]
-      gameData = createGameData([GlulxOp.aloads, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x01]);
+      gameData = createGameData([
+        GlulxOp.aloads,
+        0x13,
+        0x08,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x01,
+      ]);
       gameData[0x202] = 0x88;
       gameData[0x203] = 0x99;
 
@@ -141,7 +190,18 @@ void main() {
     test('astores writes a 16-bit short to an array', () async {
       // Opcode: astores 0x200, 2, 0x1234 (index 2 = offset 4)
       // Modes: L1=3, L2=1, L3=2 (2-byte const) -> 0x13, 0x02
-      gameData = createGameData([GlulxOp.astores, 0x13, 0x02, 0x00, 0x00, 0x02, 0x00, 0x02, 0x12, 0x34]);
+      gameData = createGameData([
+        GlulxOp.astores,
+        0x13,
+        0x02,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x02,
+        0x12,
+        0x34,
+      ]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);
@@ -155,7 +215,16 @@ void main() {
       // Data at 0x203: [0x44]
       // Opcode: aloadb 0x200, 3, stack
       // Modes: L1=3, L2=1, S1=8 -> 0x13, 0x08
-      gameData = createGameData([GlulxOp.aloadb, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x03]);
+      gameData = createGameData([
+        GlulxOp.aloadb,
+        0x13,
+        0x08,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x03,
+      ]);
       gameData[0x203] = 0x44;
 
       await interpreter.load(gameData);
@@ -169,7 +238,16 @@ void main() {
 
     test('aloadb does not sign-extend negative byte', () async {
       // Data at 0x203: [0x88]
-      gameData = createGameData([GlulxOp.aloadb, 0x13, 0x08, 0x00, 0x00, 0x02, 0x00, 0x03]);
+      gameData = createGameData([
+        GlulxOp.aloadb,
+        0x13,
+        0x08,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x03,
+      ]);
       gameData[0x203] = 0x88;
 
       await interpreter.load(gameData);
@@ -184,7 +262,17 @@ void main() {
     test('astoreb writes a byte to an array', () async {
       // Opcode: astoreb 0x200, 5, 0x55
       // Modes: L1=3, L2=1, L3=1 -> 0x13, 0x01
-      gameData = createGameData([GlulxOp.astoreb, 0x13, 0x01, 0x00, 0x00, 0x02, 0x00, 0x05, 0x55]);
+      gameData = createGameData([
+        GlulxOp.astoreb,
+        0x13,
+        0x01,
+        0x00,
+        0x00,
+        0x02,
+        0x00,
+        0x05,
+        0x55,
+      ]);
       await interpreter.load(gameData);
       harness = GlulxInterpreterTestingHarness(interpreter);
       harness.setProgramCounter(0x100);

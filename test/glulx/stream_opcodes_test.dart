@@ -3,12 +3,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
-import 'package:zart/src/io/platform/input_event.dart';
-import 'package:zart/src/io/platform/platform_capabilities.dart';
-import 'package:zart/src/io/platform/platform_provider.dart';
-import 'package:zart/src/io/platform/z_machine_io_command.dart';
-import 'package:zart/src/io/render/screen_frame.dart';
-import 'package:zart/src/loaders/blorb.dart';
+import 'package:zart/src/io/glk/glk_provider.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 
 void main() {
@@ -16,7 +11,7 @@ void main() {
     late GlulxInterpreter interpreter;
     late GlulxInterpreterTestingHarness harness;
     late Uint8List gameData;
-    late MockPlatformProvider mockIo;
+    late MockGlkProviderWithOutput mockIo;
 
     Uint8List createGameData(List<int> opcodeBytes) {
       final data = Uint8List(1024);
@@ -35,7 +30,7 @@ void main() {
     }
 
     setUp(() async {
-      mockIo = MockPlatformProvider();
+      mockIo = MockGlkProviderWithOutput();
       interpreter = GlulxInterpreter(mockIo);
     });
 
@@ -170,51 +165,63 @@ void main() {
   });
 }
 
-/// Mock PlatformProvider that captures output for testing stream opcodes.
-class MockPlatformProvider implements PlatformProvider {
+/// Mock GlkProvider that captures output for testing stream opcodes.
+class MockGlkProviderWithOutput implements GlkProvider {
   final List<int> output = [];
 
-  @override
-  String get gameName => 'test';
+  // Memory access callbacks
+  void Function(int addr, int value, {int size})? _writeMemory;
+  int Function(int addr, {int size})? _readMemory;
+
+  // Stack access callbacks
+  void Function(int value) _pushToStack = (v) {};
+  int Function() _popFromStack = () => 0;
+
+  // VM state
+  int Function()? _getHeapStart;
 
   @override
-  void init(GameFileType fileType) {}
+  void setMemoryAccess({
+    required void Function(int addr, int value, {int size}) write,
+    required int Function(int addr, {int size}) read,
+  }) {
+    _writeMemory = write;
+    _readMemory = read;
+  }
 
   @override
-  PlatformCapabilities get capabilities =>
-      PlatformCapabilities(screenWidth: 80, screenHeight: 24);
+  void setVMState({int Function()? getHeapStart}) {
+    _getHeapStart = getHeapStart;
+  }
 
   @override
-  void render(ScreenFrame frame) {}
+  void writeMemory(int addr, int value, {int size = 1}) {
+    _writeMemory?.call(addr, value, size: size);
+  }
 
   @override
-  void enterDisplayMode() {}
+  int readMemory(int addr, {int size = 1}) {
+    return _readMemory?.call(addr, size: size) ?? 0;
+  }
 
   @override
-  void exitDisplayMode() {}
+  void pushToStack(int value) {
+    _pushToStack.call(value);
+  }
 
   @override
-  Future<String> readLine({int? maxLength, int? timeout}) async => '';
+  int popFromStack() {
+    return _popFromStack.call();
+  }
 
   @override
-  Future<InputEvent> readInput({int? timeout}) async =>
-      const InputEvent.character('');
-
-  @override
-  InputEvent? pollInput() => null;
-
-  @override
-  Future<String?> saveGame(List<int> data, {String? suggestedName}) async =>
-      null;
-
-  @override
-  Future<List<int>?> restoreGame({String? suggestedName}) async => null;
-
-  @override
-  Future<String?> quickSave(List<int> data) async => null;
-
-  @override
-  Future<List<int>?> quickRestore() async => null;
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {
+    _pushToStack = push;
+    _popFromStack = pop;
+  }
 
   @override
   FutureOr<int> dispatch(int selector, List<int> args) {
@@ -231,7 +238,7 @@ class MockPlatformProvider implements PlatformProvider {
       case GlulxGestaltSelectors.glulxVersion:
         return 0x00030103;
       case GlulxGestaltSelectors.terpVersion:
-        return 0x00000100;
+        return 0x00010000;
       case GlulxGestaltSelectors.resizeMem:
         return 1;
       case GlulxGestaltSelectors.undo:
@@ -244,6 +251,12 @@ class MockPlatformProvider implements PlatformProvider {
         return 1;
       case GlulxGestaltSelectors.mAlloc:
         return 1;
+      case GlulxGestaltSelectors.mAllocHeap:
+        return _getHeapStart?.call() ?? 0;
+      case GlulxGestaltSelectors.acceleration:
+        return 1;
+      case GlulxGestaltSelectors.accelFunc:
+        return (arg >= 1 && arg <= 13) ? 1 : 0;
       case GlulxGestaltSelectors.float:
         return 1;
       case GlulxGestaltSelectors.extUndo:
@@ -260,46 +273,4 @@ class MockPlatformProvider implements PlatformProvider {
 
   @override
   Future<void> showExitAndWait(String message) async {}
-
-  Future<dynamic> zCommand(ZMachineIOCommand command) async => null;
-
-  @override
-  void onQuit() {}
-
-  @override
-  void onError(String message) {}
-
-  @override
-  void dispose() {}
-
-  @override
-  int popFromStack() {
-    return 0;
-  }
-
-  @override
-  void pushToStack(int value) {}
-
-  @override
-  int readMemory(int addr, {int size = 1}) {
-    return 0;
-  }
-
-  @override
-  void setMemoryAccess({
-    required void Function(int addr, int value, {int size}) write,
-    required int Function(int addr, {int size}) read,
-  }) {}
-
-  @override
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  }) {}
-
-  @override
-  void setVMState({int Function()? getHeapStart}) {}
-
-  @override
-  void writeMemory(int addr, int value, {int size = 1}) {}
 }

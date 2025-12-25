@@ -111,19 +111,6 @@ class PlatformCapabilities {
         supportsTimedInput: true,
       );
 
-  /// Query Glk gestalt value for a given selector.
-  ///
-  /// [selector] is a Glk gestalt constant (e.g., gestalt_Version).
-  /// [arg] is an optional argument for the gestalt query.
-  ///
-  /// Returns the gestalt result value.
-  int glkGestalt(int selector, int arg) {
-    // Default implementation returns 0 for unknown selectors.
-    // The PlatformProvider implementation should override this for
-    // full Glk gestalt support.
-    return 0;
-  }
-
   @override
   String toString() =>
       'PlatformCapabilities(${screenWidth}x$screenHeight, '

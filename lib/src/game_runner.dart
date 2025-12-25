@@ -4,11 +4,16 @@ import 'dart:typed_data';
 import 'package:zart/src/game_runner_exception.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart' show debugger;
 import 'package:zart/src/glulx/glulx_interpreter.dart';
+import 'package:zart/src/io/glk/glk_terminal_display.dart'
+    show GlkTerminalDisplay;
+import 'package:zart/src/io/glk/glulx_terminal_provider.dart'
+    show GlulxTerminalProvider;
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/cli/cli_renderer.dart';
 import 'package:zart/src/cli/cli_settings_screen.dart' show CliSettingsScreen;
 import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
-import 'package:zart/src/io/z_machine/z_terminal_display.dart' show ZTerminalDisplay;
+import 'package:zart/src/io/z_machine/z_terminal_display.dart'
+    show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 
@@ -65,10 +70,7 @@ class GameRunner {
       throw GameRunnerException('Unable to extract game data from file');
     }
 
-    // Initialize the provider for the detected game type
-    provider.init(fileType);
-
-    // Each game type manages its own full-screen mode
+    // Each game type manages its own setup and full-screen mode
     switch (fileType) {
       case GameFileType.glulx:
         await _runGlulx(gameData);
@@ -78,8 +80,18 @@ class GameRunner {
   }
 
   Future<void> _runGlulx(Uint8List gameData) async {
-    // Create the interpreter with the platform provider
-    _glulx = GlulxInterpreter(provider);
+    // Create renderer and Glk display locally (like Z-machine)
+    final renderer = CliRenderer();
+    final glkDisplay = GlkTerminalDisplay.withRenderer(renderer);
+    final glulxProvider = GlulxTerminalProvider(display: glkDisplay);
+
+    // Wire up settings callback
+    glkDisplay.onOpenSettings = () async {
+      await CliSettingsScreen(glkDisplay).show(isGameStarted: true);
+    };
+
+    // Create the interpreter with the Glk provider
+    _glulx = GlulxInterpreter(glulxProvider);
 
     // Configure debugger from debug config
     debugger.enabled = _debugConfig['debug'] ?? false;
@@ -104,9 +116,9 @@ class GameRunner {
       final maxStep = _debugConfig['maxstep'] ?? -1;
       await _glulx!.run(maxStep: maxStep);
 
-      // Final render and exit message using abstract provider methods
-      provider.renderScreen();
-      await provider.showExitAndWait('[Zart: Press any key to exit]');
+      // Final render and exit message using Glk provider methods
+      glulxProvider.renderScreen();
+      await glulxProvider.showExitAndWait('[Zart: Press any key to exit]');
 
       provider.exitDisplayMode();
     } catch (e) {
@@ -140,7 +152,8 @@ class GameRunner {
     zDisplay.detectTerminalSize();
     zDisplay.applySavedSettings();
 
-    zDisplay.onOpenSettings = () => CliSettingsScreen(zDisplay).show(isGameStarted: true);
+    zDisplay.onOpenSettings = () =>
+        CliSettingsScreen(zDisplay).show(isGameStarted: true);
 
     // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
     zDisplay.onQuickSave = () {
@@ -168,7 +181,11 @@ class GameRunner {
               continue;
             }
             zDisplay.appendToWindow0('\n');
-            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+            final commands = line
+                .split('.')
+                .map((c) => c.trim())
+                .where((c) => c.isNotEmpty)
+                .toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

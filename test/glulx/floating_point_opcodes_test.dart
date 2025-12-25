@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import '../../lib/src/cli/cli_platform_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   group('Floating Point Opcodes', () {
@@ -38,7 +38,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
+      interpreter = GlulxInterpreter(MockGlkProvider());
     });
 
     test('numtof converts integer to float', () async {

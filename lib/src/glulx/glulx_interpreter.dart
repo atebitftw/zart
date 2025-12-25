@@ -18,12 +18,12 @@ import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 import 'package:zart/src/glulx/glulx_accel.dart';
 import 'package:zart/src/glulx/glulx_binary_helper.dart';
 import 'package:zart/src/glulx/store_operand.dart';
-import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/io/glk/glk_provider.dart';
 
 /// The Glulx interpreter.
 class GlulxInterpreter {
-  /// The platform provider.
-  final PlatformProvider platform;
+  /// The Glk provider for IO operations.
+  final GlkProvider glk;
 
   /// The memory map for this interpreter.
   late GlulxMemoryMap memoryMap;
@@ -65,12 +65,12 @@ class GlulxInterpreter {
   final List<GlulxUndoState> _undoChain = [];
 
   /// Creates a new Glulx interpreter.
-  GlulxInterpreter(this.platform) {}
+  GlulxInterpreter(this.glk) {}
 
   /// Loads a game file into memory.
   Future<void> load(Uint8List gameData) async {
     memoryMap = GlulxMemoryMap(gameData);
-    platform.setVMState(getHeapStart: () => memoryMap.heapStart);
+    glk.setVMState(getHeapStart: () => memoryMap.heapStart);
     final header = GlulxHeader(memoryMap.rawMemory);
     _stringTableAddress = header.decodingTbl;
     _stringDecoder = GlulxStringDecoder(memoryMap);
@@ -84,7 +84,7 @@ class GlulxInterpreter {
       streamChar: (c) => _streamChar(c),
     );
 
-    platform.setMemoryAccess(
+    glk.setMemoryAccess(
       write: (addr, val, {size = 1}) {
         if (size == 1) {
           memoryMap.writeByte(addr, val);
@@ -106,7 +106,7 @@ class GlulxInterpreter {
       },
     );
 
-    platform.setStackAccess(
+    glk.setStackAccess(
       push: (val) => stack.push32(val),
       pop: () => stack.pop32(),
     );
@@ -1727,7 +1727,7 @@ class GlulxInterpreter {
 
   // / Calls the Glk dispatcher.
   FutureOr<int> _callGlk(int selector, List<int> args) {
-    final res = platform.dispatch(selector, args);
+    final res = glk.dispatch(selector, args);
     if (res is Future<int>) {
       return res.then((val) {
         if (debugger.enabled) {
@@ -1795,7 +1795,7 @@ class GlulxInterpreter {
         // Reference: gestalt.c case gestulx_AccelFunc
         return accel.supportsFunc(arg) ? 1 : 0;
       default:
-        return platform.vmGestalt(selector, arg);
+        return glk.vmGestalt(selector, arg);
     }
   }
 
@@ -3202,10 +3202,7 @@ class GlulxInterpreter {
     // This is very slow but ensures compatibility with any GlkIoProvider.
     // In a real production app, we should add a more efficient way to GlkIoProvider.
     for (final b in buffer) {
-      final res = platform.dispatch(GlkIoSelectors.putCharStream, [
-        streamId,
-        b,
-      ]);
+      final res = glk.dispatch(GlkIoSelectors.putCharStream, [streamId, b]);
       if (res is Future<int>) {
         // This is getting complicated with nesting.
         // Let's assume most Glk implementations of putCharStream are sync.
@@ -3220,7 +3217,7 @@ class GlulxInterpreter {
 
     // First read header
     while (true) {
-      final res = platform.dispatch(GlkIoSelectors.getCharStream, [streamId]);
+      final res = glk.dispatch(GlkIoSelectors.getCharStream, [streamId]);
       if (res is int) {
         if (res == -1) break; // EOF
         builder.addByte(res);
@@ -3235,9 +3232,7 @@ class GlulxInterpreter {
           final totalToRead = 36 + ramLen + stackPtr + (heapLen * 4);
 
           while (builder.length < totalToRead) {
-            final next = platform.dispatch(GlkIoSelectors.getCharStream, [
-              streamId,
-            ]);
+            final next = glk.dispatch(GlkIoSelectors.getCharStream, [streamId]);
             if (next is int) {
               if (next == -1) break;
               builder.addByte(next);

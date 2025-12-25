@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
-import '../../lib/src/cli/cli_platform_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   group('Move Opcodes', () {
@@ -27,7 +27,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
+      interpreter = GlulxInterpreter(MockGlkProvider());
     });
 
     test('copy copies 32-bit values', () async {
@@ -106,7 +106,10 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
       await interpreter.executeInstruction();
-      expect(interpreter.stack.pop32().toSigned(32), equals(0xFFFF8899.toSigned(32)));
+      expect(
+        interpreter.stack.pop32().toSigned(32),
+        equals(0xFFFF8899.toSigned(32)),
+      );
     });
 
     test('sexb sign-extends 8-bit to 32-bit', () async {
@@ -119,7 +122,10 @@ void main() {
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
       await interpreter.executeInstruction();
-      expect(interpreter.stack.pop32().toSigned(32), equals(0xFFFFFF88.toSigned(32)));
+      expect(
+        interpreter.stack.pop32().toSigned(32),
+        equals(0xFFFFFF88.toSigned(32)),
+      );
     });
   });
 }

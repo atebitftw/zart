@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import '../../lib/src/cli/cli_platform_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   /// Glulx Spec Section 2.4.1: Integer Math Opcodes
@@ -52,7 +52,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
+      interpreter = GlulxInterpreter(MockGlkProvider());
     });
 
     test('nop does nothing', () async {
@@ -160,7 +160,10 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
+      expect(
+        Future.sync(() => interpreter.executeInstruction()),
+        throwsException,
+      );
     });
 
     test('div throws on -0x80000000 / -1', () async {
@@ -177,7 +180,10 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
+      expect(
+        Future.sync(() => interpreter.executeInstruction()),
+        throwsException,
+      );
     });
 
     test('div handles negative numbers correctly', () async {
@@ -222,7 +228,10 @@ void main() {
       harness.setProgramCounter(0x100);
       interpreter.stack.pushFrame(Uint8List.fromList([0, 0]));
 
-      expect(Future.sync(() => interpreter.executeInstruction()), throwsException);
+      expect(
+        Future.sync(() => interpreter.executeInstruction()),
+        throwsException,
+      );
     });
 
     test('neg computes -L1', () async {

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import '../../lib/src/cli/cli_platform_provider.dart';
+import 'mock_glk_io_provider.dart';
 
 void main() {
   group('Search Opcodes', () {
@@ -26,7 +26,7 @@ void main() {
     }
 
     setUp(() async {
-      interpreter = GlulxInterpreter(CliPlatformProvider(gameName: 'test'));
+      interpreter = GlulxInterpreter(MockGlkProvider());
     });
 
     test('linearsearch finds a 4-byte key', () async {

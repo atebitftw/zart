@@ -21,7 +21,8 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   Future<void> Function()? get onOpenSettings => renderer.onOpenSettings;
   @override
-  set onOpenSettings(Future<void> Function()? value) => renderer.onOpenSettings = value;
+  set onOpenSettings(Future<void> Function()? value) =>
+      renderer.onOpenSettings = value;
 
   @override
   bool get enableStatusBar => renderer.zartBarVisible;
@@ -64,7 +65,8 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Show a temporary status message.
   @override
-  void showTempMessage(String message, {int seconds = 3}) => renderer.showTempMessage(message, seconds: seconds);
+  void showTempMessage(String message, {int seconds = 3}) =>
+      renderer.showTempMessage(message, seconds: seconds);
 
   /// Read a line of input.
   @override
@@ -136,7 +138,10 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   void _ensureUiModel() {
     if (_uiModel == null) {
-      _uiModel = ZScreenModel(cols: renderer.screenWidth, rows: renderer.screenHeight);
+      _uiModel = ZScreenModel(
+        cols: renderer.screenWidth,
+        rows: renderer.screenHeight,
+      );
     }
   }
 }
