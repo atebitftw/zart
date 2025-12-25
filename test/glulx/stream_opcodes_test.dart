@@ -6,10 +6,8 @@ import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
-import 'package:zart/src/io/platform/z_machine_display.dart';
 import 'package:zart/src/io/platform/z_machine_io_command.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
-import 'package:zart/src/io/z_io_dispatcher.dart';
 import 'package:zart/src/loaders/blorb.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 
@@ -264,12 +262,6 @@ class MockPlatformProvider implements PlatformProvider {
   Future<void> showExitAndWait(String message) async {}
 
   Future<dynamic> zCommand(ZMachineIOCommand command) async => null;
-
-  @override
-  ZIoDispatcher? get zDispatcher => null;
-
-  @override
-  ZMachineDisplay? get zDisplay => null;
 
   @override
   void onQuit() {}

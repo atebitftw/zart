@@ -4,7 +4,7 @@ import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/z_machine_display.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
-import 'package:zart/src/io/z_io_dispatcher.dart';
+import 'package:zart/src/io/z_machine/z_io_dispatcher.dart';
 import 'package:zart/src/loaders/blorb.dart';
 
 /// Unified platform provider interface for running Z-machine and Glulx games.
@@ -234,16 +234,6 @@ abstract class PlatformProvider {
   /// Displays [message] and blocks until the user presses any key.
   /// Used for the "Press any key to exit" prompt at game end.
   Future<void> showExitAndWait(String message);
-
-  /// Get the Z-machine IO dispatcher.
-  ///
-  /// Returns null if Z-machine is not initialized.
-  ZIoDispatcher? get zDispatcher;
-
-  /// Get the Z-machine display interface for input/output.
-  ///
-  /// Returns null if Z-machine is not initialized.
-  ZMachineDisplay? get zDisplay;
 
   // ============================================================
   // LIFECYCLE

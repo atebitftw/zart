@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'configuration_manager.dart';
+import 'package:zart/src/io/z_machine/configuration_manager.dart';
 import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/render/render_frame.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
@@ -22,10 +22,16 @@ class CliRenderer with TerminalCapabilities {
   /// Optional debug log callback.
   void Function(String)? onDebugLog;
 
-  /// Callbacks for F-keys.
+  /// Callback for F1 key.
   Future<void> Function()? onOpenSettings;
+
+  /// Callback for F2 key.
   void Function()? onQuickSave;
+
+  /// Callback for F3 key.
   void Function()? onQuickLoad;
+
+  /// Callback for F4 key.
   void Function()? onCycleTextColor;
 
   /// Screen dimensions.
@@ -40,7 +46,11 @@ class CliRenderer with TerminalCapabilities {
 
   /// Whether to show the zart bar at the bottom.
   bool _zartBarVisible = true;
+
+  /// Get whether the zart bar is visible.
   bool get zartBarVisible => _zartBarVisible;
+
+  /// Set whether the zart bar is visible.
   set zartBarVisible(bool value) => _zartBarVisible = value;
 
   /// Zart bar foreground color (Z-machine color code).
@@ -67,9 +77,6 @@ class CliRenderer with TerminalCapabilities {
 
   /// Last rendered frame (for re-rendering during scroll).
   RenderFrame? _lastFrame;
-
-  /// The configuration manager.
-  ConfigurationManager? config;
 
   /// Input queue for injected commands (e.g. quicksave).
   final List<String> _inputQueue = [];
@@ -100,6 +107,7 @@ class CliRenderer with TerminalCapabilities {
     return char;
   }
 
+  /// Detect terminal size and update screen dimensions.
   CliRenderer() {
     _detectTerminalSize();
   }
@@ -403,13 +411,11 @@ class CliRenderer with TerminalCapabilities {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
 
-          if (config != null) {
-            final cmd = config!.getBinding(bindingKey);
-            if (cmd != null) {
-              buf.write(cmd);
-              stdout.write('$cmd\n');
-              return buf.toString();
-            }
+          final cmd = configManager.getBinding(bindingKey);
+          if (cmd != null) {
+            buf.write(cmd);
+            stdout.write('$cmd\n');
+            return buf.toString();
           }
         }
       } else if (key.char.isNotEmpty &&

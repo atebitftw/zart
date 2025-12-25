@@ -1,8 +1,5 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'configuration_manager.dart';
-import 'glk_terminal_display.dart';
-import 'settings_screen.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart'
     show GlulxDebugger, debugger;
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
@@ -10,20 +7,20 @@ import 'package:zart/src/io/glk/glk_gestalt_selectors.dart'
     show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
+import 'package:zart/src/io/glk/glk_terminal_display.dart'
+    show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glk_window.dart';
+import 'package:zart/src/io/z_machine/settings_screen.dart';
 
 /// IO provider for Glulx interpreter.
 class GlulxTerminalProvider {
   /// The Glk terminal display.
   late final GlkTerminalDisplay glkDisplay;
 
-  /// The configuration manager.
-  final ConfigurationManager? config;
-
   /// Creates a terminal provider, optionally accepting a display for testing.
-  GlulxTerminalProvider({GlkTerminalDisplay? display, this.config}) {
+  GlulxTerminalProvider({GlkTerminalDisplay? display}) {
     glkDisplay = display ?? GlkTerminalDisplay();
-    glkDisplay.config = config;
+
     // ID 1001 is the default stream (terminal window0)
     _streams[1001] = _GlkStream(id: 1001, type: 1);
     // Initialize screen model with terminal dimensions
@@ -34,10 +31,7 @@ class GlulxTerminalProvider {
 
     // Wire up F-key callbacks for Glulx
     glkDisplay.onOpenSettings = () async {
-      await SettingsScreen(
-        glkDisplay,
-        config ?? ConfigurationManager(),
-      ).show(isGameStarted: true);
+      await SettingsScreen(glkDisplay).show(isGameStarted: true);
     };
 
     glkDisplay.renderer.onQuickSave = () {

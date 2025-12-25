@@ -1,11 +1,11 @@
 // Internals for Unit tests etc.
 export 'package:zart/src/z_machine/z_machine.dart' show Z, ZMachineRunState;
-export 'package:zart/src/io/z_io_dispatcher.dart';
+export 'package:zart/src/io/z_machine/z_io_dispatcher.dart';
 export 'package:zart/src/io/default_provider.dart';
 export 'package:zart/src/loaders/blorb.dart';
 export 'package:zart/src/z_machine/game_exception.dart';
 
 export 'package:zart/src/z_machine/header.dart';
-export 'package:zart/src/io/z_screen_model.dart';
-export 'package:zart/src/io/z_io_commands.dart';
+export 'package:zart/src/io/z_machine/z_screen_model.dart';
+export 'package:zart/src/io/z_machine/z_io_commands.dart';
 export 'package:zart/src/z_machine/z_machine.dart';

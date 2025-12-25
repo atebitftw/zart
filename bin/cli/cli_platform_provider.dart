@@ -2,18 +2,18 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'configuration_manager.dart';
-import 'cli_renderer.dart';
-import 'glk_terminal_display.dart';
-import 'glulx_terminal_provider.dart';
-import 'settings_screen.dart';
-import 'z_machine_io_dispatcher.dart';
-import 'z_terminal_display.dart';
+import 'package:zart/src/io/glk/glk_terminal_display.dart';
+import 'package:zart/src/io/glk/glulx_terminal_provider.dart'
+    show GlulxTerminalProvider;
+import 'package:zart/src/io/z_machine/cli_renderer.dart' show CliRenderer;
+import 'package:zart/src/io/z_machine/configuration_manager.dart'
+    show ConfigurationManager, configManager;
+import 'package:zart/src/io/z_machine/settings_screen.dart';
+import 'package:zart/src/io/z_machine/z_io_dispatcher.dart';
 import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/io/platform/z_machine_display.dart';
-import 'package:zart/src/io/platform/z_machine_io_command.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/loaders/blorb.dart';
 
@@ -39,23 +39,14 @@ class CliPlatformProvider extends PlatformProvider {
   GlulxTerminalProvider? _glulxProvider;
   GlkTerminalDisplay? _glkDisplay;
 
-  // === Z-machine Support ===
-  ZTerminalDisplay? _zDisplay;
-  ZMachineIoDispatcher? _zDispatcher;
-
   /// Whether a quick action is in progress.
   bool _isQuickSave = false;
   bool _isQuickRestore = false;
 
-  late final ConfigurationManager _config;
-
   /// Create a CLI platform provider.
   CliPlatformProvider({required String gameName}) : _gameName = gameName {
-    _config = ConfigurationManager()..load();
-
     _renderer = CliRenderer();
-
-    _renderer.config = _config;
+    configManager.load();
     _updateCapabilities();
 
     _renderer.onQuickSave = () {
@@ -98,8 +89,8 @@ class CliPlatformProvider extends PlatformProvider {
     switch (fileType) {
       case GameFileType.glulx:
         _initGlulx();
-      case GameFileType.z:
-        _initZMachine();
+      default:
+        break;
     }
   }
 
@@ -115,7 +106,6 @@ class CliPlatformProvider extends PlatformProvider {
   @override
   void enterDisplayMode() {
     _renderer.enterFullScreen();
-    _zDisplay?.detectTerminalSize();
   }
 
   @override
@@ -311,14 +301,11 @@ class CliPlatformProvider extends PlatformProvider {
   void _initGlulx() {
     // Share the renderer with GlkTerminalDisplay to ensure unified rendering path
     _glkDisplay = GlkTerminalDisplay.withRenderer(_renderer);
-    _glulxProvider = GlulxTerminalProvider(
-      display: _glkDisplay,
-      config: _config,
-    );
+    _glulxProvider = GlulxTerminalProvider(display: _glkDisplay);
 
     // Wire up settings callback
     _glkDisplay!.onOpenSettings = () async {
-      await SettingsScreen(_glkDisplay!, _config).show(isGameStarted: true);
+      await SettingsScreen(_glkDisplay!).show(isGameStarted: true);
     };
   }
 
@@ -436,39 +423,6 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   // ============================================================
-  // Z-MACHINE SUPPORT
-  // ============================================================
-
-  /// Initialize Z-machine support.
-  /// Called by GameRunner when starting a Z-machine game.
-  void _initZMachine() {
-    // Share the renderer with ZTerminalDisplay to ensure unified rendering path
-    _zDisplay = ZTerminalDisplay.withRenderer(_renderer);
-    _zDisplay!.config = _config;
-    _zDisplay!.applySavedSettings();
-
-    _zDisplay!.onOpenSettings = () =>
-        SettingsScreen(_zDisplay!, _config).show(isGameStarted: true);
-
-    // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
-    _zDisplay!.onQuickSave = () {
-      _isQuickSave = true;
-    };
-
-    _zDisplay!.onQuickLoad = () {
-      _isQuickRestore = true;
-    };
-
-    _zDispatcher = ZMachineIoDispatcher(_zDisplay!, this);
-  }
-
-  @override
-  ZMachineDisplay? get zDisplay => _zDisplay;
-
-  /// Get the Z-machine dispatcher for direct access.
-  ZMachineIoDispatcher? get zDispatcher => _zDispatcher;
-
-  // ============================================================
   // LIFECYCLE
   // ============================================================
 
@@ -486,33 +440,13 @@ class CliPlatformProvider extends PlatformProvider {
   void dispose() {
     _glulxProvider = null;
     _glkDisplay = null;
-    _zDisplay = null;
-    _zDispatcher = null;
   }
-}
 
-/// Z-machine IO command enum for backward compatibility.
-/// These map to the old string-based command system.
-enum _ZIoCommands {
-  print,
-  status,
-  clearScreen,
-  splitWindow,
-  setWindow,
-  setFont,
-  save,
-  restore,
-  // read,
-  // readChar,
-  quit,
-  printDebug,
-  async,
-  setCursor,
-  setTextStyle,
-  setColour,
-  eraseLine,
-  getCursor,
-  inputStream,
-  soundEffect,
-  setTrueColour,
+  @override
+  // TODO: implement zDispatcher
+  ZIoDispatcher? get zDispatcher => throw UnimplementedError();
+
+  @override
+  // TODO: implement zDisplay
+  ZMachineDisplay? get zDisplay => throw UnimplementedError();
 }

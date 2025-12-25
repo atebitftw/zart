@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import '../../bin/cli/cli_renderer.dart';
+import '../../lib/src/io/z_machine/cli_renderer.dart';
 
 void main() {
   test(

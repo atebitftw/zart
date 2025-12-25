@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
-import '../../bin/cli/z_terminal_display.dart';
-import '../../bin/cli/z_machine_io_dispatcher.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
+import 'package:zart/src/io/z_machine/z_terminal_display.dart';
 import 'package:zart/src/zart_internal.dart';
 
 // Mock TerminalDisplay to capture calls

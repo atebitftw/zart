@@ -5,6 +5,11 @@ import 'package:zart/src/game_runner_exception.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart' show debugger;
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/io/z_machine/cli_renderer.dart';
+import 'package:zart/src/io/z_machine/settings_screen.dart' show SettingsScreen;
+import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
+import 'package:zart/src/io/z_machine/z_terminal_display.dart'
+    show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 
@@ -113,10 +118,6 @@ class GameRunner {
 
   Future<void> _runZMachine(Uint8List gameData) async {
     // Set up Z-machine IO dispatcher from the provider
-    final dispatcher = provider.zDispatcher;
-    if (dispatcher != null) {
-      Z.io = dispatcher;
-    }
 
     Z.load(gameData);
 
@@ -129,59 +130,78 @@ class GameRunner {
 
     provider.enterDisplayMode();
 
-    // Access Z-machine display through the abstract interface
-    final zDisplay = provider.zDisplay;
-    if (zDisplay != null) {
-      zDisplay.enableStatusBar = true;
-      zDisplay.detectTerminalSize();
+    final renderer = CliRenderer();
 
-      final commandQueue = <String>[];
-      var state = await Z.runUntilInput();
+    // Share the renderer with ZTerminalDisplay to ensure unified rendering path
+    final zDisplay = ZTerminalDisplay.withRenderer(renderer);
 
-      while (state != ZMachineRunState.quit) {
-        switch (state) {
-          case ZMachineRunState.needsLineInput:
-            if (commandQueue.isEmpty) {
-              zDisplay.render();
-              final line = await zDisplay.readLine();
-              if (line == '__RESTORED__') {
-                state = await Z.runUntilInput();
-                continue;
-              }
-              zDisplay.appendToWindow0('\n');
-              final commands = line
-                  .split('.')
-                  .map((c) => c.trim())
-                  .where((c) => c.isNotEmpty)
-                  .toList();
-              if (commands.isEmpty) {
-                state = await Z.submitLineInput('');
-              } else {
-                commandQueue.addAll(commands);
-                state = await Z.submitLineInput(commandQueue.removeAt(0));
-              }
-            } else {
-              final cmd = commandQueue.removeAt(0);
-              zDisplay.appendInputEcho('$cmd\n');
-              state = await Z.submitLineInput(cmd);
-            }
-          case ZMachineRunState.needsCharInput:
+    final dispatcher = ZMachineIoDispatcher(zDisplay, provider);
+    Z.io = dispatcher;
+
+    zDisplay.detectTerminalSize();
+    zDisplay.applySavedSettings();
+
+    zDisplay.onOpenSettings = () =>
+        SettingsScreen(zDisplay).show(isGameStarted: true);
+
+    // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
+    zDisplay.onQuickSave = () {
+      //_isQuickSave = true;
+    };
+
+    zDisplay.onQuickLoad = () {
+      //_isQuickRestore = true;
+    };
+
+    zDisplay.enableStatusBar = true;
+    zDisplay.detectTerminalSize();
+
+    final commandQueue = <String>[];
+    var state = await Z.runUntilInput();
+
+    while (state != ZMachineRunState.quit) {
+      switch (state) {
+        case ZMachineRunState.needsLineInput:
+          if (commandQueue.isEmpty) {
             zDisplay.render();
-            final char = await zDisplay.readChar();
-            if (char.isNotEmpty) {
-              state = await Z.submitCharInput(char);
+            final line = await zDisplay.readLine();
+            if (line == '__RESTORED__') {
+              state = await Z.runUntilInput();
+              continue;
             }
-          case ZMachineRunState.quit:
-          case ZMachineRunState.error:
-          case ZMachineRunState.running:
-            break;
-        }
+            zDisplay.appendToWindow0('\n');
+            final commands = line
+                .split('.')
+                .map((c) => c.trim())
+                .where((c) => c.isNotEmpty)
+                .toList();
+            if (commands.isEmpty) {
+              state = await Z.submitLineInput('');
+            } else {
+              commandQueue.addAll(commands);
+              state = await Z.submitLineInput(commandQueue.removeAt(0));
+            }
+          } else {
+            final cmd = commandQueue.removeAt(0);
+            zDisplay.appendInputEcho('$cmd\n');
+            state = await Z.submitLineInput(cmd);
+          }
+        case ZMachineRunState.needsCharInput:
+          zDisplay.render();
+          final char = await zDisplay.readChar();
+          if (char.isNotEmpty) {
+            state = await Z.submitCharInput(char);
+          }
+        case ZMachineRunState.quit:
+        case ZMachineRunState.error:
+        case ZMachineRunState.running:
+          break;
       }
-
-      zDisplay.appendToWindow0('\n[Press any key to exit]');
-      zDisplay.render();
-      await zDisplay.readChar();
     }
+
+    zDisplay.appendToWindow0('\n[Press any key to exit]');
+    zDisplay.render();
+    await zDisplay.readChar();
 
     provider.exitDisplayMode();
   }

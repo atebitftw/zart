@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import '../../bin/cli/glk_terminal_display.dart';
-import '../../bin/cli/glulx_terminal_provider.dart';
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart';
+import 'package:zart/src/io/glk/glk_terminal_display.dart';
+import 'package:zart/src/io/glk/glulx_terminal_provider.dart';
 
 /// Mock GlkTerminalDisplay that returns preset input instead of reading stdin.
 class MockGlkTerminalDisplay extends GlkTerminalDisplay {

@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:zart/src/io/z_screen_model.dart';
+import 'package:zart/src/io/z_machine/z_screen_model.dart';
 
 void main() {
   group('ScreenModel Window Management', () {

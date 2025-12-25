@@ -1,16 +1,16 @@
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'configuration_manager.dart';
-import 'cli_renderer.dart';
-import 'z_terminal_colors.dart';
+import 'package:zart/src/io/z_machine/configuration_manager.dart';
+import 'package:zart/src/io/z_machine/cli_renderer.dart';
+import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
 import 'package:zart/src/logging.dart';
-import 'package:zart/src/io/z_screen_model.dart';
+import 'package:zart/src/io/z_machine/z_screen_model.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/platform/z_machine_display.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
-import 'zart_terminal.dart';
+import 'package:zart/src/io/z_machine/zart_terminal.dart';
 
 /// Z-Machine Terminal Display.
 /// Used by the unified [CliRenderer] for rendering.
@@ -51,9 +51,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int get cols => _cols;
 
   /// Terminal rows
-  int get rows => (enableStatusBar && (config?.zartBarVisible ?? true))
+  int get rows => (enableStatusBar && (configManager.zartBarVisible)
       ? _rows - 1
-      : _rows; // Dynamic sizing
+      : _rows); // Dynamic sizing
 
   final ZScreenModel _screen = ZScreenModel();
 
@@ -61,9 +61,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   ZScreenModel get screen => _screen;
 
   final Console _console = Console();
-
-  /// Reference to configuration
-  ConfigurationManager? config;
 
   /// Hook for opening settings
   Future<void> Function()? onOpenSettings;
@@ -112,9 +109,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     _screen.forceWindow0Color(newColor);
 
     // Save preference
-    if (config != null) {
-      config!.textColor = newColor;
-    }
+    configManager.textColor = newColor;
   }
 
   // State for tracking mouse escape sequences
@@ -179,22 +174,20 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Apply settings from configuration (e.g. initial color)
   void applySavedSettings() {
-    if (config != null) {
-      final savedColor = config!.textColor;
-      // Sync index
-      _currentTextColorIndex = _customTextColors.indexOf(savedColor);
-      if (_currentTextColorIndex == -1) {
-        _currentTextColorIndex = 0; // Default
-      }
-      _screen.forceWindow0Color(savedColor);
+    final savedColor = configManager.textColor;
+    // Sync index
+    _currentTextColorIndex = _customTextColors.indexOf(savedColor);
+    if (_currentTextColorIndex == -1) {
+      _currentTextColorIndex = 0; // Default
     }
+    _screen.forceWindow0Color(savedColor);
   }
 
   /// Shows a temporary status message in the bottom bar.
   void showTempMessage(String message, {int seconds = 3}) {
     _renderer?.showTempMessage(message, seconds: seconds);
     // Render immediate message if visible
-    if (config?.zartBarVisible ?? true) {
+    if (configManager.zartBarVisible) {
       render();
     }
   }
@@ -394,11 +387,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     // Sync status bar settings before render
     if (_renderer != null) {
       _renderer!.zartBarVisible =
-          enableStatusBar && (config?.zartBarVisible ?? true);
-      if (config != null) {
-        _renderer!.zartBarForeground = config!.zartBarForeground;
-        _renderer!.zartBarBackground = config!.zartBarBackground;
-      }
+          enableStatusBar && configManager.zartBarVisible;
+      _renderer!.zartBarForeground = configManager.zartBarForeground;
+      _renderer!.zartBarBackground = configManager.zartBarBackground;
     }
 
     // Delegate to CliRenderer for actual terminal output
@@ -549,18 +540,16 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
 
-          if (config != null) {
-            final cmd = config!.getBinding(bindingKey);
-            if (cmd != null) {
-              _inputBuffer = cmd;
-              appendToWindow0(cmd); // Echo it
-              appendToWindow0('\n');
-              _scrollOffset = 0; // Reset scroll
-              render();
-              _inputBuffer = '';
-              _inputLine = -1;
-              return cmd;
-            }
+          final cmd = configManager.getBinding(bindingKey);
+          if (cmd != null) {
+            _inputBuffer = cmd;
+            appendToWindow0(cmd); // Echo it
+            appendToWindow0('\n');
+            _scrollOffset = 0; // Reset scroll
+            render();
+            _inputBuffer = '';
+            _inputLine = -1;
+            return cmd;
           }
         }
       } else if (key.controlChar == ControlCharacter.backspace) {

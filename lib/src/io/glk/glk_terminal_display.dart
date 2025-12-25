@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'configuration_manager.dart';
-import 'cli_renderer.dart';
-import 'zart_terminal.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
-import 'package:zart/src/io/z_screen_model.dart';
+import 'package:zart/src/io/z_machine/cli_renderer.dart';
+import 'package:zart/src/io/z_machine/configuration_manager.dart'
+    show configManager;
+import 'package:zart/src/io/z_machine/z_screen_model.dart';
+import 'package:zart/src/io/z_machine/zart_terminal.dart' show ZartTerminal;
 
 /// Terminal display for Glk/Glulx games.
 ///
@@ -13,38 +14,29 @@ import 'package:zart/src/io/z_screen_model.dart';
 /// providing the Glk-specific model-to-frame conversion.
 class GlkTerminalDisplay implements ZartTerminal {
   final CliRenderer renderer;
-  CliRenderer get _renderer => renderer;
 
   /// Optional UI model used for standalone UI screens (like settings).
   ZScreenModel? _uiModel;
 
-  /// The configuration manager.
-  ConfigurationManager? _config;
-  ConfigurationManager? get config => _config;
-  set config(ConfigurationManager? value) {
-    _config = value;
-    renderer.config = value;
-  }
-
   /// Hook for opening settings.
   @override
-  Future<void> Function()? get onOpenSettings => _renderer.onOpenSettings;
+  Future<void> Function()? get onOpenSettings => renderer.onOpenSettings;
   @override
   set onOpenSettings(Future<void> Function()? value) =>
-      _renderer.onOpenSettings = value;
+      renderer.onOpenSettings = value;
 
   @override
-  bool get enableStatusBar => _renderer.zartBarVisible;
+  bool get enableStatusBar => renderer.zartBarVisible;
   @override
-  set enableStatusBar(bool value) => _renderer.zartBarVisible = value;
+  set enableStatusBar(bool value) => renderer.zartBarVisible = value;
 
   /// Screen dimensions (delegates to renderer).
-  int get cols => _renderer.screenWidth;
-  int get rows => _renderer.screenHeight;
+  int get cols => renderer.screenWidth;
+  int get rows => renderer.screenHeight;
 
   /// Whether zart bar is visible.
-  bool get zartBarVisible => _renderer.zartBarVisible;
-  set zartBarVisible(bool value) => _renderer.zartBarVisible = value;
+  bool get zartBarVisible => renderer.zartBarVisible;
+  set zartBarVisible(bool value) => renderer.zartBarVisible = value;
 
   /// Create with a new renderer.
   GlkTerminalDisplay() : renderer = CliRenderer();
@@ -53,10 +45,10 @@ class GlkTerminalDisplay implements ZartTerminal {
   GlkTerminalDisplay.withRenderer(this.renderer);
 
   /// Enter full-screen mode.
-  void enterFullScreen() => _renderer.enterFullScreen();
+  void enterFullScreen() => renderer.enterFullScreen();
 
   /// Exit full-screen mode.
-  void exitFullScreen() => _renderer.exitFullScreen();
+  void exitFullScreen() => renderer.exitFullScreen();
 
   /// Screen compositor for converting RenderFrames to ScreenFrames.
   final ScreenCompositor _compositor = ScreenCompositor();
@@ -66,25 +58,24 @@ class GlkTerminalDisplay implements ZartTerminal {
     final frame = model.toRenderFrame();
     final screenFrame = _compositor.composite(
       frame,
-      screenWidth: _renderer.screenWidth,
-      screenHeight: _renderer.screenHeight,
+      screenWidth: renderer.screenWidth,
+      screenHeight: renderer.screenHeight,
     );
-    _renderer.renderScreen(screenFrame);
+    renderer.renderScreen(screenFrame);
   }
 
   /// Show a temporary status message.
   @override
-  void showTempMessage(String message, {int seconds = 3}) {
-    _renderer.showTempMessage(message, seconds: seconds);
-  }
+  void showTempMessage(String message, {int seconds = 3}) =>
+      renderer.showTempMessage(message, seconds: seconds);
 
   /// Read a line of input.
   @override
-  Future<String> readLine() => _renderer.readLine();
+  Future<String> readLine() => renderer.readLine();
 
   /// Read a single character.
   @override
-  Future<String> readChar() => _renderer.readChar();
+  Future<String> readChar() => renderer.readChar();
 
   @override
   void appendToWindow0(String text) {
@@ -104,19 +95,17 @@ class GlkTerminalDisplay implements ZartTerminal {
       final frame = _uiModel!.toRenderFrame();
       final screenFrame = _compositor.composite(
         frame,
-        screenWidth: _renderer.screenWidth,
-        screenHeight: _renderer.screenHeight,
+        screenWidth: renderer.screenWidth,
+        screenHeight: renderer.screenHeight,
       );
-      _renderer.renderScreen(screenFrame, saveFrame: false);
+      renderer.renderScreen(screenFrame, saveFrame: false);
     } else {
       // Synchronize settings from config only when back in game mode
-      if (config != null) {
-        _renderer.zartBarVisible = config!.zartBarVisible;
-        _renderer.zartBarForeground = config!.zartBarForeground;
-        _renderer.zartBarBackground = config!.zartBarBackground;
-      }
+      renderer.zartBarVisible = configManager.zartBarVisible;
+      renderer.zartBarForeground = configManager.zartBarForeground;
+      renderer.zartBarBackground = configManager.zartBarBackground;
       // Restore game screen
-      _renderer.rerender();
+      renderer.rerender();
     }
   }
 
@@ -151,8 +140,8 @@ class GlkTerminalDisplay implements ZartTerminal {
   void _ensureUiModel() {
     if (_uiModel == null) {
       _uiModel = ZScreenModel(
-        cols: _renderer.screenWidth,
-        rows: _renderer.screenHeight,
+        cols: renderer.screenWidth,
+        rows: renderer.screenHeight,
       );
     }
   }

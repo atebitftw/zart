@@ -1,6 +1,6 @@
-import 'z_terminal_colors.dart';
-import 'configuration_manager.dart';
-import 'zart_terminal.dart';
+import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
+import 'package:zart/src/io/z_machine/configuration_manager.dart';
+import 'package:zart/src/io/z_machine/zart_terminal.dart';
 import 'package:zart/zart.dart' show getPreamble;
 
 /// A settings screen for the Zart CLI application.
@@ -8,11 +8,8 @@ class SettingsScreen {
   /// The terminal display.
   final ZartTerminal terminal;
 
-  /// The configuration manager.
-  final ConfigurationManager config;
-
   /// Creates a new settings screen.
-  SettingsScreen(this.terminal, this.config);
+  SettingsScreen(this.terminal);
 
   /// Allowed keys for custom key bindings.
   static const _allowedKeys = [
@@ -82,11 +79,14 @@ class SettingsScreen {
           ZTerminalColors.defaultColor,
         );
         terminal.appendToWindow0(
-          '[V] Visibility: ${config.zartBarVisible ? 'ON' : 'OFF'}\n',
+          '[V] Visibility: ${configManager.zartBarVisible ? 'ON' : 'OFF'}\n',
         );
         terminal.appendToWindow0('[F] Foreground Color\n');
         terminal.appendToWindow0('[B] Background Color\n');
-        terminal.setColors(config.zartBarForeground, config.zartBarBackground);
+        terminal.setColors(
+          configManager.zartBarForeground,
+          configManager.zartBarBackground,
+        );
         terminal.appendToWindow0(' [ ZART BAR STYLE PREVIEW ] ');
         terminal.setColors(
           ZTerminalColors.defaultColor,
@@ -107,7 +107,7 @@ class SettingsScreen {
         terminal.appendToWindow0('[A] Add Binding\n');
         terminal.appendToWindow0('[D] Delete Binding\n');
 
-        final bindings = config.bindings;
+        final bindings = configManager.bindings;
         if (bindings.isEmpty) {
           terminal.appendToWindow0('No macros defined.\n');
         } else {
@@ -129,17 +129,17 @@ class SettingsScreen {
         } else if (lowerChar == 'd') {
           await _deleteBinding();
         } else if (lowerChar == 'v') {
-          config.zartBarVisible = !config.zartBarVisible;
+          configManager.zartBarVisible = !configManager.zartBarVisible;
         } else if (lowerChar == 'f') {
           // Cycle foreground 2-10
-          var c = config.zartBarForeground + 1;
+          var c = configManager.zartBarForeground + 1;
           if (c > 10) c = 2;
-          config.zartBarForeground = c;
+          configManager.zartBarForeground = c;
         } else if (lowerChar == 'b') {
           // Cycle background 2-10
-          var c = config.zartBarBackground + 1;
+          var c = configManager.zartBarBackground + 1;
           if (c > 10) c = 2;
-          config.zartBarBackground = c;
+          configManager.zartBarBackground = c;
         }
       }
 
@@ -199,7 +199,7 @@ class SettingsScreen {
     final cmd = await terminal.readLine();
 
     if (cmd.isNotEmpty) {
-      config.setBinding(keyName, cmd);
+      configManager.setBinding(keyName, cmd);
       terminal.appendToWindow0('\nBound $keyName to "$cmd".\n');
     } else {
       terminal.appendToWindow0('\nCancelled.\n');
@@ -214,8 +214,8 @@ class SettingsScreen {
     final charKey = await terminal.readChar();
     final keyName = 'ctrl+${charKey.toLowerCase()}';
 
-    if (config.getBinding(keyName) != null) {
-      config.setBinding(keyName, null);
+    if (configManager.getBinding(keyName) != null) {
+      configManager.setBinding(keyName, null);
       terminal.appendToWindow0('\nDeleted binding for $keyName.\n');
     } else {
       terminal.appendToWindow0('\nNo binding found for $keyName.\n');
