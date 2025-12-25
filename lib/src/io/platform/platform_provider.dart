@@ -1,8 +1,5 @@
 import 'dart:async';
-
-import 'package:zart/src/io/platform/input_event.dart';
-import 'package:zart/src/io/platform/platform_capabilities.dart';
-import 'package:zart/src/io/render/screen_frame.dart';
+import 'package:zart/zart.dart';
 
 /// Unified platform provider interface for running Z-machine and Glulx games.
 ///
@@ -167,6 +164,11 @@ abstract class PlatformProvider {
   // ============================================================
   // LIFECYCLE
   // ============================================================
+
+  /// Called when the game is starting.
+  ///
+  /// The platform can prepare its display and resources.
+  void onInit(GameFileType fileType);
 
   /// Called when the game is quitting normally.
   ///

@@ -4,16 +4,13 @@ import 'dart:typed_data';
 import 'package:zart/src/game_runner_exception.dart';
 import 'package:zart/src/glulx/glulx_debugger.dart' show debugger;
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'package:zart/src/io/glk/glk_terminal_display.dart'
-    show GlkTerminalDisplay;
-import 'package:zart/src/io/glk/glulx_terminal_provider.dart'
-    show GlulxTerminalProvider;
+import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
+import 'package:zart/src/io/glk/glulx_terminal_provider.dart' show GlulxTerminalProvider;
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/cli/cli_renderer.dart';
 import 'package:zart/src/cli/cli_settings_screen.dart' show CliSettingsScreen;
 import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
-import 'package:zart/src/io/z_machine/z_terminal_display.dart'
-    show ZTerminalDisplay;
+import 'package:zart/src/io/z_machine/z_terminal_display.dart' show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 
@@ -81,7 +78,9 @@ class GameRunner {
 
   Future<void> _runGlulx(Uint8List gameData) async {
     // Create renderer and Glk display locally (like Z-machine)
+    //TODO migrate this tuff to the cli platform provider
     final renderer = CliRenderer();
+    provider.onInit(GameFileType.glulx);
     final glkDisplay = GlkTerminalDisplay.withRenderer(renderer);
     final glulxProvider = GlulxTerminalProvider(display: glkDisplay);
 
@@ -152,8 +151,7 @@ class GameRunner {
     zDisplay.detectTerminalSize();
     zDisplay.applySavedSettings();
 
-    zDisplay.onOpenSettings = () =>
-        CliSettingsScreen(zDisplay).show(isGameStarted: true);
+    zDisplay.onOpenSettings = () => CliSettingsScreen(zDisplay).show(isGameStarted: true);
 
     // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
     zDisplay.onQuickSave = () {
@@ -181,11 +179,7 @@ class GameRunner {
               continue;
             }
             zDisplay.appendToWindow0('\n');
-            final commands = line
-                .split('.')
-                .map((c) => c.trim())
-                .where((c) => c.isNotEmpty)
-                .toList();
+            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

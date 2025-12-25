@@ -27,7 +27,15 @@ class CliPlatformProvider extends PlatformProvider {
   bool _isQuickRestore = false;
 
   /// Create a CLI platform provider.
-  CliPlatformProvider({required String gameName}) : _gameName = gameName {
+  CliPlatformProvider({required String gameName}) : _gameName = gameName;
+
+  String _gameName;
+
+  @override
+  String get gameName => _gameName;
+
+  @override
+  void onInit(GameFileType fileType) {
     _renderer = CliRenderer();
     configManager.load();
     _updateCapabilities();
@@ -45,16 +53,8 @@ class CliPlatformProvider extends PlatformProvider {
     };
   }
 
-  String _gameName;
-
-  @override
-  String get gameName => _gameName;
-
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(
-      width: _renderer.screenWidth,
-      height: _renderer.screenHeight,
-    );
+    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
   }
 
   // ============================================================
@@ -249,10 +249,7 @@ class CliPlatformProvider extends PlatformProvider {
     try {
       final f = File(filename);
       if (!f.existsSync()) {
-        _renderer.showTempMessage(
-          'QuickSave File Not Found ($filename)',
-          seconds: 3,
-        );
+        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
         return null;
       }
 
