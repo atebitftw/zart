@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_op.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import '../../bin/cli/cli_platform_provider.dart';
+import '../../lib/src/cli/cli_platform_provider.dart';
 
 void main() {
   group('Stack Opcodes', () {

@@ -2,15 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'package:zart/src/io/z_machine/configuration_manager.dart';
+import 'package:zart/src/cli/cli_configuration_manager.dart';
 import 'package:zart/src/io/render/render_cell.dart';
 import 'package:zart/src/io/render/render_frame.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/io/render/capability_provider.dart';
 
-const _zartBarText =
-    "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
+const _zartBarText = "(Zart) F1=Settings, F2=QuickSave, F3=QuickLoad, F4=Text Color, PgUp/PgDn=Scroll";
 
 /// Unified CLI renderer for both Z-machine and Glulx games.
 ///
@@ -190,11 +189,7 @@ class CliRenderer with TerminalCapabilities {
     _detectTerminalSize();
 
     // Use compositor to create flat screen buffer
-    final screenFrame = _compositor.composite(
-      frame,
-      screenWidth: _cols,
-      screenHeight: screenHeight,
-    );
+    final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: screenHeight);
 
     renderScreen(screenFrame, saveFrame: saveFrame);
   }
@@ -275,17 +270,13 @@ class CliRenderer with TerminalCapabilities {
 
   void _drawZartBar(StringBuffer buf) {
     // Check for expired temp message
-    if (_tempMessage != null &&
-        _tempMessageExpiry != null &&
-        DateTime.now().isAfter(_tempMessageExpiry!)) {
+    if (_tempMessage != null && _tempMessageExpiry != null && DateTime.now().isAfter(_tempMessageExpiry!)) {
       _tempMessage = null;
     }
 
     final text = _tempMessage ?? _zartBarText;
     final paddedText = text.padRight(_cols);
-    final finalText = paddedText.length > _cols
-        ? paddedText.substring(0, _cols)
-        : paddedText;
+    final finalText = paddedText.length > _cols ? paddedText.substring(0, _cols) : paddedText;
 
     final barRow = _rows; // Last row (1-indexed)
     buf.write('\x1B[$barRow;1H');
@@ -398,15 +389,11 @@ class CliRenderer with TerminalCapabilities {
         // Scroll down (toward current)
         scroll(-5);
         rerender();
-      } else if (key.controlChar.toString().contains('.ctrl') &&
-          key.controlChar != ControlCharacter.ctrlC) {
+      } else if (key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
         // Handle Ctrl+Key Macros
         final s = key.controlChar.toString();
         // Handle both ControlCharacter.ctrlA and ctrlA formats
-        final match = RegExp(
-          r'ctrl([a-z])$',
-          caseSensitive: false,
-        ).firstMatch(s);
+        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
         if (match != null) {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
@@ -418,8 +405,7 @@ class CliRenderer with TerminalCapabilities {
             return buf.toString();
           }
         }
-      } else if (key.char.isNotEmpty &&
-          key.controlChar == ControlCharacter.none) {
+      } else if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
         buf.write(key.char);
         stdout.write(key.char);
       }

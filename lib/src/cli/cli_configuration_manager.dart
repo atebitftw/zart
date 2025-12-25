@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:zart/src/logging.dart';
 
 /// The global configuration manager for Zart.
-final ConfigurationManager configManager = ConfigurationManager();
+final CliConfigurationManager configManager = CliConfigurationManager();
 
 /// Manages persistent configuration for Zart, including key bindings.
-class ConfigurationManager {
+class CliConfigurationManager {
   static const String _configFileName = 'zart.config';
 
   Map<String, String> _bindings = {};

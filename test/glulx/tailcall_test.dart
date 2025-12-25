@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import '../../bin/cli/cli_platform_provider.dart';
+import '../../lib/src/cli/cli_platform_provider.dart';
 
 void main() {
   group('Tailcall Regression Test', () {
@@ -74,11 +74,7 @@ void main() {
       // Execute 'callfi'
       await interpreter.executeInstruction();
       final spAfterCall = interpreter.stack.sp;
-      expect(
-        spAfterCall,
-        greaterThan(initialSp),
-        reason: 'Call should push a frame',
-      );
+      expect(spAfterCall, greaterThan(initialSp), reason: 'Call should push a frame');
 
       // Now run the recursion.
       // Each tailcall should be stack-neutral.
@@ -87,11 +83,7 @@ void main() {
       while (interpreter.pc >= 0x100 && interpreter.pc < 0x127 && steps < 100) {
         // Capture SP at the start of each recursion loop (at entry point)
         if (interpreter.pc == 0x105) {
-          expect(
-            interpreter.stack.sp,
-            equals(spAfterCall),
-            reason: 'Stack should be neutral at function entry',
-          );
+          expect(interpreter.stack.sp, equals(spAfterCall), reason: 'Stack should be neutral at function entry');
         }
 
         await interpreter.executeInstruction();
@@ -106,16 +98,8 @@ void main() {
         await interpreter.executeInstruction();
       }
 
-      expect(
-        interpreter.pc,
-        equals(0x129),
-        reason: 'Should have finished recursion at PC 0x129 (after quit)',
-      );
-      expect(
-        maxSp,
-        equals(spAfterCall + 4),
-        reason: 'Max stack depth should be initial + 1 pushed argument',
-      );
+      expect(interpreter.pc, equals(0x129), reason: 'Should have finished recursion at PC 0x129 (after quit)');
+      expect(maxSp, equals(spAfterCall + 4), reason: 'Max stack depth should be initial + 1 pushed argument');
     });
   });
 }

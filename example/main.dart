@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:logging/logging.dart' show Level;
 import 'package:zart/src/logging.dart' show log;
 import 'package:zart/zart.dart';
-import '../bin/cli/cli_platform_provider.dart';
+import '../lib/src/cli/cli_platform_provider.dart';
 
 /// Example of using Zart with the PlatformProvider API.
 ///

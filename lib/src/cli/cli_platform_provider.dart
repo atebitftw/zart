@@ -3,19 +3,11 @@ import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/io/glk/glk_terminal_display.dart';
-import 'package:zart/src/io/glk/glulx_terminal_provider.dart'
-    show GlulxTerminalProvider;
-import 'package:zart/src/io/z_machine/cli_renderer.dart' show CliRenderer;
-import 'package:zart/src/io/z_machine/configuration_manager.dart'
-    show ConfigurationManager, configManager;
-import 'package:zart/src/io/z_machine/settings_screen.dart';
-import 'package:zart/src/io/z_machine/z_io_dispatcher.dart';
-import 'package:zart/src/io/platform/input_event.dart';
-import 'package:zart/src/io/platform/platform_capabilities.dart';
-import 'package:zart/src/io/platform/platform_provider.dart';
-import 'package:zart/src/io/platform/z_machine_display.dart';
-import 'package:zart/src/io/render/screen_frame.dart';
-import 'package:zart/src/loaders/blorb.dart';
+import 'package:zart/src/io/glk/glulx_terminal_provider.dart' show GlulxTerminalProvider;
+import 'package:zart/src/cli/cli_renderer.dart' show CliRenderer;
+import 'package:zart/src/cli/cli_configuration_manager.dart' show configManager;
+import 'package:zart/src/cli/cli_settings_screen.dart';
+import 'package:zart/zart.dart';
 
 /// CLI/Terminal implementation of [PlatformProvider].
 ///
@@ -68,10 +60,7 @@ class CliPlatformProvider extends PlatformProvider {
   String get gameName => _gameName;
 
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(
-      width: _renderer.screenWidth,
-      height: _renderer.screenHeight,
-    );
+    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
   }
 
   // ============================================================
@@ -276,10 +265,7 @@ class CliPlatformProvider extends PlatformProvider {
     try {
       final f = File(filename);
       if (!f.existsSync()) {
-        _renderer.showTempMessage(
-          'QuickSave File Not Found ($filename)',
-          seconds: 3,
-        );
+        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
         return null;
       }
 
@@ -305,7 +291,7 @@ class CliPlatformProvider extends PlatformProvider {
 
     // Wire up settings callback
     _glkDisplay!.onOpenSettings = () async {
-      await SettingsScreen(_glkDisplay!).show(isGameStarted: true);
+      await CliSettingsScreen(_glkDisplay!).show(isGameStarted: true);
     };
   }
 
@@ -415,10 +401,7 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  }) {
+  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
     _glulxProvider?.setStackAccess(push: push, pop: pop);
   }
 
@@ -441,12 +424,4 @@ class CliPlatformProvider extends PlatformProvider {
     _glulxProvider = null;
     _glkDisplay = null;
   }
-
-  @override
-  // TODO: implement zDispatcher
-  ZIoDispatcher? get zDispatcher => throw UnimplementedError();
-
-  @override
-  // TODO: implement zDisplay
-  ZMachineDisplay? get zDisplay => throw UnimplementedError();
 }

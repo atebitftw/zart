@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:zart/src/io/platform/input_event.dart';
 import 'package:zart/src/io/platform/platform_capabilities.dart';
-import 'package:zart/src/io/platform/z_machine_display.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
-import 'package:zart/src/io/z_machine/z_io_dispatcher.dart';
 import 'package:zart/src/loaders/blorb.dart';
 
 /// Unified platform provider interface for running Z-machine and Glulx games.
@@ -202,10 +200,7 @@ abstract class PlatformProvider {
   int popFromStack();
 
   /// Set stack access callbacks for Glk operations.
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  });
+  void setStackAccess({required void Function(int value) push, required int Function() pop});
 
   /// Unified IO dispatch using Glk selectors.
   ///

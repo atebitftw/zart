@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
-import 'package:zart/src/io/z_machine/cli_renderer.dart';
-import 'package:zart/src/io/z_machine/configuration_manager.dart'
-    show configManager;
+import 'package:zart/src/cli/cli_renderer.dart';
+import 'package:zart/src/cli/cli_configuration_manager.dart' show configManager;
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart' show ZartTerminal;
 
@@ -22,8 +21,7 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   Future<void> Function()? get onOpenSettings => renderer.onOpenSettings;
   @override
-  set onOpenSettings(Future<void> Function()? value) =>
-      renderer.onOpenSettings = value;
+  set onOpenSettings(Future<void> Function()? value) => renderer.onOpenSettings = value;
 
   @override
   bool get enableStatusBar => renderer.zartBarVisible;
@@ -66,8 +64,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Show a temporary status message.
   @override
-  void showTempMessage(String message, {int seconds = 3}) =>
-      renderer.showTempMessage(message, seconds: seconds);
+  void showTempMessage(String message, {int seconds = 3}) => renderer.showTempMessage(message, seconds: seconds);
 
   /// Read a line of input.
   @override
@@ -139,10 +136,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   void _ensureUiModel() {
     if (_uiModel == null) {
-      _uiModel = ZScreenModel(
-        cols: renderer.screenWidth,
-        rows: renderer.screenHeight,
-      );
+      _uiModel = ZScreenModel(cols: renderer.screenWidth, rows: renderer.screenHeight);
     }
   }
 }

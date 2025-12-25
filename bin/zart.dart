@@ -1,7 +1,7 @@
 import 'dart:io';
 
+import 'package:zart/src/cli/cli_platform_provider.dart';
 import 'package:zart/zart.dart';
-import 'cli/cli_platform_provider.dart';
 
 /// Zart CLI - A terminal-based player for Z-Machine and Glulx games.
 void main(List<String> args) async {
