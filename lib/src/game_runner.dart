@@ -7,8 +7,6 @@ import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glulx_terminal_provider.dart' show GlulxTerminalProvider;
 import 'package:zart/src/io/platform/platform_provider.dart';
-import 'package:zart/src/cli/cli_renderer.dart';
-import 'package:zart/src/cli/cli_settings_screen.dart' show CliSettingsScreen;
 import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
 import 'package:zart/src/io/z_machine/z_terminal_display.dart' show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
@@ -77,16 +75,39 @@ class GameRunner {
   }
 
   Future<void> _runGlulx(Uint8List gameData) async {
-    // Create renderer and Glk display locally (like Z-machine)
-    //TODO migrate this tuff to the cli platform provider
-    final renderer = CliRenderer();
     provider.onInit(GameFileType.glulx);
-    final glkDisplay = GlkTerminalDisplay.withRenderer(renderer);
+
+    // Create Glk display without renderer - callbacks will be wired
+    final glkDisplay = GlkTerminalDisplay();
+
+    // Set screen dimensions from platform capabilities
+    final caps = provider.capabilities;
+    glkDisplay.cols = caps.screenWidth;
+    glkDisplay.rows = caps.screenHeight;
+
+    // Wire up screen rendering callback
+    glkDisplay.onScreenReady = (frame) => provider.render(frame);
+
+    // Wire up input callbacks using platform provider
+    glkDisplay.onReadLine = () => provider.readLine();
+    glkDisplay.onReadChar = () async {
+      final event = await provider.readInput();
+      if (event.character != null) {
+        return event.character!;
+      }
+      return '';
+    };
+
+    // Wire up temp message callback (if platform supports it)
+    glkDisplay.onShowTempMessage = (message, {int seconds = 3}) {
+      provider.showTempMessage(message, seconds: seconds);
+    };
+
     final glulxProvider = GlulxTerminalProvider(display: glkDisplay);
 
     // Wire up settings callback
     glkDisplay.onOpenSettings = () async {
-      await CliSettingsScreen(glkDisplay).show(isGameStarted: true);
+      await provider.openSettings(glkDisplay, isGameStarted: true);
     };
 
     // Create the interpreter with the Glk provider
@@ -128,7 +149,6 @@ class GameRunner {
 
   Future<void> _runZMachine(Uint8List gameData) async {
     // Set up Z-machine IO dispatcher from the provider
-
     Z.load(gameData);
 
     // Handle Ctrl+C
@@ -138,12 +158,19 @@ class GameRunner {
       exit(0);
     });
 
+    provider.onInit(GameFileType.z);
     provider.enterDisplayMode();
 
-    final renderer = CliRenderer();
+    // Create ZTerminalDisplay - callbacks will be wired
+    final zDisplay = ZTerminalDisplay();
 
-    // Share the renderer with ZTerminalDisplay to ensure unified rendering path
-    final zDisplay = ZTerminalDisplay.withRenderer(renderer);
+    // Wire up screen rendering callback
+    zDisplay.onScreenReady = (frame) => provider.render(frame);
+
+    // Wire up temp message callback
+    zDisplay.onShowTempMessage = (message, {int seconds = 3}) {
+      provider.showTempMessage(message, seconds: seconds);
+    };
 
     final dispatcher = ZMachineIoDispatcher(zDisplay, provider);
     Z.io = dispatcher;
@@ -151,7 +178,7 @@ class GameRunner {
     zDisplay.detectTerminalSize();
     zDisplay.applySavedSettings();
 
-    zDisplay.onOpenSettings = () => CliSettingsScreen(zDisplay).show(isGameStarted: true);
+    zDisplay.onOpenSettings = () => provider.openSettings(zDisplay, isGameStarted: true);
 
     // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
     zDisplay.onQuickSave = () {

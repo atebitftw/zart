@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
-import '../../lib/src/cli/cli_platform_provider.dart';
+import 'package:zart/src/cli/cli_platform_provider.dart';
+import 'package:zart/zart.dart';
 
 void main() {
   group('QuickSave Injection', () {
@@ -7,6 +8,8 @@ void main() {
 
     setUp(() {
       provider = CliPlatformProvider(gameName: 'testgame');
+      // Initialize the provider to create the renderer
+      provider.onInit(GameFileType.z);
     });
 
     test('F2 should inject "save\\n" and automate filename', () async {

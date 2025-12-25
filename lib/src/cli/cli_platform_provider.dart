@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/cli/cli_renderer.dart' show CliRenderer;
 import 'package:zart/src/cli/cli_configuration_manager.dart' show configManager;
+import 'package:zart/src/cli/cli_settings_screen.dart' show CliSettingsScreen;
 import 'package:zart/zart.dart';
 
 /// CLI/Terminal implementation of [PlatformProvider].
@@ -84,6 +85,16 @@ class CliPlatformProvider extends PlatformProvider {
   @override
   void exitDisplayMode() {
     _renderer.exitFullScreen();
+  }
+
+  @override
+  void showTempMessage(String message, {int seconds = 3}) {
+    _renderer.showTempMessage(message, seconds: seconds);
+  }
+
+  @override
+  Future<void> openSettings(dynamic terminal, {bool isGameStarted = false}) async {
+    await CliSettingsScreen(terminal).show(isGameStarted: isGameStarted);
   }
 
   // ============================================================

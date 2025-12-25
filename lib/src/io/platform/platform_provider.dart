@@ -82,18 +82,17 @@ abstract class PlatformProvider {
   /// The [frame] is a flat grid of cells ready for direct rendering.
   void render(ScreenFrame frame);
 
-  /// Enter game display mode (full-screen, alternate buffer, etc).
+  /// Show a temporary status message in the display.
   ///
-  /// Called when the game starts. The platform should set up its
-  /// display for game rendering (e.g., enter alternate screen buffer
-  /// in terminals, hide system UI in mobile apps).
-  void enterDisplayMode();
+  /// Used for transient notifications like "Game saved" or "Quickloaded".
+  /// The message should disappear after [seconds] seconds.
+  void showTempMessage(String message, {int seconds = 3});
 
-  /// Exit game display mode and restore normal display.
+  /// Open the settings screen.
   ///
-  /// Called when the game ends. The platform should restore its
-  /// normal display state.
-  void exitDisplayMode();
+  /// The platform should display its settings UI and return when complete.
+  /// [terminal] is the display interface for settings to render to.
+  Future<void> openSettings(covariant dynamic terminal, {bool isGameStarted = false});
 
   // ============================================================
   // INPUT
@@ -169,6 +168,19 @@ abstract class PlatformProvider {
   ///
   /// The platform can prepare its display and resources.
   void onInit(GameFileType fileType);
+
+  /// Enter game display mode (full-screen, alternate buffer, etc).
+  ///
+  /// Called when the game starts. The platform should set up its
+  /// display for game rendering (e.g., enter alternate screen buffer
+  /// in terminals, hide system UI in mobile apps).
+  void enterDisplayMode();
+
+  /// Exit game display mode and restore normal display.
+  ///
+  /// Called when the game ends. The platform should restore its
+  /// normal display state.
+  void exitDisplayMode();
 
   /// Called when the game is quitting normally.
   ///

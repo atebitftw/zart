@@ -2,52 +2,69 @@ import 'dart:async';
 
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
-import 'package:zart/src/cli/cli_renderer.dart';
+import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/cli/cli_configuration_manager.dart' show configManager;
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart' show ZartTerminal;
 
 /// Terminal display for Glk/Glulx games.
 ///
-/// Uses the unified [CliRenderer] for actual rendering,
-/// providing the Glk-specific model-to-frame conversion.
+/// Uses `ScreenCompositor` to produce `ScreenFrame` objects that are
+/// sent to the platform layer via the `onScreenReady` callback.
 class GlkTerminalDisplay implements ZartTerminal {
-  final CliRenderer renderer;
+  /// Callback when a screen frame is ready to be rendered.
+  void Function(ScreenFrame frame)? onScreenReady;
+
+  /// Callback to enter full-screen mode.
+  void Function()? onEnterFullScreen;
+
+  /// Callback to exit full-screen mode.
+  void Function()? onExitFullScreen;
+
+  /// Callback to show a temporary message.
+  void Function(String message, {int seconds})? onShowTempMessage;
 
   /// Optional UI model used for standalone UI screens (like settings).
   ZScreenModel? _uiModel;
 
   /// Hook for opening settings.
   @override
-  Future<void> Function()? get onOpenSettings => renderer.onOpenSettings;
-  @override
-  set onOpenSettings(Future<void> Function()? value) =>
-      renderer.onOpenSettings = value;
+  Future<void> Function()? onOpenSettings;
+
+  /// Whether the zart bar (status bar) is visible.
+  bool _zartBarVisible = true;
 
   @override
-  bool get enableStatusBar => renderer.zartBarVisible;
+  bool get enableStatusBar => _zartBarVisible;
   @override
-  set enableStatusBar(bool value) => renderer.zartBarVisible = value;
+  set enableStatusBar(bool value) => _zartBarVisible = value;
 
-  /// Screen dimensions (delegates to renderer).
-  int get cols => renderer.screenWidth;
-  int get rows => renderer.screenHeight;
+  /// Screen dimensions - must be set by the platform layer.
+  int _cols = 80;
+  int _rows = 24;
+
+  /// Screen width in columns.
+  int get cols => _cols;
+  set cols(int value) => _cols = value;
+
+  /// Screen height in rows (adjusted for zart bar).
+  int get rows => _zartBarVisible ? _rows - 1 : _rows;
+
+  /// Set the raw terminal rows (before adjustment for zart bar).
+  set rows(int value) => _rows = value;
 
   /// Whether zart bar is visible.
-  bool get zartBarVisible => renderer.zartBarVisible;
-  set zartBarVisible(bool value) => renderer.zartBarVisible = value;
+  bool get zartBarVisible => _zartBarVisible;
+  set zartBarVisible(bool value) => _zartBarVisible = value;
 
-  /// Create with a new renderer.
-  GlkTerminalDisplay() : renderer = CliRenderer();
-
-  /// Create with an existing renderer (for shared display).
-  GlkTerminalDisplay.withRenderer(this.renderer);
+  /// Create with default dimensions.
+  GlkTerminalDisplay();
 
   /// Enter full-screen mode.
-  void enterFullScreen() => renderer.enterFullScreen();
+  void enterFullScreen() => onEnterFullScreen?.call();
 
   /// Exit full-screen mode.
-  void exitFullScreen() => renderer.exitFullScreen();
+  void exitFullScreen() => onExitFullScreen?.call();
 
   /// Screen compositor for converting RenderFrames to ScreenFrames.
   final ScreenCompositor _compositor = ScreenCompositor();
@@ -55,26 +72,33 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Render the entire screen from the GlkScreenModel.
   void renderGlk(GlkScreenModel model) {
     final frame = model.toRenderFrame();
-    final screenFrame = _compositor.composite(
-      frame,
-      screenWidth: renderer.screenWidth,
-      screenHeight: renderer.screenHeight,
-    );
-    renderer.renderScreen(screenFrame);
+    final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: rows);
+    onScreenReady?.call(screenFrame);
   }
 
   /// Show a temporary status message.
   @override
-  void showTempMessage(String message, {int seconds = 3}) =>
-      renderer.showTempMessage(message, seconds: seconds);
+  void showTempMessage(String message, {int seconds = 3}) => onShowTempMessage?.call(message, seconds: seconds);
 
   /// Read a line of input.
+  /// This must be provided by the platform layer via a callback.
+  Future<String> Function()? onReadLine;
+
   @override
-  Future<String> readLine() => renderer.readLine();
+  Future<String> readLine() async {
+    if (onReadLine != null) return onReadLine!();
+    throw StateError('onReadLine callback not set');
+  }
 
   /// Read a single character.
+  /// This must be provided by the platform layer via a callback.
+  Future<String> Function()? onReadChar;
+
   @override
-  Future<String> readChar() => renderer.readChar();
+  Future<String> readChar() async {
+    if (onReadChar != null) return onReadChar!();
+    throw StateError('onReadChar callback not set');
+  }
 
   @override
   void appendToWindow0(String text) {
@@ -92,19 +116,13 @@ class GlkTerminalDisplay implements ZartTerminal {
   void render() {
     if (_uiModel != null) {
       final frame = _uiModel!.toRenderFrame();
-      final screenFrame = _compositor.composite(
-        frame,
-        screenWidth: renderer.screenWidth,
-        screenHeight: renderer.screenHeight,
-      );
-      renderer.renderScreen(screenFrame, saveFrame: false);
+      final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: rows);
+      onScreenReady?.call(screenFrame);
     } else {
       // Synchronize settings from config only when back in game mode
-      renderer.zartBarVisible = configManager.zartBarVisible;
-      renderer.zartBarForeground = configManager.zartBarForeground;
-      renderer.zartBarBackground = configManager.zartBarBackground;
-      // Restore game screen
-      renderer.rerender();
+      _zartBarVisible = configManager.zartBarVisible;
+      // Signal to re-render game screen - platform layer handles this
+      // by re-calling renderGlk with the cached model
     }
   }
 
@@ -118,7 +136,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   @override
   void saveState() {
-    // Current frame is already saved in renderer._lastFrame.
+    // Current frame is already saved in the game loop.
     // We start a fresh UI model for the settings screen.
     _ensureUiModel();
     _uiModel!.clearAll();
@@ -138,10 +156,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   void _ensureUiModel() {
     if (_uiModel == null) {
-      _uiModel = ZScreenModel(
-        cols: renderer.screenWidth,
-        rows: renderer.screenHeight,
-      );
+      _uiModel = ZScreenModel(cols: _cols, rows: rows);
     }
   }
 }
