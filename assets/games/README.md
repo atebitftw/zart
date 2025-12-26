@@ -1,1 +1,0 @@
-The games in this directory are included for testing and demonstration purposes.  They are all available in the public domain.

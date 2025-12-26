@@ -30,11 +30,19 @@
 .pub/
 /build/
 
-# me
-tool/ai_testing/
+# Zart
 gemini.md
 packages/
 *.sav
+*.log
+*.z3
+*.z5
+*.z8
+*.dat
+*.blorb
+*.zblorb
+*.gblorb
+*.ulx
 
 # Android related
 **/android/**/gradle-wrapper.jar

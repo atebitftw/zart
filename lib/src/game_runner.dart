@@ -153,7 +153,7 @@ class GameRunner {
 
       // Final render and exit message using Glk provider methods
       glulxProvider.renderScreen();
-      await glulxProvider.showExitAndWait('[Zart: Press any key to exit]');
+      await glulxProvider.showExitAndWait('[Zart: Press any key to exit.]');
 
       provider.exitDisplayMode();
     } catch (e) {
@@ -245,7 +245,7 @@ class GameRunner {
       }
     }
 
-    zDisplay.appendToWindow0('\n[Press any key to exit]');
+    zDisplay.appendToWindow0('\n[Zart: Press any key to exit.]');
     zDisplay.render();
     await zDisplay.readChar();
 

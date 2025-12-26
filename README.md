@@ -3,7 +3,7 @@
 
 ![Title Screen](https://atebitftw.github.io/site/assets/zart_cli_title_screen.png)
 
-A multi-platform Z-Machine and Glulx (Inform 6/7) interpreter, for playing Interactive Fiction (IF) games.
+A modern, multi-platform interpreter, for playing Interactive Fiction (IF) games.
 
 Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.
 
@@ -12,22 +12,13 @@ This project is a labor of love.
 Enjoy!
 
 ## Features
-* Plays Z-Machine V1, V2, V3, V4, V5, V7, V8 games.
-* Plays Glulx (Inform 6/7) games.
-* Supports loading different types of game files (.z3, .z5, .z8, .dat, .blorb, .zblorb, .gblorb, .ulx, etc).
-* Provides an API that allows you to build your own player for any platform that Dart runs on.
-* Comes with a full-featured CLI player.
+* Plays Z-Machine ("Infocom" games).
+* Plays Inform v6 & v7 games.
+* Supports all popular game file formats (.z3, .z5, .z8, .dat, .blorb, .zblorb, .gblorb, .ulx, etc).
+* Provides an API that allows you to build your own player for any platform that Flutter/Dart runs on.
+* Library comes with a full-featured CLI player (see "Getting Started" below).
 
-## How Can I Author My Own IF Games? 
-[Inform 7](https://ganelson.github.io/inform-website/)
-
-## Where Can I Find Games To Play? 
-* **Zork Series:**  Search up "infocom-if . org" for the Zork series.  *Unfortunately I cannot link to it directly in this document because the site is old and still rocking http, not https.*
-* **Many games can be found here:** [IFDB.org](https://www.ifdb.org/)
-
-*As always, use caution when downloading games and files from the Internet.*
-
-## How Do I Play Games With Zart?
+## Getting Started
 You'll need a player that uses the Zart library.  I've provided a CLI player and a web player.
 
 ### Zart Web Player
@@ -53,7 +44,7 @@ You can then install the `zart` CLI player and run it to play games from the com
 
 ```bash
 > dart pub global activate zart
-> zart path/to/minizork.z3
+> zart minizork.z3
 ```
 
 *The source code for the CLI player is included in this package, in either the `bin/` or `example/` directories.*

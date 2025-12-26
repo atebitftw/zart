@@ -94,10 +94,25 @@ class GlulxTerminalProvider implements GlkProvider {
   /// Show exit message in root window and wait for keypress
   @override
   Future<void> showExitAndWait(String message) async {
-    final targetWin = _screenModel.rootWindow?.id;
+    // Find a suitable visible window to show the message.
+    // Pair windows are not writable, so we look for the first text buffer.
+    final visible = _screenModel.getVisibleWindows();
+    int? targetWin;
+
+    for (final info in visible) {
+      if (info.type == GlkWindowType.textBuffer) {
+        targetWin = info.windowId;
+        break;
+      }
+    }
+
+    // Fallback to absolute root if no text buffer found (unlikely but safe)
+    targetWin ??= _screenModel.rootWindow?.id;
+
     if (targetWin != null) {
       _screenModel.putString(targetWin, '\n$message');
     }
+
     renderScreen();
     await glkDisplay.readChar();
   }
