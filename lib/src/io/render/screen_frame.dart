@@ -31,6 +31,12 @@ class ScreenFrame {
   /// Whether the cursor should be displayed.
   final bool cursorVisible;
 
+  /// Whether to hide any platform-specific status bar when rendering this frame.
+  ///
+  /// Platforms that have status bars (e.g., CLI with Zart bar) should check
+  /// this flag and suppress the status bar when true.
+  final bool hideStatusBar;
+
   const ScreenFrame({
     required this.cells,
     required this.width,
@@ -38,15 +44,13 @@ class ScreenFrame {
     this.cursorX = -1,
     this.cursorY = -1,
     this.cursorVisible = false,
+    this.hideStatusBar = false,
   });
 
   /// Create an empty screen frame filled with empty cells.
   factory ScreenFrame.empty(int width, int height) {
     return ScreenFrame(
-      cells: List.generate(
-        height,
-        (_) => List.generate(width, (_) => RenderCell.empty()),
-      ),
+      cells: List.generate(height, (_) => List.generate(width, (_) => RenderCell.empty())),
       width: width,
       height: height,
     );

@@ -51,7 +51,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   set cols(int value) => _cols = value;
 
   /// Terminal rows (adjusted for zart bar when enabled)
-  int get rows => (enableStatusBar && (configManager.zartBarVisible) ? _rows - 1 : _rows); // Dynamic sizing
+  int get rows => (enableStatusBar && (cliConfigManager.zartBarVisible) ? _rows - 1 : _rows); // Dynamic sizing
 
   /// Set raw terminal rows.
   set rows(int value) => _rows = value;
@@ -108,7 +108,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     _screen.forceWindow0Color(newColor);
 
     // Save preference
-    configManager.textColor = newColor;
+    cliConfigManager.textColor = newColor;
   }
 
   // State for tracking mouse escape sequences
@@ -173,7 +173,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Apply settings from configuration (e.g. initial color)
   void applySavedSettings() {
-    final savedColor = configManager.textColor;
+    final savedColor = cliConfigManager.textColor;
     // Sync index
     _currentTextColorIndex = _customTextColors.indexOf(savedColor);
     if (_currentTextColorIndex == -1) {
@@ -186,7 +186,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   void showTempMessage(String message, {int seconds = 3}) {
     onShowTempMessage?.call(message, seconds: seconds);
     // Render immediate message if visible
-    if (configManager.zartBarVisible) {
+    if (cliConfigManager.zartBarVisible) {
       render();
     }
   }
@@ -521,7 +521,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
 
-          final cmd = configManager.getBinding(bindingKey);
+          final cmd = cliConfigManager.getBinding(bindingKey);
           if (cmd != null) {
             _inputBuffer = cmd;
             appendToWindow0(cmd); // Echo it

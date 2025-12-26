@@ -9,8 +9,10 @@ import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
 import 'package:zart/src/io/z_machine/z_terminal_display.dart' show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
+import 'package:zart/src/io/platform/title_screen.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/zart_debugger.dart';
+import 'package:zart/zart.dart';
 
 /// Unified game runner for both Z-machine and Glulx games.
 ///
@@ -65,6 +67,11 @@ class GameRunner {
       throw GameRunnerException('Unable to extract game data from file');
     }
 
+    // Show title screen before starting the game
+    provider.onInit(fileType);
+
+    await _showTitleScreen();
+
     // Each game type manages its own setup and full-screen mode
     switch (fileType) {
       case GameFileType.glulx:
@@ -74,9 +81,20 @@ class GameRunner {
     }
   }
 
-  Future<void> _runGlulx(Uint8List gameData) async {
-    provider.onInit(GameFileType.glulx);
+  Future<void> _showTitleScreen() async {
+    final caps = provider.capabilities;
+    provider.enterDisplayMode();
 
+    await ZartTitleScreen.show(
+      width: caps.screenWidth,
+      height: caps.screenHeight,
+      renderCallback: provider.render,
+      asyncKeyWait: provider.setupAsyncKeyWait(),
+    );
+    provider.exitDisplayMode();
+  }
+
+  Future<void> _runGlulx(Uint8List gameData) async {
     // Create Glk display without renderer - callbacks will be wired
     final glkDisplay = GlkTerminalDisplay();
 
@@ -145,11 +163,10 @@ class GameRunner {
       exit(0);
     });
 
-    provider.onInit(GameFileType.z);
-    provider.enterDisplayMode();
-
     // Create ZTerminalDisplay - callbacks will be wired
     final zDisplay = ZTerminalDisplay();
+
+    provider.enterDisplayMode();
 
     // Wire up screen rendering callback
     zDisplay.onScreenReady = (frame) => provider.render(frame);

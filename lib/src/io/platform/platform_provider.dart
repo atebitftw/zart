@@ -92,10 +92,7 @@ abstract class PlatformProvider {
   ///
   /// The platform should display its settings UI and return when complete.
   /// [terminal] is the display interface for settings to render to.
-  Future<void> openSettings(
-    covariant dynamic terminal, {
-    bool isGameStarted = false,
-  });
+  Future<void> openSettings(covariant dynamic terminal, {bool isGameStarted = false});
 
   // ============================================================
   // INPUT
@@ -136,6 +133,17 @@ abstract class PlatformProvider {
   void setScrollCallback(void Function(int scrollOffset)? callback) {
     // Default implementation does nothing - platforms override as needed
   }
+
+  /// Set up an async key wait for non-blocking key detection.
+  ///
+  /// Returns a record with:
+  /// - `onKeyPressed`: A future that completes when a key is pressed
+  /// - `wasPressed`: A function that returns true if a key was pressed
+  /// - `cleanup`: A function to call when done waiting (cancels any listeners)
+  ///
+  /// This is used for animations that need to check for input without blocking.
+  /// Each platform implements this appropriately (isolate for CLI, event listener for web).
+  ({Future<void> onKeyPressed, bool Function() wasPressed, void Function() cleanup}) setupAsyncKeyWait();
 
   // ============================================================
   // FILE IO

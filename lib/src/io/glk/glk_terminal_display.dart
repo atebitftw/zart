@@ -5,7 +5,7 @@ import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
-import 'package:zart/src/cli/cli_configuration_manager.dart' show configManager;
+import 'package:zart/src/cli/cli_configuration_manager.dart' show cliConfigManager;
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart' show ZartTerminal;
 
@@ -236,7 +236,7 @@ class GlkTerminalDisplay implements ZartTerminal {
       onScreenReady?.call(screenFrame);
     } else {
       // Synchronize settings from config only when back in game mode
-      _zartBarVisible = configManager.zartBarVisible;
+      _zartBarVisible = cliConfigManager.zartBarVisible;
       // Signal to re-render game screen - platform layer handles this
       // by re-calling renderGlk with the cached model
     }

@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:zart/src/cli/cli_renderer.dart' show CliRenderer;
-import 'package:zart/src/cli/cli_configuration_manager.dart' show configManager;
+import 'package:zart/src/cli/cli_configuration_manager.dart' show cliConfigManager;
 import 'package:zart/src/cli/cli_settings_screen.dart' show CliSettingsScreen;
 import 'package:zart/zart.dart';
 
@@ -38,7 +39,7 @@ class CliPlatformProvider extends PlatformProvider {
   @override
   void onInit(GameFileType fileType) {
     _renderer = CliRenderer();
-    configManager.load();
+    cliConfigManager.load();
     _updateCapabilities();
 
     _renderer.onQuickSave = () {
@@ -55,10 +56,7 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   void _updateCapabilities() {
-    _capabilities = PlatformCapabilities.terminal(
-      width: _renderer.screenWidth,
-      height: _renderer.screenHeight,
-    );
+    _capabilities = PlatformCapabilities.terminal(width: _renderer.screenWidth, height: _renderer.screenHeight);
   }
 
   // ============================================================
@@ -96,12 +94,15 @@ class CliPlatformProvider extends PlatformProvider {
   }
 
   @override
-  Future<void> openSettings(
-    dynamic terminal, {
-    bool isGameStarted = false,
-  }) async {
+  Future<void> openSettings(dynamic terminal, {bool isGameStarted = false}) async {
     await CliSettingsScreen(terminal).show(isGameStarted: isGameStarted);
   }
+
+  /// Get whether the Zart bar is visible.
+  bool get zartBarVisible => _renderer.zartBarVisible;
+
+  /// Set whether the Zart bar is visible.
+  set zartBarVisible(bool value) => _renderer.zartBarVisible = value;
 
   // ============================================================
   // INPUT
@@ -161,6 +162,36 @@ class CliPlatformProvider extends PlatformProvider {
   InputEvent? pollInput() {
     // Terminal doesn't support non-blocking input easily
     return null;
+  }
+
+  @override
+  ({Future<void> onKeyPressed, bool Function() wasPressed, void Function() cleanup}) setupAsyncKeyWait() {
+    var pressed = false;
+    final completer = Completer<void>();
+
+    // Start blocking key wait in a separate isolate
+    // This allows animations to continue in the main isolate
+    unawaited(
+      Isolate.run(() {
+        // Read a single byte from stdin (blocking)
+        stdin.readByteSync();
+        return true;
+      }).then((_) {
+        pressed = true;
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      }),
+    );
+
+    return (
+      onKeyPressed: completer.future,
+      wasPressed: () => pressed,
+      cleanup: () {
+        // The isolate completes on its own when key is pressed
+        // If we exit early, the isolate will still be waiting but that's OK
+      },
+    );
   }
 
   // ============================================================
@@ -266,10 +297,7 @@ class CliPlatformProvider extends PlatformProvider {
     try {
       final f = File(filename);
       if (!f.existsSync()) {
-        _renderer.showTempMessage(
-          'QuickSave File Not Found ($filename)',
-          seconds: 3,
-        );
+        _renderer.showTempMessage('QuickSave File Not Found ($filename)', seconds: 3);
         return null;
       }
 

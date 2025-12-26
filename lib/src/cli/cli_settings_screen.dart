@@ -1,7 +1,6 @@
 import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
 import 'package:zart/src/cli/cli_configuration_manager.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart';
-import 'package:zart/zart.dart' show getPreamble;
 
 /// A settings screen for the Zart CLI application.
 class CliSettingsScreen {
@@ -53,61 +52,33 @@ class CliSettingsScreen {
 
       while (true) {
         terminal.clearAll();
-        terminal.setColors(
-          ZTerminalColors.yellow,
-          ZTerminalColors.defaultColor,
-        ); // yellow
-        terminal.appendToWindow0(getPreamble().join('\n'));
         terminal.setColors(ZTerminalColors.white, ZTerminalColors.blue);
         terminal.appendToWindow0('\nSETTINGS\n');
-        terminal.setColors(
-          ZTerminalColors.defaultColor,
-          ZTerminalColors.defaultColor,
-        );
+        terminal.setColors(ZTerminalColors.defaultColor, ZTerminalColors.defaultColor);
         if (isGameStarted) {
           terminal.appendToWindow0('[R] Resume Game\n');
         } else {
           terminal.appendToWindow0('[R] Start Game\n');
         }
-        terminal.appendToWindow0(
-          '\n------------------------------------------------\n',
-        );
+        terminal.appendToWindow0('\n------------------------------------------------\n');
         terminal.setColors(ZTerminalColors.white, ZTerminalColors.blue);
         terminal.appendToWindow0('ZART BAR\n');
-        terminal.setColors(
-          ZTerminalColors.defaultColor,
-          ZTerminalColors.defaultColor,
-        );
-        terminal.appendToWindow0(
-          '[V] Visibility: ${configManager.zartBarVisible ? 'ON' : 'OFF'}\n',
-        );
+        terminal.setColors(ZTerminalColors.defaultColor, ZTerminalColors.defaultColor);
+        terminal.appendToWindow0('[V] Visibility: ${cliConfigManager.zartBarVisible ? 'ON' : 'OFF'}\n');
         terminal.appendToWindow0('[F] Foreground Color\n');
         terminal.appendToWindow0('[B] Background Color\n');
-        terminal.setColors(
-          configManager.zartBarForeground,
-          configManager.zartBarBackground,
-        );
+        terminal.setColors(cliConfigManager.zartBarForeground, cliConfigManager.zartBarBackground);
         terminal.appendToWindow0(' [ ZART BAR STYLE PREVIEW ] ');
-        terminal.setColors(
-          ZTerminalColors.defaultColor,
-          ZTerminalColors.defaultColor,
-        );
-        terminal.appendToWindow0(
-          '\n\n------------------------------------------------\n',
-        );
+        terminal.setColors(ZTerminalColors.defaultColor, ZTerminalColors.defaultColor);
+        terminal.appendToWindow0('\n\n------------------------------------------------\n');
         terminal.setColors(ZTerminalColors.white, ZTerminalColors.blue);
         terminal.appendToWindow0('CUSTOM KEY BINDINGS (Ctrl+Key)\n');
-        terminal.setColors(
-          ZTerminalColors.defaultColor,
-          ZTerminalColors.defaultColor,
-        );
-        terminal.appendToWindow0(
-          'Allowed Keys: ${_allowedKeys.join(', ')}\n\n',
-        );
+        terminal.setColors(ZTerminalColors.defaultColor, ZTerminalColors.defaultColor);
+        terminal.appendToWindow0('Allowed Keys: ${_allowedKeys.join(', ')}\n\n');
         terminal.appendToWindow0('[A] Add Binding\n');
         terminal.appendToWindow0('[D] Delete Binding\n');
 
-        final bindings = configManager.bindings;
+        final bindings = cliConfigManager.bindings;
         if (bindings.isEmpty) {
           terminal.appendToWindow0('No macros defined.\n');
         } else {
@@ -129,17 +100,17 @@ class CliSettingsScreen {
         } else if (lowerChar == 'd') {
           await _deleteBinding();
         } else if (lowerChar == 'v') {
-          configManager.zartBarVisible = !configManager.zartBarVisible;
+          cliConfigManager.zartBarVisible = !cliConfigManager.zartBarVisible;
         } else if (lowerChar == 'f') {
           // Cycle foreground 2-10
-          var c = configManager.zartBarForeground + 1;
+          var c = cliConfigManager.zartBarForeground + 1;
           if (c > 10) c = 2;
-          configManager.zartBarForeground = c;
+          cliConfigManager.zartBarForeground = c;
         } else if (lowerChar == 'b') {
           // Cycle background 2-10
-          var c = configManager.zartBarBackground + 1;
+          var c = cliConfigManager.zartBarBackground + 1;
           if (c > 10) c = 2;
-          configManager.zartBarBackground = c;
+          cliConfigManager.zartBarBackground = c;
         }
       }
 
@@ -158,9 +129,7 @@ class CliSettingsScreen {
   }
 
   Future<void> _addBinding() async {
-    terminal.appendToWindow0(
-      '\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ',
-    );
+    terminal.appendToWindow0('\n\nPress Ctrl+Key combination to bind (or Esc to cancel): ');
     terminal.render();
 
     // We need to read a key and see if it is a Ctrl char
@@ -184,9 +153,7 @@ class CliSettingsScreen {
 
     final lowerKey = charKey.toLowerCase();
     if (!_allowedKeys.contains(lowerKey)) {
-      terminal.appendToWindow0(
-        '\nKey "$lowerKey" is not allowed for binding.\n',
-      );
+      terminal.appendToWindow0('\nKey "$lowerKey" is not allowed for binding.\n');
       terminal.appendToWindow0('Allowed: ${_allowedKeys.join(',')}\n');
       await _wait(2);
       return;
@@ -199,7 +166,7 @@ class CliSettingsScreen {
     final cmd = await terminal.readLine();
 
     if (cmd.isNotEmpty) {
-      configManager.setBinding(keyName, cmd);
+      cliConfigManager.setBinding(keyName, cmd);
       terminal.appendToWindow0('\nBound $keyName to "$cmd".\n');
     } else {
       terminal.appendToWindow0('\nCancelled.\n');
@@ -214,8 +181,8 @@ class CliSettingsScreen {
     final charKey = await terminal.readChar();
     final keyName = 'ctrl+${charKey.toLowerCase()}';
 
-    if (configManager.getBinding(keyName) != null) {
-      configManager.setBinding(keyName, null);
+    if (cliConfigManager.getBinding(keyName) != null) {
+      cliConfigManager.setBinding(keyName, null);
       terminal.appendToWindow0('\nDeleted binding for $keyName.\n');
     } else {
       terminal.appendToWindow0('\nNo binding found for $keyName.\n');

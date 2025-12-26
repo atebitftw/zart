@@ -167,8 +167,8 @@ class CliRenderer with TerminalCapabilities {
 
     buf.write('\x1B[0m'); // Reset styles
 
-    // Draw zart bar
-    if (_zartBarVisible) {
+    // Draw zart bar (unless frame requests it hidden)
+    if (_zartBarVisible && !frame.hideStatusBar) {
       _drawZartBar(buf);
     }
 
@@ -398,7 +398,7 @@ class CliRenderer with TerminalCapabilities {
           final letter = match.group(1)!.toLowerCase();
           final bindingKey = 'ctrl+$letter';
 
-          final cmd = configManager.getBinding(bindingKey);
+          final cmd = cliConfigManager.getBinding(bindingKey);
           if (cmd != null) {
             buf.write(cmd);
             stdout.write('$cmd\n');
