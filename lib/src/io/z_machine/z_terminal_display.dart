@@ -11,6 +11,8 @@ import 'package:zart/src/io/z_machine/z_machine_display.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart';
+import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/io/platform/input_event.dart';
 
 /// Z-Machine Terminal Display.
 /// Uses `ScreenCompositor` to produce `ScreenFrame` objects for rendering.
@@ -60,6 +62,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Screen model
   ZScreenModel get screen => _screen;
+
+  @override
+  PlatformProvider? platformProvider;
 
   final Console _console = Console();
 
@@ -200,6 +205,15 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   // helper to get key string
 
   int _scrollOffset = 0; // 0 = at bottom
+
+  /// Scroll by the specified delta.
+  /// Positive values scroll up (back in history), negative values scroll down.
+  void scroll(int delta) {
+    _scrollOffset += delta;
+    if (_scrollOffset < 0) _scrollOffset = 0;
+    // Note: totalMaxScroll clamping happens in the compositor during render
+    render();
+  }
 
   /// Enter full-screen mode using alternate screen buffer.
   void enterFullScreen() {
@@ -401,14 +415,16 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   }
 
   /// Process global keys (F1-F4, etc). Returns (consumed, restored).
-  Future<(bool, bool)> _handleGlobalKeys(Key key) async {
-    if (key.controlChar == ControlCharacter.F1) {
+  Future<(bool, bool)> _handleGlobalKeys(InputEvent event) async {
+    if (event.type != InputEventType.character) return (false, false);
+
+    if (event.keyCode == SpecialKeys.f1) {
       if (onOpenSettings != null) {
         await onOpenSettings!();
         render(); // Re-render after returning
       }
       return (true, false);
-    } else if (key.controlChar == ControlCharacter.F2) {
+    } else if (event.keyCode == SpecialKeys.f2) {
       // Set quicksave flag so platform auto-fills filename
       onQuickSave?.call();
       // Inject "save" command and signal input should return it
@@ -418,7 +434,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       render();
       _inputLine = -1;
       return (true, false);
-    } else if (key.controlChar == ControlCharacter.F3) {
+    } else if (event.keyCode == SpecialKeys.f3) {
       // Set quickrestore flag so platform auto-fills filename
       onQuickLoad?.call();
       // Inject "restore" command and signal input should return it
@@ -428,23 +444,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       render();
       _inputLine = -1;
       return (true, false);
-    } else if (key.controlChar == ControlCharacter.F4) {
+    } else if (event.keyCode == SpecialKeys.f4) {
       _cycleTextColor();
-      render();
-      return (true, false);
-    } else if (key.controlChar == ControlCharacter.pageUp) {
-      // Scroll up (back in history)
-      final maxScroll = (_screen.window0Grid.length > _screen.window0Lines)
-          ? _screen.window0Grid.length - _screen.window0Lines
-          : 0;
-      _scrollOffset += 5; // Scroll 5 lines at a time
-      if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
-      render();
-      return (true, false);
-    } else if (key.controlChar == ControlCharacter.pageDown) {
-      // Scroll down (toward current)
-      _scrollOffset -= 5;
-      if (_scrollOffset < 0) _scrollOffset = 0;
       render();
       return (true, false);
     }
@@ -477,17 +478,23 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     render();
 
     while (true) {
-      // Blocking read (sync) but in async function
-      final key = _console.readKey();
+      InputEvent event;
+      if (platformProvider != null) {
+        event = await platformProvider!.readInput();
+        if (event.type == InputEventType.none) continue; // Global scroll key handled
+      } else {
+        // Fallback for tests or direct console usage
+        final key = _console.readKey();
+        event = _keyToInputEvent(key);
+      }
 
-      final (consumed, restored) = await _handleGlobalKeys(key);
+      final (consumed, restored) = await _handleGlobalKeys(event);
       if (consumed) {
         if (restored) {
           _inputBuffer = '';
           _inputLine = -1;
           return '__RESTORED__';
         }
-        // F2/F3 may have set _inputBuffer directly - return it
         if (_inputBuffer.isNotEmpty && _inputLine == -1) {
           final result = _inputBuffer;
           _inputBuffer = '';
@@ -496,83 +503,48 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         continue;
       }
 
-      if (key.controlChar == ControlCharacter.enter) {
-        // Enter key
+      // Check for Macro Commands (simplified)
+      if (event.type == InputEventType.macro && event.macroCommand != null) {
+        final cmd = event.macroCommand!;
+        _inputBuffer = cmd;
+        appendToWindow0(cmd); // Echo it
+        appendToWindow0('\n');
+        _scrollOffset = 0; // Reset scroll
+        render();
+        _inputBuffer = '';
+        _inputLine = -1;
+        return cmd;
+      }
+
+      if (event.keyCode == SpecialKeys.enter) {
         final result = _inputBuffer;
         appendToWindow0('\n');
-        // Reset Scroll on Enter
         _scrollOffset = 0;
         render();
         _inputBuffer = '';
         _inputLine = -1;
         return result;
-      } else if (key.controlChar == ControlCharacter.ctrlC) {
-        // Ctrl+C - throw to allow cleanup in zart.dart finally block
-        throw Exception('User pressed Ctrl+C');
-      } else if (
-      // Check for Ctrl+Key Macros
-      // We assume mapped control attributes effectively.
-      // Note: dart_console often maps Ctrl+A to unit separator etc or ControlCharacter.ctrlA
-      key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
-        // Extract letter
-        final s = key.controlChar.toString();
-        // Handle both ControlCharacter.ctrlA and ctrlA formats
-        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
-        if (match != null) {
-          final letter = match.group(1)!.toLowerCase();
-          final bindingKey = 'ctrl+$letter';
-
-          final cmd = cliConfigManager.getBinding(bindingKey);
-          if (cmd != null) {
-            _inputBuffer = cmd;
-            appendToWindow0(cmd); // Echo it
-            appendToWindow0('\n');
-            _scrollOffset = 0; // Reset scroll
-            render();
-            _inputBuffer = '';
-            _inputLine = -1;
-            return cmd;
-          }
-        }
-      } else if (key.controlChar == ControlCharacter.backspace) {
-        // ... existing backspace logic ...
+      } else if (event.keyCode == SpecialKeys.delete) {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
-          // Update display grid
           if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
-            if (rowList.isNotEmpty) {
-              rowList.removeLast();
-            }
+            if (rowList.isNotEmpty) rowList.removeLast();
           }
           render();
         }
-      } else if (key.char.isNotEmpty) {
-        // Printable character
-        final char = key.char;
+      } else if (event.character != null && event.character!.isNotEmpty) {
+        final char = event.character!;
+        if (_isMouseSequenceChar(char)) continue;
 
-        // SGR mouse sequences start with '<' - filter proactively
-        if (_isMouseSequenceChar(char)) {
-          continue;
-        }
-
-        if (_scrollOffset > 0) {
-          _scrollOffset = 0;
-        }
-
-        // Add char to buffer
+        if (_scrollOffset > 0) _scrollOffset = 0;
         _inputBuffer += char;
 
-        // Check if this char completes a mouse sequence (M or m terminator)
-        // X10/Normal mouse format: digit;digit;digitM
         if (char == 'M' || char == 'm') {
-          // Check if buffer ends with mouse sequence pattern
           final mousePattern = RegExp(r'\d+;\d+;\d+[Mm]$');
           final match = mousePattern.firstMatch(_inputBuffer);
           if (match != null) {
-            // Strip the mouse sequence from buffer
             _inputBuffer = _inputBuffer.substring(0, match.start);
-            // Re-sync the grid - remove chars from end
             if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
               final rowList = _screen.window0Grid[_inputLine];
               while (rowList.length > _inputCol + _inputBuffer.length) {
@@ -584,11 +556,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           }
         }
 
-        // Update Grid (add cell for this char)
         if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
-            // Force user input to be White using RenderCell with RGB
             rowList.add(
               RenderCell.fromZMachine(char, fgColor: 9, bgColor: _screen.bgColor, style: _screen.currentStyle),
             );
@@ -599,44 +569,81 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     }
   }
 
+  /// Helper to convert dart_console Key to InputEvent
+  InputEvent _keyToInputEvent(Key key) {
+    if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
+      return InputEvent.character(key.char);
+    }
+    int? keyCode;
+
+    switch (key.controlChar) {
+      case ControlCharacter.enter:
+        keyCode = SpecialKeys.enter;
+      case ControlCharacter.backspace:
+        keyCode = SpecialKeys.delete;
+      case ControlCharacter.arrowUp:
+        keyCode = SpecialKeys.arrowUp;
+      case ControlCharacter.arrowDown:
+        keyCode = SpecialKeys.arrowDown;
+      case ControlCharacter.arrowLeft:
+        keyCode = SpecialKeys.arrowLeft;
+      case ControlCharacter.arrowRight:
+        keyCode = SpecialKeys.arrowRight;
+      case ControlCharacter.F1:
+        keyCode = SpecialKeys.f1;
+      case ControlCharacter.F2:
+        keyCode = SpecialKeys.f2;
+      case ControlCharacter.F3:
+        keyCode = SpecialKeys.f3;
+      case ControlCharacter.F4:
+        keyCode = SpecialKeys.f4;
+      case ControlCharacter.escape:
+        keyCode = SpecialKeys.escape;
+      default:
+        break;
+    }
+    if (keyCode != null) return InputEvent.specialKey(keyCode);
+    if (key.char.isNotEmpty) return InputEvent.character(key.char);
+    return const InputEvent.none();
+  }
+
   /// Read a single character for char input mode.
   Future<String> readChar() async {
-    // Disable mouse tracking to prevent mouse events from appearing in input
     stdout.write('\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l');
+    stdout.write('\x1B[?25h'); // Show cursor
 
     while (true) {
-      final key = _console.readKey();
-
-      // Handle Ctrl+C to exit
-      if (key.controlChar == ControlCharacter.ctrlC) {
-        throw Exception('User pressed Ctrl+C');
+      InputEvent event;
+      if (platformProvider != null) {
+        event = await platformProvider!.readInput();
+        if (event.type == InputEventType.none) continue;
+      } else {
+        final key = _console.readKey();
+        event = _keyToInputEvent(key);
       }
 
-      final (consumed, restored) = await _handleGlobalKeys(key);
+      final (consumed, restored) = await _handleGlobalKeys(event);
       if (consumed) {
-        if (restored) {
-          return '__RESTORED__';
-        }
+        if (restored) return '__RESTORED__';
         continue;
       }
 
-      // Map control characters to their expected values
-      if (key.controlChar == ControlCharacter.enter) return '\n';
-      if (key.controlChar == ControlCharacter.backspace) return '\x7F';
-      if (key.controlChar == ControlCharacter.arrowUp) return '\x81';
-      if (key.controlChar == ControlCharacter.arrowDown) return '\x82';
-      if (key.controlChar == ControlCharacter.arrowLeft) return '\x83';
-      if (key.controlChar == ControlCharacter.arrowRight) return '\x84';
+      stdout.write('\x1B[?25l'); // Hide cursor
 
-      // Only return if we have a valid character
-      if (key.char.isNotEmpty) {
+      if (event.keyCode == SpecialKeys.enter) return '\n';
+      if (event.keyCode == SpecialKeys.delete) return '\x7F';
+      if (event.keyCode == SpecialKeys.arrowUp) return '\x81';
+      if (event.keyCode == SpecialKeys.arrowDown) return '\x82';
+      if (event.keyCode == SpecialKeys.arrowLeft) return '\x83';
+      if (event.keyCode == SpecialKeys.arrowRight) return '\x84';
+
+      if (event.character != null && event.character!.isNotEmpty) {
         if (_scrollOffset > 0) {
           _scrollOffset = 0;
           render();
         }
-        return key.char;
+        return event.character!;
       }
-      // Otherwise continue waiting for valid input
     }
   }
 }

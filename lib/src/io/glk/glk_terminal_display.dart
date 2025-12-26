@@ -9,6 +9,8 @@ import 'package:zart/src/cli/cli_configuration_manager.dart' show cliConfigManag
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart' show ZartTerminal;
 import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
+import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/io/platform/input_event.dart';
 
 /// Terminal display for Glk/Glulx games.
 ///
@@ -16,6 +18,9 @@ import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
 /// sent to the platform layer via the `onScreenReady` callback.
 /// Handles input directly with scroll support (matches Z-machine pattern).
 class GlkTerminalDisplay implements ZartTerminal {
+  @override
+  PlatformProvider? platformProvider;
+
   /// Console for direct keyboard input.
   final Console _console = Console();
 
@@ -165,45 +170,83 @@ class GlkTerminalDisplay implements ZartTerminal {
     onScreenReady?.call(screenFrame);
   }
 
+  /// Scroll by the specified delta.
+  /// Positive values scroll up (back in history), negative values scroll down.
+  void scroll(int delta) {
+    _scrollOffset += delta;
+    if (_scrollOffset < 0) _scrollOffset = 0;
+    // Note: totalMaxScroll clamping happens in the compositor during render
+    rerenderWithScroll();
+  }
+
   /// Show a temporary status message.
   @override
   void showTempMessage(String message, {int seconds = 3}) => onShowTempMessage?.call(message, seconds: seconds);
 
-  /// Process global keys (F1-F3, PgUp/PgDn, etc). Returns true if key was consumed.
-  Future<bool> _handleGlobalKeys(Key key) async {
-    if (key.controlChar == ControlCharacter.F1) {
+  /// Process global keys (F1, PgUp/PgDn, etc). Returns true if key was consumed.
+  Future<bool> _handleGlobalKeys(InputEvent event) async {
+    if (event.type != InputEventType.character) return false;
+
+    if (event.keyCode == SpecialKeys.f1) {
       if (onOpenSettings != null) {
         await onOpenSettings!();
         rerenderWithScroll(); // Re-render after returning
       }
       return true;
-    } else if (key.controlChar == ControlCharacter.F2) {
+    } else if (event.keyCode == SpecialKeys.f2) {
       // Quick save - set flag then inject "save" command
       onQuickSave?.call();
       pushInput('save\n');
       return true;
-    } else if (key.controlChar == ControlCharacter.F3) {
+    } else if (event.keyCode == SpecialKeys.f3) {
       // Quick restore - set flag then inject "restore" command
       onQuickLoad?.call();
       pushInput('restore\n');
       return true;
-    } else if (key.controlChar == ControlCharacter.F4) {
+    } else if (event.keyCode == SpecialKeys.f4) {
       _cycleTextColor();
-      rerenderWithScroll();
-      return true;
-    } else if (key.controlChar == ControlCharacter.pageUp) {
-      // Scroll up (back in history)
-      _scrollOffset += 5;
-      rerenderWithScroll();
-      return true;
-    } else if (key.controlChar == ControlCharacter.pageDown) {
-      // Scroll down (toward current)
-      _scrollOffset -= 5;
-      if (_scrollOffset < 0) _scrollOffset = 0;
       rerenderWithScroll();
       return true;
     }
     return false;
+  }
+
+  /// Helper to convert dart_console Key to InputEvent
+  InputEvent _keyToInputEvent(Key key) {
+    if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
+      return InputEvent.character(key.char);
+    }
+    int? keyCode;
+
+    switch (key.controlChar) {
+      case ControlCharacter.enter:
+        keyCode = SpecialKeys.enter;
+      case ControlCharacter.backspace:
+        keyCode = SpecialKeys.delete;
+      case ControlCharacter.arrowUp:
+        keyCode = SpecialKeys.arrowUp;
+      case ControlCharacter.arrowDown:
+        keyCode = SpecialKeys.arrowDown;
+      case ControlCharacter.arrowLeft:
+        keyCode = SpecialKeys.arrowLeft;
+      case ControlCharacter.arrowRight:
+        keyCode = SpecialKeys.arrowRight;
+      case ControlCharacter.F1:
+        keyCode = SpecialKeys.f1;
+      case ControlCharacter.F2:
+        keyCode = SpecialKeys.f2;
+      case ControlCharacter.F3:
+        keyCode = SpecialKeys.f3;
+      case ControlCharacter.F4:
+        keyCode = SpecialKeys.f4;
+      case ControlCharacter.escape:
+        keyCode = SpecialKeys.escape;
+      default:
+        break;
+    }
+    if (keyCode != null) return InputEvent.specialKey(keyCode);
+    if (key.char.isNotEmpty) return InputEvent.character(key.char);
+    return const InputEvent.none();
   }
 
   /// Read a line of input.
@@ -226,11 +269,18 @@ class GlkTerminalDisplay implements ZartTerminal {
     _scrollOffset = 0;
 
     while (true) {
-      final key = _console.readKey();
+      InputEvent event;
+      if (platformProvider != null) {
+        event = await platformProvider!.readInput();
+        if (event.type == InputEventType.none) continue;
+      } else {
+        final key = _console.readKey();
+        event = _keyToInputEvent(key);
+      }
 
-      // Handle global keys (F1-F3, PgUp/PgDn)
-      if (await _handleGlobalKeys(key)) {
-        // If F2/F3 was pressed, input was injected - return it
+      // Handle global keys (F1, PgUp/PgDn)
+      if (await _handleGlobalKeys(event)) {
+        // If save/restore was injected, return the injected input
         if (_inputQueue.isNotEmpty) {
           final line = _popQueueLine();
           stdout.write('$line\n'); // Echo the injected input
@@ -240,43 +290,36 @@ class GlkTerminalDisplay implements ZartTerminal {
         continue;
       }
 
+      // Handle Macro Commands (simplified)
+      if (event.type == InputEventType.macro && event.macroCommand != null) {
+        final cmd = event.macroCommand!;
+        stdout.write('$cmd\n');
+        stdout.write('\x1B[?25l'); // Hide cursor
+        return cmd;
+      }
+
       // Handle regular keys
-      if (key.controlChar == ControlCharacter.enter) {
+      if (event.keyCode == SpecialKeys.enter) {
         stdout.write('\n');
         stdout.write('\x1B[?25l'); // Hide cursor
-        return buf.toString();
-      } else if (key.controlChar == ControlCharacter.backspace) {
+        _scrollOffset = 0;
+        final result = buf.toString();
+        buf.clear();
+        return result;
+      } else if (event.keyCode == SpecialKeys.delete) {
         if (buf.length > 0) {
           final str = buf.toString();
           buf.clear();
           buf.write(str.substring(0, str.length - 1));
           stdout.write('\b \b');
         }
-      } else if (key.controlChar == ControlCharacter.ctrlC) {
-        exitFullScreen();
-        exit(0);
-      } else if (key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
-        // Handle Ctrl+Key Macros
-        final s = key.controlChar.toString();
-        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
-        if (match != null) {
-          final letter = match.group(1)!.toLowerCase();
-          final bindingKey = 'ctrl+$letter';
-
-          final cmd = cliConfigManager.getBinding(bindingKey);
-          if (cmd != null) {
-            stdout.write('$cmd\n');
-            stdout.write('\x1B[?25l'); // Hide cursor
-            return cmd;
-          }
-        }
-      } else if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
+      } else if (event.character != null && event.character!.isNotEmpty) {
         if (_scrollOffset > 0) {
           _scrollOffset = 0;
           rerenderWithScroll();
         }
-        buf.write(key.char);
-        stdout.write(key.char);
+        buf.write(event.character!);
+        stdout.write(event.character!);
       }
     }
   }
@@ -288,31 +331,29 @@ class GlkTerminalDisplay implements ZartTerminal {
     stdout.write('\x1B[?25h'); // Show cursor
 
     while (true) {
-      final key = _console.readKey();
-
-      // Handle global keys (F1, PgUp/PgDn)
-      if (await _handleGlobalKeys(key)) {
-        continue;
+      InputEvent event;
+      if (platformProvider != null) {
+        event = await platformProvider!.readInput();
+        if (event.type == InputEventType.none) continue;
+      } else {
+        final key = _console.readKey();
+        event = _keyToInputEvent(key);
       }
+
+      if (await _handleGlobalKeys(event)) continue;
 
       stdout.write('\x1B[?25l'); // Hide cursor
 
-      if (key.controlChar == ControlCharacter.ctrlC) {
-        exitFullScreen();
-        exit(0);
-      }
+      if (event.keyCode == SpecialKeys.enter) return '\n';
+      if (event.keyCode == SpecialKeys.delete) return '\x7F';
+      if (event.keyCode == SpecialKeys.arrowUp) return '\x81';
+      if (event.keyCode == SpecialKeys.arrowDown) return '\x82';
+      if (event.keyCode == SpecialKeys.arrowLeft) return '\x83';
+      if (event.keyCode == SpecialKeys.arrowRight) return '\x84';
 
-      // Map control characters to their expected values
-      if (key.controlChar == ControlCharacter.enter) return '\n';
-      if (key.controlChar == ControlCharacter.backspace) return '\x7F';
-      if (key.controlChar == ControlCharacter.arrowUp) return '\x81';
-      if (key.controlChar == ControlCharacter.arrowDown) return '\x82';
-      if (key.controlChar == ControlCharacter.arrowLeft) return '\x83';
-      if (key.controlChar == ControlCharacter.arrowRight) return '\x84';
-
-      if (key.char.isNotEmpty) {
+      if (event.character != null && event.character!.isNotEmpty) {
         _scrollOffset = 0;
-        return key.char;
+        return event.character!;
       }
     }
   }

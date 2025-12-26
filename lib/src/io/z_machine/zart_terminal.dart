@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:zart/src/io/platform/platform_provider.dart';
 
 /// Unified interface for terminal display operations in Zart.
 ///
@@ -8,6 +9,10 @@ abstract interface class ZartTerminal {
   /// Whether the status bar is enabled.
   bool get enableStatusBar;
   set enableStatusBar(bool value);
+
+  /// The platform provider for IO operations.
+  PlatformProvider? get platformProvider;
+  set platformProvider(PlatformProvider? value);
 
   /// Callback for opening the settings screen.
   Future<void> Function()? get onOpenSettings;

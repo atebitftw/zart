@@ -28,6 +28,14 @@ class CliPlatformProvider extends PlatformProvider {
   bool _isQuickSave = false;
   bool _isQuickRestore = false;
 
+  /// Callback for scroll notifications.
+  void Function(int delta)? _scrollCallback;
+
+  @override
+  void setScrollCallback(void Function(int delta)? callback) {
+    _scrollCallback = callback;
+  }
+
   @override
   void setQuickSaveFlag() => _isQuickSave = true;
 
@@ -121,6 +129,21 @@ class CliPlatformProvider extends PlatformProvider {
     }
 
     // Map control characters to input events
+    final ctrlName = key.controlChar != ControlCharacter.none ? key.controlChar.toString().split('.').last : null;
+
+    // Check for macros first (except for Ctrl+C which is handled above)
+    if (ctrlName != null && ctrlName.startsWith('ctrl')) {
+      final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).matchAsPrefix(ctrlName);
+      if (match != null) {
+        final letter = match.group(1)!.toLowerCase();
+        final bindingKey = 'ctrl+$letter';
+        final cmd = cliConfigManager.getBinding(bindingKey);
+        if (cmd != null) {
+          return InputEvent.macro(cmd);
+        }
+      }
+    }
+
     switch (key.controlChar) {
       case ControlCharacter.enter:
         return const InputEvent.character('\n', keyCode: SpecialKeys.enter);
@@ -142,6 +165,12 @@ class CliPlatformProvider extends PlatformProvider {
         return const InputEvent.specialKey(SpecialKeys.f3);
       case ControlCharacter.F4:
         return const InputEvent.specialKey(SpecialKeys.f4);
+      case ControlCharacter.pageUp:
+        _scrollCallback?.call(5);
+        return const InputEvent.none();
+      case ControlCharacter.pageDown:
+        _scrollCallback?.call(-5);
+        return const InputEvent.none();
       case ControlCharacter.escape:
         return const InputEvent.specialKey(SpecialKeys.escape);
       default:

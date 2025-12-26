@@ -100,6 +100,7 @@ class GameRunner {
     final caps = provider.capabilities;
     glkDisplay.cols = caps.screenWidth;
     glkDisplay.rows = caps.screenHeight;
+    glkDisplay.platformProvider = provider;
 
     // Wire up screen rendering callback
     glkDisplay.onScreenReady = (frame) => provider.render(frame);
@@ -108,6 +109,9 @@ class GameRunner {
     glkDisplay.onShowTempMessage = (message, {int seconds = 3}) {
       provider.showTempMessage(message, seconds: seconds);
     };
+
+    // Wire up scroll callback
+    provider.setScrollCallback((delta) => glkDisplay.scroll(delta));
 
     final glulxProvider = GlulxTerminalProvider(display: glkDisplay);
     glulxProvider.setPlatformProvider(provider);
@@ -168,6 +172,7 @@ class GameRunner {
 
     // Create ZTerminalDisplay - callbacks will be wired
     final zDisplay = ZTerminalDisplay();
+    zDisplay.platformProvider = provider;
 
     provider.enterDisplayMode();
 
@@ -178,6 +183,9 @@ class GameRunner {
     zDisplay.onShowTempMessage = (message, {int seconds = 3}) {
       provider.showTempMessage(message, seconds: seconds);
     };
+
+    // Wire up scroll callback
+    provider.setScrollCallback((delta) => zDisplay.scroll(delta));
 
     // IMPORTANT: Set Z.io BEFORE Z.load() so visitHeader() can read platform capabilities
     final dispatcher = ZMachineIoDispatcher(zDisplay, provider);

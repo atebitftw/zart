@@ -12,6 +12,9 @@ enum InputEventType {
   /// The window was resized.
   resize,
 
+  /// A macro command was triggered.
+  macro,
+
   /// No input available (for polling).
   none,
 }
@@ -35,6 +38,9 @@ class InputEvent {
   /// - Function keys: 133-144 (F1-F12)
   /// - Delete: 8, Escape: 27, Enter: 13
   final int? keyCode;
+
+  /// For macro events: the command string to execute.
+  final String? macroCommand;
 
   /// For mouse input: X position in window coordinates.
   final int? x;
@@ -61,6 +67,7 @@ class InputEvent {
     required this.type,
     this.character,
     this.keyCode,
+    this.macroCommand,
     this.x,
     this.y,
     this.button,
@@ -75,22 +82,17 @@ class InputEvent {
     : this._(type: InputEventType.character, character: char, keyCode: keyCode);
 
   /// Create a special key event (arrows, function keys, etc).
-  const InputEvent.specialKey(int keyCode)
-    : this._(type: InputEventType.character, character: '', keyCode: keyCode);
+  const InputEvent.specialKey(int keyCode) : this._(type: InputEventType.character, character: '', keyCode: keyCode);
+
+  /// Create a macro command event.
+  const InputEvent.macro(String command) : this._(type: InputEventType.macro, macroCommand: command);
 
   /// Create a mouse click event.
   const InputEvent.mouseClick(int x, int y, MouseButton button, {int? windowId})
-    : this._(
-        type: InputEventType.mouse,
-        x: x,
-        y: y,
-        button: button,
-        windowId: windowId,
-      );
+    : this._(type: InputEventType.mouse, x: x, y: y, button: button, windowId: windowId);
 
   /// Create a timer/timeout event.
-  const InputEvent.timeout()
-    : this._(type: InputEventType.timer, isTimeout: true);
+  const InputEvent.timeout() : this._(type: InputEventType.timer, isTimeout: true);
 
   /// Create a resize event.
   const InputEvent.resize(int width, int height)
@@ -100,10 +102,7 @@ class InputEvent {
   const InputEvent.none() : this._(type: InputEventType.none);
 
   /// True if this is a printable character (not a special key).
-  bool get isPrintable =>
-      type == InputEventType.character &&
-      character != null &&
-      character!.isNotEmpty;
+  bool get isPrintable => type == InputEventType.character && character != null && character!.isNotEmpty;
 
   @override
   String toString() {
@@ -119,6 +118,8 @@ class InputEvent {
         return 'InputEvent.timeout()';
       case InputEventType.resize:
         return 'InputEvent.resize($newWidth, $newHeight)';
+      case InputEventType.macro:
+        return 'InputEvent.macro("$macroCommand")';
       case InputEventType.none:
         return 'InputEvent.none()';
     }
