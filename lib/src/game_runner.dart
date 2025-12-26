@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:zart/src/game_runner_exception.dart';
-import 'package:zart/src/glulx/glulx_debugger.dart' show debugger;
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glulx_terminal_provider.dart' show GlulxTerminalProvider;
@@ -11,6 +10,7 @@ import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
 import 'package:zart/src/io/z_machine/z_terminal_display.dart' show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
+import 'package:zart/src/zart_debugger.dart';
 
 /// Unified game runner for both Z-machine and Glulx games.
 ///
@@ -88,16 +88,6 @@ class GameRunner {
     // Wire up screen rendering callback
     glkDisplay.onScreenReady = (frame) => provider.render(frame);
 
-    // Wire up input callbacks using platform provider
-    glkDisplay.onReadLine = () => provider.readLine();
-    glkDisplay.onReadChar = () async {
-      final event = await provider.readInput();
-      if (event.character != null) {
-        return event.character!;
-      }
-      return '';
-    };
-
     // Wire up temp message callback (if platform supports it)
     glkDisplay.onShowTempMessage = (message, {int seconds = 3}) {
       provider.showTempMessage(message, seconds: seconds);
@@ -148,9 +138,6 @@ class GameRunner {
   }
 
   Future<void> _runZMachine(Uint8List gameData) async {
-    // Set up Z-machine IO dispatcher from the provider
-    Z.load(gameData);
-
     // Handle Ctrl+C
     ProcessSignal.sigint.watch().listen((_) {
       provider.exitDisplayMode();
@@ -172,8 +159,12 @@ class GameRunner {
       provider.showTempMessage(message, seconds: seconds);
     };
 
+    // IMPORTANT: Set Z.io BEFORE Z.load() so visitHeader() can read platform capabilities
     final dispatcher = ZMachineIoDispatcher(zDisplay, provider);
     Z.io = dispatcher;
+
+    // Now load the game - this calls visitHeader() which needs Z.io to be set
+    Z.load(gameData);
 
     zDisplay.detectTerminalSize();
     zDisplay.applySavedSettings();

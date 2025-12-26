@@ -67,8 +67,7 @@ class ZScreenModel {
   int wrapWidth = 0;
 
   /// Effective wrap width.
-  int get _effectiveWrapWidth =>
-      (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
+  int get _effectiveWrapWidth => (wrapWidth > 0 && wrapWidth < cols) ? wrapWidth : cols;
 
   /// The grid for Window 1 (upper/status window) content.
   /// Grid is [row][col]
@@ -122,11 +121,38 @@ class ZScreenModel {
   /// The current background color (Z-machine code 1-12).
   int bgColor = 1;
 
+  /// The current font (1=normal, 4=fixed-pitch). Default is 1.
+  int currentFont = 1;
+
   /// The user's preferred color for Window 0 (Z-machine code, overrides default/1).
   int _window0ColorPref = 1;
 
   /// The user's preferred color for Window 0 (Z-machine code, overrides default/1).
   int get window0ColorPref => _window0ColorPref;
+
+  /// Set font and return previous font number, or 0 if unavailable.
+  ///
+  /// Z-Machine fonts:
+  /// - 0: Query current font (no change)
+  /// - 1: Normal (proportional) font - supported
+  /// - 2: Picture font - not supported
+  /// - 3: Character graphics font - not supported
+  /// - 4: Fixed-pitch (monospace) font - supported
+  int setFont(int fontId) {
+    // Font 0 = query current font
+    if (fontId == 0) return currentFont;
+
+    // We support fonts 1 (normal) and 4 (fixed)
+    // In a terminal, both are effectively the same (monospace)
+    if (fontId == 1 || fontId == 4) {
+      final prev = currentFont;
+      currentFont = fontId;
+      return prev;
+    }
+
+    // Fonts 2 (picture) and 3 (character graphics) are not supported
+    return 0;
+  }
 
   /// Creates a new screen model.
   ZScreenModel({this.cols = 80, this.rows = 24});
@@ -228,9 +254,17 @@ class ZScreenModel {
   }
 
   /// Set text style.
+  ///
+  /// Per Z-Machine spec and Frotz reference behavior:
+  /// - style 0: Reset to Roman (clear all styles)
+  /// - style > 0: Accumulate (OR) new style bits with current style
   void setStyle(int style) {
     _log.info('setStyle: $style (1=reverse, 2=bold, 4=italic, 8=fixed)');
-    currentStyle = style;
+    if (style == 0) {
+      currentStyle = 0; // Reset to Roman
+    } else {
+      currentStyle |= style; // Accumulate styles
+    }
   }
 
   /// Set text colors.
@@ -258,9 +292,7 @@ class ZScreenModel {
   /// Write text to Window 1 at current cursor position.
   void writeToWindow1(String text) {
     // Log simplified text content
-    _log.info(
-      'writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol',
-    );
+    _log.info('writeToWindow1: "${text.replaceAll('\n', '\\n')}" at $_cursorRow, $_cursorCol');
 
     for (int i = 0; i < text.length; i++) {
       final char = text[i];
@@ -314,15 +346,11 @@ class ZScreenModel {
     if (_window1Height > _requestedHeight) {
       final trimmed = text.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        _log.info(
-          'Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
       if (trimmed.startsWith('[')) {
-        _log.info(
-          'Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"',
-        );
+        _log.info('Suppressed bracketed (start) Window 0 text during forced-open window: "${text.trim()}"');
         return;
       }
     }
@@ -355,8 +383,7 @@ class ZScreenModel {
 
       if (word != null) {
         // Wrap if word doesn't fit
-        if (currentLine.isNotEmpty &&
-            currentLine.length + word.length > _effectiveWrapWidth) {
+        if (currentLine.isNotEmpty && currentLine.length + word.length > _effectiveWrapWidth) {
           newLine();
         }
 
@@ -399,15 +426,11 @@ class ZScreenModel {
       'cols': cols,
       'rows': rows,
       'wrapWidth': wrapWidth,
-      'window1Grid': _window1Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'window1Grid': _window1Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'window1Height': _window1Height,
       'requestedHeight': _requestedHeight,
       'contentHeight': _contentHeight,
-      'window0Grid': _window0Grid
-          .map((row) => row.map((c) => c.clone()).toList())
-          .toList(),
+      'window0Grid': _window0Grid.map((row) => row.map((c) => c.clone()).toList()).toList(),
       'cursorRow': _cursorRow,
       'cursorCol': _cursorCol,
       'currentStyle': currentStyle,
@@ -432,19 +455,13 @@ class ZScreenModel {
       wrapWidth = state['wrapWidth'];
     }
 
-    _window1Grid = (state['window1Grid'] as List)
-        .map((row) => (row as List).cast<RenderCell>())
-        .toList();
+    _window1Grid = (state['window1Grid'] as List).map((row) => (row as List).cast<RenderCell>()).toList();
     _window1Height = state['window1Height'];
     _requestedHeight = state['requestedHeight'];
     _contentHeight = state['contentHeight'];
 
     _window0Grid.clear();
-    _window0Grid.addAll(
-      (state['window0Grid'] as List)
-          .map((row) => (row as List).cast<RenderCell>())
-          .toList(),
-    );
+    _window0Grid.addAll((state['window0Grid'] as List).map((row) => (row as List).cast<RenderCell>()).toList());
 
     _cursorRow = state['cursorRow'];
     _cursorCol = state['cursorCol'];
@@ -525,11 +542,6 @@ class ZScreenModel {
       ),
     );
 
-    return RenderFrame(
-      windows: windows,
-      screenWidth: cols,
-      screenHeight: rows,
-      focusedWindowId: focusedWindowId ?? 0,
-    );
+    return RenderFrame(windows: windows, screenWidth: cols, screenHeight: rows, focusedWindowId: focusedWindowId ?? 0);
   }
 }

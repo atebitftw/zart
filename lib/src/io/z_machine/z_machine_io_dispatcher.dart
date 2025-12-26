@@ -87,6 +87,9 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         final bg = commandMessage['background'] as int;
         _terminal.setColors(fg, bg);
         break;
+      case ZIoCommands.setFont:
+        final fontId = commandMessage['font_id'] as int;
+        return _terminal.setFont(fontId);
       case ZIoCommands.eraseLine:
         // Erase line in current window?
         // Z-machine standard: erase to end of line.
@@ -100,9 +103,7 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         final isTime = (commandMessage['game_type'] as String) == 'TIME';
 
         // Format: "Room Name" (left) ... "Score: A Moves: B" (right)
-        final rightText = isTime
-            ? 'Time: $score1:$score2'
-            : 'Score: $score1 Moves: $score2';
+        final rightText = isTime ? 'Time: $score1:$score2' : 'Score: $score1 Moves: $score2';
 
         // Ensure window 1 has at least 1 line
         if (_terminal.screen.window1Height < 1) {
@@ -122,8 +123,7 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
         // 2. Calculate padding
         final width = _terminal.cols;
         final leftLen = room.length + 1; // +1 for leading space
-        final rightLen =
-            rightText.length + 1; // +1 for trailing space? or just visual?
+        final rightLen = rightText.length + 1; // +1 for trailing space? or just visual?
         final pad = width - leftLen - rightLen;
 
         if (pad > 0) {

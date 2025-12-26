@@ -127,6 +127,16 @@ abstract class PlatformProvider {
   /// Used for real-time games and timed input.
   InputEvent? pollInput();
 
+  /// Set a callback to be notified when scroll offset changes during input.
+  ///
+  /// This is used by Glulx games to re-render when the user scrolls
+  /// during line input. The callback receives the new scroll offset.
+  ///
+  /// [callback] - Function to call when scroll changes, or null to clear.
+  void setScrollCallback(void Function(int scrollOffset)? callback) {
+    // Default implementation does nothing - platforms override as needed
+  }
+
   // ============================================================
   // FILE IO
   // ============================================================
