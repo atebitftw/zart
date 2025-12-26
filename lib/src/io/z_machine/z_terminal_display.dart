@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:dart_console/dart_console.dart';
-import 'package:zart/src/cli/cli_configuration_manager.dart';
 import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
 import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
@@ -53,7 +51,11 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   set cols(int value) => _cols = value;
 
   /// Terminal rows (adjusted for zart bar when enabled)
-  int get rows => (enableStatusBar && (cliConfigManager.zartBarVisible) ? _rows - 1 : _rows); // Dynamic sizing
+  int get rows {
+    final zartBarVisible =
+        platformProvider?.capabilities.zartBarVisible ?? true;
+    return (enableStatusBar && zartBarVisible) ? _rows - 1 : _rows;
+  }
 
   /// Set raw terminal rows.
   set rows(int value) => _rows = value;
@@ -65,8 +67,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   @override
   PlatformProvider? platformProvider;
-
-  final Console _console = Console();
 
   /// Hook for opening settings
   Future<void> Function()? onOpenSettings;
@@ -87,7 +87,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   bool enableStatusBar = false;
 
   String _inputBuffer = '';
-  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine =
+      -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
   // Isolate logic removed as rendering is now handled via callbacks
@@ -108,12 +109,13 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int _currentTextColorIndex = 0;
 
   void _cycleTextColor() {
-    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex =
+        (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _screen.forceWindow0Color(newColor);
 
-    // Save preference
-    cliConfigManager.textColor = newColor;
+    // Notify platform of preference change
+    platformProvider?.setTextColor(newColor);
   }
 
   // State for tracking mouse escape sequences
@@ -178,7 +180,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Apply settings from configuration (e.g. initial color)
   void applySavedSettings() {
-    final savedColor = cliConfigManager.textColor;
+    final savedColor = platformProvider?.capabilities.textColor ?? 1;
     // Sync index
     _currentTextColorIndex = _customTextColors.indexOf(savedColor);
     if (_currentTextColorIndex == -1) {
@@ -191,7 +193,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   void showTempMessage(String message, {int seconds = 3}) {
     onShowTempMessage?.call(message, seconds: seconds);
     // Render immediate message if visible
-    if (cliConfigManager.zartBarVisible) {
+    final zartBarVisible =
+        platformProvider?.capabilities.zartBarVisible ?? true;
+    if (zartBarVisible) {
       render();
     }
   }
@@ -199,8 +203,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   // ignore: unused_field
   int _inputCol = 0; // Column where input started
 
-  // ANSI helper via console?
-  bool get _supportsAnsi => true; // dart_console handles this internally usually
+  // ANSI helper
+  bool get _supportsAnsi => true;
 
   // helper to get key string
 
@@ -220,9 +224,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     // Try to switch to alternate buffer manually
     stdout.write('\x1B[?1049h');
 
-    _console.rawMode = true;
-    _console.hideCursor();
-    _console.clearScreen();
+    stdout.write('\x1B[?25l'); // Hide cursor
+    stdout.write('\x1B[2J'); // Clear screen
 
     detectTerminalSize();
     // No redundant resize here, detectTerminalSize does it
@@ -231,9 +234,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Exit full-screen mode and restore normal terminal.
   void exitFullScreen() {
-    _console.showCursor();
-    _console.rawMode = false;
-    _console.resetColorAttributes();
+    stdout.write('\x1B[?25h'); // Show cursor
+    stdout.write('\x1B[0m'); // Reset attributes
 
     // Switch back to main screen buffer
     stdout.write('\x1B[?1049l');
@@ -241,8 +243,11 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Detect terminal size.
   void detectTerminalSize() {
-    _cols = _console.windowWidth;
-    _rows = _console.windowHeight;
+    if (platformProvider != null) {
+      _cols = platformProvider!.capabilities.screenWidth;
+      _rows = platformProvider!.capabilities.screenHeight;
+    }
+
     if (_cols <= 0) _cols = 80;
     if (_rows <= 0) _rows = 24;
 
@@ -324,7 +329,11 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   /// Save screen state (for settings/menus).
   void saveState() {
     _screen.saveState();
-    _savedTerminalState = {'inputLine': _inputLine, 'inputBuffer': _inputBuffer, 'inputCol': _inputCol};
+    _savedTerminalState = {
+      'inputLine': _inputLine,
+      'inputBuffer': _inputBuffer,
+      'inputCol': _inputCol,
+    };
   }
 
   /// Restore screen state.
@@ -386,11 +395,13 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     // Sync scroll offset with compositor
     _compositor.setScrollOffset(_scrollOffset);
 
+    final zartBarVisible =
+        platformProvider?.capabilities.zartBarVisible ?? true;
     final screenFrame = _compositor.composite(
       frame,
       screenWidth: _cols,
       screenHeight: rows, // Use rows getter which accounts for status bar
-      hideStatusBar: !enableStatusBar,
+      hideStatusBar: !enableStatusBar || !zartBarVisible,
     );
 
     // Update our scroll offset from compositor (in case it was clamped)
@@ -467,13 +478,17 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     _scrollOffset = 0;
 
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty
+        ? _screen.window0Grid.length - 1
+        : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty
+        ? _screen.window0Grid.last.length
+        : 0;
 
     render();
 
@@ -481,11 +496,12 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       InputEvent event;
       if (platformProvider != null) {
         event = await platformProvider!.readInput();
-        if (event.type == InputEventType.none) continue; // Global scroll key handled
+        if (event.type == InputEventType.none)
+          continue; // Global scroll key handled
       } else {
-        // Fallback for tests or direct console usage
-        final key = _console.readKey();
-        event = _keyToInputEvent(key);
+        throw StateError(
+          'ZTerminalDisplay requires a platformProvider for input.',
+        );
       }
 
       final (consumed, restored) = await _handleGlobalKeys(event);
@@ -527,7 +543,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       } else if (event.keyCode == SpecialKeys.delete) {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
-          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty &&
+              _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) rowList.removeLast();
           }
@@ -545,7 +562,8 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           final match = mousePattern.firstMatch(_inputBuffer);
           if (match != null) {
             _inputBuffer = _inputBuffer.substring(0, match.start);
-            if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+            if (_screen.window0Grid.isNotEmpty &&
+                _inputLine < _screen.window0Grid.length) {
               final rowList = _screen.window0Grid[_inputLine];
               while (rowList.length > _inputCol + _inputBuffer.length) {
                 if (rowList.isNotEmpty) rowList.removeLast();
@@ -556,55 +574,23 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           }
         }
 
-        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
+        if (_screen.window0Grid.isNotEmpty &&
+            _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
             rowList.add(
-              RenderCell.fromZMachine(char, fgColor: 9, bgColor: _screen.bgColor, style: _screen.currentStyle),
+              RenderCell.fromZMachine(
+                char,
+                fgColor: 9,
+                bgColor: _screen.bgColor,
+                style: _screen.currentStyle,
+              ),
             );
           }
         }
         render();
       }
     }
-  }
-
-  /// Helper to convert dart_console Key to InputEvent
-  InputEvent _keyToInputEvent(Key key) {
-    if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
-      return InputEvent.character(key.char);
-    }
-    int? keyCode;
-
-    switch (key.controlChar) {
-      case ControlCharacter.enter:
-        keyCode = SpecialKeys.enter;
-      case ControlCharacter.backspace:
-        keyCode = SpecialKeys.delete;
-      case ControlCharacter.arrowUp:
-        keyCode = SpecialKeys.arrowUp;
-      case ControlCharacter.arrowDown:
-        keyCode = SpecialKeys.arrowDown;
-      case ControlCharacter.arrowLeft:
-        keyCode = SpecialKeys.arrowLeft;
-      case ControlCharacter.arrowRight:
-        keyCode = SpecialKeys.arrowRight;
-      case ControlCharacter.F1:
-        keyCode = SpecialKeys.f1;
-      case ControlCharacter.F2:
-        keyCode = SpecialKeys.f2;
-      case ControlCharacter.F3:
-        keyCode = SpecialKeys.f3;
-      case ControlCharacter.F4:
-        keyCode = SpecialKeys.f4;
-      case ControlCharacter.escape:
-        keyCode = SpecialKeys.escape;
-      default:
-        break;
-    }
-    if (keyCode != null) return InputEvent.specialKey(keyCode);
-    if (key.char.isNotEmpty) return InputEvent.character(key.char);
-    return const InputEvent.none();
   }
 
   /// Read a single character for char input mode.
@@ -618,8 +604,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         event = await platformProvider!.readInput();
         if (event.type == InputEventType.none) continue;
       } else {
-        final key = _console.readKey();
-        event = _keyToInputEvent(key);
+        throw StateError(
+          'ZTerminalDisplay requires a platformProvider for input.',
+        );
       }
 
       final (consumed, restored) = await _handleGlobalKeys(event);

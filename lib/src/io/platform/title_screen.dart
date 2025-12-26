@@ -137,7 +137,12 @@ class ZartTitleScreen {
     required int width,
     required int height,
     required void Function(ScreenFrame frame) renderCallback,
-    required ({Future<void> onKeyPressed, bool Function() wasPressed, void Function() cleanup}) asyncKeyWait,
+    required ({
+      Future<void> onKeyPressed,
+      bool Function() wasPressed,
+      void Function() cleanup,
+    })
+    asyncKeyWait,
     List<String>? commands,
     AnimatedPromptConfig config = const AnimatedPromptConfig(),
   }) async {
@@ -219,7 +224,10 @@ class ZartTitleScreen {
   }) {
     final cells = List.generate(
       height,
-      (_) => List.generate(width, (_) => RenderCell(' ', bgColor: _TitleColors.black)),
+      (_) => List.generate(
+        width,
+        (_) => RenderCell(' ', bgColor: _TitleColors.black),
+      ),
     );
 
     var row = 1;
@@ -227,15 +235,35 @@ class ZartTitleScreen {
     // Frame total width = 2 (borders) + innerWidth
     final frameWidth = _innerWidth + 2;
     final leftOffset = (width - frameWidth) ~/ 2;
-    if (leftOffset < 0) return ScreenFrame(cells: cells, width: width, height: height);
+    if (leftOffset < 0)
+      return ScreenFrame(cells: cells, width: width, height: height);
 
-    void writeCell(int r, int c, String char, {int? fg, int? bg, bool bold = false}) {
+    void writeCell(
+      int r,
+      int c,
+      String char, {
+      int? fg,
+      int? bg,
+      bool bold = false,
+    }) {
       if (r >= 0 && r < height && c >= 0 && c < width) {
-        cells[r][c] = RenderCell(char, fgColor: fg ?? _TitleColors.cyan, bgColor: bg ?? _TitleColors.black, bold: bold);
+        cells[r][c] = RenderCell(
+          char,
+          fgColor: fg ?? _TitleColors.cyan,
+          bgColor: bg ?? _TitleColors.black,
+          bold: bold,
+        );
       }
     }
 
-    void writeString(int r, int startCol, String text, {int? fg, int? bg, bool bold = false}) {
+    void writeString(
+      int r,
+      int startCol,
+      String text, {
+      int? fg,
+      int? bg,
+      bool bold = false,
+    }) {
       for (var i = 0; i < text.length; i++) {
         writeCell(r, startCol + i, text[i], fg: fg, bg: bg, bold: bold);
       }
@@ -246,7 +274,12 @@ class ZartTitleScreen {
       for (var i = 0; i < _innerWidth; i++) {
         writeCell(row, leftOffset + 1 + i, middle, fg: _TitleColors.cyan);
       }
-      writeCell(row, leftOffset + 1 + _innerWidth, right, fg: _TitleColors.cyan);
+      writeCell(
+        row,
+        leftOffset + 1 + _innerWidth,
+        right,
+        fg: _TitleColors.cyan,
+      );
       row++;
     }
 
@@ -283,7 +316,11 @@ class ZartTitleScreen {
       writeFrameLine(content, fg: fg, bold: bold);
     }
 
-    void writeAnimatedPrompt(String text, bool caret, AnimatedPromptConfig cfg) {
+    void writeAnimatedPrompt(
+      String text,
+      bool caret,
+      AnimatedPromptConfig cfg,
+    ) {
       writeCell(row, leftOffset, '║', fg: _TitleColors.cyan);
       // Prompt symbol "> "
       writeCell(row, leftOffset + 2, '>', fg: cfg.caretColor, bold: true);
@@ -335,8 +372,16 @@ class ZartTitleScreen {
         if (charIndex >= 0 && charIndex < logoText.length) {
           final char = logoText[charIndex];
           // Shadow chars get darkGrey, solid blocks get colorful
-          final color = shadowChars.contains(char) ? _TitleColors.darkGrey : logoColors[i];
-          writeCell(row, leftOffset + 1 + j, char, fg: color, bold: !shadowChars.contains(char));
+          final color = shadowChars.contains(char)
+              ? _TitleColors.darkGrey
+              : logoColors[i];
+          writeCell(
+            row,
+            leftOffset + 1 + j,
+            char,
+            fg: color,
+            bold: !shadowChars.contains(char),
+          );
         } else {
           writeCell(row, leftOffset + 1 + j, ' ');
         }
@@ -352,7 +397,11 @@ class ZartTitleScreen {
     writeEmptyLine();
 
     // Subtitle
-    writeCentered('✦ Interactive Fiction Library ✦', fg: _TitleColors.white, bold: true);
+    writeCentered(
+      '✦ Interactive Fiction Library ✦',
+      fg: _TitleColors.white,
+      bold: true,
+    );
     writeEmptyLine();
 
     // Version
@@ -383,6 +432,12 @@ class ZartTitleScreen {
     final pressKeyStart = (width - pressKeyText.length) ~/ 2;
     writeString(row, pressKeyStart, pressKeyText, fg: _TitleColors.grey);
 
-    return ScreenFrame(cells: cells, width: width, height: height, cursorVisible: false, hideStatusBar: true);
+    return ScreenFrame(
+      cells: cells,
+      width: width,
+      height: height,
+      cursorVisible: false,
+      hideStatusBar: true,
+    );
   }
 }

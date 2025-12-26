@@ -16,40 +16,33 @@ Enjoy!
 * Plays Inform v6 & v7 games.
 * Supports all popular game file formats (.z3, .z5, .z8, .dat, .blorb, .zblorb, .gblorb, .ulx, etc).
 * Provides an API that allows you to build your own player for any platform that Flutter/Dart runs on.
-* Library comes with a full-featured CLI player (see "Getting Started" below).
+* Full-features CLI player and Flutter Web Player available.
 
 ## Getting Started
 [You Can Read The Full Getting Started Document Here.](https://github.com/atebitftw/zart/blob/main/doc/getting_started.md)
 
-You'll need a player that uses the Zart library.  I've provided a CLI player (included with the library) and a Flutter Web Player.
+You'll need a player that uses the Zart library.  I've provided a CLI player and a Flutter Web Player.
 
 ### Zart Web Player
 You can use the Zart Web Player App, written in Flutter.  You can find the app here at my project website: https://atebitftw.github.io/site/. The player uses the Zart library to run the games.
 
 Zart Web Player is open source.  You can find the project here: [Zart Web Player On Github](https://github.com/atebitftw/zart-player).
 
-### CLI Player
-The CLI player is a full-featured terminal player that supports modern quality-of-life features while remaining true to the original experience:
-- Custom key bindings (macros)
-- Color selection
-- Zart bar visibility and color customization
-- Quick-save/restore
-- Text scrolling with mouse wheel support.
+### Zart CLI Player
+The CLI Player is a full-featured terminal player.
 
-For more information, see the [CLI Player README](https://github.com/atebitftw/zart/blob/main/bin/README.md).
-
-#### Flutter/Dart SDK Required
-You will need the Flutter/Dart SDK installed on your system to use the CLI player.  You can download it from [Dart SDK Download](https://dart.dev/get-dart) or [Install Flutter](https://docs.flutter.dev/install).  Flutter comes with the Dart SDK.
-
-#### Installation
-You can then install the `zart` CLI player and run it to play games from the command line:
+If you have the Flutter or Dart SDK installed, you can install the CLI player using the following command:
 
 ```bash
-> dart pub global activate zart
-> zart minizork.z3
+flutter pub global activate --source git git@github.com:atebitftw/zart_cli.git
 ```
 
-*The source code for the CLI player is included in this package, in either the `bin/` or `example/` directories.*
+Then you can run it this way:
+
+(using minizork as an example)
+```bash
+zart minizork.z3
+```
 
 ### Roll Your Own
 Use the Zart library to build your own player.  You would have to write your own client which would manage the i/o between the player and the interpreter.  The Zart library provides all the necessary functionality.

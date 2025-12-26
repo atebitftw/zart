@@ -22,6 +22,43 @@ enum InputEventType {
 /// Mouse button identifiers.
 enum MouseButton { left, right, middle }
 
+/// Unified special key identifiers for internal use.
+enum SpecialKey {
+  delete,
+  tab,
+  enter,
+  escape,
+  arrowUp,
+  arrowDown,
+  arrowLeft,
+  arrowRight,
+  pageUp,
+  pageDown,
+  f1,
+  f2,
+  f3,
+  f4,
+  f5,
+  f6,
+  f7,
+  f8,
+  f9,
+  f10,
+  f11,
+  f12,
+  keypad0,
+  keypad1,
+  keypad2,
+  keypad3,
+  keypad4,
+  keypad5,
+  keypad6,
+  keypad7,
+  keypad8,
+  keypad9,
+  none,
+}
+
 /// Represents an input event from the platform.
 ///
 /// Used for both Z-machine and Glulx games to receive keyboard, mouse,
@@ -33,11 +70,18 @@ class InputEvent {
   /// For character input: the character string (may be empty for special keys).
   final String? character;
 
+  /// The internal special key identifier (if applicable).
+  final SpecialKey? specialKey;
+
+  final int? _keyCode;
+
   /// For character input: Z-machine/Glk key code for special keys.
   /// - Arrow keys: 129-132 (up, down, left, right)
   /// - Function keys: 133-144 (F1-F12)
   /// - Delete: 8, Escape: 27, Enter: 13
-  final int? keyCode;
+  int? get keyCode =>
+      _keyCode ??
+      (specialKey != null ? SpecialKeys.toKeyCode(specialKey!) : null);
 
   /// For macro events: the command string to execute.
   final String? macroCommand;
@@ -66,7 +110,8 @@ class InputEvent {
   const InputEvent._({
     required this.type,
     this.character,
-    this.keyCode,
+    this.specialKey,
+    int? keyCode,
     this.macroCommand,
     this.x,
     this.y,
@@ -75,24 +120,46 @@ class InputEvent {
     this.isTimeout = false,
     this.newWidth,
     this.newHeight,
-  });
+  }) : _keyCode = keyCode;
 
   /// Create a character input event.
-  const InputEvent.character(String char, {int? keyCode})
-    : this._(type: InputEventType.character, character: char, keyCode: keyCode);
+  const InputEvent.character(
+    String char, {
+    SpecialKey? specialKey,
+    int? keyCode,
+  }) : this._(
+         type: InputEventType.character,
+         character: char,
+         specialKey: specialKey,
+         keyCode: keyCode,
+       );
 
   /// Create a special key event (arrows, function keys, etc).
-  const InputEvent.specialKey(int keyCode) : this._(type: InputEventType.character, character: '', keyCode: keyCode);
+  const InputEvent.specialKey(SpecialKey specialKey, {int? keyCode})
+    : this._(
+        type: InputEventType.character,
+        character: '',
+        specialKey: specialKey,
+        keyCode: keyCode,
+      );
 
   /// Create a macro command event.
-  const InputEvent.macro(String command) : this._(type: InputEventType.macro, macroCommand: command);
+  const InputEvent.macro(String command)
+    : this._(type: InputEventType.macro, macroCommand: command);
 
   /// Create a mouse click event.
   const InputEvent.mouseClick(int x, int y, MouseButton button, {int? windowId})
-    : this._(type: InputEventType.mouse, x: x, y: y, button: button, windowId: windowId);
+    : this._(
+        type: InputEventType.mouse,
+        x: x,
+        y: y,
+        button: button,
+        windowId: windowId,
+      );
 
   /// Create a timer/timeout event.
-  const InputEvent.timeout() : this._(type: InputEventType.timer, isTimeout: true);
+  const InputEvent.timeout()
+    : this._(type: InputEventType.timer, isTimeout: true);
 
   /// Create a resize event.
   const InputEvent.resize(int width, int height)
@@ -102,7 +169,10 @@ class InputEvent {
   const InputEvent.none() : this._(type: InputEventType.none);
 
   /// True if this is a printable character (not a special key).
-  bool get isPrintable => type == InputEventType.character && character != null && character!.isNotEmpty;
+  bool get isPrintable =>
+      type == InputEventType.character &&
+      character != null &&
+      character!.isNotEmpty;
 
   @override
   String toString() {
@@ -154,6 +224,12 @@ abstract class SpecialKeys {
 
   /// Arrow right key
   static const int arrowRight = 132;
+
+  /// Page up key
+  static const int pageUp = 155;
+
+  /// Page down key
+  static const int pageDown = 156;
 
   // Function keys
   /// F1 key
@@ -223,4 +299,97 @@ abstract class SpecialKeys {
 
   /// Keypad 9 key
   static const int keypad9 = 154;
+
+  /// Map a SpecialKey enum to its corresponding integer key code.
+  static int toKeyCode(SpecialKey key) {
+    switch (key) {
+      case SpecialKey.delete:
+        return delete;
+      case SpecialKey.tab:
+        return tab;
+      case SpecialKey.enter:
+        return enter;
+      case SpecialKey.escape:
+        return escape;
+      case SpecialKey.arrowUp:
+        return arrowUp;
+      case SpecialKey.arrowDown:
+        return arrowDown;
+      case SpecialKey.arrowLeft:
+        return arrowLeft;
+      case SpecialKey.arrowRight:
+        return arrowRight;
+      case SpecialKey.pageUp:
+        return pageUp;
+      case SpecialKey.pageDown:
+        return pageDown;
+      case SpecialKey.f1:
+        return f1;
+      case SpecialKey.f2:
+        return f2;
+      case SpecialKey.f3:
+        return f3;
+      case SpecialKey.f4:
+        return f4;
+      case SpecialKey.f5:
+        return f5;
+      case SpecialKey.f6:
+        return f6;
+      case SpecialKey.f7:
+        return f7;
+      case SpecialKey.f8:
+        return f8;
+      case SpecialKey.f9:
+        return f9;
+      case SpecialKey.f10:
+        return f10;
+      case SpecialKey.f11:
+        return f11;
+      case SpecialKey.f12:
+        return f12;
+      case SpecialKey.keypad0:
+        return keypad0;
+      case SpecialKey.keypad1:
+        return keypad1;
+      case SpecialKey.keypad2:
+        return keypad2;
+      case SpecialKey.keypad3:
+        return keypad3;
+      case SpecialKey.keypad4:
+        return keypad4;
+      case SpecialKey.keypad5:
+        return keypad5;
+      case SpecialKey.keypad6:
+        return keypad6;
+      case SpecialKey.keypad7:
+        return keypad7;
+      case SpecialKey.keypad8:
+        return keypad8;
+      case SpecialKey.keypad9:
+        return keypad9;
+      case SpecialKey.none:
+        return 0;
+    }
+  }
+
+  /// Map an integer key code to its corresponding SpecialKey enum.
+  static SpecialKey fromKeyCode(int code) {
+    if (code == delete) return SpecialKey.delete;
+    if (code == tab) return SpecialKey.tab;
+    if (code == enter) return SpecialKey.enter;
+    if (code == escape) return SpecialKey.escape;
+    if (code == arrowUp) return SpecialKey.arrowUp;
+    if (code == arrowDown) return SpecialKey.arrowDown;
+    if (code == arrowLeft) return SpecialKey.arrowLeft;
+    if (code == arrowRight) return SpecialKey.arrowRight;
+    if (code == pageUp) return SpecialKey.pageUp;
+    if (code == pageDown) return SpecialKey.pageDown;
+    if (code >= f1 && code <= f12) {
+      return SpecialKey.values[SpecialKey.f1.index + (code - f1)];
+    }
+    if (code >= keypad0 && code <= keypad9) {
+      return SpecialKey.values[SpecialKey.keypad0.index + (code - keypad0)];
+    }
+    return SpecialKey.none;
+  }
 }

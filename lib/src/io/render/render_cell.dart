@@ -51,7 +51,12 @@ class RenderCell {
   ///
   /// Z-machine style bitmask: 1=Reverse, 2=Bold, 4=Italic, 8=Fixed
   /// Z-machine colors: 1-12 (see [ZColors])
-  factory RenderCell.fromZMachine(String char, {int style = 0, int fgColor = 1, int bgColor = 1}) {
+  factory RenderCell.fromZMachine(
+    String char, {
+    int style = 0,
+    int fgColor = 1,
+    int bgColor = 1,
+  }) {
     return RenderCell(
       char,
       fgColor: ZColors.toRgb(fgColor),
@@ -125,7 +130,8 @@ class RenderCell {
       other.fixed == fixed;
 
   @override
-  int get hashCode => Object.hash(char, fgColor, bgColor, bold, italic, reverse, fixed);
+  int get hashCode =>
+      Object.hash(char, fgColor, bgColor, bold, italic, reverse, fixed);
 
   @override
   String toString() =>

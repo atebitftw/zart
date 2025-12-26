@@ -2,10 +2,13 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:zart/src/glulx/glulx_interpreter.dart';
-import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
-import 'package:zart/src/io/glk/glulx_terminal_provider.dart' show GlulxTerminalProvider;
+import 'package:zart/src/io/glk/glk_terminal_display.dart'
+    show GlkTerminalDisplay;
+import 'package:zart/src/io/glk/glulx_terminal_provider.dart'
+    show GlulxTerminalProvider;
 import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
-import 'package:zart/src/io/z_machine/z_terminal_display.dart' show ZTerminalDisplay;
+import 'package:zart/src/io/z_machine/z_terminal_display.dart'
+    show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
 import 'package:zart/src/io/platform/title_screen.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
@@ -197,7 +200,8 @@ class GameRunner {
     zDisplay.detectTerminalSize();
     zDisplay.applySavedSettings();
 
-    zDisplay.onOpenSettings = () => provider.openSettings(zDisplay, isGameStarted: true);
+    zDisplay.onOpenSettings = () =>
+        provider.openSettings(zDisplay, isGameStarted: true);
 
     // Wire up quicksave/quickload callbacks to set flags on the platform provider
     zDisplay.onQuickSave = () => provider.setQuickSaveFlag();
@@ -220,7 +224,11 @@ class GameRunner {
               continue;
             }
             zDisplay.appendToWindow0('\n');
-            final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+            final commands = line
+                .split('.')
+                .map((c) => c.trim())
+                .where((c) => c.isNotEmpty)
+                .toList();
             if (commands.isEmpty) {
               state = await Z.submitLineInput('');
             } else {

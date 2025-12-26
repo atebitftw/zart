@@ -38,36 +38,3 @@ abstract class CapabilityProvider {
   /// Returns capability flags for the Z-machine header.
   int zMachineCapabilities();
 }
-
-/// Mixin providing default capability values for terminal renderers.
-mixin TerminalCapabilities implements CapabilityProvider {
-  @override
-  bool get supportsColors => true;
-
-  @override
-  bool get supportsBold => true;
-
-  @override
-  bool get supportsItalic => true;
-
-  @override
-  bool get supportsUnicode => true;
-
-  @override
-  bool get supportsGraphics => false;
-
-  @override
-  bool get supportsSound => false;
-
-  @override
-  int glkGestalt(int selector, int arg) => 0;
-
-  @override
-  int zMachineCapabilities() {
-    int flags = 0;
-    if (supportsColors) flags |= 0x01;
-    if (supportsBold) flags |= 0x04;
-    if (supportsItalic) flags |= 0x08;
-    return flags;
-  }
-}

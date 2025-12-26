@@ -50,7 +50,10 @@ class ScreenFrame {
   /// Create an empty screen frame filled with empty cells.
   factory ScreenFrame.empty(int width, int height) {
     return ScreenFrame(
-      cells: List.generate(height, (_) => List.generate(width, (_) => RenderCell.empty())),
+      cells: List.generate(
+        height,
+        (_) => List.generate(width, (_) => RenderCell.empty()),
+      ),
       width: width,
       height: height,
     );

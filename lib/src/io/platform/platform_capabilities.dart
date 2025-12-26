@@ -71,6 +71,12 @@ class PlatformCapabilities {
   /// Default background color in 0xRRGGBB format.
   final int defaultBackground;
 
+  /// Whether the Zart bar (status bar) is visible (for platforms that support it).
+  final bool zartBarVisible;
+
+  /// Text color setting (Z-machine color code, 1-15).
+  final int textColor;
+
   /// Create platform capabilities with specified values.
   const PlatformCapabilities({
     required this.screenWidth,
@@ -92,6 +98,8 @@ class PlatformCapabilities {
     this.availableFonts = const [],
     this.defaultForeground = 0xFFFFFF, // White
     this.defaultBackground = 0x000000, // Black
+    this.zartBarVisible = false,
+    this.textColor = 1, // Default color
   });
 
   /// Create capabilities for a typical terminal/CLI environment.

@@ -45,7 +45,11 @@ class _ResourceEntry {
   /// Byte offset from start of file to resource chunk.
   final int start;
 
-  _ResourceEntry({required this.usage, required this.number, required this.start});
+  _ResourceEntry({
+    required this.usage,
+    required this.number,
+    required this.start,
+  });
 }
 
 /// Manages resources from a Blorb file.
@@ -91,7 +95,9 @@ class BlorbResourceManager {
     // Parse chunks starting at offset 12
     int offset = 12;
     while (offset + 8 <= _bytes.length) {
-      final chunkType = String.fromCharCodes(_bytes.sublist(offset, offset + 4));
+      final chunkType = String.fromCharCodes(
+        _bytes.sublist(offset, offset + 4),
+      );
       final chunkLength = _read4Bytes(offset + 4);
 
       if (chunkType == 'RIdx') {
@@ -121,7 +127,9 @@ class BlorbResourceManager {
       final start = _read4Bytes(offset + 8);
 
       if (usage != null) {
-        _resources.add(_ResourceEntry(usage: usage, number: number, start: start));
+        _resources.add(
+          _ResourceEntry(usage: usage, number: number, start: start),
+        );
       }
 
       offset += 12;
@@ -132,7 +140,10 @@ class BlorbResourceManager {
 
   /// Read a big-endian 4-byte integer at the given offset.
   int _read4Bytes(int offset) {
-    return (_bytes[offset] << 24) | (_bytes[offset + 1] << 16) | (_bytes[offset + 2] << 8) | _bytes[offset + 3];
+    return (_bytes[offset] << 24) |
+        (_bytes[offset + 1] << 16) |
+        (_bytes[offset + 2] << 8) |
+        _bytes[offset + 3];
   }
 
   /// Get an image resource by its number.
@@ -150,7 +161,9 @@ class BlorbResourceManager {
     }
 
     // Read the chunk at entry.start
-    final chunkType = String.fromCharCodes(_bytes.sublist(entry.start, entry.start + 4));
+    final chunkType = String.fromCharCodes(
+      _bytes.sublist(entry.start, entry.start + 4),
+    );
     final chunkLength = _read4Bytes(entry.start + 4);
 
     if (entry.start + 8 + chunkLength > _bytes.length) {
@@ -158,7 +171,11 @@ class BlorbResourceManager {
       return null;
     }
 
-    final data = Uint8List.sublistView(_bytes, entry.start + 8, entry.start + 8 + chunkLength);
+    final data = Uint8List.sublistView(
+      _bytes,
+      entry.start + 8,
+      entry.start + 8 + chunkLength,
+    );
 
     BlorbImageFormat? format;
     if (chunkType == 'PNG ') {
@@ -188,7 +205,9 @@ class BlorbResourceManager {
     }
 
     // Read the chunk at entry.start
-    final chunkType = String.fromCharCodes(_bytes.sublist(entry.start, entry.start + 4));
+    final chunkType = String.fromCharCodes(
+      _bytes.sublist(entry.start, entry.start + 4),
+    );
     final chunkLength = _read4Bytes(entry.start + 4);
 
     if (entry.start + 8 + chunkLength > _bytes.length) {
@@ -196,24 +215,38 @@ class BlorbResourceManager {
       return null;
     }
 
-    final data = Uint8List.sublistView(_bytes, entry.start + 8, entry.start + 8 + chunkLength);
+    final data = Uint8List.sublistView(
+      _bytes,
+      entry.start + 8,
+      entry.start + 8 + chunkLength,
+    );
 
     return BlorbSound(format: chunkType, data: data);
   }
 
   /// Check if a picture resource exists.
   bool hasImage(int resourceId) {
-    return _resources.any((e) => e.usage == Chunk.pict && e.number == resourceId);
+    return _resources.any(
+      (e) => e.usage == Chunk.pict && e.number == resourceId,
+    );
   }
 
   /// Check if a sound resource exists.
   bool hasSound(int resourceId) {
-    return _resources.any((e) => e.usage == Chunk.snd && e.number == resourceId);
+    return _resources.any(
+      (e) => e.usage == Chunk.snd && e.number == resourceId,
+    );
   }
 
   /// Get all picture resource IDs.
-  List<int> get imageIds => _resources.where((e) => e.usage == Chunk.pict).map((e) => e.number).toList();
+  List<int> get imageIds => _resources
+      .where((e) => e.usage == Chunk.pict)
+      .map((e) => e.number)
+      .toList();
 
   /// Get all sound resource IDs.
-  List<int> get soundIds => _resources.where((e) => e.usage == Chunk.snd).map((e) => e.number).toList();
+  List<int> get soundIds => _resources
+      .where((e) => e.usage == Chunk.snd)
+      .map((e) => e.number)
+      .toList();
 }
