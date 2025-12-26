@@ -9,6 +9,7 @@ import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glk_window.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
+import 'package:zart/src/cli/cli_configuration_manager.dart' show cliConfigManager;
 import 'package:zart/src/loaders/blorb_resource_manager.dart';
 
 /// IO provider for Glulx interpreter.
@@ -32,6 +33,8 @@ class GlulxTerminalProvider implements GlkProvider {
     _streams[1001] = _GlkStream(id: 1001, type: 1);
     // Initialize screen model with terminal dimensions
     _screenModel.setScreenSize(glkDisplay.cols, glkDisplay.rows);
+    // Initialize color preference from config
+    _screenModel.forceTextColor(cliConfigManager.textColor);
   }
 
   /// Queue for chained commands (split by '.')
@@ -286,7 +289,30 @@ class GlulxTerminalProvider implements GlkProvider {
         return 0;
 
       case GlkIoSelectors.setStyle:
+        final style = args[0];
+        final winId = _streams[_currentStreamId]?.windowId;
+        if (winId != null) {
+          _screenModel.setStyle(winId, style);
+        }
+        return 0;
+
       case GlkIoSelectors.setStyleStream:
+        final streamId = args[0];
+        final style = args[1];
+        final winId = _streams[streamId]?.windowId;
+        if (winId != null) {
+          _screenModel.setStyle(winId, style);
+        }
+        return 0;
+
+      case GlkIoSelectors.stylehintSet:
+        // args: wintype, style, hint, val
+        _screenModel.styleHintSet(args[0], args[1], args[2], args[3]);
+        return 0;
+
+      case GlkIoSelectors.stylehintClear:
+        // args: wintype, style, hint
+        _screenModel.styleHintClear(args[0], args[1], args[2]);
         return 0;
 
       case GlkIoSelectors.windowOpen:

@@ -3,6 +3,7 @@ import 'glk_window.dart';
 import 'glk_winmethod.dart';
 import '../render/render_cell.dart';
 import '../render/render_frame.dart';
+import '../render/z_colors.dart';
 
 /// Info about a window for rendering.
 class GlkWindowRenderInfo {
@@ -58,6 +59,16 @@ class GlkScreenModel {
   /// Map of window ID to window object.
   final Map<int, GlkWindow> _windowsById = {};
 
+  /// Map of (windowType, style, hint) -> value.
+  /// windowType 0 means all window types.
+  final Map<(int, int, int), int> _styleHints = {};
+
+  /// The user's preferred color for text windows (Z-machine color code 1-12).
+  int _textColorPref = 1;
+
+  /// Current text color preference.
+  int get textColorPref => _textColorPref;
+
   /// Next window ID to assign.
   int _nextWindowId = 1;
 
@@ -69,13 +80,7 @@ class GlkScreenModel {
   /// Returns window ID or null if creation failed.
   ///
   /// Glk Spec: "glk_window_open() [creates windows] by splitting existing ones."
-  int? windowOpen(
-    int? splitFromId,
-    int method,
-    int size,
-    GlkWindowType type,
-    int rock,
-  ) {
+  int? windowOpen(int? splitFromId, int method, int size, GlkWindowType type, int rock) {
     // Validate - can't create pair windows directly.
     if (type == GlkWindowType.pair) {
       return null;
@@ -203,12 +208,7 @@ class GlkScreenModel {
   ///
   /// This is called on a **pair window** to change how its children are split.
   /// The [keyWindowId] identifies which child's size is being constrained.
-  void windowSetArrangement(
-    int pairWindowId,
-    int method,
-    int size,
-    int keyWindowId,
-  ) {
+  void windowSetArrangement(int pairWindowId, int method, int size, int keyWindowId) {
     final window = _windowsById[pairWindowId];
     if (window is! GlkPairWindow) {
       return;
@@ -276,13 +276,7 @@ class GlkScreenModel {
         window.newLine();
       } else {
         // Add the character to current line
-        window.currentLine.add(
-          RenderCell(
-            String.fromCharCode(char),
-            bold: _isGlkStyleBold(window.style),
-            italic: _isGlkStyleItalic(window.style),
-          ),
-        );
+        window.currentLine.add(_createCellForWindow(window, String.fromCharCode(char)));
 
         // Check if we need to wrap (line exceeds window width)
         if (window.width > 0 && window.currentLine.length >= window.width) {
@@ -298,10 +292,7 @@ class GlkScreenModel {
           if (lastSpace > 0) {
             // Word wrap: move characters after the space to the next line
             final overflow = window.currentLine.sublist(lastSpace + 1);
-            window.currentLine.removeRange(
-              lastSpace,
-              window.currentLine.length,
-            );
+            window.currentLine.removeRange(lastSpace, window.currentLine.length);
             window.newLine();
             window.currentLine.addAll(overflow);
           } else {
@@ -322,13 +313,8 @@ class GlkScreenModel {
         if (window.cursorY >= window.height) {
           window.cursorY = window.height - 1;
         }
-      } else if (window.cursorY < window.height &&
-          window.cursorX < window.width) {
-        window.grid[window.cursorY][window.cursorX] = RenderCell(
-          String.fromCharCode(char),
-          bold: _isGlkStyleBold(window.style),
-          italic: _isGlkStyleItalic(window.style),
-        );
+      } else if (window.cursorY < window.height && window.cursorX < window.width) {
+        window.grid[window.cursorY][window.cursorX] = _createCellForWindow(window, String.fromCharCode(char));
         window.cursorX++;
         if (window.cursorX >= window.width) {
           window.cursorX = 0;
@@ -347,6 +333,75 @@ class GlkScreenModel {
     if (window != null) {
       window.style = style.clamp(0, GlkStyle.count - 1);
     }
+  }
+
+  /// Set a style hint.
+  void styleHintSet(int wintype, int style, int hint, int val) {
+    _styleHints[(wintype, style, hint)] = val;
+  }
+
+  /// Clear a style hint.
+  void styleHintClear(int wintype, int style, int hint) {
+    _styleHints.remove((wintype, style, hint));
+  }
+
+  /// Get the effective value of a style hint.
+  int? getStyleHint(int wintype, int style, int hint) {
+    // Check specific window type first
+    if (_styleHints.containsKey((wintype, style, hint))) {
+      return _styleHints[(wintype, style, hint)];
+    }
+    // Then check all window types (0)
+    if (_styleHints.containsKey((0, style, hint))) {
+      return _styleHints[(0, style, hint)];
+    }
+    return null;
+  }
+
+  RenderCell _createCellForWindow(GlkWindow window, String char) {
+    final wintype = window.type.index;
+    final style = window.style;
+
+    // Foreground color hint
+    final gameFg = getStyleHint(wintype, style, GlkStyleHint.textColor);
+    final effectiveFg = gameFg ?? ZColors.toRgb(_textColorPref);
+
+    // Background color hint
+    final gameBg = getStyleHint(wintype, style, GlkStyleHint.backColor);
+
+    // Weight hint (Bold)
+    final weight = getStyleHint(wintype, style, GlkStyleHint.weight);
+    bool bold = _isGlkStyleBold(style);
+    if (weight == 1) bold = true;
+    if (weight == -1 || weight == 0) bold = false;
+
+    // Oblique hint (Italic)
+    final oblique = getStyleHint(wintype, style, GlkStyleHint.oblique);
+    bool italic = _isGlkStyleItalic(style);
+    if (oblique == 1) italic = true;
+    if (oblique == 0) italic = false;
+
+    // Reverse color hint
+    final reverse = getStyleHint(wintype, style, GlkStyleHint.reverseColor);
+
+    // Proportional hint (Fixed-pitch)
+    final proportional = getStyleHint(wintype, style, GlkStyleHint.proportional);
+    bool fixed = false;
+    if (style == GlkStyle.preformatted) fixed = true;
+    if (proportional == 0) fixed = true; // 0 = Fixed
+    if (proportional == 1) fixed = false; // 1 = Proportional
+
+    return RenderCell(
+      char,
+      fgColor: effectiveFg,
+      bgColor: gameBg,
+      bold: bold,
+      italic: italic,
+      reverse: reverse == 1,
+      fixed: fixed,
+      glkStyle: style,
+      glkWindowType: wintype,
+    );
   }
 
   // === API: Input State ===
@@ -410,10 +465,7 @@ class GlkScreenModel {
   /// Returns list of window IDs.
   List<int> getWindowsAwaitingInput() {
     return _windowsById.values
-        .where(
-          (w) =>
-              w.lineInputPending || w.charInputPending || w.mouseInputPending,
-        )
+        .where((w) => w.lineInputPending || w.charInputPending || w.mouseInputPending)
         .map((w) => w.id)
         .toList();
   }
@@ -496,6 +548,37 @@ class GlkScreenModel {
       return window.lines;
     }
     return null;
+  }
+
+  /// Force updates the foreground color of all text in all text windows.
+  /// Used for theme/color cycling features.
+  void forceTextColor(int fg) {
+    _textColorPref = fg;
+    final rgbColorPref = ZColors.toRgb(fg);
+    for (var window in _windowsById.values) {
+      if (window is GlkTextBufferWindow) {
+        for (var row in window.lines) {
+          for (var cell in row) {
+            _updateCellColor(cell, rgbColorPref);
+          }
+        }
+      } else if (window is GlkTextGridWindow) {
+        for (var row in window.grid) {
+          for (var cell in row) {
+            _updateCellColor(cell, rgbColorPref);
+          }
+        }
+      }
+    }
+  }
+
+  void _updateCellColor(RenderCell cell, int? rgbColorPref) {
+    if (cell.glkStyle != null && cell.glkWindowType != null) {
+      final hintFg = getStyleHint(cell.glkWindowType!, cell.glkStyle!, GlkStyleHint.textColor);
+      cell.fgColor = hintFg ?? rgbColorPref;
+    } else {
+      cell.fgColor = rgbColorPref;
+    }
   }
 
   // === Screen Layout ===
@@ -626,11 +709,6 @@ class GlkScreenModel {
       );
     }
 
-    return RenderFrame(
-      windows: windows,
-      screenWidth: screenCols,
-      screenHeight: screenRows,
-      focusedWindowId: focusedId,
-    );
+    return RenderFrame(windows: windows, screenWidth: screenCols, screenHeight: screenRows, focusedWindowId: focusedId);
   }
 }

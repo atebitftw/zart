@@ -34,7 +34,15 @@ class RenderCell {
     this.italic = false,
     this.reverse = false,
     this.fixed = false,
+    this.glkStyle,
+    this.glkWindowType,
   });
+
+  /// Glk style index (0-10) for this cell (Glulx only).
+  int? glkStyle;
+
+  /// Glk window type index for this cell (Glulx only).
+  int? glkWindowType;
 
   /// An empty cell (space with default styling).
   factory RenderCell.empty() => RenderCell(' ');
@@ -43,12 +51,7 @@ class RenderCell {
   ///
   /// Z-machine style bitmask: 1=Reverse, 2=Bold, 4=Italic, 8=Fixed
   /// Z-machine colors: 1-12 (see [ZColors])
-  factory RenderCell.fromZMachine(
-    String char, {
-    int style = 0,
-    int fgColor = 1,
-    int bgColor = 1,
-  }) {
+  factory RenderCell.fromZMachine(String char, {int style = 0, int fgColor = 1, int bgColor = 1}) {
     return RenderCell(
       char,
       fgColor: ZColors.toRgb(fgColor),
@@ -69,6 +72,8 @@ class RenderCell {
     italic: italic,
     reverse: reverse,
     fixed: fixed,
+    glkStyle: glkStyle,
+    glkWindowType: glkWindowType,
   );
 
   /// Create a copy with optional overrides.
@@ -89,6 +94,8 @@ class RenderCell {
       italic: italic ?? this.italic,
       reverse: reverse ?? this.reverse,
       fixed: fixed ?? this.fixed,
+      glkStyle: glkStyle ?? this.glkStyle,
+      glkWindowType: glkWindowType ?? this.glkWindowType,
     );
   }
 
@@ -118,8 +125,7 @@ class RenderCell {
       other.fixed == fixed;
 
   @override
-  int get hashCode =>
-      Object.hash(char, fgColor, bgColor, bold, italic, reverse, fixed);
+  int get hashCode => Object.hash(char, fgColor, bgColor, bold, italic, reverse, fixed);
 
   @override
   String toString() =>

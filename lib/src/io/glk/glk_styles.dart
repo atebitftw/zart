@@ -53,3 +53,36 @@ class GlkStyle {
     'User2',
   ];
 }
+
+/// Glk style hint selectors.
+class GlkStyleHint {
+  /// Indentation of the first line of a paragraph.
+  static const int indentation = 0;
+
+  /// Indentation of subsequent lines of a paragraph.
+  static const int paraIndentation = 1;
+
+  /// Text justification (0=Left, 1=LeftRight, 2=Centered, 3=Right).
+  static const int justification = 2;
+
+  /// Font size.
+  static const int size = 3;
+
+  /// Font weight (1=Bold, 0=Normal, -1=Light).
+  static const int weight = 4;
+
+  /// Font style (1=Italic, 0=Normal).
+  static const int oblique = 5;
+
+  /// Font pitch (1=Proportional, 0=Fixed).
+  static const int proportional = 6;
+
+  /// Foreground color (0x00RRGGBB).
+  static const int textColor = 7;
+
+  /// Background color (0x00RRGGBB).
+  static const int backColor = 8;
+
+  /// Reverse color (1=Reverse, 0=Normal).
+  static const int reverseColor = 9;
+}

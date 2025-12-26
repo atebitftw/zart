@@ -8,6 +8,7 @@ import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/cli/cli_configuration_manager.dart' show cliConfigManager;
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart' show ZartTerminal;
+import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
 
 /// Terminal display for Glk/Glulx games.
 ///
@@ -86,8 +87,37 @@ class GlkTerminalDisplay implements ZartTerminal {
     return input.endsWith('\n') ? input.substring(0, input.length - 1) : input;
   }
 
+  // Custom Text Color Cycling Options
+  final List<int> _customTextColors = [
+    ZTerminalColors.lightGrey,
+    ZTerminalColors.darkGrey,
+    ZTerminalColors.white,
+    ZTerminalColors.red,
+    ZTerminalColors.green,
+    ZTerminalColors.yellow,
+    ZTerminalColors.blue,
+    ZTerminalColors.magenta,
+    ZTerminalColors.cyan,
+  ];
+
+  int _currentTextColorIndex = 0;
+
   /// Create with default dimensions.
-  GlkTerminalDisplay();
+  GlkTerminalDisplay() {
+    // Initialize color preference
+    final savedColor = cliConfigManager.textColor;
+    _currentTextColorIndex = _customTextColors.indexOf(savedColor);
+    if (_currentTextColorIndex == -1) _currentTextColorIndex = 0;
+  }
+
+  void _cycleTextColor() {
+    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
+    final newColor = _customTextColors[_currentTextColorIndex];
+    _lastModel?.forceTextColor(newColor);
+
+    // Save preference
+    cliConfigManager.textColor = newColor;
+  }
 
   /// Enter full-screen mode.
   void enterFullScreen() => onEnterFullScreen?.call();
@@ -149,6 +179,10 @@ class GlkTerminalDisplay implements ZartTerminal {
       // Quick restore - set flag then inject "restore" command
       onQuickLoad?.call();
       pushInput('restore\n');
+      return true;
+    } else if (key.controlChar == ControlCharacter.F4) {
+      _cycleTextColor();
+      rerenderWithScroll();
       return true;
     } else if (key.controlChar == ControlCharacter.pageUp) {
       // Scroll up (back in history)
