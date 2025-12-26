@@ -7,7 +7,7 @@ import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
 import 'package:zart/src/z_machine/z_machine.dart';
 import 'package:zart/src/io/render/render_cell.dart';
-import 'package:zart/src/io/platform/z_machine_display.dart';
+import 'package:zart/src/io/z_machine/z_machine_display.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
 import 'package:zart/src/io/render/screen_frame.dart';
 import 'package:zart/src/io/z_machine/zart_terminal.dart';
