@@ -33,17 +33,12 @@
 # Zart
 gemini.md
 packages/
+assets/games/*
+assets/testers/*
 *.sav
 *.log
-*.z3
-*.z5
-*.z8
-*.dat
-*.blorb
-*.zblorb
-*.gblorb
-*.ulx
 zart.config
+!/assets/games/minizork.z3
 
 # Android related
 **/android/**/gradle-wrapper.jar
