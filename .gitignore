@@ -43,6 +43,7 @@ packages/
 *.zblorb
 *.gblorb
 *.ulx
+zart.config
 
 # Android related
 **/android/**/gradle-wrapper.jar
