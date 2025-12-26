@@ -1,17 +1,9 @@
 # Zart
 [![Dart CI](https://github.com/atebitftw/zart/actions/workflows/dart.yaml/badge.svg)](https://github.com/atebitftw/zart/actions/workflows/dart.yaml)
 
+![Title Screen](https://atebitftw.github.io/site/assets/zart_cli_title_screen.png)
+
 A multi-platform Z-Machine and Glulx (Inform 6/7) interpreter, for playing Interactive Fiction (IF) games.
-
-```text
-West of House
-You are standing in an open field west of a white house,
-with a boarded front door. You could circle the house to 
-the north or south.
-
-There is a small mailbox here.
->
-```
 
 Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.
 
