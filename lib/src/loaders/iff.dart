@@ -94,10 +94,7 @@ class IFF {
   /// Note: Despite the name, this reads 4 bytes (32-bit), not 16-bit.
   /// Uses mask to ensure unsigned interpretation in JavaScript.
   static int read16BitValue(List stream) {
-    return ((nextByte(stream)! << 24) |
-            (nextByte(stream)! << 16) |
-            (nextByte(stream)! << 8) |
-            nextByte(stream)!) &
+    return ((nextByte(stream)! << 24) | (nextByte(stream)! << 16) | (nextByte(stream)! << 8) | nextByte(stream)!) &
         0xFFFFFFFF;
   }
 }
@@ -127,6 +124,19 @@ class Chunk {
 
   /// The Exec Blorb chunk.
   static const exec = Chunk('Exec');
+
+  // Blorb resource chunks
+  /// Picture resource usage (in resource index).
+  static const pict = Chunk('Pict');
+
+  /// Sound resource usage (in resource index).
+  static const snd = Chunk('Snd ');
+
+  /// PNG image data chunk.
+  static const png = Chunk('PNG ');
+
+  /// JPEG image data chunk.
+  static const jpeg = Chunk('JPEG');
 
   //Quetzal chunks
   /// The IFZS Quetzal chunk.
@@ -199,6 +209,16 @@ class Chunk {
         return Chunk.cpyr;
       case "ANNO":
         return Chunk.anno;
+      case "Pict":
+        return Chunk.pict;
+      case "Snd ":
+        return Chunk.snd;
+      case "PNG ":
+        return Chunk.png;
+      case "JPEG":
+        return Chunk.jpeg;
+      case "GLUL":
+        return Chunk.glul;
       default:
         return null;
     }

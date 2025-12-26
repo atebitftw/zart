@@ -1,4 +1,42 @@
+import 'dart:typed_data';
+
 import 'render_cell.dart';
+
+/// An image to render in a graphics window.
+///
+/// Contains raw image bytes and positioning information for display.
+class RenderImage {
+  /// The resource ID this image came from.
+  final int resourceId;
+
+  /// Raw image data bytes (PNG or JPEG format).
+  final Uint8List data;
+
+  /// Image format ('PNG ' or 'JPEG').
+  final String format;
+
+  /// X position within window (pixels).
+  final int x;
+
+  /// Y position within window (pixels).
+  final int y;
+
+  /// Display width (may differ from native if scaled).
+  final int width;
+
+  /// Display height (may differ from native if scaled).
+  final int height;
+
+  const RenderImage({
+    required this.resourceId,
+    required this.data,
+    required this.format,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+}
 
 /// A window region with its cell grid for rendering.
 ///
@@ -13,14 +51,18 @@ class RenderWindow {
   /// Y position (row, 0-indexed).
   final int y;
 
-  /// Width in characters.
+  /// Width in characters (for text) or pixels (for graphics).
   final int width;
 
-  /// Height in characters.
+  /// Height in characters (for text) or pixels (for graphics).
   final int height;
 
   /// Cell grid (rows x cols). May be smaller than width/height if content is sparse.
+  /// Used for text windows.
   final List<List<RenderCell>> cells;
+
+  /// Images to render in this window (for graphics windows).
+  final List<RenderImage> images;
 
   /// True if this window is accepting input (line or character).
   final bool acceptsInput;
@@ -34,6 +76,12 @@ class RenderWindow {
   /// True if this is a text buffer window (scrollable).
   final bool isTextBuffer;
 
+  /// True if this is a graphics window (pixel-based).
+  final bool isGraphics;
+
+  /// Background color for graphics windows (0xRRGGBB format).
+  final int? backgroundColor;
+
   const RenderWindow({
     required this.id,
     required this.x,
@@ -41,10 +89,13 @@ class RenderWindow {
     required this.width,
     required this.height,
     required this.cells,
+    this.images = const [],
     this.acceptsInput = false,
     this.cursorX = 0,
     this.cursorY = 0,
     this.isTextBuffer = false,
+    this.isGraphics = false,
+    this.backgroundColor,
   });
 }
 

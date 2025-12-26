@@ -8,6 +8,7 @@ import 'package:zart/src/io/glk/glk_provider.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glk_window.dart';
+import 'package:zart/src/loaders/blorb_resource_manager.dart';
 
 /// IO provider for Glulx interpreter.
 class GlulxTerminalProvider implements GlkProvider {
@@ -88,6 +89,14 @@ class GlulxTerminalProvider implements GlkProvider {
   // File system simulation (for filerefs and streams)
   final Map<int, _GlkFile> _files = {};
   int _nextFileRefId = 2001;
+
+  // Blorb resource manager for images and sounds
+  BlorbResourceManager? _blorbResources;
+
+  /// Set the Blorb resource manager for image/sound access.
+  void setBlorbResources(BlorbResourceManager manager) {
+    _blorbResources = manager;
+  }
 
   @override
   int vmGestalt(int selector, int arg) {
@@ -517,6 +526,76 @@ class GlulxTerminalProvider implements GlkProvider {
         }
         return resultLen;
 
+      // Image opcodes (graphics window support)
+      case GlkIoSelectors.imageGetInfo:
+        // args: imageId, widthAddr, heightAddr
+        // Returns 1 if image exists, 0 otherwise
+        // Writes width/height to provided addresses
+        final imageId = args[0];
+        final widthAddr = args.length > 1 ? args[1] : 0;
+        final heightAddr = args.length > 2 ? args[2] : 0;
+
+        final info = _getImageInfo(imageId);
+        if (info != null) {
+          if (widthAddr != 0 && widthAddr != 0xFFFFFFFF) {
+            writeMemory(widthAddr, info.width, size: 4);
+          } else if (widthAddr == 0xFFFFFFFF) {
+            pushToStack(info.width);
+          }
+          if (heightAddr != 0 && heightAddr != 0xFFFFFFFF) {
+            writeMemory(heightAddr, info.height, size: 4);
+          } else if (heightAddr == 0xFFFFFFFF) {
+            pushToStack(info.height);
+          }
+          return 1;
+        }
+        return 0;
+
+      case GlkIoSelectors.imageDraw:
+        // args: winId, imageId, val1, val2
+        // val1/val2 depend on window type (position for graphics, alignment for text)
+        final winId = args[0];
+        final imageId = args[1];
+        final val1 = args.length > 2 ? args[2] : 0;
+        final val2 = args.length > 3 ? args[3] : 0;
+
+        final info = _getImageInfo(imageId);
+        if (info != null) {
+          _drawImageToWindow(winId, imageId, val1, val2, info.width, info.height);
+          return 1;
+        }
+        return 0;
+
+      case GlkIoSelectors.imageDrawScaled:
+        // args: winId, imageId, val1, val2, width, height
+        final winId = args[0];
+        final imageId = args[1];
+        final val1 = args.length > 2 ? args[2] : 0;
+        final val2 = args.length > 3 ? args[3] : 0;
+        final width = args.length > 4 ? args[4] : 0;
+        final height = args.length > 5 ? args[5] : 0;
+
+        if (_getImageInfo(imageId) != null) {
+          _drawImageToWindow(winId, imageId, val1, val2, width, height);
+          return 1;
+        }
+        return 0;
+
+      case GlkIoSelectors.windowSetBackgroundColor:
+        // args: winId, color (0x00RRGGBB)
+        final winId = args[0];
+        final color = args.length > 1 ? args[1] : 0xFFFFFF;
+        final window = _screenModel.getWindow(winId);
+        if (window is GlkGraphicsWindow) {
+          window.setBackgroundColor(color);
+        }
+        return 0;
+
+      case GlkIoSelectors.windowEraseRect:
+      case GlkIoSelectors.windowFillRect:
+        // Stub - graphics rectangle operations
+        return 0;
+
       default:
         return 0;
     }
@@ -781,6 +860,56 @@ class GlulxTerminalProvider implements GlkProvider {
         return 0;
     }
   }
+
+  // === Image Helper Methods ===
+
+  /// Get image info (width/height) from Blorb resources.
+  _ImageInfo? _getImageInfo(int imageId) {
+    final image = _blorbResources?.getImage(imageId);
+    if (image == null) return null;
+
+    // Parse image dimensions from PNG/JPEG header
+    final (width, height) = _parseImageDimensions(image.data, image.format);
+    return _ImageInfo(width: width, height: height);
+  }
+
+  /// Parse image dimensions from PNG or JPEG data.
+  (int, int) _parseImageDimensions(Uint8List data, BlorbImageFormat format) {
+    if (format == BlorbImageFormat.png) {
+      // PNG IHDR chunk starts at offset 8, width at 16, height at 20
+      if (data.length >= 24 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) {
+        final width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+        final height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+        return (width, height);
+      }
+    } else if (format == BlorbImageFormat.jpeg) {
+      // JPEG: search for SOF0 marker (0xFF 0xC0) and read dimensions
+      for (var i = 0; i < data.length - 9; i++) {
+        if (data[i] == 0xFF && (data[i + 1] == 0xC0 || data[i + 1] == 0xC2)) {
+          final height = (data[i + 5] << 8) | data[i + 6];
+          final width = (data[i + 7] << 8) | data[i + 8];
+          return (width, height);
+        }
+      }
+    }
+    return (0, 0); // Unknown
+  }
+
+  /// Draw an image to a graphics window.
+  void _drawImageToWindow(int winId, int imageId, int x, int y, int width, int height) {
+    final window = _screenModel.getWindow(winId);
+    if (window is GlkGraphicsWindow) {
+      window.drawImage(resourceId: imageId, x: x, y: y, width: width, height: height);
+    }
+    // For text buffer windows, image would go in margin - not yet implemented
+  }
+}
+
+/// Simple image info holder.
+class _ImageInfo {
+  final int width;
+  final int height;
+  _ImageInfo({required this.width, required this.height});
 }
 
 class _GlkStream {

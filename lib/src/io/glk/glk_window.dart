@@ -97,8 +97,7 @@ class GlkTextBufferWindow extends GlkWindow {
     return lines.last;
   }
 
-  GlkTextBufferWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.textBuffer);
+  GlkTextBufferWindow({required super.id, required super.rock}) : super(type: GlkWindowType.textBuffer);
 
   /// Add a new line.
   void newLine() {
@@ -136,8 +135,7 @@ class GlkTextGridWindow extends GlkWindow {
   /// Cursor Y position (0-indexed).
   int cursorY = 0;
 
-  GlkTextGridWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.textGrid) {
+  GlkTextGridWindow({required super.id, required super.rock}) : super(type: GlkWindowType.textGrid) {
     grid = [];
   }
 
@@ -147,9 +145,7 @@ class GlkTextGridWindow extends GlkWindow {
       newHeight,
       (row) => List.generate(
         newWidth,
-        (col) => (row < grid.length && col < grid[row].length)
-            ? grid[row][col].clone()
-            : RenderCell.empty(),
+        (col) => (row < grid.length && col < grid[row].length) ? grid[row][col].clone() : RenderCell.empty(),
       ),
     );
     grid = newGrid;
@@ -179,31 +175,80 @@ class GlkTextGridWindow extends GlkWindow {
   }
 }
 
-/// Graphics window - pixel array (stub for future implementation).
+/// Graphics window - pixel array for image display.
 ///
 /// Glk Spec: "A graphics window contains a rectangular array of pixels."
 class GlkGraphicsWindow extends GlkWindow {
   /// Background color (0x00RRGGBB format).
-  int backgroundColor = 0x00FFFFFF; // White
+  int backgroundColor = 0x00FFFFFF; // White default
 
-  // TODO: Implement pixel buffer when graphics support is needed.
-  // For now, this is a stub to allow opening graphics windows without crashing.
+  /// Pending image draw commands.
+  final List<GlkImageDraw> pendingImages = [];
 
-  GlkGraphicsWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.graphics);
+  GlkGraphicsWindow({required super.id, required super.rock}) : super(type: GlkWindowType.graphics);
+
+  /// Queue an image to be drawn.
+  ///
+  /// Glk Spec: "glk_image_draw() draws an image."
+  void drawImage({required int resourceId, required int x, required int y, required int width, required int height}) {
+    pendingImages.add(GlkImageDraw(resourceId: resourceId, x: x, y: y, width: width, height: height));
+  }
+
+  /// Set the background color.
+  ///
+  /// Glk Spec: "glk_window_set_background_color() sets the window's
+  /// background color."
+  void setBackgroundColor(int color) {
+    backgroundColor = color;
+  }
 
   /// Clear the graphics window to background color.
+  ///
+  /// Glk Spec: "If you call glk_window_clear() on a graphics window,
+  /// it will be filled with the window's background color."
   void clear() {
-    // Stub - will fill pixel buffer with backgroundColor when implemented.
+    pendingImages.clear();
   }
+
+  /// Get all pending images and clear the queue.
+  List<GlkImageDraw> consumeImages() {
+    final result = List<GlkImageDraw>.from(pendingImages);
+    pendingImages.clear();
+    return result;
+  }
+}
+
+/// A queued image draw command.
+class GlkImageDraw {
+  /// Resource ID of the image.
+  final int resourceId;
+
+  /// X position in window (pixels).
+  final int x;
+
+  /// Y position in window (pixels).
+  final int y;
+
+  /// Display width (pixels).
+  final int width;
+
+  /// Display height (pixels).
+  final int height;
+
+  const GlkImageDraw({
+    required this.resourceId,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
 }
 
 /// Blank window - displays nothing, used for spacing.
 ///
 /// Glk Spec: "A blank window is always empty."
 class GlkBlankWindow extends GlkWindow {
-  GlkBlankWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.blank);
+  GlkBlankWindow({required super.id, required super.rock}) : super(type: GlkWindowType.blank);
 }
 
 /// Pair window - internal container created by splits.
@@ -227,6 +272,5 @@ class GlkPairWindow extends GlkWindow {
   /// Split size (rows/cols for fixed, percentage for proportional).
   int size = 0;
 
-  GlkPairWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.pair);
+  GlkPairWindow({required super.id, required super.rock}) : super(type: GlkWindowType.pair);
 }
