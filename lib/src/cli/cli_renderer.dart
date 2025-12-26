@@ -41,22 +41,22 @@ class CliRenderer with TerminalCapabilities {
   int get screenWidth => _cols;
 
   @override
-  int get screenHeight => _zartBarVisible ? _rows - 1 : _rows;
+  int get screenHeight => (_zartBarVisible && cliConfigManager.zartBarVisible) ? _rows - 1 : _rows;
 
   /// Whether to show the zart bar at the bottom.
   bool _zartBarVisible = true;
 
-  /// Get whether the zart bar is visible.
+  /// Get whether the zart bar is visible (local override).
   bool get zartBarVisible => _zartBarVisible;
 
-  /// Set whether the zart bar is visible.
+  /// Set whether the zart bar is visible (local override).
   set zartBarVisible(bool value) => _zartBarVisible = value;
 
   /// Zart bar foreground color (Z-machine color code).
-  int zartBarForeground = 9; // White
+  int get zartBarForeground => cliConfigManager.zartBarForeground;
 
   /// Zart bar background color (Z-machine color code).
-  int zartBarBackground = 10; // Dark Grey
+  int get zartBarBackground => cliConfigManager.zartBarBackground;
 
   /// Temporary status message.
   String? _tempMessage;
@@ -168,7 +168,7 @@ class CliRenderer with TerminalCapabilities {
     buf.write('\x1B[0m'); // Reset styles
 
     // Draw zart bar (unless frame requests it hidden)
-    if (_zartBarVisible && !frame.hideStatusBar) {
+    if (_zartBarVisible && cliConfigManager.zartBarVisible && !frame.hideStatusBar) {
       _drawZartBar(buf);
     }
 
@@ -280,8 +280,8 @@ class CliRenderer with TerminalCapabilities {
 
     final barRow = _rows; // Last row (1-indexed)
     buf.write('\x1B[$barRow;1H');
-    buf.write(_zColorToFgAnsi(zartBarForeground));
-    buf.write(_zColorToBgAnsi(zartBarBackground));
+    buf.write(_zColorToFgAnsi(cliConfigManager.zartBarForeground));
+    buf.write(_zColorToBgAnsi(cliConfigManager.zartBarBackground));
     buf.write(finalText);
     buf.write('\x1B[0m');
   }

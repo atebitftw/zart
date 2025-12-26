@@ -637,6 +637,7 @@ class GlkScreenModel {
 
   /// Set screen dimensions and recalculate layout.
   void setScreenSize(int cols, int rows) {
+    if (screenCols == cols && screenRows == rows) return;
     screenCols = cols;
     screenRows = rows;
     recalculateLayout();

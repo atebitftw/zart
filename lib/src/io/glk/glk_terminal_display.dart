@@ -44,13 +44,13 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Hook for quick load trigger (F3 key).
   void Function()? onQuickLoad;
 
-  /// Whether the zart bar (status bar) is visible.
-  bool _zartBarVisible = true;
+  /// Whether the zart bar (status bar) is enabled for this display.
+  bool _enableStatusBar = true;
 
   @override
-  bool get enableStatusBar => _zartBarVisible;
+  bool get enableStatusBar => _enableStatusBar;
   @override
-  set enableStatusBar(bool value) => _zartBarVisible = value;
+  set enableStatusBar(bool value) => _enableStatusBar = value;
 
   /// Screen dimensions - must be set by the platform layer.
   int _cols = 80;
@@ -61,14 +61,14 @@ class GlkTerminalDisplay implements ZartTerminal {
   set cols(int value) => _cols = value;
 
   /// Screen height in rows (adjusted for zart bar).
-  int get rows => _zartBarVisible ? _rows - 1 : _rows;
+  int get rows => (_enableStatusBar && cliConfigManager.zartBarVisible) ? _rows - 1 : _rows;
 
   /// Set the raw terminal rows (before adjustment for zart bar).
   set rows(int value) => _rows = value;
 
-  /// Whether zart bar is visible.
-  bool get zartBarVisible => _zartBarVisible;
-  set zartBarVisible(bool value) => _zartBarVisible = value;
+  /// Whether zart bar is visible (alias for enableStatusBar).
+  bool get zartBarVisible => _enableStatusBar;
+  set zartBarVisible(bool value) => _enableStatusBar = value;
 
   /// Scroll offset for text buffer windows (0 = at bottom).
   int _scrollOffset = 0;
@@ -131,12 +131,12 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Last GlkScreenModel for re-rendering during scroll.
   GlkScreenModel? _lastModel;
 
-  /// Get the current scroll offset.
-  int get scrollOffset => _compositor.scrollOffset;
-
-  /// Set the scroll offset for the compositor.
-  void setScrollOffset(int offset) {
-    _compositor.setScrollOffset(offset);
+  /// Detect terminal size and update stored dimensions.
+  void detectTerminalSize() {
+    _cols = _console.windowWidth;
+    _rows = _console.windowHeight;
+    if (_cols <= 0) _cols = 80;
+    if (_rows <= 0) _rows = 24;
   }
 
   /// Re-render the last model with the current scroll offset.
@@ -148,11 +148,18 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Render the entire screen from the GlkScreenModel.
   void renderGlk(GlkScreenModel model) {
+    detectTerminalSize();
+    model.setScreenSize(_cols, rows);
     _lastModel = model; // Store for scroll re-rendering
     // Sync scroll offset with compositor
     _compositor.setScrollOffset(_scrollOffset);
     final frame = model.toRenderFrame();
-    final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: rows);
+    final screenFrame = _compositor.composite(
+      frame,
+      screenWidth: _cols,
+      screenHeight: rows,
+      hideStatusBar: !_enableStatusBar,
+    );
     // Update scroll offset from compositor (in case it was clamped)
     _scrollOffset = _compositor.scrollOffset;
     onScreenReady?.call(screenFrame);
@@ -248,7 +255,26 @@ class GlkTerminalDisplay implements ZartTerminal {
       } else if (key.controlChar == ControlCharacter.ctrlC) {
         exitFullScreen();
         exit(0);
+      } else if (key.controlChar.toString().contains('.ctrl') && key.controlChar != ControlCharacter.ctrlC) {
+        // Handle Ctrl+Key Macros
+        final s = key.controlChar.toString();
+        final match = RegExp(r'ctrl([a-z])$', caseSensitive: false).firstMatch(s);
+        if (match != null) {
+          final letter = match.group(1)!.toLowerCase();
+          final bindingKey = 'ctrl+$letter';
+
+          final cmd = cliConfigManager.getBinding(bindingKey);
+          if (cmd != null) {
+            stdout.write('$cmd\n');
+            stdout.write('\x1B[?25l'); // Hide cursor
+            return cmd;
+          }
+        }
       } else if (key.char.isNotEmpty && key.controlChar == ControlCharacter.none) {
+        if (_scrollOffset > 0) {
+          _scrollOffset = 0;
+          rerenderWithScroll();
+        }
         buf.write(key.char);
         stdout.write(key.char);
       }
@@ -285,6 +311,7 @@ class GlkTerminalDisplay implements ZartTerminal {
       if (key.controlChar == ControlCharacter.arrowRight) return '\x84';
 
       if (key.char.isNotEmpty) {
+        _scrollOffset = 0;
         return key.char;
       }
     }
@@ -310,13 +337,15 @@ class GlkTerminalDisplay implements ZartTerminal {
   void render() {
     if (_uiModel != null) {
       final frame = _uiModel!.toRenderFrame();
-      final screenFrame = _compositor.composite(frame, screenWidth: _cols, screenHeight: rows);
+      final screenFrame = _compositor.composite(
+        frame,
+        screenWidth: _cols,
+        screenHeight: rows,
+        hideStatusBar: !_enableStatusBar,
+      );
       onScreenReady?.call(screenFrame);
     } else {
-      // Synchronize settings from config only when back in game mode
-      _zartBarVisible = cliConfigManager.zartBarVisible;
-      // Signal to re-render game screen - platform layer handles this
-      // by re-calling renderGlk with the cached model
+      rerenderWithScroll();
     }
   }
 

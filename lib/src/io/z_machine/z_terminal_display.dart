@@ -376,6 +376,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       frame,
       screenWidth: _cols,
       screenHeight: rows, // Use rows getter which accounts for status bar
+      hideStatusBar: !enableStatusBar,
     );
 
     // Update our scroll offset from compositor (in case it was clamped)
@@ -555,6 +556,10 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           continue;
         }
 
+        if (_scrollOffset > 0) {
+          _scrollOffset = 0;
+        }
+
         // Add char to buffer
         _inputBuffer += char;
 
@@ -625,6 +630,10 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
       // Only return if we have a valid character
       if (key.char.isNotEmpty) {
+        if (_scrollOffset > 0) {
+          _scrollOffset = 0;
+          render();
+        }
         return key.char;
       }
       // Otherwise continue waiting for valid input

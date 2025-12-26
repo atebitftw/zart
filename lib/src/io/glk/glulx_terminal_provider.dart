@@ -29,6 +29,9 @@ class GlulxTerminalProvider implements GlkProvider {
   GlulxTerminalProvider({GlkTerminalDisplay? display}) {
     glkDisplay = display ?? GlkTerminalDisplay();
 
+    _lastCols = glkDisplay.cols;
+    _lastRows = glkDisplay.rows;
+
     // ID 1001 is the default stream (terminal window0)
     _streams[1001] = _GlkStream(id: 1001, type: 1);
     // Initialize screen model with terminal dimensions
@@ -52,7 +55,11 @@ class GlulxTerminalProvider implements GlkProvider {
 
   // Timer state (in milliseconds, 0 = disabled)
   int _timerInterval = 0;
-  DateTime? _lastTimerEvent;
+  DateTime? _lastTimerEvent = null;
+
+  // Last reported terminal dimensions
+  int _lastCols = 0;
+  int _lastRows = 0;
 
   /// Callback to get the current heap start from the VM.
   int Function()? getHeapStart;
@@ -782,6 +789,16 @@ class GlulxTerminalProvider implements GlkProvider {
   }
 
   Future<int> _handleSelect(int eventAddr) async {
+    // Detect terminal size and check for resize
+    glkDisplay.detectTerminalSize();
+    if (glkDisplay.cols != _lastCols || glkDisplay.rows != _lastRows) {
+      _lastCols = glkDisplay.cols;
+      _lastRows = glkDisplay.rows;
+      _screenModel.setScreenSize(_lastCols, _lastRows);
+      _writeEventStruct(eventAddr, GlkEventTypes.arrange, 0, 0, 0);
+      return 0;
+    }
+
     // Check for pending input using screen model
     final awaiting = _screenModel.getWindowsAwaitingInput();
 
