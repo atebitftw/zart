@@ -34,7 +34,6 @@
 gemini.md
 packages/
 assets/games/*
-assets/testers/*
 *.sav
 *.log
 zart.config
