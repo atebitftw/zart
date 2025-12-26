@@ -181,6 +181,18 @@ abstract class PlatformProvider {
   /// Returns the save data, or null if not found/failed.
   Future<List<int>?> quickRestore();
 
+  /// Signal that the next interactive save should use quick save (automatic filename).
+  ///
+  /// Called before injecting a "save" command during F2 key handling.
+  /// The platform should use an automatic filename for the next [saveGame] call.
+  void setQuickSaveFlag() {}
+
+  /// Signal that the next interactive restore should use quick restore (automatic filename).
+  ///
+  /// Called before injecting a "restore" command during F3 key handling.
+  /// The platform should use an automatic filename for the next [restoreGame] call.
+  void setQuickRestoreFlag() {}
+
   // ============================================================
   // LIFECYCLE
   // ============================================================

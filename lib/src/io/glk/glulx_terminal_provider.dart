@@ -8,12 +8,21 @@ import 'package:zart/src/io/glk/glk_provider.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glk_window.dart';
+import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/loaders/blorb_resource_manager.dart';
 
 /// IO provider for Glulx interpreter.
 class GlulxTerminalProvider implements GlkProvider {
   /// The Glk terminal display.
   late final GlkTerminalDisplay glkDisplay;
+
+  /// The platform provider for file I/O operations.
+  PlatformProvider? _platformProvider;
+
+  /// Set the platform provider for file I/O.
+  void setPlatformProvider(PlatformProvider provider) {
+    _platformProvider = provider;
+  }
 
   /// Creates a terminal provider, optionally accepting a display for testing.
   GlulxTerminalProvider({GlkTerminalDisplay? display}) {
@@ -366,9 +375,18 @@ class GlulxTerminalProvider implements GlkProvider {
         }
 
         if (mode == 0x01) {
-          // Write
+          // Write mode - clear file for new data
           _files[frefId]!.data = Uint8List(0);
           _files[frefId]!.length = 0;
+        } else if (mode == 0x02 && _platformProvider != null) {
+          // Read mode - load data from platform provider
+          return _platformProvider!.restoreGame().then((data) {
+            if (data != null) {
+              _files[frefId]!.data = Uint8List.fromList(data);
+              _files[frefId]!.length = data.length;
+            }
+            return id;
+          });
         }
 
         return id;
@@ -396,6 +414,24 @@ class GlulxTerminalProvider implements GlkProvider {
         final stream = _streams.remove(streamId);
         final rCount = stream?.readCount ?? 0;
         final wCount = stream?.writeCount ?? 0;
+
+        // If closing a file stream that was written to, save via platform provider
+        if (stream != null && stream.type == 3 && stream.mode == 0x01) {
+          final file = _files[stream.frefId];
+          if (file != null && file.length > 0 && _platformProvider != null) {
+            final saveData = file.data.sublist(0, file.length);
+            return _platformProvider!.saveGame(saveData).then((_) {
+              if (resultAddr == -1 || resultAddr == 0xFFFFFFFF) {
+                pushToStack(rCount);
+                pushToStack(wCount);
+              } else if (resultAddr != 0) {
+                writeMemory(resultAddr, rCount, size: 4);
+                writeMemory(resultAddr + 4, wCount, size: 4);
+              }
+              return 0;
+            });
+          }
+        }
 
         if (resultAddr == -1 || resultAddr == 0xFFFFFFFF) {
           pushToStack(rCount);

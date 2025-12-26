@@ -1,11 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:zart/src/game_runner_exception.dart';
 import 'package:zart/src/glulx/glulx_interpreter.dart';
 import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glulx_terminal_provider.dart' show GlulxTerminalProvider;
-import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/io/z_machine/z_machine_io_dispatcher.dart';
 import 'package:zart/src/io/z_machine/z_terminal_display.dart' show ZTerminalDisplay;
 import 'package:zart/src/loaders/blorb.dart';
@@ -112,11 +110,16 @@ class GameRunner {
     };
 
     final glulxProvider = GlulxTerminalProvider(display: glkDisplay);
+    glulxProvider.setPlatformProvider(provider);
 
     // Wire up settings callback
     glkDisplay.onOpenSettings = () async {
       await provider.openSettings(glkDisplay, isGameStarted: true);
     };
+
+    // Wire up quicksave/quickload callbacks to set flags on the platform provider
+    glkDisplay.onQuickSave = () => provider.setQuickSaveFlag();
+    glkDisplay.onQuickLoad = () => provider.setQuickRestoreFlag();
 
     // Create the interpreter with the Glk provider
     _glulx = GlulxInterpreter(glulxProvider);
@@ -188,14 +191,9 @@ class GameRunner {
 
     zDisplay.onOpenSettings = () => provider.openSettings(zDisplay, isGameStarted: true);
 
-    // Wire up quicksave/quickload callbacks - only set flags, input injection is in _handleGlobalKeys
-    zDisplay.onQuickSave = () {
-      //_isQuickSave = true;
-    };
-
-    zDisplay.onQuickLoad = () {
-      //_isQuickRestore = true;
-    };
+    // Wire up quicksave/quickload callbacks to set flags on the platform provider
+    zDisplay.onQuickSave = () => provider.setQuickSaveFlag();
+    zDisplay.onQuickLoad = () => provider.setQuickRestoreFlag();
 
     zDisplay.enableStatusBar = true;
     zDisplay.detectTerminalSize();

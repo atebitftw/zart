@@ -37,6 +37,12 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   Future<void> Function()? onOpenSettings;
 
+  /// Hook for quick save trigger (F2 key).
+  void Function()? onQuickSave;
+
+  /// Hook for quick load trigger (F3 key).
+  void Function()? onQuickLoad;
+
   /// Whether the zart bar (status bar) is visible.
   bool _zartBarVisible = true;
 
@@ -65,6 +71,20 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Scroll offset for text buffer windows (0 = at bottom).
   int _scrollOffset = 0;
+
+  /// Input queue for injected commands (e.g. from F2/F3 quick save/restore).
+  final List<String> _inputQueue = [];
+
+  /// Push text into the input queue to be returned by readLine.
+  void pushInput(String text) {
+    _inputQueue.add(text);
+  }
+
+  String _popQueueLine() {
+    if (_inputQueue.isEmpty) return '';
+    final input = _inputQueue.removeAt(0);
+    return input.endsWith('\n') ? input.substring(0, input.length - 1) : input;
+  }
 
   /// Create with default dimensions.
   GlkTerminalDisplay();
@@ -112,13 +132,23 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   void showTempMessage(String message, {int seconds = 3}) => onShowTempMessage?.call(message, seconds: seconds);
 
-  /// Process global keys (F1, PgUp/PgDn, etc). Returns true if key was consumed.
+  /// Process global keys (F1-F3, PgUp/PgDn, etc). Returns true if key was consumed.
   Future<bool> _handleGlobalKeys(Key key) async {
     if (key.controlChar == ControlCharacter.F1) {
       if (onOpenSettings != null) {
         await onOpenSettings!();
         rerenderWithScroll(); // Re-render after returning
       }
+      return true;
+    } else if (key.controlChar == ControlCharacter.F2) {
+      // Quick save - set flag then inject "save" command
+      onQuickSave?.call();
+      pushInput('save\n');
+      return true;
+    } else if (key.controlChar == ControlCharacter.F3) {
+      // Quick restore - set flag then inject "restore" command
+      onQuickLoad?.call();
+      pushInput('restore\n');
       return true;
     } else if (key.controlChar == ControlCharacter.pageUp) {
       // Scroll up (back in history)
@@ -139,6 +169,13 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Handles input directly using Console with scroll support (matches Z-machine pattern).
   @override
   Future<String> readLine() async {
+    // Check if there's injected input first
+    if (_inputQueue.isNotEmpty) {
+      final line = _popQueueLine();
+      stdout.write('$line\n'); // Echo the injected input
+      return line;
+    }
+
     // Disable mouse tracking
     stdout.write('\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l');
     stdout.write('\x1B[?25h'); // Show cursor
@@ -150,8 +187,15 @@ class GlkTerminalDisplay implements ZartTerminal {
     while (true) {
       final key = _console.readKey();
 
-      // Handle global keys (F1, PgUp/PgDn)
+      // Handle global keys (F1-F3, PgUp/PgDn)
       if (await _handleGlobalKeys(key)) {
+        // If F2/F3 was pressed, input was injected - return it
+        if (_inputQueue.isNotEmpty) {
+          final line = _popQueueLine();
+          stdout.write('$line\n'); // Echo the injected input
+          stdout.write('\x1B[?25l'); // Hide cursor
+          return line;
+        }
         continue;
       }
 

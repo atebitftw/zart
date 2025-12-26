@@ -28,6 +28,12 @@ class CliPlatformProvider extends PlatformProvider {
   bool _isQuickSave = false;
   bool _isQuickRestore = false;
 
+  @override
+  void setQuickSaveFlag() => _isQuickSave = true;
+
+  @override
+  void setQuickRestoreFlag() => _isQuickRestore = true;
+
   /// Create a CLI platform provider.
   CliPlatformProvider({required String gameName}) : _gameName = gameName;
 
@@ -41,18 +47,6 @@ class CliPlatformProvider extends PlatformProvider {
     _renderer = CliRenderer();
     cliConfigManager.load();
     _updateCapabilities();
-
-    _renderer.onQuickSave = () {
-      _isQuickSave = true;
-      stdout.write('save\n');
-      _renderer.pushInput('save\n');
-    };
-
-    _renderer.onQuickLoad = () {
-      _isQuickRestore = true;
-      stdout.write('restore\n');
-      _renderer.pushInput('restore\n');
-    };
   }
 
   void _updateCapabilities() {
