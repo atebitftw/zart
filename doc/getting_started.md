@@ -23,9 +23,9 @@ zart path/to/minizork.ulx
 The Zart library handles running the interpreter for whichever type of game you are playing (Z-Machine or Glulx).  It also provides a abstraction layer for the screen model and input events, so that you can build your own player for any platform that Dart runs on, by rendering the screen information and handling input events.
 ```
 ┌───────────────────────────────────────────────────────┐
-│            Presentation Layer (CLI/Web/Flutter)       │
-│  - Extends PlatformProvider and implements:           │
-│    - Gestalt query interface                          │
+│            Presentation Layer (CLI/Flutter App)       │
+│  - Extends PlatformProvider and:                      │
+│    - Declares capabilities                            │
 │    - Receives unified cells and renders them          │
 │    - Handles input events                             │
 │    - Save/Restore events                              │
@@ -34,15 +34,28 @@ The Zart library handles running the interpreter for whichever type of game you 
                            │  Unified Cell Grid + Events
                            │
 ┌───────────────────────────────────────────────────────┐
-│                  PlatformProvider                     │
+│           PlatformProvider (API Interface)            │
 │  - Common cell type (char, fg, bg, bold, italic)      │
-│  - Window regions with positions                      │
+│  - Hooks for input events                             │
 │  - Capability query interface (gestalt-like)          │
 └───────────────────────────────────────────────────────┘
-                ▲                       ▲
-                │                       │
+                           ▲
+                           │
+         ┌─────────────────────────────────┐
+         │           GameRunner            │
+         │  - Loads game files             │
+         │  - Routes to appropriate VM     │
+         └─────────────────────────────────┘
+            ▲                        ▲
+            │                        │
     ┌───────────────────┐   ┌───────────────────┐
     │  Z-Machine IO     │   │  Glulx/Glk IO     │
-    │  (ScreenModel)    │   │  (GlkScreenModel) │
+    │  (ZScreenModel)   │   │  (GlkScreenModel) │
+    └───────────────────┘   └───────────────────┘
+            ▲                        ▲
+            │                        │
+    ┌───────────────────┐   ┌───────────────────┐
+    │  Z-Machine VM     │   │  Glulx VM         │
+    │  (Interpreter)    │   │  (Interpreter)    │
     └───────────────────┘   └───────────────────┘
 ```
