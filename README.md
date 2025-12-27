@@ -62,7 +62,11 @@ For more information, see the [Zart API Docs](https://pub.dev/documentation/zart
 
 ## How To Contribute To This Project?
 Fork. Code. Submit pull request. I'm open to any reasonable submissions.
-    
+
+### Yet To Do
+- While support for images and sound is there, I haven't really tested these yet because so few games use them.
+- Z-Machine v6-specific features are not well supported.  Not many games use them. v7/v8 expanded story file size/memory features are supported, however.
+
 ## Gratitudes and Attributions
 This project stands on the shoulders of Andrew "Zarf" Plotkin (among many others, I'm sure) and his work establishing standards for the IF community.  Thanks Andrew, et al.
 
