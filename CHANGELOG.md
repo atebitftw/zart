@@ -161,3 +161,10 @@
 
 # 1.9.3
 - Improved CLI player settings screen options and layout.
+
+# 2.0.0
+- Added support for Glulx interpreter.  Zart now supports both Z-Machine and Glulx (Inform 6 & 7) games.
+- Removed CLI player and moved it to it's own repository: https://github.com/atebitftw/zart-cli.  Required because it has dependencies on that are not available on all platforms.
+- Fixed many bugs.
+- Updated documentation.
+- Added more unit tests.

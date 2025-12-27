@@ -31,9 +31,11 @@ enum GlulxTypableType {
   /// Unknown or unsupported type.
   unknown(-3);
 
+  /// The value of the type byte.
   final int value;
   const GlulxTypableType(this.value);
 
+  /// Returns the [GlulxTypableType] for the given byte.
   static GlulxTypableType fromByte(int byte) {
     if (byte == 0x00) return nullObject;
     if (byte == 0xE0) return stringE0;
@@ -49,9 +51,13 @@ enum GlulxTypableType {
 
 /// Base class for all Glulx Typable Objects.
 abstract class GlulxTypable {
+  /// The address of the object.
   final int address;
+
+  /// The type of the object.
   final GlulxTypableType type;
 
+  /// Creates a new [GlulxTypable] instance.
   GlulxTypable(this.address, this.type);
 
   /// Detects the type of object at the given address and returns the appropriate instance.
@@ -98,17 +104,21 @@ abstract class GlulxTypable {
 
 /// Base class for all Glulx String objects.
 abstract class GlulxString extends GlulxTypable {
+  /// Creates a new [GlulxString] instance.
   GlulxString(int address, GlulxTypableType type) : super(address, type);
 }
 
 /// Spec Section 1.4.1.1: "An unencoded string consists of an E0 byte,
 /// followed by all the bytes of the string, followed by a zero byte."
 class UnencodedString extends GlulxString {
+  /// The bytes of the string.
   final List<int> bytes;
 
+  /// Creates a new [UnencodedString] instance.
   UnencodedString(int address, this.bytes)
     : super(address, GlulxTypableType.stringE0);
 
+  /// Parses an unencoded string from the given address.
   static UnencodedString parse(GlulxMemoryMap memory, int address) {
     final bytes = <int>[];
     int current = address + 1;
@@ -126,11 +136,14 @@ class UnencodedString extends GlulxString {
 /// (each one being a four-byte integer). Finally, there is a terminating value
 /// (four 0 bytes)."
 class UnencodedUnicodeString extends GlulxString {
+  /// The characters of the string.
   final List<int> characters;
 
+  /// Creates a new [UnencodedUnicodeString] instance.
   UnencodedUnicodeString(int address, this.characters)
     : super(address, GlulxTypableType.stringE2);
 
+  /// Parses an unencoded Unicode string from the given address.
   static UnencodedUnicodeString parse(GlulxMemoryMap memory, int address) {
     final characters = <int>[];
     // Address + 1 is the first padding byte. Unicode chars start at address + 4.

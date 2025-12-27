@@ -110,7 +110,6 @@ void main() {
         // Pop callee frame
         stack.popFrame();
 
-        // Reference: funcs.c lines 240-241 - recompute bases
         expect(stack.valstackbase, callerValstackbase);
       });
     });
@@ -129,7 +128,6 @@ void main() {
         expect(stack.peek32(2), 0x11111111); // bottom
       });
 
-      // Reference: exec.c lines 479-481 - validates against valstackbase
       test('peek beyond frame boundary throws', () {
         setupMinimalFrame();
         stack.push32(0x11111111);
@@ -177,7 +175,6 @@ void main() {
         expect(stack.pop32(), 20);
       });
 
-      // Reference: exec.c lines 486-487
       test('swap with insufficient values throws', () {
         setupMinimalFrame();
         stack.push32(1);
@@ -219,7 +216,6 @@ void main() {
         expect(stack.pop32(), 0xBBBB);
       });
 
-      // Reference: exec.c lines 514-515 - negative count is error, not no-op
       test('negative count throws', () {
         setupMinimalFrame();
         stack.push32(1);
@@ -262,7 +258,6 @@ void main() {
         expect(stack.pop32(), 100); // untouched
       });
 
-      // Reference: exec.c lines 496-497 - negative count is error
       test('negative count throws', () {
         setupMinimalFrame();
         stack.push32(1);
@@ -363,7 +358,6 @@ void main() {
         expect(stack.sp, spBefore); // No stack changes
       });
 
-      // Reference: funcs.c lines 245-247 - type 0x11 in function return is fatal
       test('type 0x11: string terminator throws in function context', () {
         setupMinimalFrame();
         expect(

@@ -364,7 +364,6 @@ class ZMachine {
   }) {
     _runState = ZMachineRunState.needsLineInput;
     _pendingLineCallback = callback;
-    // TODO: Store these additional parameters if needed for the frontend
   }
 
   /// Called by engine when read_char opcode needs input (pump mode only).
@@ -378,7 +377,6 @@ class ZMachine {
   }) {
     _runState = ZMachineRunState.needsCharInput;
     _pendingCharCallback = callback;
-    // TODO: Store these additional parameters if needed for the frontend
   }
 
   /// Whether pump mode is active.

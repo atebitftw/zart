@@ -496,8 +496,9 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       InputEvent event;
       if (platformProvider != null) {
         event = await platformProvider!.readInput();
-        if (event.type == InputEventType.none)
+        if (event.type == InputEventType.none) {
           continue; // Global scroll key handled
+        }
       } else {
         throw StateError(
           'ZTerminalDisplay requires a platformProvider for input.',

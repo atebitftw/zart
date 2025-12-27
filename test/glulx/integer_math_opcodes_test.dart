@@ -249,12 +249,11 @@ void main() {
       expect(interpreter.stack.pop32(), equals((-5) & 0xFFFFFFFF));
     });
 
-    // Signed Division Edge Cases (per C reference exec.c behavior)
+    // Signed Division Edge Cases
     // These test cases verify Dart's signed integer division matches the spec.
 
     test('div: -7 / 3 = -2 (truncates toward zero)', () async {
       /// Spec Section 2.4.1: Signed integer division truncates toward zero.
-      /// C reference: -7 / 3 = -2 (not -3)
       gameData = createGameData([
         GlulxOp.div, // div
         0x11, 0x08, // L1=mode 1, L2=mode 1, S1=mode 8
@@ -273,7 +272,6 @@ void main() {
 
     test('div: 7 / -3 = -2 (truncates toward zero)', () async {
       /// Spec Section 2.4.1: Signed integer division truncates toward zero.
-      /// C reference: 7 / -3 = -2 (not -3)
       gameData = createGameData([
         GlulxOp.div, // div
         0x11, 0x08,
@@ -291,7 +289,6 @@ void main() {
     });
 
     test('div: -7 / -3 = 2 (both negative)', () async {
-      /// C reference: -7 / -3 = 2
       gameData = createGameData([
         GlulxOp.div, // div
         0x11, 0x08,
@@ -310,7 +307,6 @@ void main() {
 
     test('mod: -7 % 3 = -1 (remainder has sign of dividend)', () async {
       /// Spec Section 2.4.1: Remainder from signed integer division.
-      /// C reference: -7 % 3 = -1 (sign matches dividend)
       gameData = createGameData([
         GlulxOp.mod, // mod
         0x11, 0x08,
@@ -328,7 +324,6 @@ void main() {
     });
 
     test('mod: 7 % -3 = 1 (sign matches dividend, not divisor)', () async {
-      /// C reference: 7 % -3 = 1 (sign matches dividend)
       gameData = createGameData([
         GlulxOp.mod, // mod
         0x11, 0x08,
@@ -346,7 +341,6 @@ void main() {
     });
 
     test('mod: -7 % -3 = -1 (both negative)', () async {
-      /// C reference: -7 % -3 = -1
       gameData = createGameData([
         GlulxOp.mod, // mod
         0x11, 0x08,

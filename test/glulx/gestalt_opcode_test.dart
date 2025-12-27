@@ -5,7 +5,6 @@ import 'mock_glk_io_provider.dart';
 
 void main() {
   /// Glulx Spec Section 2.4.5: Miscellaneous Opcodes
-  /// Reference: packages/glulxe/gestalt.c and gestalt.h
   group('Gestalt Opcode', () {
     late GlulxInterpreter interpreter;
     late GlulxInterpreterTestingHarness harness;

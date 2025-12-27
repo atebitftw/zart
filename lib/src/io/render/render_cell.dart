@@ -26,6 +26,7 @@ class RenderCell {
   /// Whether to use fixed-width font.
   bool fixed;
 
+  /// Create a new RenderCell.
   RenderCell(
     this.char, {
     this.fgColor,

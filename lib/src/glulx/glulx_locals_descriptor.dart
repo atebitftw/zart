@@ -8,6 +8,7 @@ class LocalInfo {
   /// The byte offset of the local relative to the start of the locals segment.
   final int offset;
 
+  /// Constructor.
   LocalInfo(this.type, this.offset);
 }
 
@@ -25,6 +26,7 @@ class GlulxLocalsDescriptor {
   /// The original format bytes, used when pushing frames.
   final Uint8List formatBytes;
 
+  /// Constructor.
   GlulxLocalsDescriptor(this.locals, this.localsSize, this.formatBytes)
     : totalSizeWithPadding = (localsSize + 3) & ~3;
 

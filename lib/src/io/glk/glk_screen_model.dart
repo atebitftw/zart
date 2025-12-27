@@ -25,6 +25,7 @@ class GlkWindowRenderInfo {
   /// Height in chars.
   final int height;
 
+  /// Creates a new [GlkWindowRenderInfo] instance.
   GlkWindowRenderInfo({
     required this.windowId,
     required this.type,

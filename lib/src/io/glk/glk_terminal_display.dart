@@ -331,10 +331,6 @@ class GlkTerminalDisplay implements ZartTerminal {
     }
   }
 
-  // Legacy callbacks - no longer used, kept for API compatibility
-  Future<String> Function()? onReadLine;
-  Future<String> Function()? onReadChar;
-
   @override
   void appendToWindow0(String text) {
     _ensureUiModel();

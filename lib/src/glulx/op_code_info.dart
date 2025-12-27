@@ -1,13 +1,14 @@
 import 'package:zart/src/glulx/glulx_op.dart';
 
 /// Describes an opcode's operand structure.
-/// Reference: operand.c operandlist_t in the C implementation
 class OpcodeInfo {
+  /// The number of operands.
   final int operandCount;
+
+  /// A list of booleans indicating which operands are stores.
   final List<bool> _stores;
 
   /// The byte width for memory/local operand access (1, 2, or 4).
-  /// Reference: arg_size field in operandlist_t (operand.c line 22)
   final int argSize;
 
   /// Creates an [OpcodeInfo] with the given [operandCount] and [stores].
@@ -82,7 +83,6 @@ class OpcodeInfo {
     GlulxOp.getiosys: OpcodeInfo(2, [true, true]),
 
     // Copy Opcodes
-    // Reference: operand.c lines 139-144 (list_LS, list_2LS, list_1LS)
     GlulxOp.copy: OpcodeInfo(2, [false, true]),
     GlulxOp.copys: OpcodeInfo(2, [false, true], argSize: 2),
     GlulxOp.copyb: OpcodeInfo(2, [false, true], argSize: 1),
@@ -256,6 +256,7 @@ class OpcodeInfo {
     GlulxOp.glk: OpcodeInfo(3, [false, false, true]),
   };
 
+  /// Returns the [OpcodeInfo] for the given opcode.
   static OpcodeInfo get(int opcode) {
     return _opcodes[opcode] ?? OpcodeInfo(0, []);
   }

@@ -37,6 +37,7 @@ class ScreenFrame {
   /// this flag and suppress the status bar when true.
   final bool hideStatusBar;
 
+  /// Create a new ScreenFrame.
   const ScreenFrame({
     required this.cells,
     required this.width,

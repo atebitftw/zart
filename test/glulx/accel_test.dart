@@ -126,9 +126,8 @@ void main() {
         expect(interpreter.accel.getFunc(0x1000), isNull);
       });
 
-      /// Reference: accel.c lines 131-134 - fatal_error on non-function address
       test('setFunc throws GlulxException for non-function address', () {
-        // Address 0x24 is in the header (not a function - doesn't start with 0xC0/0xC1)
+        // Address 0x24 is in the header (not a function)
         expect(
           () => interpreter.accel.setFunc(1, 0x24),
           throwsA(isA<GlulxException>()),
@@ -166,17 +165,6 @@ void main() {
   });
 
   group('Acceleration Parameters', () {
-    /// Reference: accel.c lines 41-49
-    /// Parameter indices:
-    /// 0: classes_table
-    /// 1: indiv_prop_start
-    /// 2: class_metaclass
-    /// 3: object_metaclass
-    /// 4: routine_metaclass
-    /// 5: string_metaclass
-    /// 6: self
-    /// 7: num_attr_bytes
-    /// 8: cpv__start
     test('all 9 parameters can be set and retrieved', () {
       final testValues = [
         0x10000, // classes_table

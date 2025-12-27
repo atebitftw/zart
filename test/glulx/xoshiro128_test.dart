@@ -2,7 +2,6 @@ import 'package:test/test.dart';
 import 'package:zart/src/glulx/xoshiro128.dart';
 
 /// Unit tests for Xoshiro128 random number generator.
-/// Reference: osdepend.c xoshiro128** implementation.
 /// These tests verify deterministic seeding produces reproducible sequences.
 void main() {
   group('Xoshiro128', () {

@@ -33,6 +33,8 @@ class GlkStyle {
 
   /// User-defined styles.
   static const int user1 = 9;
+
+  /// User-defined styles.
   static const int user2 = 10;
 
   /// Total number of styles.

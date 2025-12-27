@@ -235,8 +235,9 @@ class ZartTitleScreen {
     // Frame total width = 2 (borders) + innerWidth
     final frameWidth = _innerWidth + 2;
     final leftOffset = (width - frameWidth) ~/ 2;
-    if (leftOffset < 0)
+    if (leftOffset < 0) {
       return ScreenFrame(cells: cells, width: width, height: height);
+    }
 
     void writeCell(
       int r,

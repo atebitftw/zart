@@ -1287,8 +1287,6 @@ class InterpreterV5 extends InterpreterV4 {
     // We detect this by checking if there's only 1 operand.
     if (operands.length < 2) {
       // TODO: Handle cursor show/hide commands if supported by IO
-      // For now, just ignore to prevent crash (exit functionality)
-      // Debugger.verbose("set_cursor called with 1 arg: ${operands[0].value}");
       return;
     }
 

@@ -1,6 +1,5 @@
 /// Defines the Gestalt selectors for the Glulx VM capabilities.
-/// These match the values defined in the Glulx specification and the
-/// reference C interpreter (gestalt.h).
+/// These match the values defined in the Glulx specification.
 class GlulxGestaltSelectors {
   /// Glulx spec version (e.g. 0x00030103).
   static const int glulxVersion = 0;

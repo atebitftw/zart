@@ -545,6 +545,7 @@ class ZartDebugger {
     GlulxOp.jisinf: 'jisinf',
   };
 
+  /// Gestalt selector name lookup map.
   static const Map<int, String> gestaltSelectorNames = {
     GlkGestaltSelectors.version: 'version',
     GlkGestaltSelectors.charInput: 'charInput',
@@ -572,6 +573,7 @@ class ZartDebugger {
     GlkGestaltSelectors.drawImageScale: 'drawImageScale',
   };
 
+  /// GLK selector name lookup map.
   static const Map<int, String> glkSelectorNames = {
     GlkIoSelectors.exit: 'exit',
     GlkIoSelectors.setInterruptHandler: 'setInterruptHandler',

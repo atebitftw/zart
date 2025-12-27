@@ -27,6 +27,7 @@ class RenderImage {
   /// Display height (may differ from native if scaled).
   final int height;
 
+  /// Create a new RenderImage.
   const RenderImage({
     required this.resourceId,
     required this.data,
@@ -82,6 +83,7 @@ class RenderWindow {
   /// Background color for graphics windows (0xRRGGBB format).
   final int? backgroundColor;
 
+  /// Create a new RenderWindow.
   const RenderWindow({
     required this.id,
     required this.x,
@@ -115,6 +117,7 @@ class RenderFrame {
   /// Total screen height in characters.
   final int screenHeight;
 
+  /// Create a new RenderFrame.
   const RenderFrame({
     required this.windows,
     required this.screenWidth,

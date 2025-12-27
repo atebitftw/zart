@@ -76,6 +76,7 @@ abstract class GlkWindow {
   /// True if mouse input is pending for this window.
   bool mouseInputPending = false;
 
+  /// Create a new GlkWindow.
   GlkWindow({required this.id, required this.rock, required this.type});
 }
 
@@ -97,6 +98,7 @@ class GlkTextBufferWindow extends GlkWindow {
     return lines.last;
   }
 
+  /// Create a new GlkTextBufferWindow.
   GlkTextBufferWindow({required super.id, required super.rock})
     : super(type: GlkWindowType.textBuffer);
 
@@ -136,6 +138,7 @@ class GlkTextGridWindow extends GlkWindow {
   /// Cursor Y position (0-indexed).
   int cursorY = 0;
 
+  /// Create a new GlkTextGridWindow.
   GlkTextGridWindow({required super.id, required super.rock})
     : super(type: GlkWindowType.textGrid) {
     grid = [];
@@ -189,6 +192,7 @@ class GlkGraphicsWindow extends GlkWindow {
   /// Pending image draw commands.
   final List<GlkImageDraw> pendingImages = [];
 
+  /// Create a new GlkGraphicsWindow.
   GlkGraphicsWindow({required super.id, required super.rock})
     : super(type: GlkWindowType.graphics);
 
@@ -254,6 +258,7 @@ class GlkImageDraw {
   /// Display height (pixels).
   final int height;
 
+  /// Create a new GlkImageDraw.
   const GlkImageDraw({
     required this.resourceId,
     required this.x,
@@ -267,6 +272,7 @@ class GlkImageDraw {
 ///
 /// Glk Spec: "A blank window is always empty."
 class GlkBlankWindow extends GlkWindow {
+  /// Create a new GlkBlankWindow.
   GlkBlankWindow({required super.id, required super.rock})
     : super(type: GlkWindowType.blank);
 }
@@ -292,6 +298,7 @@ class GlkPairWindow extends GlkWindow {
   /// Split size (rows/cols for fixed, percentage for proportional).
   int size = 0;
 
+  /// Create a new GlkPairWindow.
   GlkPairWindow({required super.id, required super.rock})
     : super(type: GlkWindowType.pair);
 }

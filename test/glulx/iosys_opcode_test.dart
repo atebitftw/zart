@@ -5,7 +5,6 @@ import 'mock_glk_io_provider.dart';
 
 void main() {
   /// Glulx Spec: I/O System Opcodes
-  /// Reference: packages/glulxe/string.c stream_set_iosys() and stream_get_iosys()
   group('I/O System Opcodes', () {
     late GlulxInterpreter interpreter;
     late GlulxInterpreterTestingHarness harness;
@@ -116,7 +115,6 @@ void main() {
 
       test('setiosys mode 2 sets Glk I/O (rock ignored)', () async {
         /// Mode 2 = Glk, rock is always set to 0 regardless of L2
-        /// Reference: string.c - "rock = 0;" for Glk mode
         gameData = createGameData([
           0x81, 0x49, // setiosys opcode
           0x11,
@@ -145,7 +143,6 @@ void main() {
       });
 
       test('setiosys unknown mode defaults to None', () async {
-        /// Reference: string.c - default case falls through to iosys_None
         gameData = createGameData([
           0x81, 0x49, // setiosys opcode
           0x11,

@@ -27,11 +27,9 @@ class GlulxStack {
   int _fp = 0;
 
   /// The base of the value stack within the current frame.
-  /// This is _fp + frameLen (cached for performance, like C interpreter's valstackbase).
   int _valstackbase = 0;
 
   /// The base of locals within the current frame.
-  /// This is _fp + localsPos (cached for performance, like C interpreter's localsbase).
   int _localsbase = 0;
 
   /// Creates a new Glulx stack of the given size.
@@ -104,10 +102,8 @@ class GlulxStack {
   ///
   /// [index] is the zero-based index from the top (0 = top element).
   /// Spec: "Peek at the Lth value on the stack, without actually popping anything."
-  /// Reference: exec.c op_stkpeek - validates index against valstackbase.
   int peek32(int index) {
     final offset = index * 4;
-    // Bounds check per reference interpreter: exec.c lines 479-481
     if (offset < 0 || offset >= (_sp - _valstackbase)) {
       throw GlulxException('Stkpeek outside current stack range');
     }
@@ -190,7 +186,7 @@ class GlulxStack {
     _data.fillRange(newFp + 8 + format.length, newFp + frameLenValue, 0);
 
     _fp = newFp;
-    // Update cached bases (mirrors funcs.c lines 105-106)
+    // Update cached bases
     _localsbase = _fp + localsPosValue;
     _valstackbase = _fp + frameLenValue;
     _sp = _valstackbase;
@@ -204,14 +200,11 @@ class GlulxStack {
     final stub = popCallStub();
     _fp = stub[3];
     // Recompute valstackbase and localsbase from restored frame
-    // Reference: funcs.c lines 240-241
     _updateCachedBases();
     return stub;
   }
 
   /// Leaves the current function by setting SP = FP.
-  /// Reference: C interpreter's leave_function() which sets stackptr = frameptr.
-  /// This is called before checking if we should pop a call stub.
   void leaveFunction() {
     _sp = _fp;
   }
@@ -271,28 +264,23 @@ class GlulxStack {
         break;
       case 0x10:
         // Spec: "Resume printing a compressed (E1) string."
-        // Reference: funcs.c line 252 - resumes string printing.
         onResumeString?.call(addr, 0xE1);
         break;
       case 0x11:
         // Spec: "Resume executing function code after a string completes."
-        // Reference: funcs.c lines 245-247 - this is fatal in function return context
         throw GlulxException(
           'String-terminator call stub at end of function call',
         );
       case 0x12:
         // Spec: "Resume printing a signed decimal integer."
-        // Reference: funcs.c line 258 - calls stream_num(pc, TRUE, destaddr)
         onResumeNum?.call(addr, value);
         break;
       case 0x13:
         // Spec: "Resume printing a C-style (E0) string."
-        // Reference: funcs.c line 264.
         onResumeString?.call(addr, 0xE0);
         break;
       case 0x14:
         // Spec: "Resume printing a Unicode (E2) string."
-        // Reference: funcs.c line 270.
         onResumeString?.call(addr, 0xE2);
         break;
       default:
@@ -386,7 +374,6 @@ class GlulxStack {
   /// Spec: "Swap the top two values on the stack.
   /// The current stack-count must be at least two."
   void stkSwap() {
-    // Reference: exec.c lines 486-487
     if (_sp < _valstackbase + 8) {
       throw GlulxException('Stack underflow in stkswap');
     }
@@ -401,11 +388,9 @@ class GlulxStack {
   /// Spec: "Rotate the top L1 values on the stack. They are rotated up or down
   /// L2 places, with positive values meaning up and negative meaning down."
   void stkRoll(int count, int shift) {
-    // Reference: exec.c lines 514-515 - negative count is an error
     if (count < 0) {
       throw GlulxException('Negative operand in stkroll');
     }
-    // Reference: exec.c lines 518-519 - zero count is no-op
     if (count == 0) return;
 
     // Bounds check
@@ -414,7 +399,7 @@ class GlulxStack {
     }
     if (count <= 1) return;
 
-    // Normalize shift: Reference exec.c lines 525-531
+    // Normalize shift
     // Convert positive shift to equivalent negative for easier implementation
     if (shift > 0) {
       shift = shift % count;
@@ -424,14 +409,12 @@ class GlulxStack {
     }
     if (shift == 0) return;
 
-    // Copied from glulxe/exec.c stkroll:
     // "Since the values are being moved into space above the current stack,
     // we must check for overflow."
     if (_sp + shift * 4 > maxSize) {
       throw GlulxException('Stack overflow in stkroll');
     }
 
-    // Reference: exec.c lines 534-542 - in-place rotate algorithm
     final baseAddr = _sp - count * 4;
 
     // Copy the first 'shift' values to temp space above current stack
@@ -452,7 +435,6 @@ class GlulxStack {
   /// Spec: "Peek at the top L1 values in the stack, and push duplicates onto
   /// the stack in the same order."
   void stkCopy(int count) {
-    // Reference: exec.c lines 496-497 - negative count is an error
     if (count < 0) {
       throw GlulxException('Negative operand in stkcopy');
     }
@@ -467,7 +449,6 @@ class GlulxStack {
       throw GlulxException('Stack overflow in stkcopy');
     }
 
-    // Reference: exec.c lines 504-509 - copy in order from bottom to top
     final baseAddr = _sp - count * 4;
     for (var i = 0; i < count; i++) {
       final value = _view.getUint32(baseAddr + i * 4, Endian.big);

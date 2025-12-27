@@ -353,12 +353,10 @@ void main() {
     });
 
     test('should throw on read beyond memory bounds (byte)', () {
-      // Reference: verify_address(addr, count) checks addr >= endmem
       expect(() => mem.readByte(mem.endMem), throwsA(isA<GlulxException>()));
     });
 
     test('should throw on read beyond memory bounds (short)', () {
-      // Reference: verify_address checks entire range
       expect(
         () => mem.readShort(mem.endMem - 1),
         throwsA(isA<GlulxException>()),
@@ -366,7 +364,6 @@ void main() {
     });
 
     test('should throw on read beyond memory bounds (word)', () {
-      // Reference: verify_address checks entire range
       expect(
         () => mem.readWord(mem.endMem - 3),
         throwsA(isA<GlulxException>()),
@@ -448,7 +445,6 @@ void main() {
     });
 
     test('should throw on write beyond memory bounds (byte)', () {
-      // Reference: verify_address_write checks addr >= endmem
       expect(
         () => mem.writeByte(mem.endMem, 0x00),
         throwsA(isA<GlulxException>()),
@@ -458,8 +454,6 @@ void main() {
     test(
       'should throw on write beyond memory bounds (short ending past endMem)',
       () {
-        // Reference: verify_address_write checks entire range
-        // Writing a short at endMem - 1 means byte at endMem would be written
         expect(
           () => mem.writeShort(mem.endMem - 1, 0x0000),
           throwsA(isA<GlulxException>()),
@@ -470,8 +464,6 @@ void main() {
     test(
       'should throw on write beyond memory bounds (word ending past endMem)',
       () {
-        // Reference: verify_address_write checks entire range
-        // Writing a word at endMem - 3 means byte at endMem would be written
         expect(
           () => mem.writeWord(mem.endMem - 3, 0x00000000),
           throwsA(isA<GlulxException>()),

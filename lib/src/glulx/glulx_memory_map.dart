@@ -143,7 +143,6 @@ class GlulxMemoryMap {
     _memory.setRange(0, dataToCopy, gameData);
 
     // Keep a copy of the original game data for undo XOR compression
-    // Reference: serial.c uses ramcache for this purpose
     _originalGameData = Uint8List.fromList(gameData);
 
     // Protection range starts disabled
@@ -215,6 +214,7 @@ class GlulxMemoryMap {
     return _read32(_memory, address);
   }
 
+  /// Write an 8-bit byte to memory.
   void writeByte(int address, int value) {
     _verifyAddressWrite(address, 1);
     _memory[address] = value & 0xFF;
@@ -222,7 +222,6 @@ class GlulxMemoryMap {
 
   /// Read the original byte value at the given address (from initial game data).
   /// Used for XOR compression in undo state.
-  /// Reference: serial.c ramcache access
   int readOriginalByte(int address) {
     if (address < 0 || address >= _originalGameData.length) {
       return 0; // Beyond original game data, assume zero

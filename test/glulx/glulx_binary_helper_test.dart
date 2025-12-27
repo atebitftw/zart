@@ -3,7 +3,6 @@ import 'package:zart/src/glulx/glulx_binary_helper.dart';
 
 void main() {
   /// Tests for GlulxBinaryHelper - JavaScript-safe 32-bit operations.
-  /// Reference: JAVASCRIPT_COMPATIBILITY.md test cases
   group('GlulxBinaryHelper', () {
     // ========== toU32 Tests ==========
     group('toU32', () {

@@ -20,42 +20,116 @@ enum InputEventType {
 }
 
 /// Mouse button identifiers.
-enum MouseButton { left, right, middle }
+enum MouseButton {
+  /// Left mouse button.
+  left,
+
+  /// Right mouse button.
+  right,
+
+  /// Middle mouse button.
+  middle,
+}
 
 /// Unified special key identifiers for internal use.
 enum SpecialKey {
+  /// Delete key.
   delete,
+
+  /// Tab key.
   tab,
+
+  /// Enter key.
   enter,
+
+  /// Escape key.
   escape,
+
+  /// Arrow up key.
   arrowUp,
+
+  /// Arrow down key.
   arrowDown,
+
+  /// Arrow left key.
   arrowLeft,
+
+  /// Arrow right key.
   arrowRight,
+
+  /// Page up key.
   pageUp,
+
+  /// Page down key.
   pageDown,
+
+  /// F1 key.
   f1,
+
+  /// F2 key.
   f2,
+
+  /// F3 key.
   f3,
+
+  /// F4 key.
   f4,
+
+  /// F5 key.
   f5,
+
+  /// F6 key.
   f6,
+
+  /// F7 key.
   f7,
+
+  /// F8 key.
   f8,
+
+  /// F9 key.
   f9,
+
+  /// F10 key.
   f10,
+
+  /// F11 key.
   f11,
+
+  /// F12 key.
   f12,
+
+  /// Keypad 0 key.
   keypad0,
+
+  /// Keypad 1 key.
   keypad1,
+
+  /// Keypad 2 key.
   keypad2,
+
+  /// Keypad 3 key.
   keypad3,
+
+  /// Keypad 4 key.
   keypad4,
+
+  /// Keypad 5 key.
   keypad5,
+
+  /// Keypad 6 key.
   keypad6,
+
+  /// Keypad 7 key.
   keypad7,
+
+  /// Keypad 8 key.
   keypad8,
+
+  /// Keypad 9 key.
   keypad9,
+
+  /// None (no key pressed).
   none,
 }
 

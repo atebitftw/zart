@@ -1,23 +1,23 @@
 import 'package:zart/src/glulx/glulx_memory_map.dart';
-import 'package:zart/src/glulx/typable_objects.dart';
-
-/// Spec Section 1.4.1.3: Compressed strings
-class CompressedString extends GlulxString {
-  final int bitStreamAddress;
-
-  CompressedString(int address)
-    : bitStreamAddress = address + 1,
-      super(address, GlulxTypableType.stringE1);
-}
 
 /// Spec Section 1.4.1.4: The String-Decoding Table
 class HuffmanTable {
+  /// The address of the table.
   final int address;
+
+  /// The length of the table.
   final int length;
+
+  /// The number of nodes in the table.
   final int nodeCount;
+
+  /// The address of the root node.
   final int rootAddress;
+
+  /// The nodes in the table.
   final Map<int, HuffmanNode> nodes;
 
+  /// Constructor.
   HuffmanTable(
     this.address,
     this.length,
@@ -26,6 +26,7 @@ class HuffmanTable {
     this.nodes,
   );
 
+  /// Parses a [HuffmanTable] from the given [address].
   static HuffmanTable parse(GlulxMemoryMap memory, int address) {
     final length = memory.readWord(address);
     final nodeCount = memory.readWord(address + 4);
@@ -40,9 +41,13 @@ class HuffmanTable {
 
 /// Base class for Huffman table nodes.
 abstract class HuffmanNode {
+  /// The type of the node.
   final int type;
+
+  /// Constructor.
   HuffmanNode(this.type);
 
+  /// Parses a [HuffmanNode] from the given [address].
   static HuffmanNode parse(GlulxMemoryMap memory, int address) {
     final type = memory.readByte(address);
     switch (type) {
@@ -125,65 +130,118 @@ abstract class HuffmanNode {
   }
 }
 
+/// Branch node.
 class BranchNode extends HuffmanNode {
+  /// The left address.
   final int leftAddress;
+
+  /// The right address.
   final int rightAddress;
+
+  /// Constructor.
   BranchNode(this.leftAddress, this.rightAddress) : super(0x00);
 }
 
+/// Terminator node.
+/// Terminator node.
 class TerminatorNode extends HuffmanNode {
+  /// Constructor.
   TerminatorNode() : super(0x01);
 }
 
+/// Single character node.
 class SingleCharNode extends HuffmanNode {
+  /// The character.
   final int char;
+
+  /// Constructor.
   SingleCharNode(this.char) : super(0x02);
 }
 
+/// String node.
 class StringNode extends HuffmanNode {
+  /// The bytes.
   final List<int> bytes;
+
+  /// The data address.
   final int dataAddress;
+
+  /// Constructor.
   StringNode(this.bytes, this.dataAddress) : super(0x03);
 }
 
+/// Unicode character node.
 class UnicodeCharNode extends HuffmanNode {
+  /// The character.
   final int char;
+
+  /// Constructor.
   UnicodeCharNode(this.char) : super(0x04);
 }
 
+/// Unicode string node.
 class UnicodeStringNode extends HuffmanNode {
+  /// The characters.
   final List<int> characters;
+
+  /// The data address.
   final int dataAddress;
+
+  /// Constructor.
   UnicodeStringNode(this.characters, this.dataAddress) : super(0x05);
 }
 
+/// Indirect node.
 class IndirectNode extends HuffmanNode {
+  /// The address.
   final int address;
+
+  /// Constructor.
   IndirectNode(this.address) : super(0x08);
 }
 
+/// Double-indirect node.
 class DoubleIndirectNode extends HuffmanNode {
+  /// The address.
   final int address;
+
+  /// Constructor.
   DoubleIndirectNode(this.address) : super(0x09);
 }
 
+/// Indirect node with arguments.
 class IndirectArgsNode extends HuffmanNode {
+  /// The address.
   final int address;
+
+  /// The arguments.
   final List<int> arguments;
+
+  /// Constructor.
   IndirectArgsNode(this.address, this.arguments) : super(0x0A);
 }
 
+/// Double-indirect node with arguments.
 class DoubleIndirectArgsNode extends HuffmanNode {
+  /// The address.
   final int address;
+
+  /// The arguments.
   final List<int> arguments;
+
+  /// Constructor.
   DoubleIndirectArgsNode(this.address, this.arguments) : super(0x0B);
 }
 
 /// Logic for decoding compressed strings.
 class GlulxStringDecoder {
+  /// The memory map.
   final GlulxMemoryMap memory;
+
+  /// The table cache.
   final Map<int, HuffmanTable> _tableCache = {};
 
+  /// Constructor.
   GlulxStringDecoder(this.memory);
 
   /// Decodes and prints a compressed string.
@@ -193,7 +251,7 @@ class GlulxStringDecoder {
   /// [callString] is called for indirect string references (type 0xE0-E2).
   /// [callFunc] is called for indirect function references (type 0xC0-C1).
   /// [callEmbeddedString] is called for embedded string nodes in Filter mode.
-  /// Reference: Spec 1.4.1.4 - Indirect reference handling
+  /// See Spec 1.4.1.4 - Indirect reference handling nodes in Filter mode.
   void decode(
     int stringAddress,
     int tableAddress,
@@ -205,7 +263,6 @@ class GlulxStringDecoder {
     int? startAddr,
     int? startBit,
     // Optional callback for embedded string nodes (type 0x03/0x05) in Filter mode
-    // Reference: C interpreter string.c:330-340 switches to E0/E2 processing
     void Function(int resumeAddr, int resumeBit, int dataAddr, int stringType)?
     callEmbeddedString,
   }) {
@@ -329,9 +386,7 @@ class GlulxStringDecoder {
   }
 
   /// Dispatches an indirect reference to either callString or callFunc based on type.
-  /// Reference: Spec 1.4.1.4 "Indirect reference" - type 0xE0-E2 = string, 0xC0-C1 = function.
-  /// Changed to signal for BOTH strings and functions so main loop can push 0x10 stub first.
-  /// Reference: C interpreter string.c:386-407 pushes 0x10 stub before processing either.
+  /// Spec 1.4.1.4 "Indirect reference" - type 0xE0-E2 = string, 0xC0-C1 = function.
   bool _dispatchIndirect(
     int address,
     List<int> args,

@@ -20,6 +20,7 @@ class BlorbImage {
   /// The raw image data bytes.
   final Uint8List data;
 
+  /// Creates a new BlorbImage.
   BlorbImage({required this.format, required this.data});
 }
 
@@ -31,6 +32,7 @@ class BlorbSound {
   /// The raw sound data bytes.
   final Uint8List data;
 
+  /// Creates a new BlorbSound.
   BlorbSound({required this.format, required this.data});
 }
 

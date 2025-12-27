@@ -12,6 +12,7 @@ abstract class GlulxFunction extends GlulxTypable {
   /// The address where opcodes begin.
   final int entryPoint;
 
+  /// Constructor.
   GlulxFunction(
     int address,
     GlulxTypableType type,
@@ -64,6 +65,7 @@ abstract class GlulxFunction extends GlulxTypable {
 /// Spec Section 1.4.2: "If the type is C0, the arguments are passed on the stack,
 /// and are made available on the stack."
 class StackArgsFunction extends GlulxFunction {
+  /// Constructor.
   StackArgsFunction(
     int address,
     GlulxLocalsDescriptor localsDescriptor,
@@ -74,6 +76,7 @@ class StackArgsFunction extends GlulxFunction {
 /// Spec Section 1.4.2: "If the type is C1, the arguments are passed on the stack,
 /// and are written into the locals according to the 'format of locals' list of the function."
 class LocalArgsFunction extends GlulxFunction {
+  /// Constructor.
   LocalArgsFunction(
     int address,
     GlulxLocalsDescriptor localsDescriptor,

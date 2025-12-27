@@ -2,12 +2,22 @@ import 'package:zart/src/glulx/glulx_exception.dart';
 
 /// A block of memory in the Glulx heap.
 class GlulxHeapBlock {
+  /// The address of the block.
   int addr;
+
+  /// The length of the block.
   int len;
+
+  /// Whether the block is free.
   bool isFree;
+
+  /// The next block in the list.
   GlulxHeapBlock? next;
+
+  /// The previous block in the list.
   GlulxHeapBlock? prev;
 
+  /// Constructor.
   GlulxHeapBlock({
     required this.addr,
     required this.len,
@@ -22,15 +32,20 @@ class GlulxHeapBlock {
 /// Spec Section 2.13.2: "The heap is a collection of memory blocks that can be
 /// allocated and freed by the program."
 ///
-/// Reference: heap.c
+/// Implementation of the Glulx heap.
 class GlulxHeap {
   int _heapStart = 0;
   GlulxHeapBlock? _head;
   GlulxHeapBlock? _tail;
   int _allocCount = 0;
 
+  /// The address of the heap.
   int get heapStart => _heapStart;
+
+  /// Whether the heap is active.
   bool get isActive => _heapStart != 0;
+
+  /// The number of allocations.
   int get allocCount => _allocCount;
 
   /// Deactivates the heap and clears all blocks.

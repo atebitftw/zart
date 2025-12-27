@@ -3,8 +3,6 @@ import 'package:zart/src/glulx/glulx_memory_map.dart';
 
 /// Glulx function acceleration system.
 ///
-/// Reference: accel.c in the C interpreter.
-///
 /// Spec: "To improve performance, Glulx incorporates some complex functions
 /// which replicate code in the Inform library."
 ///
@@ -12,24 +10,13 @@ import 'package:zart/src/glulx/glulx_memory_map.dart';
 /// specific function addresses with native implementations of the same
 /// functionality, providing significant performance improvements.
 class GlulxAccel {
+  /// The memory map.
   final GlulxMemoryMap memoryMap;
 
   /// The 9 acceleration parameters (indices 0-8).
-  /// Reference: accel.c lines 41-49
-  ///
-  /// - 0: classes_table - Address of class object array
-  /// - 1: indiv_prop_start - First individual property ID
-  /// - 2: class_metaclass - "Class" class object address
-  /// - 3: object_metaclass - "Object" class object address
-  /// - 4: routine_metaclass - "Routine" class object address
-  /// - 5: string_metaclass - "String" class object address
-  /// - 6: self - Address of global "self" variable
-  /// - 7: num_attr_bytes - Number of attribute bytes (usually 7)
-  /// - 8: cpv__start - Address of common property defaults array
   final List<int> _params = List.filled(9, 0);
 
   /// Hash map of address -> (index, function).
-  /// Reference: accel.c accelentry_t and accelentries hash table
   final Map<int, _AccelEntry> _accelFuncs = {};
 
   /// Current I/O system mode for error output.
@@ -38,6 +25,7 @@ class GlulxAccel {
   /// Stream character output for error messages.
   void Function(int char) streamChar;
 
+  /// Constructor.
   GlulxAccel({
     required this.memoryMap,
     required this.getIosysMode,
@@ -45,7 +33,6 @@ class GlulxAccel {
   });
 
   /// Set a parameter value.
-  /// Reference: accel.c accel_set_param()
   ///
   /// Spec: "accelparam L1 L2: Store the value L2 in the parameter table
   /// at position L1. If the terp does not know about parameter L1,
@@ -65,17 +52,14 @@ class GlulxAccel {
   }
 
   /// Register/unregister an accelerated function at an address.
-  /// Reference: accel.c accel_set_func()
   ///
   /// Spec: "accelfunc L1 L2: Request that the VM function with address L2
   /// be replaced by the accelerated function whose number is L1.
   /// If L1 is zero, the acceleration for address L2 is cancelled."
   void setFunc(int index, int address) {
     // Check the Glulx type identifier byte.
-    // Reference: accel.c lines 131-134
     final funcType = memoryMap.readByte(address);
     if (funcType != 0xC0 && funcType != 0xC1) {
-      // Reference: C throws fatal_error_i("Attempt to accelerate non-function.", addr)
       throw GlulxException(
         'Attempt to accelerate non-function at address 0x${address.toRadixString(16)}',
       );
@@ -97,7 +81,6 @@ class GlulxAccel {
   }
 
   /// Get the accelerated function for an address, or null.
-  /// Reference: accel.c accel_get_func()
   int Function(List<int> args)? getFunc(int address) {
     return _accelFuncs[address]?.func;
   }
@@ -109,7 +92,6 @@ class GlulxAccel {
   }
 
   /// Find the native implementation for a function index.
-  /// Reference: accel.c accel_find_func()
   int Function(List<int> args)? _findFunc(int index) {
     switch (index) {
       case 0:
@@ -146,13 +128,11 @@ class GlulxAccel {
   }
 
   /// Output an error message.
-  /// Reference: accel.c accel_error()
   ///
   /// Spec: "Errors encountered during an accelerated function will be
   /// displayed to the user by some convenient means."
   void _accelError(String msg) {
     // Only output if iosys mode is 2 (Glk)
-    // Reference: accel.c lines 213-221
     if (getIosysMode() == 2) {
       streamChar(0x0A); // newline
       for (final c in msg.codeUnits) {
@@ -164,7 +144,6 @@ class GlulxAccel {
   }
 
   /// Utility: Check if an object is "in Class" (contained in the Class metaclass).
-  /// Reference: accel.c obj_in_class()
   bool _objInClass(int obj) {
     // return (Mem4(obj + 13 + num_attr_bytes) == class_metaclass);
     return memoryMap.readWord(obj + 13 + _params[7]) == _params[2];
@@ -178,7 +157,6 @@ class GlulxAccel {
   // ========== Accelerated Function Implementations ==========
 
   /// FUNC_1_Z__Region: Determine object type.
-  /// Reference: accel.c func_1_z__region()
   ///
   /// Returns: 1 for object, 2 for function, 3 for string, 0 otherwise.
   int _func1ZRegion(List<int> args) {
@@ -198,7 +176,6 @@ class GlulxAccel {
   }
 
   /// FUNC_2_CP__Tab (old): Look up property table entry.
-  /// Reference: accel.c func_2_cp__tab()
   ///
   /// Note: This is the OLD version that assumes NUM_ATTR_BYTES = 7.
   int _func2CPTab(List<int> args) {
@@ -222,7 +199,6 @@ class GlulxAccel {
   }
 
   /// FUNC_3_RA__Pr (old): Get property address.
-  /// Reference: accel.c func_3_ra__pr()
   int _func3RAPr(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final id = _argIfGiven(args, 1);
@@ -234,7 +210,6 @@ class GlulxAccel {
   }
 
   /// FUNC_4_RL__Pr (old): Get property length.
-  /// Reference: accel.c func_4_rl__pr()
   int _func4RLPr(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final id = _argIfGiven(args, 1);
@@ -246,7 +221,6 @@ class GlulxAccel {
   }
 
   /// FUNC_5_OC__Cl (old): Object-of-class test.
-  /// Reference: accel.c func_5_oc__cl()
   int _func5OCCl(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final cla = _argIfGiven(args, 1);
@@ -301,7 +275,6 @@ class GlulxAccel {
   }
 
   /// FUNC_6_RV__Pr (old): Read property value.
-  /// Reference: accel.c func_6_rv__pr()
   int _func6RVPr(List<int> args) {
     final id = _argIfGiven(args, 1);
     final addr = _func3RAPr(args);
@@ -319,7 +292,6 @@ class GlulxAccel {
   }
 
   /// FUNC_7_OP__Pr (old): Object provides property test.
-  /// Reference: accel.c func_7_op__pr()
   int _func7OPPr(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final id = _argIfGiven(args, 1);
@@ -348,7 +320,6 @@ class GlulxAccel {
   // ========== NEW versions (8-13) with NUM_ATTR_BYTES support ==========
 
   /// FUNC_8_CP__Tab (new): Look up property table entry.
-  /// Reference: accel.c func_8_cp__tab()
   int _func8CPTab(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final id = _argIfGiven(args, 1);
@@ -370,7 +341,6 @@ class GlulxAccel {
   }
 
   /// FUNC_9_RA__Pr (new): Get property address.
-  /// Reference: accel.c func_9_ra__pr()
   int _func9RAPr(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final id = _argIfGiven(args, 1);
@@ -382,7 +352,6 @@ class GlulxAccel {
   }
 
   /// FUNC_10_RL__Pr (new): Get property length.
-  /// Reference: accel.c func_10_rl__pr()
   int _func10RLPr(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final id = _argIfGiven(args, 1);
@@ -394,7 +363,6 @@ class GlulxAccel {
   }
 
   /// FUNC_11_OC__Cl (new): Object-of-class test.
-  /// Reference: accel.c func_11_oc__cl()
   int _func11OCCl(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final cla = _argIfGiven(args, 1);
@@ -447,7 +415,6 @@ class GlulxAccel {
   }
 
   /// FUNC_12_RV__Pr (new): Read property value.
-  /// Reference: accel.c func_12_rv__pr()
   int _func12RVPr(List<int> args) {
     final id = _argIfGiven(args, 1);
     final addr = _func9RAPr(args);
@@ -464,7 +431,6 @@ class GlulxAccel {
   }
 
   /// FUNC_13_OP__Pr (new): Object provides property test.
-  /// Reference: accel.c func_13_op__pr()
   int _func13OPPr(List<int> args) {
     final obj = _argIfGiven(args, 0);
     final id = _argIfGiven(args, 1);
@@ -490,7 +456,6 @@ class GlulxAccel {
   // ========== Helper functions ==========
 
   /// Look up a property entry (OLD version).
-  /// Reference: accel.c get_prop()
   int _getProp(int obj, int id) {
     var cla = 0;
     int prop;
@@ -516,7 +481,6 @@ class GlulxAccel {
   }
 
   /// Look up a property entry (NEW version).
-  /// Reference: accel.c get_prop_new()
   int _getPropNew(int obj, int id) {
     var cla = 0;
     int prop;
@@ -542,7 +506,6 @@ class GlulxAccel {
   }
 
   /// Binary search implementation.
-  /// Reference: search.c binary_search()
   ///
   /// This is a simplified version matching the Glulx binarysearch opcode.
   int _binarySearch(

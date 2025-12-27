@@ -42,12 +42,11 @@ class GlulxInterpreter {
   int get step => _step;
 
   /// xoshiro128** random number generator.
-  /// Spec Section 2.4.9 / Reference: osdepend.c
+  /// Spec Section 2.4.9
   final Xoshiro128 _random = Xoshiro128();
   late GlulxStringDecoder _stringDecoder;
 
   /// Function acceleration system.
-  /// Reference: accel.c in the C interpreter.
   late GlulxAccel accel;
 
   final Float32List _f32 = Float32List(1);
@@ -57,11 +56,9 @@ class GlulxInterpreter {
   late Uint32List _u32_64 = _f64.buffer.asUint32List();
 
   /// Maximum number of undo states to keep.
-  /// Reference: serial.c max_undo_level = 8
   static const int _maxUndoLevel = 8;
 
   /// Undo state chain (most recent first).
-  /// Reference: serial.c undo_chain[]
   final List<GlulxUndoState> _undoChain = [];
 
   /// Creates a new Glulx interpreter.
@@ -139,7 +136,6 @@ class GlulxInterpreter {
       _quit = false;
 
       // Enter the start function directly with 0 arguments (no call stub)
-      // This matches the C reference: enter_function(startfuncaddr, 0, NULL)
       // Unlike regular calls, the startup function has no caller to return to.
       _enterFunction(startFunc, []);
 
@@ -591,11 +587,11 @@ class GlulxInterpreter {
         break;
 
       /// Spec Section 2.4.4: "throw L1 L2: Jump back to catch with value L1, token L2."
-      /// Reference: exec.c case op_throw - stackptr = token; pop_callstub(value);
+      /// Implementation of throw.
       case GlulxOp.throwEx:
         final value = operands[0] as int;
         final token = operands[1] as int;
-        // Restore stack pointer to the token position (per C reference: stackptr = token)
+        // Restore stack pointer to the token position
         stack.sp = token;
         // Pop call stub (just reads the 4 values)
         final stub = stack.popCallStub();
@@ -865,7 +861,7 @@ class GlulxInterpreter {
         break;
 
       /// Spec Section 2.4.11: "restart: Restore VM to initial state."
-      /// Reference: vm.c vm_restart()
+      /// Restarts the VM.
       case GlulxOp.restart:
         // Reload RAM and reset memory size (respecting protection)
         memoryMap.restart();
@@ -903,7 +899,7 @@ class GlulxInterpreter {
       // ========== Random Number Opcodes (Spec Section 2.4.9) ==========
 
       /// Spec Section 2.4.9: "random L1 S1: Return a random number."
-      /// Reference: osdepend.c glulx_random()
+      /// Returns a random 32-bit integer.
       case GlulxOp.random:
         final range = (operands[0] as int).toSigned(32);
         final dest = operands[1] as StoreOperand;
@@ -923,7 +919,7 @@ class GlulxInterpreter {
         break;
 
       /// Spec Section 2.4.9: "setrandom L1: Seed the random-number generator."
-      /// Reference: osdepend.c glulx_setrandom()
+      /// Seeds the random number generator.
       case GlulxOp.setrandom:
         final seed = operands[0] as int;
         _random.seed(seed);
@@ -1047,12 +1043,10 @@ class GlulxInterpreter {
         );
         break;
       case GlulxOp.fmod:
-        // Reference: exec.c case op_fmod
         final fmodRawA = operands[0] as int;
         final fmodRawB = operands[1] as int;
         final f1 = _u2f(fmodRawA);
         final f2 = _u2f(fmodRawB);
-        // C fmodf behavior for remainder
         final remainder = f1.remainder(f2);
         var remBits = _f2u(remainder);
         // Preserve sign of zero remainder
@@ -1234,7 +1228,7 @@ class GlulxInterpreter {
         );
         break;
       case GlulxOp.ftonumz:
-        // Check sign bit from raw representation (C uses signbit())
+        // Check sign bit from raw representation
         final ftzRaw = operands[0] as int;
         final ftz = _u2f(ftzRaw);
         final ftzSignBit = (ftzRaw & 0x80000000) != 0;
@@ -1257,7 +1251,7 @@ class GlulxInterpreter {
         _performStore(operands[1] as StoreOperand, ftzResult & 0xFFFFFFFF);
         break;
       case GlulxOp.ftonumn:
-        // Check sign bit from raw representation (C uses signbit())
+        // Check sign bit from raw representation
         final ftnRaw = operands[0] as int;
         final ftn = _u2f(ftnRaw);
         final ftnSignBit = (ftnRaw & 0x80000000) != 0;
@@ -1315,8 +1309,7 @@ class GlulxInterpreter {
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dmodr:
-        // Reference: exec.c op_dmodr uses fmod()
-        // Dart's remainder() matches C's fmod behavior
+        // Double precision remainder
         final d1 = _u2d(operands[0] as int, operands[1] as int);
         final d2 = _u2d(operands[2] as int, operands[3] as int);
         final remainder = d1.remainder(d2);
@@ -1325,8 +1318,7 @@ class GlulxInterpreter {
         _performStore(operands[5] as StoreOperand, res[1]);
         break;
       case GlulxOp.dmodq:
-        // Reference: exec.c op_dmodq computes: vald = fmod(vald1, vald2); then (vald1-vald)/vald2
-        // Also has sign preservation for zero quotient
+        // Double precision quotient modulo
         final dmodqHiRaw = operands[0] as int;
         final dmodq1 = _u2d(dmodqHiRaw, operands[1] as int);
         final dmodqHi2Raw = operands[2] as int;
@@ -1526,15 +1518,14 @@ class GlulxInterpreter {
         }
         break;
       case GlulxOp.numtod:
-        // Reference: exec.c op_numtod - stores lo to first dest, hi to second
-        // _d2u now returns [lo, hi] to match this order
+        // Convert number to double precision
         final res = _d2u((operands[0] as int).toSigned(32).toDouble());
         _performStore(operands[1] as StoreOperand, res[0]); // lo
         _performStore(operands[2] as StoreOperand, res[1]); // hi
         break;
       case GlulxOp.dtonumz:
-        // Check sign bit from raw representation (C uses signbit())
-        // For doubles, operands[0] is the high word containing the sign bit (per C decode_double(valhi, vallo))
+        // Check sign bit from raw representation
+        // For doubles, operands[0] is the high word containing the sign bit
         final dtzHiRaw = operands[0] as int;
         final dtz = _u2d(dtzHiRaw, operands[1] as int);
         final dtzSignBit = (dtzHiRaw & 0x80000000) != 0;
@@ -1557,8 +1548,8 @@ class GlulxInterpreter {
         _performStore(operands[2] as StoreOperand, dtzResult & 0xFFFFFFFF);
         break;
       case GlulxOp.dtonumn:
-        // Check sign bit from raw representation (C uses signbit())
-        // For doubles, operands[0] is the high word containing the sign bit (per C decode_double(valhi, vallo))
+        // Check sign bit from raw representation
+        // For doubles, operands[0] is the high word containing the sign bit
         final dtnHiRaw = operands[0] as int;
         final dtn = _u2d(dtnHiRaw, operands[1] as int);
         final dtnSignBit = (dtnHiRaw & 0x80000000) != 0;
@@ -1620,7 +1611,6 @@ class GlulxInterpreter {
 
       /// Spec: "saveundo S1" - Save VM state to temporary storage.
       /// Returns 0 on success, 1 on failure, -1 if just restored.
-      /// Reference: serial.c perform_saveundo
       case GlulxOp.saveundo:
         final dest = operands[0] as StoreOperand;
         final undoState = _performSaveUndo(dest);
@@ -1639,7 +1629,6 @@ class GlulxInterpreter {
       /// Spec: "restoreundo S1" - Restore VM state from temporary storage.
       /// Returns 1 on failure. If successful, execution resumes at saveundo
       /// and that opcode stores -1.
-      /// Reference: serial.c perform_restoreundo
       case GlulxOp.restoreundo:
         final dest = operands[0] as StoreOperand;
         if (_undoChain.isEmpty) {
@@ -1693,12 +1682,10 @@ class GlulxInterpreter {
 
       /// Spec Section 2.4.10: "protect L1 L2" - Protect memory range from restore.
       /// The protected range starts at L1 and has length L2 bytes.
-      /// Reference: exec.c op_protect
       case GlulxOp.protect:
         final start = operands[0] as int;
         final length = operands[1] as int;
-        // Reference: if (val0 == val1) { val0 = 0; val1 = 0; }
-        // i.e., if length == 0, clear protection
+        // If length == 0, clear protection
         memoryMap.setProtection(start, length);
         break;
 
@@ -1706,14 +1693,12 @@ class GlulxInterpreter {
 
       /// Spec: "accelfunc L1 L2: Request that the VM function with address L2
       /// be replaced by the accelerated function whose number is L1."
-      /// Reference: exec.c case op_accelfunc
       case GlulxOp.accelfunc:
         accel.setFunc(operands[0] as int, operands[1] as int);
         break;
 
       /// Spec: "accelparam L1 L2: Store the value L2 in the parameter table
       /// at position L1."
-      /// Reference: exec.c case op_accelparam
       case GlulxOp.accelparam:
         accel.setParam(operands[0] as int, operands[1] as int);
         break;
@@ -1750,7 +1735,6 @@ class GlulxInterpreter {
   }
 
   /// Sets the I/O system mode and rock.
-  /// Reference: string.c stream_set_iosys()
   void _setIosys(int mode, int rock) {
     switch (mode) {
       case 0: // None - output discarded
@@ -1792,7 +1776,7 @@ class GlulxInterpreter {
         return 1;
       case GlulxGestaltSelectors.accelFunc:
         // Return 1 if we support the specific function index in 'arg'.
-        // Reference: gestalt.c case gestulx_AccelFunc
+        // Query accelerated function capability
         return accel.supportsFunc(arg) ? 1 : 0;
       default:
         return glk.vmGestalt(selector, arg);
@@ -1863,7 +1847,6 @@ class GlulxInterpreter {
   ///
   /// Spec Section 2.3.1: Addressing Modes
   /// [argSize] controls byte width for memory/local reads (1, 2, or 4).
-  /// Reference: operand.c parse_operands() lines 450-494
   int loadOperand(int mode, {int argSize = 4}) {
     switch (mode) {
       case 0: // Constant zero.
@@ -1900,7 +1883,6 @@ class GlulxInterpreter {
   }
 
   /// Reads from memory using the specified byte width.
-  /// Reference: operand.c lines 452-460
   int _readMemBySize(int addr, int argSize) {
     if (argSize == 1) return memoryMap.readByte(addr);
     if (argSize == 2) return memoryMap.readShort(addr);
@@ -1908,7 +1890,6 @@ class GlulxInterpreter {
   }
 
   /// Reads from stack locals using the specified byte width.
-  /// Reference: operand.c lines 485-494
   int _readLocalBySize(int offset, int argSize) {
     if (argSize == 1) return stack.readLocal8(offset);
     if (argSize == 2) return stack.readLocal16(offset);
@@ -2045,7 +2026,6 @@ class GlulxInterpreter {
   }
 
   /// Performs a 16-bit store operation.
-  /// Reference: store_operand_s in exec.c
   void _performStoreS(StoreOperand dest, int value) {
     if (debugger.enabled) {
       if (debugger.showInstructions) {
@@ -2085,7 +2065,6 @@ class GlulxInterpreter {
   }
 
   /// Performs an 8-bit store operation.
-  /// Reference: store_operand_b in exec.c
   void _performStoreB(StoreOperand dest, int value) {
     if (debugger.enabled) {
       if (debugger.showInstructions) {
@@ -2157,10 +2136,9 @@ class GlulxInterpreter {
   }
 
   /// Sets up a new call frame and enters the function at the given address.
-  /// Does NOT push a call stub. Reference: enter_function in funcs.c
+  /// Does NOT push a call stub.
   void _enterFunction(int address, List<int> args) {
     // Check for accelerated function first.
-    // Reference: funcs.c enter_function() lines 25-32
     final accelFunc = accel.getFunc(address);
     if (accelFunc != null) {
       // Call native implementation and return result via call stub
@@ -2194,7 +2172,6 @@ class GlulxInterpreter {
 
   /// Pops the call stub and stores the result.
   /// Used by accelerated functions to return their value.
-  /// Reference: funcs.c pop_callstub()
   void _popCallStubWithResult(int value) {
     final stub = stack.popCallStub();
     final destType = stub[0];
@@ -2223,13 +2200,11 @@ class GlulxInterpreter {
   /// Returns from the current function with the given value.
   ///
   /// Spec Section 2.4.4: "return L1: Return from the current function, with the given return value."
-  /// Reference: exec.c case op_return - leave_function(), check stackptr == 0, then pop_callstub()
   void _returnValue(int value) {
     // Step 1: Leave the function (set SP = FP, like C's leave_function())
     stack.leaveFunction();
 
     // Step 2: Check if we're returning from the top-level function (no call stub)
-    // Reference: exec.c lines 346-348: if (stackptr == 0) { done_executing = TRUE; break; }
     if (stack.sp == 0) {
       _quit = true;
       return;
@@ -2246,7 +2221,6 @@ class GlulxInterpreter {
     stack.restoreFp(oldFp);
 
     // Handle 0x12 (streamnum resumption) specially since we need oldPc as the original number
-    // Reference: funcs.c line 258 - stream_num(pc, TRUE, destaddr)
     if (destType == 0x12) {
       // oldPc contains the original number, destAddr contains charnum
       _streamNum(oldPc.toSigned(32), inmiddle: true, charnum: destAddr);
@@ -2356,12 +2330,9 @@ class GlulxInterpreter {
     }
   }
 
-  /// Streams a signed decimal integer to the current output.
-  ///
-  /// Reference: C interpreter string.c stream_num() lines 132-195
   /// For Filter mode, uses 0x12 stubs with charnum to track position.
   void _streamNum(int val, {required bool inmiddle, required int charnum}) {
-    // Build digits in reverse order (matching C implementation)
+    // Build digits in reverse order
     final List<int> buf = [];
     if (val == 0) {
       buf.add(0x30); // '0'
@@ -2392,7 +2363,6 @@ class GlulxInterpreter {
 
       case 1:
         // Filter mode - each char requires function call with 0x12 stub
-        // Reference: string.c lines 171-183
         if (!inmiddle) {
           stack.pushCallStub(0x11, 0, _pc, stack.fp);
           inmiddle = true;
@@ -2419,23 +2389,10 @@ class GlulxInterpreter {
   }
 
   /// Streams a string to the current output.
-  ///
-  /// This is designed to match the C interpreter's stream_string() loop-based
-  /// architecture (string.c:203-671). Key aspects:
-  /// - `inmiddle` is 0 for new strings, or the string type (E0/E1/E2) for resumption
-  /// - `substring` (local var) tracks if we've pushed a 0x11 terminator stub
-  /// - When a function is called, we push stubs and return (letting main loop run it)
-  /// - When a nested string is encountered, we push 0x10 stub and restart loop
-  /// - On completion, if substring is true, we pop the 0x11 stub
-  ///
-  /// Reference: string.c lines 203-671
   void _streamString(int addr, {int? type, int? bitnum}) {
     if (addr == 0) return;
 
-    // inmiddle logic: if type is provided, we're resuming a string
     final inmiddle = type ?? 0;
-    // substring is LOCAL to this function, just like in C interpreter
-    // Reference: string.c line 208: int substring = (inmiddle != 0);
     var substring = inmiddle != 0;
 
     var alldone = false;
@@ -2474,7 +2431,6 @@ class GlulxInterpreter {
             done = 1; // Completed normally
           } on _StringNestedCall catch (call) {
             // Nested string encountered - C-style: push 0x10 stub and restart loop
-            // Reference: string.c:386-391
             if (!substring) {
               stack.pushCallStub(0x11, 0, _pc, stack.fp);
               substring = true;
@@ -2488,7 +2444,6 @@ class GlulxInterpreter {
             done = 2; // Restart loop with nested string
           } on _StringFilterCall catch (call) {
             // Filter mode character - push stubs and call filter function
-            // Reference: string.c:292-301 - each char calls filter function
             if (!substring) {
               stack.pushCallStub(0x11, 0, _pc, stack.fp);
             }
@@ -2498,7 +2453,6 @@ class GlulxInterpreter {
             return; // Exit and let main loop run filter function
           } on _StringFunctionCall catch (call) {
             // Function encountered - push stubs and enter function
-            // Reference: string.c:404-407
             if (!substring) {
               stack.pushCallStub(0x11, 0, _pc, stack.fp);
             }
@@ -2508,7 +2462,6 @@ class GlulxInterpreter {
             return; // Exit and let main loop run function
           } on _StringEmbeddedCall catch (call) {
             // Embedded string node (0x03/0x05) in Filter mode - switch to E0/E2
-            // Reference: string.c:330-340 - sets inmiddle to 0xE0/0xE2 and restarts
             if (!substring) {
               stack.pushCallStub(0x11, 0, _pc, stack.fp);
               substring = true;
@@ -2565,7 +2518,6 @@ class GlulxInterpreter {
 
   /// Streams a C-style (E0) string.
   /// Returns non-null if a function was called (filter mode), null if completed.
-  /// Reference: string.c lines 593-619
   Object? _streamStringE0Loop(int addr, bool substring) {
     var p = addr;
     while (true) {
@@ -2592,7 +2544,6 @@ class GlulxInterpreter {
 
   /// Streams a Unicode (E2) string.
   /// Returns non-null if a function was called (filter mode), null if completed.
-  /// Reference: string.c lines 622-648
   Object? _streamStringE2Loop(int addr, bool substring) {
     var p = addr;
     while (true) {
@@ -2621,7 +2572,6 @@ class GlulxInterpreter {
   /// Returns null if completed normally.
   /// Throws _StringFunctionCall if a function was encountered.
   /// Throws _StringNestedCall if a nested string was encountered.
-  /// Reference: string.c lines 228-588
   void _streamStringE1Loop(int addr, int bitnum, bool substring) {
     if (_stringTableAddress == 0) {
       throw GlulxException(
@@ -2633,36 +2583,26 @@ class GlulxInterpreter {
     _stringDecoder.decode(
       addr - 1, // decode expects address of the E1 type byte
       _stringTableAddress,
-      // Print char callback - for Filter mode, throw signal to call filter function
-      // Reference: C interpreter string.c:292-301 - push stubs and call filter
       (ch, resumeAddr, resumeBit) {
         if (_iosysMode == 1) {
           throw _StringFilterCall(ch, resumeAddr, resumeBit);
         }
         _streamCharDirect(ch);
       },
-      // Print unicode callback - for Filter mode, throw signal to call filter function
-      // Reference: C interpreter string.c:310-319 - push stubs and call filter
       (ch, resumeAddr, resumeBit) {
         if (_iosysMode == 1) {
           throw _StringFilterCall(ch, resumeAddr, resumeBit);
         }
         _streamUniCharDirect(ch);
       },
-      // Indirect string callback - throw to exit decoder and let main loop handle
-      // Reference: C interpreter string.c:386-391 - pushes 0x10, restarts loop
       (resumeAddr, resumeBit, stringAddr) {
         throw _StringNestedCall(stringAddr, resumeAddr, resumeBit);
       },
-      // Indirect function callback - throw to exit decoder and let main loop handle
-      // Reference: C interpreter string.c:404-407 - pushes 0x10, enters function
       (resumeAddr, resumeBit, funcAddr, args) {
         throw _StringFunctionCall(funcAddr, args, resumeAddr, resumeBit);
       },
       startAddr: bitnum > 0 ? addr : null,
       startBit: bitnum > 0 ? bitnum : null,
-      // Embedded string callback - only for Filter mode (0x03/0x05 nodes)
-      // Reference: C interpreter string.c:330-340 - switches to E0/E2 processing
       callEmbeddedString: _iosysMode == 1
           ? (resumeAddr, resumeBit, dataAddr, stringType) {
               throw _StringEmbeddedCall(
@@ -2695,7 +2635,6 @@ class GlulxInterpreter {
 
   /// Pops a call stub during string processing to determine next action.
   /// Returns (addr, bitnum) if 0x10 stub (continue E1 string), or null if 0x11 (done).
-  /// Reference: funcs.c pop_callstub_string() lines 287-311
   (int, int)? _popCallstubString() {
     if (stack.sp < 16) {
       throw GlulxException('Stack underflow in callstub');
@@ -2747,8 +2686,7 @@ class GlulxInterpreter {
   }
 
   /// Converts a Dart double to two 32-bit unsigned integers [lo, hi].
-  /// Returns [lo, hi] to match C reference store order (store lo first, then hi).
-  /// Reference: exec.c always does store_operand(..., val0lo) then store_operand(..., val0hi)
+  /// Returns [lo, hi].
   List<int> _d2u(double d) {
     final bd = ByteData(8);
     bd.setFloat64(0, d);
@@ -2769,7 +2707,6 @@ class GlulxInterpreter {
   /// Performs a linear search through an array of structures.
   ///
   /// Spec: "linearsearch L1 L2 L3 L4 L5 L6 L7 S1"
-  /// Reference: search.c linear_search()
   /// Note: Key-match takes precedence over zero-key-termination.
   int _doLinearSearch(
     int key,
@@ -2861,7 +2798,6 @@ class GlulxInterpreter {
   /// Performs a linked list search through structures.
   ///
   /// Spec: "linkedsearch L1 L2 L3 L4 L5 L6 S1"
-  /// Reference: search.c linked_search()
   /// Note: Key-match takes precedence over zero-key-termination.
   int _doLinkedSearch(
     int key,
@@ -2982,11 +2918,9 @@ class GlulxInterpreter {
 
   /// Saves the current VM state for undo.
   /// Returns the GlulxUndoState on success, null on failure.
-  /// Reference: serial.c perform_saveundo, write_memstate, write_stackstate
   GlulxUndoState? _performSaveUndo(StoreOperand dest) {
     try {
       // Save RAM state (from ramStart to current memory size)
-      // Reference: serial.c write_memstate - XORs with original game file
       final ramStart = memoryMap.ramStart;
       final memSize = memoryMap.size;
       final ramLength = memSize - ramStart;
@@ -3001,7 +2935,6 @@ class GlulxInterpreter {
       }
 
       // Save stack state - just copy the raw stack data
-      // Reference: serial.c write_stackstate
       final stackData = Uint8List.fromList(
         stack.rawData.sublist(0, stack.pointer),
       );
@@ -3024,11 +2957,9 @@ class GlulxInterpreter {
 
   /// Restores the VM state from an undo state.
   /// Returns true on success, false on failure.
-  /// Reference: serial.c perform_restoreundo, read_memstate, read_stackstate
   bool _performRestoreUndo(GlulxUndoState state) {
     try {
       // Restore RAM state
-      // Reference: serial.c read_memstate
       // Note: GlulxMemoryMap.restoreMemory will handle heap summary
       memoryMap.restoreMemory(
         state.ramState,
@@ -3037,7 +2968,6 @@ class GlulxInterpreter {
       );
 
       // Restore stack state
-      // Reference: serial.c read_stackstate
       stack.restoreFrom(state.stackData, state.stackPointer);
 
       // Restore PC to resume at the saveundo instruction
@@ -3270,7 +3200,6 @@ class GlulxInterpreterTestingHarness {
 /// Signal class thrown when a compressed string decoder encounters an indirect
 /// function call. Used to escape from the decoder and let the main loop handle
 /// the function call.
-/// Reference: C interpreter uses return statements to exit stream_string for function calls.
 class _StringFunctionCall {
   final int funcAddr;
   final List<int> args;
@@ -3288,7 +3217,6 @@ class _StringFunctionCall {
 /// Signal class thrown when a compressed string decoder encounters an indirect
 /// STRING reference. Used to exit decoder so main loop can push 0x10 stub for
 /// parent before processing nested string.
-/// Reference: C interpreter string.c:386-391 pushes 0x10 stub before nested string.
 class _StringNestedCall {
   final int stringAddr;
   final int resumeAddr;
@@ -3299,7 +3227,6 @@ class _StringNestedCall {
 
 /// Signal class thrown when Filter iosys mode needs to output a character.
 /// Each character output requires calling the filter function.
-/// Reference: C interpreter string.c:292-301 - for each char, push stubs and call filter.
 class _StringFilterCall {
   final int ch;
   final int resumeAddr;
@@ -3310,7 +3237,6 @@ class _StringFilterCall {
 
 /// Signal class thrown when Filter mode encounters an embedded string node (0x03/0x05).
 /// Used to switch from E1 to E0/E2 processing.
-/// Reference: C interpreter string.c:330-340 - sets inmiddle to 0xE0/0xE2.
 class _StringEmbeddedCall {
   final int dataAddr;
   final int stringType; // 0xE0 or 0xE2

@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 /// Represents a saved undo state for the Glulx interpreter.
 /// Spec Section 2.4.10: "saveundo S1" / "restoreundo S1"
-/// Reference: serial.c perform_saveundo/perform_restoreundo
 ///
 /// The undo state captures:
 /// - RAM memory (from ramStart to current memorySize, XOR'd with original for compression)
@@ -10,7 +9,6 @@ import 'dart:typed_data';
 /// - Program counter
 class GlulxUndoState {
   /// The RAM state (XOR'd with original game file for compression).
-  /// Reference: serial.c write_memstate
   final Uint8List ramState;
 
   /// The current memory size at time of save.
@@ -29,12 +27,15 @@ class GlulxUndoState {
   /// This is needed because restoreundo must store -1 at the original
   /// saveundo's destination operand.
   final int destType;
+
+  /// The destination address.
   final int destAddr;
 
   /// The heap state at time of save.
   /// Format: [heapStart, allocCount, addr1, len1, ...]
   final List<int> heapState;
 
+  /// Constructor.
   GlulxUndoState({
     required this.ramState,
     required this.memorySize,
