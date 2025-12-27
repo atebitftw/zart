@@ -56,7 +56,6 @@ void main() {
 
     test('gestalt GlulxVersion returns 0x00030103', () async {
       /// Spec: gestalt L1 L2 S1 - Query capability L1 with argument L2.
-      /// Reference gestalt.c: case gestulx_GlulxVersion: return 0x00030103;
       /// Selector 0 = GlulxVersion -> returns Glulx spec version 3.1.3
 
       // Opcode: 0x100 (gestalt) - encoded as 2-byte form: 0x81 0x00
@@ -79,7 +78,6 @@ void main() {
     });
 
     test('gestalt TerpVersion returns interpreter version', () async {
-      /// Reference gestalt.c: case gestulx_TerpVersion: return 0x00000601;
       /// Selector 1 = TerpVersion
 
       gameData = createGameData([
@@ -100,7 +98,6 @@ void main() {
     });
 
     test('gestalt ResizeMem returns 1 (supported)', () async {
-      /// Reference gestalt.c: case gestulx_ResizeMem: return 1;
       /// Selector 2 = ResizeMem
 
       gameData = createGameData([
@@ -120,7 +117,6 @@ void main() {
     });
 
     test('gestalt Undo returns 1 (supported)', () async {
-      /// Reference gestalt.c: case gestulx_Undo: return 1;
       /// Selector 3 = Undo
 
       gameData = createGameData([
@@ -140,7 +136,6 @@ void main() {
     });
 
     test('gestalt IOSystem returns 1 for null system (0)', () async {
-      /// Reference gestalt.c: case gestulx_IOSystem: switch(val2) { case 0: return 1; }
       /// Selector 4 = IOSystem, arg 0 = null I/O system
 
       gameData = createGameData([
@@ -160,7 +155,6 @@ void main() {
     });
 
     test('gestalt IOSystem returns 1 for filter system (1)', () async {
-      /// Reference gestalt.c: case 1: return 1; // filter
       gameData = createGameData([
         0x81, 0x00, // gestalt opcode
         0x11, 0x08, // modes
@@ -178,7 +172,6 @@ void main() {
     });
 
     test('gestalt IOSystem returns 1 for Glk system (2)', () async {
-      /// Reference gestalt.c: case 2: return 1; // Glk
       gameData = createGameData([
         0x81, 0x00, // gestalt opcode
         0x11, 0x08, // modes
@@ -196,7 +189,6 @@ void main() {
     });
 
     test('gestalt IOSystem returns 0 for unknown system', () async {
-      /// Reference gestalt.c: default: return 0;
       gameData = createGameData([
         0x81, 0x00, // gestalt opcode
         0x11, 0x08, // modes
@@ -214,7 +206,6 @@ void main() {
     });
 
     test('gestalt Unicode returns 1 (supported)', () async {
-      /// Reference gestalt.c: case gestulx_Unicode: return 1;
       /// Selector 5 = Unicode
 
       gameData = createGameData([
@@ -234,7 +225,6 @@ void main() {
     });
 
     test('gestalt Float returns 1 (supported)', () async {
-      /// Reference gestalt.c: case gestulx_Float: return 1;
       /// Selector 11 = Float
 
       gameData = createGameData([
@@ -254,7 +244,6 @@ void main() {
     });
 
     test('gestalt Double returns 1 (supported)', () async {
-      /// Reference gestalt.c: case gestulx_Double: return 1;
       /// Selector 13 = Double
 
       gameData = createGameData([
