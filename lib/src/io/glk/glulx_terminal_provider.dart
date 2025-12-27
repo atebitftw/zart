@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:zart/src/zart_debugger.dart' show ZartDebugger, debugger;
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
@@ -13,6 +14,15 @@ import 'package:zart/src/io/glk/glk_window.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/loaders/blorb_resource_manager.dart';
 
+// Temporary debug file for tracing save issues
+final _debugFile = File('zart_debug.log');
+void _debugLog(String msg) {
+  _debugFile.writeAsStringSync(
+    '${DateTime.now()}: $msg\n',
+    mode: FileMode.append,
+  );
+}
+
 /// IO provider for Glulx interpreter.
 class GlulxTerminalProvider implements GlkProvider {
   /// The Glk terminal display.
@@ -20,6 +30,16 @@ class GlulxTerminalProvider implements GlkProvider {
 
   /// The platform provider for file I/O operations.
   PlatformProvider? _platformProvider;
+
+  /// Quick save/restore flags - when set, use automatic filename instead of prompting
+  bool _isQuickSave = false;
+  bool _isQuickRestore = false;
+
+  /// Set the quick save flag (called by GlkTerminalDisplay on F2)
+  void setQuickSaveFlag() => _isQuickSave = true;
+
+  /// Set the quick restore flag (called by GlkTerminalDisplay on F3)
+  void setQuickRestoreFlag() => _isQuickRestore = true;
 
   /// Set the platform provider for file I/O.
   void setPlatformProvider(PlatformProvider provider) {
@@ -29,6 +49,8 @@ class GlulxTerminalProvider implements GlkProvider {
   /// Creates a terminal provider, optionally accepting a display for testing.
   GlulxTerminalProvider({GlkTerminalDisplay? display}) {
     glkDisplay = display ?? GlkTerminalDisplay();
+    glkDisplay.glkProvider =
+        this; // Set back-reference for quick save/restore flags
 
     _lastCols = glkDisplay.cols;
     _lastRows = glkDisplay.rows;
@@ -466,23 +488,40 @@ class GlulxTerminalProvider implements GlkProvider {
         );
         _streams[id] = stream;
 
+        // Fileref should already exist from filerefCreate* call
+        // If not, create with data usage (0x03) as fallback
         if (!_files.containsKey(frefId)) {
-          _files[frefId] = _GlkFile();
+          _files[frefId] = _GlkFile(usage: 0x03);
         }
+
+        final file = _files[frefId]!;
+        _debugLog(
+          '[streamOpenFile] frefId=$frefId, mode=$mode, file.usage=${file.usage}, file.byPrompt=${file.byPrompt}, filename=${file.filename}',
+        );
+        // Only trigger restore for files created via filerefCreateByPrompt with a filename
+        final shouldRestore = file.byPrompt && file.filename != null;
 
         if (mode == 0x01) {
           // Write mode - clear file for new data
-          _files[frefId]!.data = Uint8List(0);
-          _files[frefId]!.length = 0;
-        } else if (mode == 0x02 && _platformProvider != null) {
-          // Read mode - load data from platform provider
-          return _platformProvider!.restoreGame().then((data) {
-            if (data != null) {
-              _files[frefId]!.data = Uint8List.fromList(data);
-              _files[frefId]!.length = data.length;
+          file.data = Uint8List(0);
+          file.length = 0;
+        } else if (mode == 0x02 && shouldRestore) {
+          // Read mode - load data from stored filename
+          try {
+            final diskFile = File(file.filename!);
+            if (diskFile.existsSync()) {
+              final data = diskFile.readAsBytesSync();
+              file.data = Uint8List.fromList(data);
+              file.length = data.length;
+              _debugLog(
+                '[streamOpenFile] Loaded ${data.length} bytes from ${file.filename}',
+              );
+            } else {
+              _debugLog('[streamOpenFile] File not found: ${file.filename}');
             }
-            return id;
-          });
+          } catch (e) {
+            _debugLog('[streamOpenFile] Restore failed: $e');
+          }
         }
 
         return id;
@@ -511,21 +550,40 @@ class GlulxTerminalProvider implements GlkProvider {
         final rCount = stream?.readCount ?? 0;
         final wCount = stream?.writeCount ?? 0;
 
-        // If closing a file stream that was written to, save via platform provider
+        // If closing a file stream that was written to AND it's a save game file,
+        // save via platform provider. Usage 0x00 = SavedGame.
         if (stream != null && stream.type == 3 && stream.mode == 0x01) {
           final file = _files[stream.frefId];
-          if (file != null && file.length > 0 && _platformProvider != null) {
-            final saveData = file.data.sublist(0, file.length);
-            return _platformProvider!.saveGame(saveData).then((_) {
-              if (resultAddr == -1 || resultAddr == 0xFFFFFFFF) {
-                pushToStack(rCount);
-                pushToStack(wCount);
-              } else if (resultAddr != 0) {
-                writeMemory(resultAddr, rCount, size: 4);
-                writeMemory(resultAddr + 4, wCount, size: 4);
-              }
-              return 0;
-            });
+          final rawUsage = file?.usage ?? -1;
+          final byPrompt = file?.byPrompt ?? false;
+          final filename = file?.filename;
+          // Only save for files created via filerefCreateByPrompt that have a filename
+          final shouldSave = byPrompt && filename != null;
+          // DEBUG: Log what's happening to file
+          _debugLog(
+            '[streamClose] frefId=${stream.frefId}, usage=$rawUsage, byPrompt=$byPrompt, filename=$filename, file.length=${file?.length ?? 0}, shouldSave=$shouldSave',
+          );
+          if (file != null && file.length > 0 && shouldSave) {
+            _debugLog(
+              '[streamClose] -> Writing ${file.length} bytes to $filename',
+            );
+            try {
+              // Write directly to file using stored filename
+              File(
+                filename,
+              ).writeAsBytesSync(file.data.sublist(0, file.length));
+              _debugLog('[streamClose] -> Save successful');
+            } catch (e) {
+              _debugLog('[streamClose] -> Save failed: $e');
+            }
+            if (resultAddr == -1 || resultAddr == 0xFFFFFFFF) {
+              pushToStack(rCount);
+              pushToStack(wCount);
+            } else if (resultAddr != 0) {
+              writeMemory(resultAddr, rCount, size: 4);
+              writeMemory(resultAddr + 4, wCount, size: 4);
+            }
+            return 0;
           }
         }
 
@@ -565,18 +623,109 @@ class GlulxTerminalProvider implements GlkProvider {
         return 0;
 
       case GlkIoSelectors.filerefCreateTemp:
+        // Temp files - usage is data (0x03)
+        final tempId = _nextFileRefId++;
+        _files[tempId] = _GlkFile(usage: 0x03);
+        return tempId;
       case GlkIoSelectors.filerefCreateByName:
-      case GlkIoSelectors.filerefCreateByPrompt:
-      case GlkIoSelectors.filerefCreateByFileUni:
       case GlkIoSelectors.filerefCreateByNameUni:
+        // Args: usage, name, rock
+        final nameUsage = args.isNotEmpty ? args[0] : 0;
+        final nameId = _nextFileRefId++;
+        _files[nameId] = _GlkFile(usage: nameUsage);
+        return nameId;
+      case GlkIoSelectors.filerefCreateByPrompt:
       case GlkIoSelectors.filerefCreateByPromptUni:
-        final id = _nextFileRefId++;
-        _files[id] = _GlkFile();
-        return id;
+        // Args: usage, fmode, rock
+        // Per Glk spec: usage bits 0-3 = file type (0=savedGame, 1=transcript, etc)
+        // fmode: 0x01=write, 0x02=read, 0x03=readwrite, 0x05=writeappend
+        final promptUsage = args.isNotEmpty ? args[0] : 0;
+        final fmode = args.length > 1 ? args[1] : 0x01;
+
+        // Check if this is a quick save/restore operation
+        final isQuickOp =
+            (fmode == 0x01 && _isQuickSave) ||
+            (fmode == 0x02 && _isQuickRestore);
+
+        if (isQuickOp) {
+          // Use automatic filename for quick save/restore
+          // Clear the flag after use
+          if (_isQuickSave) _isQuickSave = false;
+          if (_isQuickRestore) _isQuickRestore = false;
+
+          // Generate automatic filename based on game name
+          String base = _platformProvider?.gameName ?? 'game';
+          if (base.contains('/') || base.contains('\\')) {
+            base = base.split(RegExp(r'[/\\]')).last;
+          }
+          if (base.contains('.')) {
+            base = base.substring(0, base.lastIndexOf('.'));
+          }
+          final filename = 'quick_save_$base.sav';
+
+          final promptId = _nextFileRefId++;
+          _debugLog(
+            '[filerefCreateByPrompt] QUICK mode, id=$promptId, usage=$promptUsage, filename=$filename',
+          );
+          _files[promptId] = _GlkFile(
+            usage: promptUsage,
+            byPrompt: true,
+            filename: filename,
+          );
+          return promptId;
+        }
+
+        // Manual save/restore - prompt user for filename
+        final promptText = (fmode == 0x02)
+            ? '\nEnter filename to restore: '
+            : '\nEnter filename to save: ';
+        stdout.write(promptText);
+
+        // Read filename from user
+        return glkDisplay.readLine().then((filename) {
+          if (filename.isEmpty) {
+            // User cancelled - return 0 per Glk spec
+            _debugLog('[filerefCreateByPrompt] user cancelled, returning 0');
+            return 0;
+          }
+
+          // Add .sav extension if not present
+          if (!filename.toLowerCase().endsWith('.sav')) {
+            filename = '$filename.sav';
+          }
+
+          final promptId = _nextFileRefId++;
+          _debugLog(
+            '[filerefCreateByPrompt] id=$promptId, usage=$promptUsage, filename=$filename',
+          );
+          _files[promptId] = _GlkFile(
+            usage: promptUsage,
+            byPrompt: true,
+            filename: filename,
+          );
+          return promptId;
+        });
+      case GlkIoSelectors.filerefCreateByFileUni:
+        // Args: usage, fileref, rock
+        final fileUniUsage = args.isNotEmpty ? args[0] : 0;
+        final fileUniId = _nextFileRefId++;
+        _files[fileUniId] = _GlkFile(usage: fileUniUsage);
+        return fileUniId;
 
       case GlkIoSelectors.filerefDestroy:
       case GlkIoSelectors.filerefDeleteFile:
+        return 0;
       case GlkIoSelectors.filerefDoesFileExist:
+        // Args: fileref
+        final frefId = args.isNotEmpty ? args[0] : 0;
+        final file = _files[frefId];
+        if (file != null && file.filename != null) {
+          final exists = File(file.filename!).existsSync() ? 1 : 0;
+          _debugLog(
+            '[filerefDoesFileExist] frefId=$frefId, filename=${file.filename}, exists=$exists',
+          );
+          return exists;
+        }
         return 0;
 
       case GlkIoSelectors.selectPoll:
@@ -1147,6 +1296,16 @@ class _GlkStream {
 }
 
 class _GlkFile {
+  /// File usage type (bits 0-3: 0=savedGame, 1=transcript, 2=inputRecord, 3=data)
+  final int usage;
+
+  /// Whether this file was created via filerefCreateByPrompt (interactive save/load)
+  final bool byPrompt;
+
+  /// Filename provided by user (for byPrompt files)
+  String? filename;
+
   Uint8List data = Uint8List(0);
   int length = 0;
+  _GlkFile({this.usage = 0, this.byPrompt = false, this.filename});
 }

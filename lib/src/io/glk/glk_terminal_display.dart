@@ -19,6 +19,9 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   PlatformProvider? platformProvider;
 
+  /// Reference to the Glk provider for setting quick save/restore flags
+  dynamic glkProvider;
+
   /// Callback when a screen frame is ready to be rendered.
   void Function(ScreenFrame frame)? onScreenReady;
 
@@ -82,6 +85,11 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Push text into the input queue to be returned by readLine.
   void pushInput(String text) {
+    // DEBUG: Write to file since console is full-screen
+    File('zart_debug.log').writeAsStringSync(
+      '${DateTime.now()}: [pushInput] Queuing: "${text.replaceAll('\n', '\\n')}"\n',
+      mode: FileMode.append,
+    );
     _inputQueue.add(text);
   }
 
@@ -203,12 +211,18 @@ class GlkTerminalDisplay implements ZartTerminal {
       }
       return true;
     } else if (event.keyCode == SpecialKeys.f2) {
-      // Quick save - set flag then inject "save" command
+      // Quick save - set flag on provider then inject "save" command
+      if (glkProvider != null) {
+        (glkProvider as dynamic).setQuickSaveFlag();
+      }
       onQuickSave?.call();
       pushInput('save\n');
       return true;
     } else if (event.keyCode == SpecialKeys.f3) {
-      // Quick restore - set flag then inject "restore" command
+      // Quick restore - set flag on provider then inject "restore" command
+      if (glkProvider != null) {
+        (glkProvider as dynamic).setQuickRestoreFlag();
+      }
       onQuickLoad?.call();
       pushInput('restore\n');
       return true;

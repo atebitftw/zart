@@ -168,3 +168,6 @@
 - Fixed many bugs.
 - Updated documentation.
 - Added more unit tests.
+
+# 2.0.1
+- Fixed a bug with save/restore in the Glulx interpreter.
