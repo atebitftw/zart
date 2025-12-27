@@ -31,6 +31,8 @@ Zart Web Player is open source.  You can find the project here: [Zart Web Player
 ### Zart CLI Player
 The CLI Player is a full-featured terminal player.
 
+The CLI Player is open source.  You can find the project here: [Zart CLI Player On Github](https://github.com/atebitftw/zart_cli).
+
 If you have the Flutter or Dart SDK installed, you can install the CLI player using the following command:
 
 ```bash
