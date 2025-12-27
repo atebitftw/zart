@@ -268,7 +268,9 @@ class GlulxStack {
         break;
       case 0x11:
         // Spec: "Resume executing function code after a string completes."
-        throw GlulxException('String-terminator call stub at end of function call');
+        throw GlulxException(
+          'String-terminator call stub at end of function call',
+        );
       case 0x12:
         // Spec: "Resume printing a signed decimal integer."
         onResumeNum?.call(addr, value);

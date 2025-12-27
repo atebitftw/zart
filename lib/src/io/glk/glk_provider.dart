@@ -51,7 +51,10 @@ abstract class GlkProvider {
   int popFromStack();
 
   /// Configure stack access callbacks.
-  void setStackAccess({required void Function(int value) push, required int Function() pop});
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  });
 
   /// Render the Glk screen immediately.
   void renderScreen();

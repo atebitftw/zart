@@ -71,7 +71,10 @@ class MockGlkProvider implements GlkProvider {
   }
 
   @override
-  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {
     _pushToStack = push;
     _popFromStack = pop;
   }

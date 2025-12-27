@@ -92,7 +92,10 @@ abstract class PlatformProvider {
   ///
   /// The platform should display its settings UI and return when complete.
   /// [terminal] is the display interface for settings to render to.
-  Future<void> openSettings(covariant dynamic terminal, {bool isGameStarted = false});
+  Future<void> openSettings(
+    covariant dynamic terminal, {
+    bool isGameStarted = false,
+  });
 
   /// Notify the platform that text color preference has changed.
   ///
@@ -149,7 +152,12 @@ abstract class PlatformProvider {
   ///
   /// This is used for animations that need to check for input without blocking.
   /// Each platform implements this appropriately (isolate for CLI, event listener for web).
-  ({Future<void> onKeyPressed, bool Function() wasPressed, void Function() cleanup}) setupAsyncKeyWait();
+  ({
+    Future<void> onKeyPressed,
+    bool Function() wasPressed,
+    void Function() cleanup,
+  })
+  setupAsyncKeyWait();
 
   // ============================================================
   // FILE IO

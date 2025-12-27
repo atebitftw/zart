@@ -64,7 +64,8 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Screen height in rows (adjusted for zart bar).
   int get rows {
-    final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
+    final zartBarVisible =
+        platformProvider?.capabilities.zartBarVisible ?? true;
     return (_enableStatusBar && zartBarVisible) ? _rows - 1 : _rows;
   }
 
@@ -119,7 +120,8 @@ class GlkTerminalDisplay implements ZartTerminal {
   }
 
   void _cycleTextColor() {
-    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex =
+        (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _lastModel?.forceTextColor(newColor);
 
@@ -165,7 +167,8 @@ class GlkTerminalDisplay implements ZartTerminal {
     // Sync scroll offset with compositor
     _compositor.setScrollOffset(_scrollOffset);
     final frame = model.toRenderFrame();
-    final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
+    final zartBarVisible =
+        platformProvider?.capabilities.zartBarVisible ?? true;
     final screenFrame = _compositor.composite(
       frame,
       screenWidth: _cols,
@@ -188,7 +191,8 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Show a temporary status message.
   @override
-  void showTempMessage(String message, {int seconds = 3}) => onShowTempMessage?.call(message, seconds: seconds);
+  void showTempMessage(String message, {int seconds = 3}) =>
+      onShowTempMessage?.call(message, seconds: seconds);
 
   /// Process global keys (F1, PgUp/PgDn, etc). Returns true if key was consumed.
   Future<bool> _handleGlobalKeys(InputEvent event) async {
@@ -244,7 +248,9 @@ class GlkTerminalDisplay implements ZartTerminal {
         event = await platformProvider!.readInput();
         if (event.type == InputEventType.none) continue;
       } else {
-        throw StateError('GlkTerminalDisplay requires a platformProvider for input.');
+        throw StateError(
+          'GlkTerminalDisplay requires a platformProvider for input.',
+        );
       }
 
       // Handle global keys (F1, PgUp/PgDn)
@@ -304,7 +310,9 @@ class GlkTerminalDisplay implements ZartTerminal {
         event = await platformProvider!.readInput();
         if (event.type == InputEventType.none) continue;
       } else {
-        throw StateError('GlkTerminalDisplay requires a platformProvider for input.');
+        throw StateError(
+          'GlkTerminalDisplay requires a platformProvider for input.',
+        );
       }
 
       if (await _handleGlobalKeys(event)) continue;
@@ -339,7 +347,8 @@ class GlkTerminalDisplay implements ZartTerminal {
   void render() {
     if (_uiModel != null) {
       final frame = _uiModel!.toRenderFrame();
-      final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
+      final zartBarVisible =
+          platformProvider?.capabilities.zartBarVisible ?? true;
       final screenFrame = _compositor.composite(
         frame,
         screenWidth: _cols,
