@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 /// IO provider for Glulx/Glk operations.
 ///
@@ -30,7 +31,15 @@ abstract class GlkProvider {
   void setMemoryAccess({
     required void Function(int addr, int value, {int size}) write,
     required int Function(int addr, {int size}) read,
+    void Function(int addr, Uint8List block)? writeBlock,
+    Uint8List Function(int addr, int len)? readBlock,
   });
+
+  /// Write a block of memory.
+  void writeMemoryBlock(int addr, Uint8List block);
+
+  /// Read a block of memory.
+  Uint8List readMemoryBlock(int addr, int len);
 
   /// Configure VM state callbacks.
   void setVMState({int Function()? getHeapStart});
@@ -42,10 +51,7 @@ abstract class GlkProvider {
   int popFromStack();
 
   /// Configure stack access callbacks.
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  });
+  void setStackAccess({required void Function(int value) push, required int Function() pop});
 
   /// Render the Glk screen immediately.
   void renderScreen();

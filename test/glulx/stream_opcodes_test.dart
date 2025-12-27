@@ -34,10 +34,7 @@ void main() {
       interpreter = GlulxInterpreter(mockIo);
     });
 
-    Future<void> setupIosysGlk(
-      GlulxInterpreter interpreter,
-      GlulxInterpreterTestingHarness harness,
-    ) async {
+    Future<void> setupIosysGlk(GlulxInterpreter interpreter, GlulxInterpreterTestingHarness harness) async {
       // Execute setiosys 2, 0
       // Opcode: 0x81, 0x49. Modes: L1=1, L2=0 -> 0x01. Operand: 2
       final setupBytes = [0x81, 0x49, 0x01, 0x02];
@@ -157,10 +154,7 @@ void main() {
       await setupIosysGlk(interpreter, harness);
 
       await interpreter.executeInstruction();
-      expect(
-        mockIo.output,
-        equals([0x48, 0x69]),
-      ); // 'H', 'i' as unicode codepoints
+      expect(mockIo.output, equals([0x48, 0x69])); // 'H', 'i' as unicode codepoints
     });
   });
 }
@@ -184,6 +178,8 @@ class MockGlkProviderWithOutput implements GlkProvider {
   void setMemoryAccess({
     required void Function(int addr, int value, {int size}) write,
     required int Function(int addr, {int size}) read,
+    void Function(int addr, Uint8List block)? writeBlock,
+    Uint8List Function(int addr, int len)? readBlock,
   }) {
     _writeMemory = write;
     _readMemory = read;
@@ -205,6 +201,12 @@ class MockGlkProviderWithOutput implements GlkProvider {
   }
 
   @override
+  void writeMemoryBlock(int addr, Uint8List block) {}
+
+  @override
+  Uint8List readMemoryBlock(int addr, int len) => Uint8List(0);
+
+  @override
   void pushToStack(int value) {
     _pushToStack.call(value);
   }
@@ -215,18 +217,14 @@ class MockGlkProviderWithOutput implements GlkProvider {
   }
 
   @override
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  }) {
+  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
     _pushToStack = push;
     _popFromStack = pop;
   }
 
   @override
   FutureOr<int> dispatch(int selector, List<int> args) {
-    if (selector == GlkIoSelectors.putChar ||
-        selector == GlkIoSelectors.putCharUni) {
+    if (selector == GlkIoSelectors.putChar || selector == GlkIoSelectors.putCharUni) {
       output.add(args[0]);
     }
     return 0;

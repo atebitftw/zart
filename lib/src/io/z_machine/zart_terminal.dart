@@ -43,7 +43,7 @@ abstract interface class ZartTerminal {
   Future<String> readChar();
 
   /// Reads a line of input from the terminal.
-  Future<String> readLine();
+  Future<String> readLine({int? windowId});
 
   /// Shows a temporary status message in the bottom bar.
   void showTempMessage(String message, {int seconds = 3});

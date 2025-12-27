@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:zart/src/io/glk/glk_screen_model.dart';
 import 'package:zart/src/io/render/screen_compositor.dart';
@@ -65,8 +64,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Screen height in rows (adjusted for zart bar).
   int get rows {
-    final zartBarVisible =
-        platformProvider?.capabilities.zartBarVisible ?? true;
+    final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
     return (_enableStatusBar && zartBarVisible) ? _rows - 1 : _rows;
   }
 
@@ -85,11 +83,6 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Push text into the input queue to be returned by readLine.
   void pushInput(String text) {
-    // DEBUG: Write to file since console is full-screen
-    File('zart_debug.log').writeAsStringSync(
-      '${DateTime.now()}: [pushInput] Queuing: "${text.replaceAll('\n', '\\n')}"\n',
-      mode: FileMode.append,
-    );
     _inputQueue.add(text);
   }
 
@@ -126,8 +119,7 @@ class GlkTerminalDisplay implements ZartTerminal {
   }
 
   void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _lastModel?.forceTextColor(newColor);
 
@@ -173,8 +165,7 @@ class GlkTerminalDisplay implements ZartTerminal {
     // Sync scroll offset with compositor
     _compositor.setScrollOffset(_scrollOffset);
     final frame = model.toRenderFrame();
-    final zartBarVisible =
-        platformProvider?.capabilities.zartBarVisible ?? true;
+    final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
     final screenFrame = _compositor.composite(
       frame,
       screenWidth: _cols,
@@ -197,8 +188,7 @@ class GlkTerminalDisplay implements ZartTerminal {
 
   /// Show a temporary status message.
   @override
-  void showTempMessage(String message, {int seconds = 3}) =>
-      onShowTempMessage?.call(message, seconds: seconds);
+  void showTempMessage(String message, {int seconds = 3}) => onShowTempMessage?.call(message, seconds: seconds);
 
   /// Process global keys (F1, PgUp/PgDn, etc). Returns true if key was consumed.
   Future<bool> _handleGlobalKeys(InputEvent event) async {
@@ -237,17 +227,12 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Read a line of input.
   /// Handles input directly using Console with scroll support (matches Z-machine pattern).
   @override
-  Future<String> readLine() async {
+  Future<String> readLine({int? windowId}) async {
     // Check if there's injected input first
     if (_inputQueue.isNotEmpty) {
       final line = _popQueueLine();
-      stdout.write('$line\n'); // Echo the injected input
       return line;
     }
-
-    // Disable mouse tracking
-    stdout.write('\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l');
-    stdout.write('\x1B[?25h'); // Show cursor
 
     final buf = StringBuffer();
     // Reset scroll when starting new input
@@ -259,9 +244,7 @@ class GlkTerminalDisplay implements ZartTerminal {
         event = await platformProvider!.readInput();
         if (event.type == InputEventType.none) continue;
       } else {
-        throw StateError(
-          'GlkTerminalDisplay requires a platformProvider for input.',
-        );
+        throw StateError('GlkTerminalDisplay requires a platformProvider for input.');
       }
 
       // Handle global keys (F1, PgUp/PgDn)
@@ -269,8 +252,6 @@ class GlkTerminalDisplay implements ZartTerminal {
         // If save/restore was injected, return the injected input
         if (_inputQueue.isNotEmpty) {
           final line = _popQueueLine();
-          stdout.write('$line\n'); // Echo the injected input
-          stdout.write('\x1B[?25l'); // Hide cursor
           return line;
         }
         continue;
@@ -279,25 +260,23 @@ class GlkTerminalDisplay implements ZartTerminal {
       // Handle Macro Commands (simplified)
       if (event.type == InputEventType.macro && event.macroCommand != null) {
         final cmd = event.macroCommand!;
-        stdout.write('$cmd\n');
-        stdout.write('\x1B[?25l'); // Hide cursor
         return cmd;
       }
 
       // Handle regular keys
       if (event.keyCode == SpecialKeys.enter) {
-        stdout.write('\n');
-        stdout.write('\x1B[?25l'); // Hide cursor
         _scrollOffset = 0;
         final result = buf.toString();
         buf.clear();
+        if (windowId != null && _lastModel != null) {
+          _lastModel!.setLineInput(windowId, '');
+        }
         return result;
       } else if (event.keyCode == SpecialKeys.delete) {
         if (buf.length > 0) {
           final str = buf.toString();
           buf.clear();
           buf.write(str.substring(0, str.length - 1));
-          stdout.write('\b \b');
         }
       } else if (event.character != null && event.character!.isNotEmpty) {
         if (_scrollOffset > 0) {
@@ -305,7 +284,12 @@ class GlkTerminalDisplay implements ZartTerminal {
           rerenderWithScroll();
         }
         buf.write(event.character!);
-        stdout.write(event.character!);
+      }
+
+      // Echo partial input to screen if windowId is provided
+      if (windowId != null && _lastModel != null) {
+        _lastModel!.setLineInput(windowId, buf.toString());
+        renderGlk(_lastModel!);
       }
     }
   }
@@ -314,22 +298,16 @@ class GlkTerminalDisplay implements ZartTerminal {
   /// Handles input directly using Console with scroll support.
   @override
   Future<String> readChar() async {
-    stdout.write('\x1B[?25h'); // Show cursor
-
     while (true) {
       InputEvent event;
       if (platformProvider != null) {
         event = await platformProvider!.readInput();
         if (event.type == InputEventType.none) continue;
       } else {
-        throw StateError(
-          'GlkTerminalDisplay requires a platformProvider for input.',
-        );
+        throw StateError('GlkTerminalDisplay requires a platformProvider for input.');
       }
 
       if (await _handleGlobalKeys(event)) continue;
-
-      stdout.write('\x1B[?25l'); // Hide cursor
 
       if (event.keyCode == SpecialKeys.enter) return '\n';
       if (event.keyCode == SpecialKeys.delete) return '\x7F';
@@ -361,8 +339,7 @@ class GlkTerminalDisplay implements ZartTerminal {
   void render() {
     if (_uiModel != null) {
       final frame = _uiModel!.toRenderFrame();
-      final zartBarVisible =
-          platformProvider?.capabilities.zartBarVisible ?? true;
+      final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
       final screenFrame = _compositor.composite(
         frame,
         screenWidth: _cols,

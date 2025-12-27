@@ -20,12 +20,13 @@ class GlulxUndoState {
   /// The stack pointer at time of save.
   final int stackPointer;
 
+  /// The frame pointer at time of save.
+  final int framePointer;
+
   /// The program counter at time of save (points to instruction after saveundo).
   final int pc;
 
   /// The destination where the result should be stored on restore.
-  /// This is needed because restoreundo must store -1 at the original
-  /// saveundo's destination operand.
   final int destType;
 
   /// The destination address.
@@ -41,6 +42,7 @@ class GlulxUndoState {
     required this.memorySize,
     required this.stackData,
     required this.stackPointer,
+    required this.framePointer,
     required this.pc,
     required this.destType,
     required this.destAddr,

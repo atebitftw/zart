@@ -83,4 +83,13 @@ class GlkGestaltSelectors {
 
   /// Gestalt selector for draw image scale.
   static const int drawImageScale = 24;
+
+  /// Gestalt selector for line input group.
+  static const int lineInputGroup = 25;
+
+  /// Gestalt selector for file mode.
+  static const int fileMode = 26;
+
+  /// Gestalt selector for file save name.
+  static const int fileSaveName = 27;
 }

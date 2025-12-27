@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:zart/src/io/glk/glk_provider.dart';
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
 
@@ -11,6 +12,8 @@ class MockGlkProvider implements GlkProvider {
   // Memory access callbacks
   void Function(int addr, int value, {int size})? _writeMemory;
   int Function(int addr, {int size})? _readMemory;
+  void Function(int addr, Uint8List block)? _writeMemoryBlock;
+  Uint8List Function(int addr, int len)? _readMemoryBlock;
 
   // Stack access callbacks
   void Function(int value) _pushToStack = (v) {};
@@ -23,9 +26,13 @@ class MockGlkProvider implements GlkProvider {
   void setMemoryAccess({
     required void Function(int addr, int value, {int size}) write,
     required int Function(int addr, {int size}) read,
+    void Function(int addr, Uint8List block)? writeBlock,
+    Uint8List Function(int addr, int len)? readBlock,
   }) {
     _writeMemory = write;
     _readMemory = read;
+    _writeMemoryBlock = writeBlock;
+    _readMemoryBlock = readBlock;
   }
 
   @override
@@ -44,6 +51,16 @@ class MockGlkProvider implements GlkProvider {
   }
 
   @override
+  void writeMemoryBlock(int addr, Uint8List block) {
+    _writeMemoryBlock?.call(addr, block);
+  }
+
+  @override
+  Uint8List readMemoryBlock(int addr, int len) {
+    return _readMemoryBlock?.call(addr, len) ?? Uint8List(0);
+  }
+
+  @override
   void pushToStack(int value) {
     _pushToStack.call(value);
   }
@@ -54,10 +71,7 @@ class MockGlkProvider implements GlkProvider {
   }
 
   @override
-  void setStackAccess({
-    required void Function(int value) push,
-    required int Function() pop,
-  }) {
+  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
     _pushToStack = push;
     _popFromStack = pop;
   }

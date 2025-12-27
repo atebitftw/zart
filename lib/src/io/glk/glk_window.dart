@@ -76,6 +76,9 @@ abstract class GlkWindow {
   /// True if mouse input is pending for this window.
   bool mouseInputPending = false;
 
+  /// Partial line input currently being typed by the user (for echoing).
+  String activeLineInput = '';
+
   /// Create a new GlkWindow.
   GlkWindow({required this.id, required this.rock, required this.type});
 }
@@ -99,8 +102,7 @@ class GlkTextBufferWindow extends GlkWindow {
   }
 
   /// Create a new GlkTextBufferWindow.
-  GlkTextBufferWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.textBuffer);
+  GlkTextBufferWindow({required super.id, required super.rock}) : super(type: GlkWindowType.textBuffer);
 
   /// Add a new line.
   void newLine() {
@@ -139,8 +141,7 @@ class GlkTextGridWindow extends GlkWindow {
   int cursorY = 0;
 
   /// Create a new GlkTextGridWindow.
-  GlkTextGridWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.textGrid) {
+  GlkTextGridWindow({required super.id, required super.rock}) : super(type: GlkWindowType.textGrid) {
     grid = [];
   }
 
@@ -150,9 +151,7 @@ class GlkTextGridWindow extends GlkWindow {
       newHeight,
       (row) => List.generate(
         newWidth,
-        (col) => (row < grid.length && col < grid[row].length)
-            ? grid[row][col].clone()
-            : RenderCell.empty(),
+        (col) => (row < grid.length && col < grid[row].length) ? grid[row][col].clone() : RenderCell.empty(),
       ),
     );
     grid = newGrid;
@@ -193,28 +192,13 @@ class GlkGraphicsWindow extends GlkWindow {
   final List<GlkImageDraw> pendingImages = [];
 
   /// Create a new GlkGraphicsWindow.
-  GlkGraphicsWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.graphics);
+  GlkGraphicsWindow({required super.id, required super.rock}) : super(type: GlkWindowType.graphics);
 
   /// Queue an image to be drawn.
   ///
   /// Glk Spec: "glk_image_draw() draws an image."
-  void drawImage({
-    required int resourceId,
-    required int x,
-    required int y,
-    required int width,
-    required int height,
-  }) {
-    pendingImages.add(
-      GlkImageDraw(
-        resourceId: resourceId,
-        x: x,
-        y: y,
-        width: width,
-        height: height,
-      ),
-    );
+  void drawImage({required int resourceId, required int x, required int y, required int width, required int height}) {
+    pendingImages.add(GlkImageDraw(resourceId: resourceId, x: x, y: y, width: width, height: height));
   }
 
   /// Set the background color.
@@ -273,8 +257,7 @@ class GlkImageDraw {
 /// Glk Spec: "A blank window is always empty."
 class GlkBlankWindow extends GlkWindow {
   /// Create a new GlkBlankWindow.
-  GlkBlankWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.blank);
+  GlkBlankWindow({required super.id, required super.rock}) : super(type: GlkWindowType.blank);
 }
 
 /// Pair window - internal container created by splits.
@@ -299,6 +282,5 @@ class GlkPairWindow extends GlkWindow {
   int size = 0;
 
   /// Create a new GlkPairWindow.
-  GlkPairWindow({required super.id, required super.rock})
-    : super(type: GlkWindowType.pair);
+  GlkPairWindow({required super.id, required super.rock}) : super(type: GlkWindowType.pair);
 }

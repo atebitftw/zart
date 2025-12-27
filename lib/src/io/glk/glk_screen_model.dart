@@ -81,13 +81,7 @@ class GlkScreenModel {
   /// Returns window ID or null if creation failed.
   ///
   /// Glk Spec: "glk_window_open() [creates windows] by splitting existing ones."
-  int? windowOpen(
-    int? splitFromId,
-    int method,
-    int size,
-    GlkWindowType type,
-    int rock,
-  ) {
+  int? windowOpen(int? splitFromId, int method, int size, GlkWindowType type, int rock) {
     // Validate - can't create pair windows directly.
     if (type == GlkWindowType.pair) {
       return null;
@@ -215,12 +209,7 @@ class GlkScreenModel {
   ///
   /// This is called on a **pair window** to change how its children are split.
   /// The [keyWindowId] identifies which child's size is being constrained.
-  void windowSetArrangement(
-    int pairWindowId,
-    int method,
-    int size,
-    int keyWindowId,
-  ) {
+  void windowSetArrangement(int pairWindowId, int method, int size, int keyWindowId) {
     final window = _windowsById[pairWindowId];
     if (window is! GlkPairWindow) {
       return;
@@ -288,9 +277,7 @@ class GlkScreenModel {
         window.newLine();
       } else {
         // Add the character to current line
-        window.currentLine.add(
-          _createCellForWindow(window, String.fromCharCode(char)),
-        );
+        window.currentLine.add(_createCellForWindow(window, String.fromCharCode(char)));
 
         // Check if we need to wrap (line exceeds window width)
         if (window.width > 0 && window.currentLine.length >= window.width) {
@@ -306,10 +293,7 @@ class GlkScreenModel {
           if (lastSpace > 0) {
             // Word wrap: move characters after the space to the next line
             final overflow = window.currentLine.sublist(lastSpace + 1);
-            window.currentLine.removeRange(
-              lastSpace,
-              window.currentLine.length,
-            );
+            window.currentLine.removeRange(lastSpace, window.currentLine.length);
             window.newLine();
             window.currentLine.addAll(overflow);
           } else {
@@ -330,12 +314,8 @@ class GlkScreenModel {
         if (window.cursorY >= window.height) {
           window.cursorY = window.height - 1;
         }
-      } else if (window.cursorY < window.height &&
-          window.cursorX < window.width) {
-        window.grid[window.cursorY][window.cursorX] = _createCellForWindow(
-          window,
-          String.fromCharCode(char),
-        );
+      } else if (window.cursorY < window.height && window.cursorX < window.width) {
+        window.grid[window.cursorY][window.cursorX] = _createCellForWindow(window, String.fromCharCode(char));
         window.cursorX++;
         if (window.cursorX >= window.width) {
           window.cursorX = 0;
@@ -406,11 +386,7 @@ class GlkScreenModel {
     final reverse = getStyleHint(wintype, style, GlkStyleHint.reverseColor);
 
     // Proportional hint (Fixed-pitch)
-    final proportional = getStyleHint(
-      wintype,
-      style,
-      GlkStyleHint.proportional,
-    );
+    final proportional = getStyleHint(wintype, style, GlkStyleHint.proportional);
     bool fixed = false;
     if (style == GlkStyle.preformatted) fixed = true;
     if (proportional == 0) fixed = true; // 0 = Fixed
@@ -485,15 +461,20 @@ class GlkScreenModel {
     }
   }
 
+  /// Update the partial line input for a window (for echoing).
+  void setLineInput(int windowId, String text) {
+    final window = _windowsById[windowId];
+    if (window != null) {
+      window.activeLineInput = text;
+    }
+  }
+
   /// Get all windows with pending input requests.
   ///
   /// Returns list of window IDs.
   List<int> getWindowsAwaitingInput() {
     return _windowsById.values
-        .where(
-          (w) =>
-              w.lineInputPending || w.charInputPending || w.mouseInputPending,
-        )
+        .where((w) => w.lineInputPending || w.charInputPending || w.mouseInputPending)
         .map((w) => w.id)
         .toList();
   }
@@ -602,11 +583,7 @@ class GlkScreenModel {
 
   void _updateCellColor(RenderCell cell, int? rgbColorPref) {
     if (cell.glkStyle != null && cell.glkWindowType != null) {
-      final hintFg = getStyleHint(
-        cell.glkWindowType!,
-        cell.glkStyle!,
-        GlkStyleHint.textColor,
-      );
+      final hintFg = getStyleHint(cell.glkWindowType!, cell.glkStyle!, GlkStyleHint.textColor);
       cell.fgColor = hintFg ?? rgbColorPref;
     } else {
       cell.fgColor = rgbColorPref;
@@ -715,13 +692,19 @@ class GlkScreenModel {
         cursorX = window.cursorX;
         cursorY = window.cursorY;
       } else if (window is GlkTextBufferWindow) {
-        for (final line in window.lines) {
-          cells.add(line.map((c) => c.clone()).toList());
-        }
-        // Cursor at end of last line
         if (window.lines.isNotEmpty) {
-          cursorY = window.lines.length - 1;
-          cursorX = window.lines.last.length;
+          final lastLine = List<RenderCell>.from(window.lines.last.map((c) => c.clone()));
+          if (window.activeLineInput.isNotEmpty) {
+            for (final char in window.activeLineInput.runes) {
+              lastLine.add(_createCellForWindow(window, String.fromCharCode(char)));
+            }
+          }
+
+          cells.addAll(window.lines.sublist(0, window.lines.length - 1).map((l) => l.map((c) => c.clone()).toList()));
+          cells.add(lastLine);
+
+          cursorY = cells.length - 1;
+          cursorX = lastLine.length;
         }
       }
       // Blank and graphics windows emit empty cells (already handled)
@@ -742,11 +725,6 @@ class GlkScreenModel {
       );
     }
 
-    return RenderFrame(
-      windows: windows,
-      screenWidth: screenCols,
-      screenHeight: screenRows,
-      focusedWindowId: focusedId,
-    );
+    return RenderFrame(windows: windows, screenWidth: screenCols, screenHeight: screenRows, focusedWindowId: focusedId);
   }
 }

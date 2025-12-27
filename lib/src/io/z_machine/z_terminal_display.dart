@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:zart/src/io/z_machine/z_terminal_colors.dart';
 import 'package:zart/src/logging.dart';
 import 'package:zart/src/io/z_machine/z_screen_model.dart';
@@ -52,8 +50,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Terminal rows (adjusted for zart bar when enabled)
   int get rows {
-    final zartBarVisible =
-        platformProvider?.capabilities.zartBarVisible ?? true;
+    final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
     return (enableStatusBar && zartBarVisible) ? _rows - 1 : _rows;
   }
 
@@ -87,8 +84,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   bool enableStatusBar = false;
 
   String _inputBuffer = '';
-  int _inputLine =
-      -1; // Line in buffer where input is happening (-1 = not in input)
+  int _inputLine = -1; // Line in buffer where input is happening (-1 = not in input)
 
   // Transient status message support
   // Isolate logic removed as rendering is now handled via callbacks
@@ -109,8 +105,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   int _currentTextColorIndex = 0;
 
   void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
+    _currentTextColorIndex = (_currentTextColorIndex + 1) % _customTextColors.length;
     final newColor = _customTextColors[_currentTextColorIndex];
     _screen.forceWindow0Color(newColor);
 
@@ -147,7 +142,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         if (char == 'M' || char == 'm') {
           // Validate it looks like a mouse sequence
           // SGR: <num;num;numM or X10: num;num;numM
-          if (RegExp(r'^<?(\\d+;)+\\d+[Mm]$').hasMatch(_mouseSeqBuffer)) {
+          if (RegExp(r'^<?(\d+;)+\d+[Mm]$').hasMatch(_mouseSeqBuffer)) {
             _mouseSeqBuffer = ''; // Reset
             return true; // Discard
           }
@@ -193,8 +188,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   void showTempMessage(String message, {int seconds = 3}) {
     onShowTempMessage?.call(message, seconds: seconds);
     // Render immediate message if visible
-    final zartBarVisible =
-        platformProvider?.capabilities.zartBarVisible ?? true;
+    final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
     if (zartBarVisible) {
       render();
     }
@@ -221,12 +215,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Enter full-screen mode using alternate screen buffer.
   void enterFullScreen() {
-    // Try to switch to alternate buffer manually
-    stdout.write('\x1B[?1049h');
-
-    stdout.write('\x1B[?25l'); // Hide cursor
-    stdout.write('\x1B[2J'); // Clear screen
-
     detectTerminalSize();
     // No redundant resize here, detectTerminalSize does it
     _screen.clearWindow1(); // Init window 1
@@ -234,11 +222,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Exit full-screen mode and restore normal terminal.
   void exitFullScreen() {
-    stdout.write('\x1B[?25h'); // Show cursor
-    stdout.write('\x1B[0m'); // Reset attributes
-
-    // Switch back to main screen buffer
-    stdout.write('\x1B[?1049l');
+    // Platform handles screen buffer switching
   }
 
   /// Detect terminal size.
@@ -329,11 +313,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   /// Save screen state (for settings/menus).
   void saveState() {
     _screen.saveState();
-    _savedTerminalState = {
-      'inputLine': _inputLine,
-      'inputBuffer': _inputBuffer,
-      'inputCol': _inputCol,
-    };
+    _savedTerminalState = {'inputLine': _inputLine, 'inputBuffer': _inputBuffer, 'inputCol': _inputCol};
   }
 
   /// Restore screen state.
@@ -384,19 +364,13 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   void render() {
     detectTerminalSize(); // Updates _screen cols/rows
 
-    if (!_supportsAnsi) {
-      _renderFallback();
-      return;
-    }
-
     // Use the compositor to create a flat ScreenFrame from the ZScreenModel
     final frame = _screen.toRenderFrame(focusedWindowId: 0);
 
     // Sync scroll offset with compositor
     _compositor.setScrollOffset(_scrollOffset);
 
-    final zartBarVisible =
-        platformProvider?.capabilities.zartBarVisible ?? true;
+    final zartBarVisible = platformProvider?.capabilities.zartBarVisible ?? true;
     final screenFrame = _compositor.composite(
       frame,
       screenWidth: _cols,
@@ -409,20 +383,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
     // Invoke callback to render the screen
     onScreenReady?.call(screenFrame);
-  }
-
-  /// Fallback render for non-ANSI terminals.
-  void _renderFallback() {
-    stdout.writeln('--- Status ---');
-    for (final row in _screen.window1Grid) {
-      stdout.writeln(row.map((c) => c.char).join());
-    }
-    stdout.writeln('-' * _cols);
-    final w0Grid = _screen.window0Grid;
-    final start = w0Grid.length > 20 ? w0Grid.length - 20 : 0;
-    for (int i = start; i < w0Grid.length; i++) {
-      stdout.writeln(w0Grid[i].map((c) => c.char).join());
-    }
   }
 
   /// Process global keys (F1-F4, etc). Returns (consumed, restored).
@@ -464,31 +424,21 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   }
 
   /// Read a line of input from the user.
-  Future<String> readLine() async {
-    // Disable mouse tracking to prevent mouse events from appearing in input
-    // These codes disable various mouse modes that terminals may have enabled
-    stdout.write('\x1b[?1000l'); // Disable X10 mouse tracking
-    stdout.write('\x1b[?1002l'); // Disable cell motion tracking
-    stdout.write('\x1b[?1003l'); // Disable all motion tracking
-    stdout.write('\x1b[?1006l'); // Disable SGR extended mouse mode
-
+  @override
+  Future<String> readLine({int? windowId}) async {
     _inputBuffer = '';
     // Reset scroll when starting new input?
     // Usually yes, if typing, we want to see what we type.
     _scrollOffset = 0;
 
     // Remember where input starts (end of current content)
-    _inputLine = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.length - 1
-        : 0;
+    _inputLine = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.length - 1 : 0;
     if (_screen.window0Grid.isEmpty) {
       _inputLine = 0;
       _screen.appendToWindow0('');
       _screen.window0Grid.add([]);
     }
-    _inputCol = _screen.window0Grid.isNotEmpty
-        ? _screen.window0Grid.last.length
-        : 0;
+    _inputCol = _screen.window0Grid.isNotEmpty ? _screen.window0Grid.last.length : 0;
 
     render();
 
@@ -500,9 +450,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           continue; // Global scroll key handled
         }
       } else {
-        throw StateError(
-          'ZTerminalDisplay requires a platformProvider for input.',
-        );
+        throw StateError('ZTerminalDisplay requires a platformProvider for input.');
       }
 
       final (consumed, restored) = await _handleGlobalKeys(event);
@@ -544,8 +492,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
       } else if (event.keyCode == SpecialKeys.delete) {
         if (_inputBuffer.isNotEmpty) {
           _inputBuffer = _inputBuffer.substring(0, _inputBuffer.length - 1);
-          if (_screen.window0Grid.isNotEmpty &&
-              _inputLine < _screen.window0Grid.length) {
+          if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
             final rowList = _screen.window0Grid[_inputLine];
             if (rowList.isNotEmpty) rowList.removeLast();
           }
@@ -563,8 +510,7 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           final match = mousePattern.firstMatch(_inputBuffer);
           if (match != null) {
             _inputBuffer = _inputBuffer.substring(0, match.start);
-            if (_screen.window0Grid.isNotEmpty &&
-                _inputLine < _screen.window0Grid.length) {
+            if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
               final rowList = _screen.window0Grid[_inputLine];
               while (rowList.length > _inputCol + _inputBuffer.length) {
                 if (rowList.isNotEmpty) rowList.removeLast();
@@ -575,17 +521,11 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
           }
         }
 
-        if (_screen.window0Grid.isNotEmpty &&
-            _inputLine < _screen.window0Grid.length) {
+        if (_screen.window0Grid.isNotEmpty && _inputLine < _screen.window0Grid.length) {
           final rowList = _screen.window0Grid[_inputLine];
           if (rowList.length < _cols) {
             rowList.add(
-              RenderCell.fromZMachine(
-                char,
-                fgColor: 9,
-                bgColor: _screen.bgColor,
-                style: _screen.currentStyle,
-              ),
+              RenderCell.fromZMachine(char, fgColor: 9, bgColor: _screen.bgColor, style: _screen.currentStyle),
             );
           }
         }
@@ -596,18 +536,13 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
 
   /// Read a single character for char input mode.
   Future<String> readChar() async {
-    stdout.write('\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l');
-    stdout.write('\x1B[?25h'); // Show cursor
-
     while (true) {
       InputEvent event;
       if (platformProvider != null) {
         event = await platformProvider!.readInput();
         if (event.type == InputEventType.none) continue;
       } else {
-        throw StateError(
-          'ZTerminalDisplay requires a platformProvider for input.',
-        );
+        throw StateError('ZTerminalDisplay requires a platformProvider for input.');
       }
 
       final (consumed, restored) = await _handleGlobalKeys(event);
@@ -615,8 +550,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         if (restored) return '__RESTORED__';
         continue;
       }
-
-      stdout.write('\x1B[?25l'); // Hide cursor
 
       if (event.keyCode == SpecialKeys.enter) return '\n';
       if (event.keyCode == SpecialKeys.delete) return '\x7F';
