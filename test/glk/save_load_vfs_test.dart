@@ -14,13 +14,17 @@ class MockPlatformProvider extends PlatformProvider {
   @override
   String get gameName => 'TestGame';
   @override
-  PlatformCapabilities get capabilities => PlatformCapabilities(screenWidth: 80, screenHeight: 24);
+  PlatformCapabilities get capabilities =>
+      PlatformCapabilities(screenWidth: 80, screenHeight: 24);
   @override
   void render(ScreenFrame frame) {}
   @override
   void showTempMessage(String message, {int seconds = 3}) {}
   @override
-  Future<void> openSettings(dynamic terminal, {bool isGameStarted = false}) async {}
+  Future<void> openSettings(
+    dynamic terminal, {
+    bool isGameStarted = false,
+  }) async {}
   @override
   Future<String> readLine({int? maxLength, int? timeout}) async => '';
   @override
@@ -28,8 +32,17 @@ class MockPlatformProvider extends PlatformProvider {
   @override
   InputEvent? pollInput() => InputEvent.none();
   @override
-  ({Future<void> onKeyPressed, bool Function() wasPressed, void Function() cleanup}) setupAsyncKeyWait() {
-    return (onKeyPressed: Future.value(), wasPressed: () => false, cleanup: () {});
+  ({
+    Future<void> onKeyPressed,
+    bool Function() wasPressed,
+    void Function() cleanup,
+  })
+  setupAsyncKeyWait() {
+    return (
+      onKeyPressed: Future.value(),
+      wasPressed: () => false,
+      cleanup: () {},
+    );
   }
 
   @override
@@ -107,30 +120,54 @@ void main() {
       putString(100, "scores.dat");
 
       // Create first fileref
-      final fref1 = await provider.dispatch(GlkIoSelectors.filerefCreateByName, [0x03, 100, 0]);
+      final fref1 = await provider.dispatch(
+        GlkIoSelectors.filerefCreateByName,
+        [0x03, 100, 0],
+      );
       expect(fref1, isNot(0));
 
       // Open stream for writing
-      final stream1 = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref1, 0x01, 0]);
+      final stream1 = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref1,
+        0x01,
+        0,
+      ]);
       expect(stream1, isNot(0));
 
       // Write some data
-      await provider.dispatch(GlkIoSelectors.putCharStream, [stream1, 65]); // 'A'
-      await provider.dispatch(GlkIoSelectors.putCharStream, [stream1, 66]); // 'B'
+      await provider.dispatch(GlkIoSelectors.putCharStream, [
+        stream1,
+        65,
+      ]); // 'A'
+      await provider.dispatch(GlkIoSelectors.putCharStream, [
+        stream1,
+        66,
+      ]); // 'B'
 
       // Close stream
       await provider.dispatch(GlkIoSelectors.streamClose, [stream1, 0]);
       expect(platform.saveCount, equals(0)); // Named files don't prompt
 
       // Create NEW fileref to same name
-      final fref2 = await provider.dispatch(GlkIoSelectors.filerefCreateByName, [0x03, 100, 0]);
+      final fref2 = await provider.dispatch(
+        GlkIoSelectors.filerefCreateByName,
+        [0x03, 100, 0],
+      );
 
       // Open for reading
-      final stream2 = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref2, 0x02, 0]);
+      final stream2 = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref2,
+        0x02,
+        0,
+      ]);
 
       // Read back
-      final char1 = await provider.dispatch(GlkIoSelectors.getCharStream, [stream2]);
-      final char2 = await provider.dispatch(GlkIoSelectors.getCharStream, [stream2]);
+      final char1 = await provider.dispatch(GlkIoSelectors.getCharStream, [
+        stream2,
+      ]);
+      final char2 = await provider.dispatch(GlkIoSelectors.getCharStream, [
+        stream2,
+      ]);
 
       expect(char1, equals(65));
       expect(char2, equals(66));
@@ -138,62 +175,102 @@ void main() {
 
     test('Existence Logic (Scenario 2)', () async {
       putString(100, "exists.txt");
-      final fref = await provider.dispatch(GlkIoSelectors.filerefCreateByName, [0x03, 100, 0]);
+      final fref = await provider.dispatch(GlkIoSelectors.filerefCreateByName, [
+        0x03,
+        100,
+        0,
+      ]);
 
       // Initially doesn't exist
-      expect(await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]), equals(0));
+      expect(
+        await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]),
+        equals(0),
+      );
 
       // Write something
-      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref, 0x01, 0]);
+      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref,
+        0x01,
+        0,
+      ]);
       await provider.dispatch(GlkIoSelectors.putCharStream, [stream, 33]);
       await provider.dispatch(GlkIoSelectors.streamClose, [stream, 0]);
 
       // Now it exists
-      expect(await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]), equals(1));
+      expect(
+        await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]),
+        equals(1),
+      );
     });
 
     test('Silent Follow-up Read (Scenario 3)', () async {
       // Create prompted fileref
-      final fref = await provider.dispatch(GlkIoSelectors.filerefCreateByPrompt, [
-        0x00,
-        0x01,
-        0,
-      ]); // usage save, fmode write
+      final fref = await provider.dispatch(
+        GlkIoSelectors.filerefCreateByPrompt,
+        [0x00, 0x01, 0],
+      ); // usage save, fmode write
 
       // Open for writing
-      final streamW = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref, 0x01, 0]);
-      await provider.dispatch(GlkIoSelectors.putCharStream, [streamW, 88]); // 'X'
+      final streamW = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref,
+        0x01,
+        0,
+      ]);
+      await provider.dispatch(GlkIoSelectors.putCharStream, [
+        streamW,
+        88,
+      ]); // 'X'
 
       // Closing triggers save prompt
       await provider.dispatch(GlkIoSelectors.streamClose, [streamW, 0]);
       expect(platform.saveCount, equals(1));
 
       // NOW: open same fileref handle for reading (game verifying save)
-      final streamR = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref, 0x02, 0]);
+      final streamR = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref,
+        0x02,
+        0,
+      ]);
 
       // VERIFY: restoreGame was NOT called (silent read)
       expect(platform.restoreCount, equals(0));
 
-      final char = await provider.dispatch(GlkIoSelectors.getCharStream, [streamR]);
+      final char = await provider.dispatch(GlkIoSelectors.getCharStream, [
+        streamR,
+      ]);
       expect(char, equals(88));
     });
 
     test('Explicit Destruction (Scenario 4)', () async {
       putString(100, "trash.txt");
-      final fref = await provider.dispatch(GlkIoSelectors.filerefCreateByName, [0x03, 100, 0]);
+      final fref = await provider.dispatch(GlkIoSelectors.filerefCreateByName, [
+        0x03,
+        100,
+        0,
+      ]);
 
       // Write data
-      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref, 0x01, 0]);
+      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref,
+        0x01,
+        0,
+      ]);
       await provider.dispatch(GlkIoSelectors.putCharStream, [stream, 99]);
       await provider.dispatch(GlkIoSelectors.streamClose, [stream, 0]);
 
-      expect(await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]), equals(1));
+      expect(
+        await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]),
+        equals(1),
+      );
 
       // Destroy fileref
       await provider.dispatch(GlkIoSelectors.filerefDestroy, [fref]);
 
       // Now filerefDoesFileExist for that handle should be 0 (record gone)
-      expect(await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]), equals(0));
+      expect(
+        await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref]),
+        equals(0),
+      );
     });
 
     test('Prompted Persistence (@PROMPT)', () async {
@@ -201,22 +278,31 @@ void main() {
       platform.restoreData = [1, 2, 3];
 
       // Create prompted fileref
-      final fref = await provider.dispatch(GlkIoSelectors.filerefCreateByPrompt, [
-        0x00,
-        0x02,
-        0,
-      ]); // usage save, fmode read
+      final fref = await provider.dispatch(
+        GlkIoSelectors.filerefCreateByPrompt,
+        [0x00, 0x02, 0],
+      ); // usage save, fmode read
 
       // Open for reading (triggers prompt)
-      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref, 0x02, 0]);
+      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref,
+        0x02,
+        0,
+      ]);
       expect(platform.restoreCount, equals(1));
 
       await provider.dispatch(GlkIoSelectors.streamClose, [stream, 0]);
 
       // Create ANOTHER prompted fileref - it should still see existence due to @PROMPT
       // but opening it should still trigger a prompt (cross-handle isolation for dialogs)
-      final fref2 = await provider.dispatch(GlkIoSelectors.filerefCreateByPrompt, [0x00, 0x02, 0]);
-      expect(await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref2]), equals(1));
+      final fref2 = await provider.dispatch(
+        GlkIoSelectors.filerefCreateByPrompt,
+        [0x00, 0x02, 0],
+      );
+      expect(
+        await provider.dispatch(GlkIoSelectors.filerefDoesFileExist, [fref2]),
+        equals(1),
+      );
 
       await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref2, 0x02, 0]);
       expect(platform.restoreCount, equals(2)); // Prompted again
@@ -226,21 +312,29 @@ void main() {
       platform.restoreData = [5, 6, 7];
 
       // Create prompted fileref
-      final fref = await provider.dispatch(GlkIoSelectors.filerefCreateByPrompt, [
-        0x00,
-        0x03,
-        0,
-      ]); // usage save, fmode ReadWrite
+      final fref = await provider.dispatch(
+        GlkIoSelectors.filerefCreateByPrompt,
+        [0x00, 0x03, 0],
+      ); // usage save, fmode ReadWrite
 
       // Open for ReadWrite (0x03)
       // This should trigger a restore prompt because the handle and cache are empty
-      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [fref, 0x03, 0]);
+      final stream = await provider.dispatch(GlkIoSelectors.streamOpenFile, [
+        fref,
+        0x03,
+        0,
+      ]);
       expect(platform.restoreCount, equals(1));
 
-      final char = await provider.dispatch(GlkIoSelectors.getCharStream, [stream]);
+      final char = await provider.dispatch(GlkIoSelectors.getCharStream, [
+        stream,
+      ]);
       expect(char, equals(5));
       await provider.dispatch(GlkIoSelectors.streamClose, [stream, 0]);
-      expect(platform.saveCount, equals(0)); // Should NOT have saved because no writes occurred
+      expect(
+        platform.saveCount,
+        equals(0),
+      ); // Should NOT have saved because no writes occurred
     });
   });
 }

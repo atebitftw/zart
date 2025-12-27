@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:zart/src/glulx/glulx_gestalt_selectors.dart';
-import 'package:zart/src/io/glk/glk_gestalt_selectors.dart' show GlkGestaltSelectors;
+import 'package:zart/src/io/glk/glk_gestalt_selectors.dart'
+    show GlkGestaltSelectors;
 import 'package:zart/src/io/glk/glk_io_selectors.dart';
 import 'package:zart/src/io/glk/glk_provider.dart';
 import 'package:zart/src/io/glk/glk_screen_model.dart';
-import 'package:zart/src/io/glk/glk_terminal_display.dart' show GlkTerminalDisplay;
+import 'package:zart/src/io/glk/glk_terminal_display.dart'
+    show GlkTerminalDisplay;
 import 'package:zart/src/io/glk/glk_window.dart';
 import 'package:zart/src/io/platform/platform_provider.dart';
 import 'package:zart/src/loaders/blorb_resource_manager.dart';
@@ -27,7 +29,8 @@ class GlulxTerminalProvider implements GlkProvider {
   /// Creates a terminal provider, optionally accepting a display for testing.
   GlulxTerminalProvider({GlkTerminalDisplay? display}) {
     glkDisplay = display ?? GlkTerminalDisplay();
-    glkDisplay.glkProvider = this; // Set back-reference for quick save/restore flags
+    glkDisplay.glkProvider =
+        this; // Set back-reference for quick save/restore flags
 
     _lastCols = glkDisplay.cols;
     _lastRows = glkDisplay.rows;
@@ -222,7 +225,10 @@ class GlulxTerminalProvider implements GlkProvider {
   }
 
   @override
-  void setStackAccess({required void Function(int value) push, required int Function() pop}) {
+  void setStackAccess({
+    required void Function(int value) push,
+    required int Function() pop,
+  }) {
     _pushToStack = push;
     _popFromStack = pop;
   }
@@ -245,7 +251,10 @@ class GlulxTerminalProvider implements GlkProvider {
           return 0;
         });
       case GlkIoSelectors.gestalt:
-        return _handleGlkGestalt(args[0], args.length > 1 ? args.sublist(1) : <int>[]);
+        return _handleGlkGestalt(
+          args[0],
+          args.length > 1 ? args.sublist(1) : <int>[],
+        );
 
       case GlkIoSelectors.putChar:
         _writeToStream(_currentStreamId, args[0] & 0xFF);
@@ -262,11 +271,19 @@ class GlulxTerminalProvider implements GlkProvider {
 
       case GlkIoSelectors.getCharStream:
       case GlkIoSelectors.getCharStreamUni:
-        return _readFromStream(args[0], selector == GlkIoSelectors.getCharStreamUni);
+        return _readFromStream(
+          args[0],
+          selector == GlkIoSelectors.getCharStreamUni,
+        );
 
       case GlkIoSelectors.getBufferStream:
       case GlkIoSelectors.getBufferStreamUni:
-        return _readBufferFromStream(args[0], args[1], args[2], selector == GlkIoSelectors.getBufferStreamUni);
+        return _readBufferFromStream(
+          args[0],
+          args[1],
+          args[2],
+          selector == GlkIoSelectors.getBufferStreamUni,
+        );
 
       case GlkIoSelectors.charToLower:
         final ch = args[0];
@@ -282,22 +299,40 @@ class GlulxTerminalProvider implements GlkProvider {
 
       case GlkIoSelectors.putString:
       case GlkIoSelectors.putStringUni:
-        _writeStringToStream(_currentStreamId, args[0], selector == GlkIoSelectors.putStringUni);
+        _writeStringToStream(
+          _currentStreamId,
+          args[0],
+          selector == GlkIoSelectors.putStringUni,
+        );
         return 0;
 
       case GlkIoSelectors.putStringStream:
       case GlkIoSelectors.putStringStreamUni:
-        _writeStringToStream(args[0], args[1], selector == GlkIoSelectors.putStringStreamUni);
+        _writeStringToStream(
+          args[0],
+          args[1],
+          selector == GlkIoSelectors.putStringStreamUni,
+        );
         return 0;
 
       case GlkIoSelectors.putBuffer:
       case GlkIoSelectors.putBufferUni:
-        _writeBufferToStream(_currentStreamId, args[0], args[1], selector == GlkIoSelectors.putBufferUni);
+        _writeBufferToStream(
+          _currentStreamId,
+          args[0],
+          args[1],
+          selector == GlkIoSelectors.putBufferUni,
+        );
         return 0;
 
       case GlkIoSelectors.putBufferStream:
       case GlkIoSelectors.putBufferStreamUni:
-        _writeBufferToStream(args[0], args[1], args[2], selector == GlkIoSelectors.putBufferStreamUni);
+        _writeBufferToStream(
+          args[0],
+          args[1],
+          args[2],
+          selector == GlkIoSelectors.putBufferStreamUni,
+        );
         return 0;
 
       case GlkIoSelectors.setStyle:
@@ -351,11 +386,21 @@ class GlulxTerminalProvider implements GlkProvider {
           default:
             type = GlkWindowType.textBuffer;
         }
-        final winId = _screenModel.windowOpen(splitFromId == 0 ? null : splitFromId, method, size, type, rock);
+        final winId = _screenModel.windowOpen(
+          splitFromId == 0 ? null : splitFromId,
+          method,
+          size,
+          type,
+          rock,
+        );
         if (winId != null) {
           // Create a stream for this window
           final streamId = _nextStreamId++;
-          _streams[streamId] = _GlkStream(id: streamId, type: 1, windowId: winId);
+          _streams[streamId] = _GlkStream(
+            id: streamId,
+            type: 1,
+            windowId: winId,
+          );
           _windowStreams[winId] = streamId;
         }
         return winId ?? 0;
@@ -387,7 +432,12 @@ class GlulxTerminalProvider implements GlkProvider {
         return 0;
       case GlkIoSelectors.windowSetArrangement:
         // args: win (pair window), method, size, keywin
-        _screenModel.windowSetArrangement(args[0], args[1], args[2], args.length > 3 ? args[3] : 0);
+        _screenModel.windowSetArrangement(
+          args[0],
+          args[1],
+          args[2],
+          args.length > 3 ? args[3] : 0,
+        );
         return 0;
       case GlkIoSelectors.windowGetParent:
         // Return the parent window ID (pair window)
@@ -503,7 +553,9 @@ class GlulxTerminalProvider implements GlkProvider {
           final isWriteMode = stream.mode == 0x01 || stream.mode == 0x05;
           final isReadWriteWithWrites = stream.mode == 0x03 && wCount > 0;
 
-          if (file != null && file.length > 0 && (isWriteMode || isReadWriteWithWrites)) {
+          if (file != null &&
+              file.length > 0 &&
+              (isWriteMode || isReadWriteWithWrites)) {
             final data = file.data.sublist(0, file.length);
             if (file.filename != null) {
               _sessionFilesystem[file.filename!] = data;
@@ -547,7 +599,9 @@ class GlulxTerminalProvider implements GlkProvider {
           } else if (seekMode == 1) {
             str.pos += pos;
           } else if (seekMode == 2) {
-            final len = str.type == 2 ? str.bufLen : (_files[str.frefId]?.length ?? 0);
+            final len = str.type == 2
+                ? str.bufLen
+                : (_files[str.frefId]?.length ?? 0);
             str.pos = len + pos;
           }
         }
@@ -563,7 +617,10 @@ class GlulxTerminalProvider implements GlkProvider {
         // Args: usage, name, rock
         final nameUsage = args.isNotEmpty ? args[0] : 0;
         final nameAddr = args.length > 1 ? args[1] : 0;
-        final name = _readGlkString(nameAddr, selector == GlkIoSelectors.filerefCreateByNameUni);
+        final name = _readGlkString(
+          nameAddr,
+          selector == GlkIoSelectors.filerefCreateByNameUni,
+        );
         final nameId = _nextFileRefId++;
         _files[nameId] = _GlkFile(usage: nameUsage, filename: name);
         return nameId;
@@ -573,7 +630,11 @@ class GlulxTerminalProvider implements GlkProvider {
         final promptUsage = args.isNotEmpty ? args[0] : 0;
         final promptFmode = args.length > 1 ? args[1] : 0;
         final promptId = _nextFileRefId++;
-        _files[promptId] = _GlkFile(usage: promptUsage, byPrompt: true, fmode: promptFmode);
+        _files[promptId] = _GlkFile(
+          usage: promptUsage,
+          byPrompt: true,
+          fmode: promptFmode,
+        );
         return promptId;
       case GlkIoSelectors.filerefCreateByFileUni:
         // Args: usage, fileref, rock
@@ -725,7 +786,14 @@ class GlulxTerminalProvider implements GlkProvider {
 
         final info = _getImageInfo(imageId);
         if (info != null) {
-          _drawImageToWindow(winId, imageId, val1, val2, info.width, info.height);
+          _drawImageToWindow(
+            winId,
+            imageId,
+            val1,
+            val2,
+            info.width,
+            info.height,
+          );
           return 1;
         }
         return 0;
@@ -851,7 +919,11 @@ class GlulxTerminalProvider implements GlkProvider {
       if (file != null && stream.pos < file.length) {
         if (unicode) {
           if (stream.pos + 4 <= file.length) {
-            final val = ByteData.sublistView(file.data, stream.pos, stream.pos + 4).getUint32(0);
+            final val = ByteData.sublistView(
+              file.data,
+              stream.pos,
+              stream.pos + 4,
+            ).getUint32(0);
             stream.pos += 4;
             return val;
           }
@@ -887,7 +959,8 @@ class GlulxTerminalProvider implements GlkProvider {
       // High-performance path for binary buffers (e.g. save files)
       final block = readMemoryBlock(addr, len);
       final stream = _streams[streamId];
-      if (stream != null && (stream.type == 1 || stream.type == 3 || stream.type == 4)) {
+      if (stream != null &&
+          (stream.type == 1 || stream.type == 3 || stream.type == 4)) {
         // Use stream.file reference (survives filerefDestroy) instead of _files lookup
         final file = stream.file;
         if (file != null) {
@@ -919,7 +992,8 @@ class GlulxTerminalProvider implements GlkProvider {
     if (streamId == 0 || addr == 0) return 0;
     if (!unicode) {
       final stream = _streams[streamId];
-      if (stream != null && (stream.type == 1 || stream.type == 3 || stream.type == 4)) {
+      if (stream != null &&
+          (stream.type == 1 || stream.type == 3 || stream.type == 4)) {
         // Use stream.file reference (survives filerefDestroy) instead of _files lookup
         final file = stream.file;
         if (file != null) {
@@ -979,11 +1053,21 @@ class GlulxTerminalProvider implements GlkProvider {
 
         var count = 0;
         for (var i = 0; i < line.length && i < window.lineInputMaxLen; i++) {
-          writeMemory(window.lineInputBufferAddr + i, line.codeUnitAt(i), size: 1);
+          writeMemory(
+            window.lineInputBufferAddr + i,
+            line.codeUnitAt(i),
+            size: 1,
+          );
           count++;
         }
         _screenModel.cancelLineEvent(focusedWin);
-        _writeEventStruct(eventAddr, GlkEventTypes.lineInput, focusedWin, count, 0);
+        _writeEventStruct(
+          eventAddr,
+          GlkEventTypes.lineInput,
+          focusedWin,
+          count,
+          0,
+        );
         return 0;
       }
 
@@ -991,7 +1075,13 @@ class GlulxTerminalProvider implements GlkProvider {
         final char = await glkDisplay.readChar();
         final code = char.isNotEmpty ? char.codeUnitAt(0) : 0;
         _screenModel.cancelCharEvent(focusedWin);
-        _writeEventStruct(eventAddr, GlkEventTypes.charInput, focusedWin, code, 0);
+        _writeEventStruct(
+          eventAddr,
+          GlkEventTypes.charInput,
+          focusedWin,
+          code,
+          0,
+        );
         return 0;
       }
     }
@@ -1005,7 +1095,13 @@ class GlulxTerminalProvider implements GlkProvider {
         writeMemory(_pendingLineEventAddr! + i, line.codeUnitAt(i), size: 1);
         count++;
       }
-      _writeEventStruct(eventAddr, GlkEventTypes.lineInput, _pendingLineEventWin!, count, 0);
+      _writeEventStruct(
+        eventAddr,
+        GlkEventTypes.lineInput,
+        _pendingLineEventWin!,
+        count,
+        0,
+      );
       _pendingLineEventAddr = null;
       return 0;
     }
@@ -1013,12 +1109,20 @@ class GlulxTerminalProvider implements GlkProvider {
       glkDisplay.renderGlk(_screenModel);
       final char = await glkDisplay.readChar();
       final code = char.isNotEmpty ? char.codeUnitAt(0) : 0;
-      _writeEventStruct(eventAddr, GlkEventTypes.charInput, _pendingCharEventWin!, code, 0);
+      _writeEventStruct(
+        eventAddr,
+        GlkEventTypes.charInput,
+        _pendingCharEventWin!,
+        code,
+        0,
+      );
       _pendingCharEventWin = null;
       return 0;
     }
     if (_timerInterval > 0) {
-      final elapsed = _lastTimerEvent != null ? DateTime.now().difference(_lastTimerEvent!).inMilliseconds : 0;
+      final elapsed = _lastTimerEvent != null
+          ? DateTime.now().difference(_lastTimerEvent!).inMilliseconds
+          : 0;
       final remaining = _timerInterval - elapsed;
       if (remaining > 0) {
         await Future<void>.delayed(Duration(milliseconds: remaining));
@@ -1045,7 +1149,11 @@ class GlulxTerminalProvider implements GlkProvider {
 
     final line = await glkDisplay.readLine(windowId: windowId);
 
-    final commands = line.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+    final commands = line
+        .split('.')
+        .map((c) => c.trim())
+        .where((c) => c.isNotEmpty)
+        .toList();
 
     if (commands.isEmpty) {
       _screenModel.putString(windowId, '\n');
@@ -1129,9 +1237,15 @@ class GlulxTerminalProvider implements GlkProvider {
   (int, int) _parseImageDimensions(Uint8List data, BlorbImageFormat format) {
     if (format == BlorbImageFormat.png) {
       // PNG IHDR chunk starts at offset 8, width at 16, height at 20
-      if (data.length >= 24 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) {
-        final width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
-        final height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+      if (data.length >= 24 &&
+          data[0] == 0x89 &&
+          data[1] == 0x50 &&
+          data[2] == 0x4E &&
+          data[3] == 0x47) {
+        final width =
+            (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+        final height =
+            (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
         return (width, height);
       }
     } else if (format == BlorbImageFormat.jpeg) {
@@ -1148,10 +1262,23 @@ class GlulxTerminalProvider implements GlkProvider {
   }
 
   /// Draw an image to a graphics window.
-  void _drawImageToWindow(int winId, int imageId, int x, int y, int width, int height) {
+  void _drawImageToWindow(
+    int winId,
+    int imageId,
+    int x,
+    int y,
+    int width,
+    int height,
+  ) {
     final window = _screenModel.getWindow(winId);
     if (window is GlkGraphicsWindow) {
-      window.drawImage(resourceId: imageId, x: x, y: y, width: width, height: height);
+      window.drawImage(
+        resourceId: imageId,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+      );
     }
     // For text buffer windows, image would go in margin - not yet implemented
   }
@@ -1206,5 +1333,10 @@ class _GlkFile {
   Uint8List data = Uint8List(0);
   int length = 0;
 
-  _GlkFile({this.usage = 0, this.byPrompt = false, this.filename, this.fmode = 0});
+  _GlkFile({
+    this.usage = 0,
+    this.byPrompt = false,
+    this.filename,
+    this.fmode = 0,
+  });
 }
