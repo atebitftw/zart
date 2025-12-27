@@ -171,3 +171,6 @@
 
 # 2.0.1
 - Fixed a bug with save/restore in the Glulx interpreter.
+
+# 2.0.2
+- Fixed a another bug with save/restore in the Glulx interpreter.
