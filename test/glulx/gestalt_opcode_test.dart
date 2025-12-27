@@ -263,8 +263,6 @@ void main() {
     });
 
     test('gestalt unknown selector returns 0', () async {
-      /// Reference gestalt.c: default: return 0;
-
       gameData = createGameData([
         0x81, 0x00, // gestalt opcode
         0x11, 0x08, // modes
