@@ -157,6 +157,7 @@ class GameRunner {
       debugger.flushLogs(); // Ensure final logs are flushed
       await glulxProvider.showExitAndWait('[Zart: Press any key to exit.]');
 
+      provider.onQuit();
       provider.exitDisplayMode();
     } catch (e) {
       debugger.flushLogs(); // Flush logs on error
@@ -250,6 +251,7 @@ class GameRunner {
     zDisplay.render();
     await zDisplay.readChar();
 
+    provider.onQuit();
     provider.exitDisplayMode();
   }
 
