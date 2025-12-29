@@ -174,3 +174,7 @@
 
 # 2.0.2
 - Fixed a another bug with save/restore in the Glulx interpreter.
+
+# 2.0.3
+- GameRunner supports lifecycle events better.
+- Removed special character from title screen.

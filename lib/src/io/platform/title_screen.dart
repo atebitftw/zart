@@ -398,11 +398,7 @@ class ZartTitleScreen {
     writeEmptyLine();
 
     // Subtitle
-    writeCentered(
-      '✦ Interactive Fiction Library ✦',
-      fg: _TitleColors.white,
-      bold: true,
-    );
+    writeCentered('Interactive Fiction Library', fg: _TitleColors.white);
     writeEmptyLine();
 
     // Version
