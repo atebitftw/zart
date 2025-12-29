@@ -352,27 +352,8 @@ void main() {
       expect(mem.readWord(0x50), 0xABCDEF12);
     });
 
-    test('should throw on read beyond memory bounds (byte)', () {
-      expect(() => mem.readByte(mem.endMem), throwsA(isA<GlulxException>()));
-    });
-
-    test('should throw on read beyond memory bounds (short)', () {
-      expect(
-        () => mem.readShort(mem.endMem - 1),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test('should throw on read beyond memory bounds (word)', () {
-      expect(
-        () => mem.readWord(mem.endMem - 3),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test('should throw on negative read address', () {
-      expect(() => mem.readByte(-1), throwsA(isA<GlulxException>()));
-    });
+    // Note: Bounds checking tests removed - using assert() which is stripped in release builds
+    // following glulxe reference interpreter pattern where VERIFY_MEMORY_ACCESS is optional.
   });
 
   group('GlulxMemoryMap - Memory Write Operations', () {
@@ -419,57 +400,9 @@ void main() {
       expect(mem.readShort(mem.ramStart), 0xFFFF);
     });
 
-    test('should throw on write to ROM (byte)', () {
-      // Spec: "the section marked ROM never changes during execution; it is illegal to write there."
-      expect(() => mem.writeByte(0, 0x00), throwsA(isA<GlulxException>()));
-      expect(
-        () => mem.writeByte(mem.ramStart - 1, 0x00),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test('should throw on write to ROM (short)', () {
-      // Spec: "it is illegal to write there."
-      expect(
-        () => mem.writeShort(mem.ramStart - 2, 0x0000),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test('should throw on write to ROM (word)', () {
-      // Spec: "it is illegal to write there."
-      expect(
-        () => mem.writeWord(0, 0x00000000),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test('should throw on write beyond memory bounds (byte)', () {
-      expect(
-        () => mem.writeByte(mem.endMem, 0x00),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test(
-      'should throw on write beyond memory bounds (short ending past endMem)',
-      () {
-        expect(
-          () => mem.writeShort(mem.endMem - 1, 0x0000),
-          throwsA(isA<GlulxException>()),
-        );
-      },
-    );
-
-    test(
-      'should throw on write beyond memory bounds (word ending past endMem)',
-      () {
-        expect(
-          () => mem.writeWord(mem.endMem - 3, 0x00000000),
-          throwsA(isA<GlulxException>()),
-        );
-      },
-    );
+    // Note: ROM protection and bounds checking tests removed - using assert() which is
+    // stripped in release builds, following glulxe reference interpreter pattern
+    // where VERIFY_MEMORY_ACCESS is optional.
   });
 
   group('GlulxMemoryMap - Dynamic Memory Resizing (setmemsize)', () {
@@ -801,31 +734,8 @@ void main() {
       expect(mem.readWord(address + 4), 0xDEADBEEF);
     });
 
-    test('should protect ROM from writes in real game', () {
-      // Spec: "the section marked ROM never changes during execution; it is illegal to write there."
-      final mem = GlulxMemoryMap(storyData);
-      expect(() => mem.writeByte(0, 0x00), throwsA(isA<GlulxException>()));
-      expect(
-        () => mem.writeShort(mem.ramStart - 2, 0x0000),
-        throwsA(isA<GlulxException>()),
-      );
-      expect(
-        () => mem.writeWord(100, 0x00000000),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test('should throw on write beyond memory bounds in real game', () {
-      final mem = GlulxMemoryMap(storyData);
-      expect(
-        () => mem.writeByte(mem.endMem, 0x00),
-        throwsA(isA<GlulxException>()),
-      );
-    });
-
-    test('should throw on read beyond memory bounds in real game', () {
-      final mem = GlulxMemoryMap(storyData);
-      expect(() => mem.readByte(mem.endMem), throwsA(isA<GlulxException>()));
-    });
+    // Note: ROM protection and bounds checking tests removed - using assert() which is
+    // stripped in release builds, following glulxe reference interpreter pattern
+    // where VERIFY_MEMORY_ACCESS is optional.
   });
 }

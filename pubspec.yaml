@@ -1,6 +1,6 @@
 name: zart
-version: 2.0.3
-description: A Dart implementation of the Glulx and Z-Machine interpreters, plus an abstraction layer so that apps use a single API to interact with both engines.
+version: 2.0.4
+description: A Dart implementation of the Glulx (Inform 6 & 7) and Z-Machine interpreters, plus an abstraction layer so that apps use a single API to interact with both engines.
 homepage: https://atebitftw.github.io/site/
 repository: https://github.com/atebitftw/zart
 issue_tracker: https://github.com/atebitftw/zart/issues

@@ -178,3 +178,6 @@
 # 2.0.3
 - GameRunner supports lifecycle events better.
 - Removed special character from title screen.
+
+# 2.0.4
+- Optimized glulx interpreter.

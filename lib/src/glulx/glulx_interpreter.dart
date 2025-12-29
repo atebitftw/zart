@@ -61,8 +61,33 @@ class GlulxInterpreter {
   /// Undo state chain (most recent first).
   final List<GlulxUndoState> _undoChain = [];
 
+  // ============================================================================
+  // Pre-allocated arrays for operand handling (performance optimization).
+  // Glulx spec allows max 8 operands per instruction (MAX_OPERANDS in glulxe).
+  // Pre-allocating eliminates per-instruction allocation overhead.
+  // ============================================================================
+
+  /// Pre-allocated array for addressing modes (max 8 operands).
+  final List<int> _modesBuffer = List<int>.filled(8, 0);
+
+  /// Pre-allocated array for operand values (max 8 operands).
+  final List<Object> _operandsBuffer = List<Object>.filled(8, 0);
+
+  // ============================================================================
+  // Cached values for hot-path optimization (Priority 6)
+  // ============================================================================
+
+  /// Cached RAM start address for faster operand mode D-F access.
+  /// Initialized in load(), defaults to 0 for safety.
+  int _ramStart = 0;
+
+  /// Direct reference to raw memory for faster PC reads (Priority 7).
+  /// Avoids method call overhead in the instruction fetch loop.
+  /// Initialized in load(). Using empty list default for safety.
+  Uint8List _rawMemory = Uint8List(0);
+
   /// Creates a new Glulx interpreter.
-  GlulxInterpreter(this.glk) {}
+  GlulxInterpreter(this.glk);
 
   /// Loads a game file into memory.
   Future<void> load(Uint8List gameData) async {
@@ -73,6 +98,10 @@ class GlulxInterpreter {
     _stringDecoder = GlulxStringDecoder(memoryMap);
     stack = GlulxStack(memoryMap.stackSize);
     _pc = memoryMap.ramStart;
+
+    // Cache frequently accessed values for hot-path optimization
+    _ramStart = memoryMap.ramStart;
+    _rawMemory = memoryMap.rawMemory;
 
     // Initialize acceleration system
     accel = GlulxAccel(
@@ -1791,40 +1820,53 @@ class GlulxInterpreter {
   ///
   /// Spec Section 2.3.1: "Each is four bits long, and they are packed two to a byte.
   /// (They occur in the same order as the arguments, low bits first.)"
+  ///
+  /// Note: Returns the pre-allocated _modesBuffer for performance (avoids allocation).
+  /// Only the first [count] elements are valid; the rest may contain stale data.
+  /// Internal callers use info.operandCount to limit iteration.
   List<int> _readAddressingModes(int count) {
-    final modes = <int>[];
     for (var i = 0; i < count; i += 2) {
       final b = _nextByte();
-      modes.add(b & 0x0F);
+      _modesBuffer[i] = b & 0x0F;
       if (i + 1 < count) {
-        modes.add((b >> 4) & 0x0F);
+        _modesBuffer[i + 1] = (b >> 4) & 0x0F;
       }
     }
-    return modes;
+    return _modesBuffer;
   }
 
+  // ==========================================================================
+  // Direct memory access for PC operations (Priority 7)
+  // Using _rawMemory directly avoids method call overhead in hot path.
+  // ==========================================================================
+
   int _nextByte() {
-    final val = memoryMap.readByte(_pc);
-    _pc++;
-    return val;
+    return _rawMemory[_pc++];
   }
 
   int _nextShort() {
-    final val = memoryMap.readShort(_pc);
+    final addr = _pc;
     _pc += 2;
-    return val;
+    return (_rawMemory[addr] << 8) | _rawMemory[addr + 1];
   }
 
   int _nextWord() {
-    final val = memoryMap.readWord(_pc);
+    final addr = _pc;
     _pc += 4;
-    return val;
+    return (_rawMemory[addr] << 24) |
+        (_rawMemory[addr + 1] << 16) |
+        (_rawMemory[addr + 2] << 8) |
+        _rawMemory[addr + 3];
   }
 
   int _nextInt() {
-    final val = memoryMap.readWord(_pc).toSigned(32);
+    final addr = _pc;
     _pc += 4;
-    return val;
+    return ((_rawMemory[addr] << 24) |
+            (_rawMemory[addr + 1] << 16) |
+            (_rawMemory[addr + 2] << 8) |
+            _rawMemory[addr + 3])
+        .toSigned(32);
   }
 
   /// Loads an operand value based on the given addressing mode.
@@ -1856,11 +1898,11 @@ class GlulxInterpreter {
       case 0xB: // Call frame local at any address (4 bytes).
         return _readLocalBySize(_nextWord(), argSize);
       case 0xD: // Contents of RAM address 00 to FF (1 byte addr).
-        return _readMemBySize(memoryMap.ramStart + _nextByte(), argSize);
+        return _readMemBySize(_ramStart + _nextByte(), argSize);
       case 0xE: // Contents of RAM address 0000 to FFFF (2 bytes addr).
-        return _readMemBySize(memoryMap.ramStart + _nextShort(), argSize);
+        return _readMemBySize(_ramStart + _nextShort(), argSize);
       case 0xF: // Contents of RAM, any address (4 bytes addr).
-        return _readMemBySize(memoryMap.ramStart + _nextWord(), argSize);
+        return _readMemBySize(_ramStart + _nextWord(), argSize);
       default:
         throw Exception('Illegal load addressing mode: $mode');
     }
@@ -1909,31 +1951,34 @@ class GlulxInterpreter {
         stack.writeLocal32(_nextWord(), value);
         break;
       case 0xD: // Contents of RAM address 00 to FF (1 byte).
-        memoryMap.writeWord(memoryMap.ramStart + _nextByte(), value);
+        memoryMap.writeWord(_ramStart + _nextByte(), value);
         break;
       case 0xE: // Contents of RAM address 0000 to FFFF (2 bytes).
-        memoryMap.writeWord(memoryMap.ramStart + _nextShort(), value);
+        memoryMap.writeWord(_ramStart + _nextShort(), value);
         break;
       case 0xF: // Contents of RAM, any address (4 bytes).
-        memoryMap.writeWord(memoryMap.ramStart + _nextWord(), value);
+        memoryMap.writeWord(_ramStart + _nextWord(), value);
         break;
       default:
         throw Exception('Illegal store addressing mode: $mode');
     }
   }
 
+  /// Fetches operand values based on opcode info and addressing modes.
+  ///
+  /// Note: Returns a view into the pre-allocated _operandsBuffer for performance.
+  /// The returned list should not be stored; it will be overwritten on next call.
   List<Object> _fetchOperands(int opcode, OpcodeInfo info, List<int> modes) {
-    final operands = <Object>[];
     for (var i = 0; i < info.operandCount; i++) {
       final mode = modes[i];
       if (info.isStore(i)) {
-        operands.add(_prepareStore(mode));
+        _operandsBuffer[i] = _prepareStore(mode);
       } else {
         // Pass argSize for byte-width memory reads (copyb=1, copys=2, default=4)
-        operands.add(loadOperand(mode, argSize: info.argSize));
+        _operandsBuffer[i] = loadOperand(mode, argSize: info.argSize);
       }
     }
-    return operands;
+    return _operandsBuffer;
   }
 
   StoreOperand _prepareStore(int mode) {

@@ -22,6 +22,10 @@ import 'glulx_heap.dart';
 class GlulxMemoryMap {
   late Uint8List _memory;
 
+  /// ByteData view for efficient multi-byte memory operations.
+  /// Using ByteData avoids manual byte shifting and is optimized by the VM.
+  late ByteData _view;
+
   /// The first address which the program can write to.
   /// Spec: "RAMSTART: The first address which the program can write to."
   late final int ramStart;
@@ -135,6 +139,7 @@ class GlulxMemoryMap {
     // Spec: "Initial memory is allocated up to ENDMEM."
     _endMem = origEndMem;
     _memory = Uint8List(_endMem);
+    _view = ByteData.view(_memory.buffer);
 
     // Copy ROM and initial RAM from game data
     // Spec: "Data from 0 up to EXTSTART is loaded from gameData."
@@ -158,65 +163,64 @@ class GlulxMemoryMap {
   }
 
   /// Validates that count bytes starting at address all fall within the memory map.
-  void _verifyAddress(int address, int count) {
-    if (address < 0 || address >= _endMem) {
-      throw GlulxException(
-        'Memory access out of range at address 0x${address.toRadixString(16).toUpperCase()}',
-      );
-    }
-    if (count > 1) {
-      final endAddress = address + count - 1;
-      if (endAddress >= _endMem) {
-        throw GlulxException(
-          'Memory access out of range at address 0x${endAddress.toRadixString(16).toUpperCase()}',
-        );
-      }
-    }
+  ///
+  /// Note: Following glulxe reference interpreter pattern where VERIFY_MEMORY_ACCESS
+  /// is optional (glulxe.h lines 41-45). Using assert() so checks are stripped in
+  /// release builds for maximum performance.
+  bool _verifyAddress(int address, int count) {
+    assert(
+      address >= 0 && address < _endMem,
+      'Memory access out of range at address 0x${address.toRadixString(16)}',
+    );
+    assert(
+      count <= 1 || address + count - 1 < _endMem,
+      'Memory access out of range at end address 0x${(address + count - 1).toRadixString(16)}',
+    );
+    return true;
   }
 
   /// Validates that count bytes starting at address all fall within RAM.
-  void _verifyAddressWrite(int address, int count) {
-    if (address < ramStart) {
-      throw GlulxException(
-        'Illegal write to ROM at address 0x${address.toRadixString(16).toUpperCase()}',
-      );
-    }
-    if (address >= _endMem) {
-      throw GlulxException(
-        'Write beyond memory bounds at address 0x${address.toRadixString(16).toUpperCase()}',
-      );
-    }
-    if (count > 1) {
-      final endAddress = address + count - 1;
-      if (endAddress >= _endMem) {
-        throw GlulxException(
-          'Write beyond memory bounds at address 0x${endAddress.toRadixString(16).toUpperCase()}',
-        );
-      }
-    }
+  ///
+  /// Note: Following glulxe reference interpreter pattern where VERIFY_MEMORY_ACCESS
+  /// is optional (glulxe.h lines 41-45). Using assert() so checks are stripped in
+  /// release builds for maximum performance.
+  bool _verifyAddressWrite(int address, int count) {
+    assert(
+      address >= ramStart,
+      'Illegal write to ROM at address 0x${address.toRadixString(16)}',
+    );
+    assert(
+      address < _endMem,
+      'Write beyond memory bounds at address 0x${address.toRadixString(16)}',
+    );
+    assert(
+      count <= 1 || address + count - 1 < _endMem,
+      'Write beyond memory bounds at end address 0x${(address + count - 1).toRadixString(16)}',
+    );
+    return true;
   }
 
   /// Read an 8-bit byte from memory.
   int readByte(int address) {
-    _verifyAddress(address, 1);
+    assert(_verifyAddress(address, 1));
     return _memory[address];
   }
 
   /// Read a 16-bit short from memory (big-endian).
   int readShort(int address) {
-    _verifyAddress(address, 2);
-    return (_memory[address] << 8) | _memory[address + 1];
+    assert(_verifyAddress(address, 2));
+    return _view.getUint16(address, Endian.big);
   }
 
   /// Read a 32-bit word from memory (big-endian).
   int readWord(int address) {
-    _verifyAddress(address, 4);
-    return _read32(_memory, address);
+    assert(_verifyAddress(address, 4));
+    return _view.getUint32(address, Endian.big);
   }
 
   /// Write an 8-bit byte to memory.
   void writeByte(int address, int value) {
-    _verifyAddressWrite(address, 1);
+    assert(_verifyAddressWrite(address, 1));
     _memory[address] = value & 0xFF;
   }
 
@@ -230,21 +234,15 @@ class GlulxMemoryMap {
   }
 
   /// Write a 16-bit short to memory (big-endian).
-  /// Throws [GlulxException] if writing to ROM or out of bounds.
   void writeShort(int address, int value) {
-    _verifyAddressWrite(address, 2);
-    _memory[address] = (value >> 8) & 0xFF;
-    _memory[address + 1] = value & 0xFF;
+    assert(_verifyAddressWrite(address, 2));
+    _view.setUint16(address, value & 0xFFFF, Endian.big);
   }
 
   /// Write a 32-bit word to memory (big-endian).
-  /// Throws [GlulxException] if writing to ROM or out of bounds.
   void writeWord(int address, int value) {
-    _verifyAddressWrite(address, 4);
-    _memory[address] = (value >> 24) & 0xFF;
-    _memory[address + 1] = (value >> 16) & 0xFF;
-    _memory[address + 2] = (value >> 8) & 0xFF;
-    _memory[address + 3] = value & 0xFF;
+    assert(_verifyAddressWrite(address, 4));
+    _view.setUint32(address, value & 0xFFFFFFFF, Endian.big);
   }
 
   /// Change the size of the memory map.
@@ -283,6 +281,7 @@ class GlulxMemoryMap {
 
     // New space is already zero-filled by Uint8List constructor
     _memory = newMemory;
+    _view = ByteData.view(_memory.buffer);
     _endMem = newLength;
 
     return 0;

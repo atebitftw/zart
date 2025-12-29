@@ -201,7 +201,11 @@ void main() {
         expect(opcode, equals(0x10));
 
         final modes = harness.readAddressingModes(3);
-        expect(modes, equals([1, 8, 0]));
+        // Note: readAddressingModes returns pre-allocated buffer for performance.
+        // Only first 3 elements are valid; check those individually.
+        expect(modes[0], equals(1));
+        expect(modes[1], equals(8));
+        expect(modes[2], equals(0));
 
         final op1 = interpreter.loadOperand(modes[0]);
         expect(op1, equals(5));
