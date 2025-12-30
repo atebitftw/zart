@@ -32,7 +32,7 @@ import 'package:zart/zart.dart';
 ///
 /// 1. Implement [capabilities] to describe your platform's display and input.
 /// 2. Implement [render] to display game output using [ScreenFrame].
-/// 3. Implement input methods ([readLine], [readInput], [pollInput]).
+/// 3. Implement input methods ([readInput]).
 /// 4. Implement file IO ([saveGame], [restoreGame]).
 ///
 /// ## Example
@@ -88,14 +88,8 @@ abstract class PlatformProvider {
   /// The message should disappear after [seconds] seconds.
   void showTempMessage(String message, {int seconds = 3});
 
-  /// Open the settings screen.
-  ///
-  /// The platform should display its settings UI and return when complete.
-  /// [terminal] is the display interface for settings to render to.
-  Future<void> openSettings(
-    covariant dynamic terminal, {
-    bool isGameStarted = false,
-  });
+  /// Opens a platform-specific settings screen.
+  Future<void> openSettings({bool isGameStarted = false});
 
   /// Notify the platform that text color preference has changed.
   ///
@@ -107,17 +101,6 @@ abstract class PlatformProvider {
   // INPUT
   // ============================================================
 
-  /// Read a line of text input from the user.
-  ///
-  /// Blocks until the user presses Enter. Returns the entered text
-  /// (without the newline).
-  ///
-  /// [maxLength] - Maximum characters to accept (optional).
-  /// [timeout] - Timeout in milliseconds, or null for no timeout.
-  ///
-  /// If timeout expires, return the current partial input.
-  Future<String> readLine({int? maxLength, int? timeout});
-
   /// Read a single input event (key press, mouse click, etc).
   ///
   /// Blocks until input is available or timeout expires.
@@ -126,12 +109,6 @@ abstract class PlatformProvider {
   ///
   /// Returns an [InputEvent] describing what happened.
   Future<InputEvent> readInput({int? timeout});
-
-  /// Poll for input without blocking.
-  ///
-  /// Returns immediately with any pending input, or null if none.
-  /// Used for real-time games and timed input.
-  InputEvent? pollInput();
 
   /// Set a callback to be notified when scroll offset changes during input.
   ///
@@ -178,34 +155,6 @@ abstract class PlatformProvider {
   ///
   /// Returns the save data, or null if cancelled/failed.
   Future<List<int>?> restoreGame({String? suggestedName});
-
-  /// Request to save game state (non-interactive).
-  ///
-  /// The platform should save the data to a default or internal location
-  /// without prompting the user.
-  ///
-  /// Returns the location used, or null if it failed.
-  Future<String?> quickSave(List<int> data);
-
-  /// Request to restore game state (non-interactive).
-  ///
-  /// The platform should restore data from a default or internal location
-  /// without prompting the user.
-  ///
-  /// Returns the save data, or null if not found/failed.
-  Future<List<int>?> quickRestore();
-
-  /// Signal that the next interactive save should use quick save (automatic filename).
-  ///
-  /// Called before injecting a "save" command during F2 key handling.
-  /// The platform should use an automatic filename for the next [saveGame] call.
-  void setQuickSaveFlag() {}
-
-  /// Signal that the next interactive restore should use quick restore (automatic filename).
-  ///
-  /// Called before injecting a "restore" command during F3 key handling.
-  /// The platform should use an automatic filename for the next [restoreGame] call.
-  void setQuickRestoreFlag() {}
 
   // ============================================================
   // LIFECYCLE

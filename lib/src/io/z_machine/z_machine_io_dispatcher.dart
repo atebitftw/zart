@@ -28,12 +28,6 @@ class ZMachineIoDispatcher implements ZIoDispatcher {
     return (caps.screenWidth, caps.screenHeight);
   }
 
-  @override
-  Future<String?> quickSave(List<int> data) => _provider.quickSave(data);
-
-  @override
-  Future<List<int>?> quickRestore() => _provider.quickRestore();
-
   // Method mapping implementation...
   @override
   Future<dynamic> command(Map<String, dynamic> commandMessage) async {

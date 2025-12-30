@@ -75,12 +75,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   /// Hook for autorestore trigger
   void Function()? onRestore;
 
-  /// Hook for quicksave trigger (injected input)
-  void Function()? onQuickSave;
-
-  /// Hook for quickload trigger (injected input)
-  void Function()? onQuickLoad;
-
   /// Whether to show the bottom status bar (default false)
   bool enableStatusBar = false;
 
@@ -105,16 +99,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
   ];
 
   int _currentTextColorIndex = 0;
-
-  void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
-    final newColor = _customTextColors[_currentTextColorIndex];
-    _screen.forceWindow0Color(newColor);
-
-    // Notify platform of preference change
-    platformProvider?.setTextColor(newColor);
-  }
 
   // State for tracking mouse escape sequences
   String _mouseSeqBuffer = '';
@@ -391,44 +375,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
     onScreenReady?.call(screenFrame);
   }
 
-  /// Process global keys (F1-F4, etc). Returns (consumed, restored).
-  Future<(bool, bool)> _handleGlobalKeys(InputEvent event) async {
-    if (event.type != InputEventType.character) return (false, false);
-
-    if (event.keyCode == SpecialKeys.f1) {
-      if (onOpenSettings != null) {
-        await onOpenSettings!();
-        render(); // Re-render after returning
-      }
-      return (true, false);
-    } else if (event.keyCode == SpecialKeys.f2) {
-      // Set quicksave flag so platform auto-fills filename
-      onQuickSave?.call();
-      // Inject "save" command and signal input should return it
-      _inputBuffer = 'save';
-      appendToWindow0('save\n');
-      _scrollOffset = 0;
-      render();
-      _inputLine = -1;
-      return (true, false);
-    } else if (event.keyCode == SpecialKeys.f3) {
-      // Set quickrestore flag so platform auto-fills filename
-      onQuickLoad?.call();
-      // Inject "restore" command and signal input should return it
-      _inputBuffer = 'restore';
-      appendToWindow0('restore\n');
-      _scrollOffset = 0;
-      render();
-      _inputLine = -1;
-      return (true, false);
-    } else if (event.keyCode == SpecialKeys.f4) {
-      _cycleTextColor();
-      render();
-      return (true, false);
-    }
-    return (false, false);
-  }
-
   /// Read a line of input from the user.
   @override
   Future<String> readLine({int? windowId}) async {
@@ -463,21 +409,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         throw StateError(
           'ZTerminalDisplay requires a platformProvider for input.',
         );
-      }
-
-      final (consumed, restored) = await _handleGlobalKeys(event);
-      if (consumed) {
-        if (restored) {
-          _inputBuffer = '';
-          _inputLine = -1;
-          return '__RESTORED__';
-        }
-        if (_inputBuffer.isNotEmpty && _inputLine == -1) {
-          final result = _inputBuffer;
-          _inputBuffer = '';
-          return result;
-        }
-        continue;
       }
 
       // Check for Macro Commands (simplified)
@@ -565,12 +496,6 @@ class ZTerminalDisplay implements ZartTerminal, ZMachineDisplay {
         throw StateError(
           'ZTerminalDisplay requires a platformProvider for input.',
         );
-      }
-
-      final (consumed, restored) = await _handleGlobalKeys(event);
-      if (consumed) {
-        if (restored) return '__RESTORED__';
-        continue;
       }
 
       if (event.keyCode == SpecialKeys.enter) return '\n';

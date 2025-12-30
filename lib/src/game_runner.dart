@@ -56,6 +56,21 @@ class GameRunner {
   /// Detects game type, initializes the correct interpreter, and runs
   /// the event loop until the game quits.
   Future<void> run(Uint8List bytes) async {
+    // Configure debugger from debug config
+    debugger.enabled = _debugConfig['debug'] ?? false;
+    debugger.startStep = _debugConfig['startstep'];
+    debugger.endStep = _debugConfig['endstep'];
+    debugger.showHeader = _debugConfig['showheader'] ?? false;
+    debugger.showBytes = _debugConfig['showbytes'] ?? false;
+    debugger.showModes = _debugConfig['showmodes'] ?? false;
+    debugger.showInstructions = _debugConfig['showinstructions'] ?? false;
+    debugger.showPCAdvancement = _debugConfig['showpc'] ?? false;
+    debugger.showFlightRecorder = _debugConfig['flight-recorder'] ?? false;
+    debugger.flightRecorderSize = _debugConfig['flight-recorder-size'] ?? 100;
+    debugger.showScreen = _debugConfig['show-screen'] ?? false;
+    debugger.logFilter = _debugConfig['logfilter'];
+    debugger.dumpDebugSettings();
+
     final (gameData, fileType) = Blorb.getStoryFileData(bytes);
 
     if (fileType == null) {
@@ -66,10 +81,10 @@ class GameRunner {
       throw GameRunnerException('Unable to extract game data from file');
     }
 
+    await _showTitleScreen();
+
     // Show title screen before starting the game
     provider.onInit(fileType);
-
-    await _showTitleScreen();
 
     // Each game type manages its own setup and full-screen mode
     switch (fileType) {
@@ -119,30 +134,11 @@ class GameRunner {
 
     // Wire up settings callback
     glkDisplay.onOpenSettings = () async {
-      await provider.openSettings(glkDisplay, isGameStarted: true);
+      await provider.openSettings(isGameStarted: true);
     };
-
-    // Wire up quicksave/quickload callbacks to set flags on the platform provider
-    glkDisplay.onQuickSave = () => provider.setQuickSaveFlag();
-    glkDisplay.onQuickLoad = () => provider.setQuickRestoreFlag();
 
     // Create the interpreter with the Glk provider
     _glulx = GlulxInterpreter(glulxProvider);
-
-    // Configure debugger from debug config
-    debugger.enabled = _debugConfig['debug'] ?? false;
-    debugger.startStep = _debugConfig['startstep'];
-    debugger.endStep = _debugConfig['endstep'];
-    debugger.showHeader = _debugConfig['showheader'] ?? false;
-    debugger.showBytes = _debugConfig['showbytes'] ?? false;
-    debugger.showModes = _debugConfig['showmodes'] ?? false;
-    debugger.showInstructions = _debugConfig['showinstructions'] ?? false;
-    debugger.showPCAdvancement = _debugConfig['showpc'] ?? false;
-    debugger.showFlightRecorder = _debugConfig['flight-recorder'] ?? false;
-    debugger.flightRecorderSize = _debugConfig['flight-recorder-size'] ?? 100;
-    debugger.showScreen = _debugConfig['show-screen'] ?? false;
-    debugger.logFilter = _debugConfig['logfilter'];
-    debugger.dumpDebugSettings();
 
     _glulx!.load(gameData);
 
@@ -194,13 +190,6 @@ class GameRunner {
 
     zDisplay.detectTerminalSize();
     zDisplay.applySavedSettings();
-
-    zDisplay.onOpenSettings = () =>
-        provider.openSettings(zDisplay, isGameStarted: true);
-
-    // Wire up quicksave/quickload callbacks to set flags on the platform provider
-    zDisplay.onQuickSave = () => provider.setQuickSaveFlag();
-    zDisplay.onQuickLoad = () => provider.setQuickRestoreFlag();
 
     zDisplay.enableStatusBar = true;
     zDisplay.detectTerminalSize();

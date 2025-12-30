@@ -21,16 +21,9 @@ class MockPlatformProvider extends PlatformProvider {
   @override
   void showTempMessage(String message, {int seconds = 3}) {}
   @override
-  Future<void> openSettings(
-    dynamic terminal, {
-    bool isGameStarted = false,
-  }) async {}
-  @override
-  Future<String> readLine({int? maxLength, int? timeout}) async => '';
+  Future<void> openSettings({bool isGameStarted = false}) async {}
   @override
   Future<InputEvent> readInput({int? timeout}) async => InputEvent.none();
-  @override
-  InputEvent? pollInput() => InputEvent.none();
   @override
   ({
     Future<void> onKeyPressed,
@@ -58,10 +51,6 @@ class MockPlatformProvider extends PlatformProvider {
     return restoreData;
   }
 
-  @override
-  Future<String?> quickSave(List<int> data) async => null;
-  @override
-  Future<List<int>?> quickRestore() async => null;
   @override
   void onInit(GameFileType type) {}
   @override

@@ -13,7 +13,6 @@ import 'package:zart/src/z_machine/interpreters/interpreter_v7.dart'
     show InterpreterV7;
 import 'package:zart/src/z_machine/interpreters/interpreter_v8.dart'
     show InterpreterV8;
-import 'package:zart/src/io/quetzal.dart';
 
 /// The Z-Machine singleton.
 ZMachine get Z => ZMachine();
@@ -204,27 +203,6 @@ class ZMachine {
   /// Sends IO to the [io] provider.
   Future<dynamic> sendIO(Map<String, dynamic> ioData) async {
     return await io.command(ioData);
-  }
-
-  /// Performs a quick save of the current machine state.
-  Future<bool> performQuickSave() async {
-    if (!isLoaded) return false;
-
-    // Use current PC
-    final saveData = Quetzal.save(engine.programCounter);
-    final result = await io.quickSave(saveData);
-    return result != null;
-  }
-
-  /// Performs a quick restore of the game state.
-  Future<bool> performQuickRestore() async {
-    if (!isLoaded) return false;
-
-    final data = await io.quickRestore();
-    if (data != null) {
-      return Quetzal.restore(data);
-    }
-    return false;
   }
 
   /// Prints the buffer.

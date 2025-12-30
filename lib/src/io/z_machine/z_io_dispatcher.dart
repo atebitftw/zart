@@ -18,12 +18,6 @@ abstract class ZIoDispatcher {
 
   /// Returns the screen dimensions as (width, height) in characters.
   (int, int) getScreenSize() => (80, 24);
-
-  /// Performs a non-interactive quick save.
-  Future<String?> quickSave(List<int> data) async => null;
-
-  /// Performs a non-interactive quick restore.
-  Future<List<int>?> quickRestore() async => null;
 }
 
 /// Converts a string to an IO command.

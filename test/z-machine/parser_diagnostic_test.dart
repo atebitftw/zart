@@ -139,12 +139,6 @@ class DiagnosticTestProvider implements ZIoDispatcher {
 
   @override
   (int, int) getScreenSize() => (80, 24);
-
-  @override
-  Future<String?> quickSave(List<int> data) async => null;
-
-  @override
-  Future<List<int>?> quickRestore() async => null;
 }
 
 String _findGameFile(String filename) {

@@ -181,3 +181,6 @@
 
 # 2.0.4
 - Optimized glulx interpreter.
+
+# 2.0.5
+- Cleaned up the PlatformProvider API.

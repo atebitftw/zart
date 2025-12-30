@@ -40,12 +40,6 @@ class GlkTerminalDisplay implements ZartTerminal {
   @override
   Future<void> Function()? onOpenSettings;
 
-  /// Hook for quick save trigger (F2 key).
-  void Function()? onQuickSave;
-
-  /// Hook for quick load trigger (F3 key).
-  void Function()? onQuickLoad;
-
   /// Whether the zart bar (status bar) is enabled for this display.
   bool _enableStatusBar = true;
 
@@ -119,16 +113,6 @@ class GlkTerminalDisplay implements ZartTerminal {
     _lastModel?.forceTextColor(savedColor);
   }
 
-  void _cycleTextColor() {
-    _currentTextColorIndex =
-        (_currentTextColorIndex + 1) % _customTextColors.length;
-    final newColor = _customTextColors[_currentTextColorIndex];
-    _lastModel?.forceTextColor(newColor);
-
-    // Notify platform of preference change
-    platformProvider?.setTextColor(newColor);
-  }
-
   /// Enter full-screen mode.
   void enterFullScreen() => onEnterFullScreen?.call();
 
@@ -194,40 +178,6 @@ class GlkTerminalDisplay implements ZartTerminal {
   void showTempMessage(String message, {int seconds = 3}) =>
       onShowTempMessage?.call(message, seconds: seconds);
 
-  /// Process global keys (F1, PgUp/PgDn, etc). Returns true if key was consumed.
-  Future<bool> _handleGlobalKeys(InputEvent event) async {
-    if (event.type != InputEventType.character) return false;
-
-    if (event.keyCode == SpecialKeys.f1) {
-      if (onOpenSettings != null) {
-        await onOpenSettings!();
-        rerenderWithScroll(); // Re-render after returning
-      }
-      return true;
-    } else if (event.keyCode == SpecialKeys.f2) {
-      // Quick save - set flag on provider then inject "save" command
-      if (glkProvider != null) {
-        (glkProvider as dynamic).setQuickSaveFlag();
-      }
-      onQuickSave?.call();
-      pushInput('save\n');
-      return true;
-    } else if (event.keyCode == SpecialKeys.f3) {
-      // Quick restore - set flag on provider then inject "restore" command
-      if (glkProvider != null) {
-        (glkProvider as dynamic).setQuickRestoreFlag();
-      }
-      onQuickLoad?.call();
-      pushInput('restore\n');
-      return true;
-    } else if (event.keyCode == SpecialKeys.f4) {
-      _cycleTextColor();
-      rerenderWithScroll();
-      return true;
-    }
-    return false;
-  }
-
   /// Read a line of input.
   /// Handles input directly using Console with scroll support (matches Z-machine pattern).
   @override
@@ -251,16 +201,6 @@ class GlkTerminalDisplay implements ZartTerminal {
         throw StateError(
           'GlkTerminalDisplay requires a platformProvider for input.',
         );
-      }
-
-      // Handle global keys (F1, PgUp/PgDn)
-      if (await _handleGlobalKeys(event)) {
-        // If save/restore was injected, return the injected input
-        if (_inputQueue.isNotEmpty) {
-          final line = _popQueueLine();
-          return line;
-        }
-        continue;
       }
 
       // Handle Macro Commands (simplified)
@@ -314,8 +254,6 @@ class GlkTerminalDisplay implements ZartTerminal {
           'GlkTerminalDisplay requires a platformProvider for input.',
         );
       }
-
-      if (await _handleGlobalKeys(event)) continue;
 
       if (event.keyCode == SpecialKeys.enter) return '\n';
       if (event.keyCode == SpecialKeys.delete) return '\x7F';
