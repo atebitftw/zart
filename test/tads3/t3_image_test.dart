@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:zart/src/tads3/t3_header.dart';
-import 'package:zart/src/tads3/t3_block.dart';
-import 'package:zart/src/tads3/t3_image.dart';
-import 'package:zart/src/tads3/t3_exception.dart';
+import 'package:zart/src/loaders/tads/t3_header.dart';
+import 'package:zart/src/loaders/tads/t3_block.dart';
+import 'package:zart/src/loaders/tads/t3_image.dart';
+import 'package:zart/src/loaders/tads/t3_exception.dart';
 
 void main() {
   group('T3Header', () {

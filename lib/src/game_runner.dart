@@ -27,7 +27,7 @@ class GameRunner {
 
   /// Debug configuration options.
   final _debugConfig = const <String, dynamic>{
-    'debug': false,
+    'debug': true,
     'startstep': null,
     'endstep': null,
     'showheader': false,
@@ -35,7 +35,7 @@ class GameRunner {
     'showmodes': false,
     'showinstructions': false,
     'showpc': false,
-    'flight-recorder': false,
+    'flight-recorder': true,
     'flight-recorder-size': 100,
     'show-screen': false,
     'logfilter': null,
@@ -69,6 +69,8 @@ class GameRunner {
     debugger.dumpDebugSettings();
 
     final (gameData, fileType) = GameLoader.load(bytes);
+
+    debugger.flightRecorderEvent("Game Loaded.  Type: ${fileType?.name}");
 
     if (fileType == null) {
       throw GameRunnerException('Invalid or unsupported file type');

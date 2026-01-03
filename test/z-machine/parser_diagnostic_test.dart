@@ -16,19 +16,10 @@ library;
 import 'dart:io';
 import 'package:test/test.dart';
 import 'package:zart/src/zart_internal.dart';
-import 'package:logging/logging.dart';
 
 void main() {
   group('Parser Diagnostic Tests', () {
     test('trace tokenization and parsing of multi-word command', () async {
-      // Enable logging to see dictionary operations
-      Logger.root.level = Level.FINE;
-      Logger.root.onRecord.listen((record) {
-        if (record.message.contains('parse()') || record.message.contains('tokenize')) {
-          print('${record.level.name}: ${record.message}');
-        }
-      });
-
       // Load Beyond Zork
       final gamePath = _findGameFile('beyondzork.z5');
       final bytes = File(gamePath).readAsBytesSync();

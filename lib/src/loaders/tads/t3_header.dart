@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:zart/src/tads3/t3_exception.dart';
+import 'package:zart/src/loaders/tads/t3_exception.dart';
 
 /// The T3 image file header.
 ///
