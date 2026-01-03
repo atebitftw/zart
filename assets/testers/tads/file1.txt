@@ -1,0 +1,6 @@
+This is some data for the file.
+Here is the second line of text.
+A blank line follows this one.
+
+Okay, here are a few latin-1 characters: “Åéîõü”
+This is the last line!

@@ -40,9 +40,9 @@ void main() {
 
   String _findGameFile(String filename) {
     final paths = [
-      'assets/games/$filename',
-      '../../assets/games/$filename',
-      'c:/Users/John/dev/projects/zart/assets/games/$filename',
+      'assets/games/z/$filename',
+      '../../assets/games/z/$filename',
+      'c:/Users/John/dev/projects/zart/assets/games/z/$filename',
     ];
 
     for (final path in paths) {

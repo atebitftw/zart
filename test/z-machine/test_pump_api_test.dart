@@ -43,34 +43,27 @@ void main() {
   });
 
   group('Pump API Tests', () {
-    test(
-      'runUntilInput returns needsLineInput when game needs input',
-      () async {
-        final gamePath = _findGameFile();
-        final bytes = File(gamePath).readAsBytesSync();
+    test('runUntilInput returns needsLineInput when game needs input', () async {
+      final gamePath = _findGameFile();
+      final bytes = File(gamePath).readAsBytesSync();
 
-        Z.load(bytes.toList());
+      Z.load(bytes.toList());
 
-        final state = await Z.runUntilInput();
+      final state = await Z.runUntilInput();
 
-        expect(
-          state,
-          equals(ZMachineRunState.needsLineInput),
-          reason: 'Game should pause waiting for line input',
-        );
+      expect(state, equals(ZMachineRunState.needsLineInput), reason: 'Game should pause waiting for line input');
 
-        // Verify some intro text was printed
-        final outputText = provider.output.toString().toLowerCase();
-        expect(
-          outputText.contains('zork') || outputText.contains('west of house'),
-          isTrue,
-          reason: 'Should have printed some intro text: ${provider.output}',
-        );
+      // Verify some intro text was printed
+      final outputText = provider.output.toString().toLowerCase();
+      expect(
+        outputText.contains('zork') || outputText.contains('west of house'),
+        isTrue,
+        reason: 'Should have printed some intro text: ${provider.output}',
+      );
 
-        print('==== Initial Output ====');
-        print(provider.output.toString());
-      },
-    );
+      print('==== Initial Output ====');
+      print(provider.output.toString());
+    });
 
     test('submitLineInput processes "open mailbox" command correctly', () async {
       final gamePath = _findGameFile();
@@ -88,21 +81,14 @@ void main() {
       // Submit "open mailbox" command
       state = await Z.submitLineInput('open mailbox');
 
-      expect(
-        state,
-        equals(ZMachineRunState.needsLineInput),
-        reason: 'Game should pause waiting for next input',
-      );
+      expect(state, equals(ZMachineRunState.needsLineInput), reason: 'Game should pause waiting for next input');
 
       // Verify the response mentions the leaflet
       final outputText = provider.output.toString().toLowerCase();
       expect(
-        outputText.contains('leaflet') ||
-            outputText.contains('opening') ||
-            outputText.contains('small mailbox'),
+        outputText.contains('leaflet') || outputText.contains('opening') || outputText.contains('small mailbox'),
         isTrue,
-        reason:
-            'Response should mention leaflet or opening the mailbox: ${provider.output}',
+        reason: 'Response should mention leaflet or opening the mailbox: ${provider.output}',
       );
 
       print('==== "open mailbox" Response ====');
@@ -126,8 +112,7 @@ void main() {
 
       final lookOutput = provider.output.toString().toLowerCase();
       expect(
-        lookOutput.contains('west of house') ||
-            lookOutput.contains('white house'),
+        lookOutput.contains('west of house') || lookOutput.contains('white house'),
         isTrue,
         reason: 'Look should describe location',
       );
@@ -164,9 +149,9 @@ void main() {
 String _findGameFile() {
   // Try multiple paths
   final paths = [
-    'assets/games/minizork.z3',
-    '../../assets/games/minizork.z3',
-    'e:/dev/projects/zart/assets/games/minizork.z3',
+    'assets/games/z/minizork.z3',
+    '../../assets/games/z/minizork.z3',
+    'e:/dev/projects/zart/assets/games/z/minizork.z3',
   ];
 
   for (final path in paths) {
@@ -175,7 +160,5 @@ String _findGameFile() {
     }
   }
 
-  throw Exception(
-    'Game file not found. Tried: $paths. CWD: ${Directory.current.path}',
-  );
+  throw Exception('Game file not found. Tried: $paths. CWD: ${Directory.current.path}');
 }

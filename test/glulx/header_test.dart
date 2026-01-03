@@ -38,8 +38,7 @@ void main() {
     group('Magic Number Validation', () {
       test('valid magic number (ASCII "Glul")', () {
         // Spec: "Magic number: 47 6C 75 6C, which is to say ASCII 'Glul'."
-        final validHeader = Uint8List(36)
-          ..setRange(0, 4, [0x47, 0x6C, 0x75, 0x6C]);
+        final validHeader = Uint8List(36)..setRange(0, 4, [0x47, 0x6C, 0x75, 0x6C]);
         // Set a valid version as well
         validHeader.setRange(4, 8, [0x00, 0x03, 0x01, 0x03]);
 
@@ -51,8 +50,7 @@ void main() {
 
       test('invalid magic number throws', () {
         // Spec: "The interpreter should validate the magic number"
-        final invalidHeader = Uint8List(36)
-          ..setRange(0, 4, [0x42, 0x42, 0x42, 0x42]);
+        final invalidHeader = Uint8List(36)..setRange(0, 4, [0x42, 0x42, 0x42, 0x42]);
         final header = GlulxHeader(invalidHeader);
         expect(() => header.validate(), throwsA(isA<GlulxException>()));
       });
@@ -89,29 +87,20 @@ void main() {
       test('version 1.0.0 is rejected (too low)', () {
         final base = _createValidHeader();
         base.setRange(4, 8, [0x00, 0x01, 0x00, 0x00]);
-        expect(
-          () => GlulxHeader(base).validate(),
-          throwsA(isA<GlulxException>()),
-        );
+        expect(() => GlulxHeader(base).validate(), throwsA(isA<GlulxException>()));
       });
 
       test('version 4.0.0 is rejected (too high)', () {
         final base = _createValidHeader();
         base.setRange(4, 8, [0x00, 0x04, 0x00, 0x00]);
-        expect(
-          () => GlulxHeader(base).validate(),
-          throwsA(isA<GlulxException>()),
-        );
+        expect(() => GlulxHeader(base).validate(), throwsA(isA<GlulxException>()));
       });
 
       test('version 3.2.0 is rejected (minor too high)', () {
         // Spec: "minor version number should be less than or equal to Y"
         final base = _createValidHeader();
         base.setRange(4, 8, [0x00, 0x03, 0x02, 0x00]);
-        expect(
-          () => GlulxHeader(base).validate(),
-          throwsA(isA<GlulxException>()),
-        );
+        expect(() => GlulxHeader(base).validate(), throwsA(isA<GlulxException>()));
       });
     });
 
@@ -252,41 +241,25 @@ void main() {
 
     group('Real-world test', () {
       test('monkey.gblorb has valid header', () {
-        final gameData = GlulxTestUtils.loadTestGame(
-          'assets/games/monkey.gblorb',
-        );
+        final gameData = GlulxTestUtils.loadTestGame('assets/games/glulx/monkey.gblorb');
         final header = GlulxHeader(gameData);
 
-        expect(
-          () => header.validate(),
-          returnsNormally,
-          reason: 'monkey.gblorb should have a valid Glulx header.',
-        );
+        expect(() => header.validate(), returnsNormally, reason: 'monkey.gblorb should have a valid Glulx header.');
 
         // Basic sanity checks for monkey.gblorb
         expect(header.magicNumber, equals(0x476C756C));
         expect(header.ramStart, isNonZero);
-        expect(
-          header.extStart,
-          equals(gameData.length),
-          reason: 'Spec: EXTSTART is the length of the game file.',
-        );
+        expect(header.extStart, equals(gameData.length), reason: 'Spec: EXTSTART is the length of the game file.');
 
         // Version should be in valid range
         expect(header.majorVersion, anyOf(equals(2), equals(3)));
       });
 
       test('monkey.gblorb checksum is valid', () {
-        final gameData = GlulxTestUtils.loadTestGame(
-          'assets/games/monkey.gblorb',
-        );
+        final gameData = GlulxTestUtils.loadTestGame('assets/games/glulx/monkey.gblorb');
 
         // Real game files should have valid checksums
-        expect(
-          GlulxHeader.verifyChecksum(gameData),
-          isTrue,
-          reason: 'monkey.gblorb should have a valid checksum',
-        );
+        expect(GlulxHeader.verifyChecksum(gameData), isTrue, reason: 'monkey.gblorb should have a valid checksum');
       });
     });
   });

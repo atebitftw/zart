@@ -1,24 +1,23 @@
 import 'dart:typed_data';
 
+import 'package:zart/src/loaders/game_loader.dart';
 import 'package:zart/src/loaders/iff.dart';
 import 'package:zart/src/logging.dart' show log;
 
-/// Enumerates story file types.
-enum GameFileType {
-  /// Z-Machine Game File
-  z,
-
-  /// Glulx Game File
-  glulx,
-}
-
-/// Detects and loads Z game file component, if present.
+/// Blorb container file loader for Z-machine and Glulx games.
+///
+/// Blorb files are IFF containers that can hold:
+/// - Z-machine code (ZCOD chunks)
+/// - Glulx code (GLUL chunks)
+/// - Images, sounds, and other resources
 class Blorb {
-  /// Returns true if the file is recognized as a blorb type file (.zblorb or .gblorb)
+  /// Returns true if the file is a Blorb container (.zblorb or .gblorb).
+  ///
+  /// Blorb files are IFF files with FORM type IFRS.
   static bool isBlorbFile(Uint8List fileBytes) {
-    var stream = List<int>.from(fileBytes);
+    if (fileBytes.length < 12) return false;
 
-    if (stream.length < 12) return false;
+    var stream = List<int>.from(fileBytes);
 
     if (IFF.readChunk(stream) != Chunk.form) return false;
 
@@ -31,54 +30,22 @@ class Blorb {
     return true;
   }
 
-  /// Checks if the file is a raw Z-machine game file.
-  /// Z-machine files start with a version byte (1-8), not a magic string.
-  static bool _isZGameFile(Uint8List fileBytes) {
-    if (fileBytes.isEmpty) return false;
-    // Z-machine version is the first byte, valid versions are 1-8
-    final version = fileBytes[0];
-    return version >= 1 && version <= 8;
-  }
-
-  /// Checks if the file is a raw Glulx game file.
-  /// Glulx files start with magic bytes 'Glul' (0x47, 0x6C, 0x75, 0x6C).
-  static bool _isGlulxGameFile(Uint8List fileBytes) {
-    if (fileBytes.length < 4) return false;
-    // Glulx magic number: ASCII "Glul" = 0x47 0x6C 0x75 0x6C
-    return fileBytes[0] == 0x47 && // 'G'
-        fileBytes[1] == 0x6C && // 'l'
-        fileBytes[2] == 0x75 && // 'u'
-        fileBytes[3] == 0x6C; // 'l'
-  }
-
-  /// Returns a game file (if found) and the type of game file.
-  static (Uint8List?, GameFileType?) getStoryFileData(Uint8List fileBytes) {
-    if (!isBlorbFile(fileBytes)) {
-      if (_isGlulxGameFile(fileBytes)) {
-        return (fileBytes, GameFileType.glulx);
-      }
-
-      if (_isZGameFile(fileBytes)) {
-        return (fileBytes, GameFileType.z);
-      }
-
-      return (null, null);
-    }
-    // Use a growable list for stream processing (Uint8List is fixed-length)
+  /// Extracts game data from a Blorb container.
+  ///
+  /// Returns a tuple of (gameData, fileType) or (null, null) if no game found.
+  static (Uint8List?, GameFileType?) extractGameData(Uint8List fileBytes) {
     var stream = List<int>.from(fileBytes);
 
-    // Header (already verified by isBlorb, but we need to consume it)
+    // Header (already verified by isBlorbFile, but we need to consume it)
     IFF.readChunk(stream); // FORM
     IFF.read4Byte(stream); // Size
     IFF.readChunk(stream); // IFRS
 
     while (stream.isNotEmpty) {
-      if (stream.length < 8) break; // Not enough for Chunk Header
+      if (stream.length < 8) break;
 
       var chunkType = IFF.readChunk(stream);
       var chunkSize = IFF.read4Byte(stream);
-
-      // Pad chunk size to even number of bytes as per IFF spec
       var paddedSize = chunkSize + (chunkSize % 2);
 
       if (chunkType == Chunk.ridx) {
@@ -90,214 +57,52 @@ class Blorb {
           IFF.read4Byte(stream); // number (unused)
           var start = IFF.read4Byte(stream);
 
-          if (usage == Chunk.exec) {
-            // Found Executable Resource (Story File)
-            // The 'start' is the offset in the original file (absolute)
-
-            if (start < fileBytes.length) {
-              // Read chunk at 'start' in original file
-              // Z-Machine Game Chunk: ZCOD + Size + Data
-
-              // Verify ZCOD
-              // fileBytes[start..start+3] should equal 'ZCOD'
-              if (start + 8 <= fileBytes.length) {
-                // Check for 'ZCOD' (90, 67, 79, 68)
-                if (fileBytes[start] == 90 &&
-                    fileBytes[start + 1] == 67 &&
-                    fileBytes[start + 2] == 79 &&
-                    fileBytes[start + 3] == 68) {
-                  // Read size
-                  int len =
-                      (fileBytes[start + 4] << 24) |
-                      (fileBytes[start + 5] << 16) |
-                      (fileBytes[start + 6] << 8) |
-                      fileBytes[start + 7];
-
-                  if (start + 8 + len <= fileBytes.length) {
-                    return (_getZData(fileBytes), GameFileType.z);
-                  }
-                } else {
-                  // check for 'GLUL' (71, 76, 85, 76)
-                  if (fileBytes[start] == 71 &&
-                      fileBytes[start + 1] == 76 &&
-                      fileBytes[start + 2] == 85 &&
-                      fileBytes[start + 3] == 76) {
-                    // we aren't supporting glulx just yet so return null.
-                    return (_getGlulxData(fileBytes), GameFileType.glulx);
-                  } else {
-                    return (null, null);
-                  }
-                }
-              }
+          if (usage == Chunk.exec && start < fileBytes.length && start + 8 <= fileBytes.length) {
+            // Check for ZCOD (Z-machine)
+            if (_matchesChunk(fileBytes, start, Chunk.zcod)) {
+              final data = _extractChunkData(fileBytes, start);
+              if (data != null) return (data, GameFileType.z);
+            }
+            // Check for GLUL (Glulx)
+            else if (_matchesChunk(fileBytes, start, Chunk.glul)) {
+              final data = _extractChunkData(fileBytes, start);
+              if (data != null) return (data, GameFileType.glulx);
             }
           }
         }
       } else {
         // Skip this chunk
-        if (paddedSize > 0) {
-          if (paddedSize > stream.length) break; // Corrupted
+        if (paddedSize > 0 && paddedSize <= stream.length) {
           stream.removeRange(0, paddedSize);
+        } else {
+          break;
         }
       }
     }
-    log.warning("Unable to load file.");
+
+    log.warning("Unable to extract game data from Blorb file.");
     return (null, null);
   }
 
-  static Uint8List? _getGlulxData(Uint8List fileBytes) {
-    // Use a growable list for stream processing (Uint8List is fixed-length)
-    var stream = List<int>.from(fileBytes);
-
-    // Header (already verified by isBlorb, but we need to consume it)
-    IFF.readChunk(stream); // FORM
-    IFF.read4Byte(stream); // Size
-    IFF.readChunk(stream); // IFRS
-
-    while (stream.isNotEmpty) {
-      if (stream.length < 8) break; // Not enough for Chunk Header
-
-      var chunkType = IFF.readChunk(stream);
-      var chunkSize = IFF.read4Byte(stream);
-
-      // Pad chunk size to even number of bytes as per IFF spec
-      var paddedSize = chunkSize + (chunkSize % 2);
-
-      if (chunkType == Chunk.ridx) {
-        // Parse Resource Index
-        var numResources = IFF.read4Byte(stream);
-
-        for (int i = 0; i < numResources; i++) {
-          var usage = IFF.readChunk(stream);
-          IFF.read4Byte(stream); // number (unused)
-          var start = IFF.read4Byte(stream);
-
-          if (usage == Chunk.exec) {
-            // Found Executable Resource (Story File)
-            // The 'start' is the offset in the original file (absolute)
-
-            if (start < fileBytes.length) {
-              // Read chunk at 'start' in original file
-              // Z-Machine Game Chunk: ZCOD + Size + Data
-
-              // Verify ZCOD
-              // fileBytes[start..start+3] should equal 'ZCOD'
-              if (start + 8 <= fileBytes.length) {
-                // Check for 'GLUL' (71, 76, 85, 76)
-                if (fileBytes[start] == 71 &&
-                    fileBytes[start + 1] == 76 &&
-                    fileBytes[start + 2] == 85 &&
-                    fileBytes[start + 3] == 76) {
-                  // Read size
-                  var len =
-                      (fileBytes[start + 4] << 24) |
-                      (fileBytes[start + 5] << 16) |
-                      (fileBytes[start + 6] << 8) |
-                      fileBytes[start + 7];
-
-                  if (start + 8 + len <= fileBytes.length) {
-                    return Uint8List.fromList(
-                      fileBytes.sublist(start + 8, start + 8 + len),
-                    );
-                  }
-                } else {
-                  log.warning("GLUL chunk not found.");
-                  return null;
-                }
-              }
-            }
-          }
-        }
-      } else {
-        // Skip this chunk
-        if (paddedSize > 0) {
-          if (paddedSize > stream.length) break; // Corrupted
-          stream.removeRange(0, paddedSize);
-        }
-      }
-    }
-
-    // If we get here, we found a Blorb but no Z-Code in it?
-    // Or parsing failed. Return null to indicate failure.
-    return null;
+  /// Checks if bytes at offset match a chunk type.
+  static bool _matchesChunk(Uint8List bytes, int offset, Chunk chunk) {
+    if (offset + 4 > bytes.length) return false;
+    return bytes[offset] == chunk[0] &&
+        bytes[offset + 1] == chunk[1] &&
+        bytes[offset + 2] == chunk[2] &&
+        bytes[offset + 3] == chunk[3];
   }
 
-  /// Attempts to extract the Z-Machine game file data from the Blorb
-  /// file bytes in [fileBytes].  If the file is not a Blorb type, then the
-  /// original bytes are returned (assumes it's a valid compiled ZIL file.)
-  static Uint8List? _getZData(Uint8List fileBytes) {
-    // Use a growable list for stream processing (Uint8List is fixed-length)
-    var stream = List<int>.from(fileBytes);
+  /// Extracts chunk data from an IFF chunk at the given offset.
+  static Uint8List? _extractChunkData(Uint8List bytes, int offset) {
+    if (offset + 8 > bytes.length) return null;
 
-    // Header (already verified by isBlorb, but we need to consume it)
-    IFF.readChunk(stream); // FORM
-    IFF.read4Byte(stream); // Size
-    IFF.readChunk(stream); // IFRS
+    // Read chunk size (big-endian)
+    int len = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
 
-    while (stream.isNotEmpty) {
-      if (stream.length < 8) break; // Not enough for Chunk Header
-
-      var chunkType = IFF.readChunk(stream);
-      var chunkSize = IFF.read4Byte(stream);
-
-      // Pad chunk size to even number of bytes as per IFF spec
-      var paddedSize = chunkSize + (chunkSize % 2);
-
-      if (chunkType == Chunk.ridx) {
-        // Parse Resource Index
-        var numResources = IFF.read4Byte(stream);
-
-        for (int i = 0; i < numResources; i++) {
-          var usage = IFF.readChunk(stream);
-          IFF.read4Byte(stream); // number (unused)
-          var start = IFF.read4Byte(stream);
-
-          if (usage == Chunk.exec) {
-            // Found Executable Resource (Story File)
-            // The 'start' is the offset in the original file (absolute)
-
-            if (start < fileBytes.length) {
-              // Read chunk at 'start' in original file
-              // Z-Machine Game Chunk: ZCOD + Size + Data
-
-              // Verify ZCOD
-              // fileBytes[start..start+3] should equal 'ZCOD'
-              if (start + 8 <= fileBytes.length) {
-                // Check for 'ZCOD' (90, 67, 79, 68)
-                if (fileBytes[start] == 90 &&
-                    fileBytes[start + 1] == 67 &&
-                    fileBytes[start + 2] == 79 &&
-                    fileBytes[start + 3] == 68) {
-                  // Read size
-                  var len =
-                      (fileBytes[start + 4] << 24) |
-                      (fileBytes[start + 5] << 16) |
-                      (fileBytes[start + 6] << 8) |
-                      fileBytes[start + 7];
-
-                  if (start + 8 + len <= fileBytes.length) {
-                    return Uint8List.fromList(
-                      fileBytes.sublist(start + 8, start + 8 + len),
-                    );
-                  }
-                } else {
-                  log.warning("ZCOD chunk not found.");
-                  return null;
-                }
-              }
-            }
-          }
-        }
-      } else {
-        // Skip this chunk
-        if (paddedSize > 0) {
-          if (paddedSize > stream.length) break; // Corrupted
-          stream.removeRange(0, paddedSize);
-        }
-      }
+    if (offset + 8 + len <= bytes.length) {
+      return Uint8List.fromList(bytes.sublist(offset + 8, offset + 8 + len));
     }
-
-    // If we get here, we found a Blorb but no Z-Code in it?
-    // Or parsing failed. Return null to indicate failure.
     return null;
   }
 }

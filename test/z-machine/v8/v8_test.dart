@@ -4,7 +4,7 @@ import 'v8_object_tests.dart';
 
 void main() {
   // Tests depend on using this file.  Tests will fail if changed.
-  var defaultGameFile = 'assets/games/across.z8';
+  var defaultGameFile = 'assets/games/z/across.z8';
 
   File f = File(defaultGameFile);
 

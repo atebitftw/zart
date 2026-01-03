@@ -112,9 +112,9 @@ void main() {
   String _findGameFile(String filename) {
     // Try a few common paths
     final paths = [
-      'assets/games/$filename',
-      '../../assets/games/$filename',
-      'c:/Users/John/dev/projects/zart/assets/games/$filename',
+      'assets/games/z/$filename',
+      '../../assets/games/z/$filename',
+      'c:/Users/John/dev/projects/zart/assets/games/z/$filename',
     ];
 
     for (final path in paths) {
@@ -141,9 +141,7 @@ void main() {
     // But we are in a unit test. We can use Z.runUntilInput()
 
     // Step 1: Run until first input (game start)
-    provider.queueInput(
-      'mysave',
-    ); // Filename for save (no extension to test auto-add)
+    provider.queueInput('mysave'); // Filename for save (no extension to test auto-add)
 
     // Running...
     // Note: 'save' is an opcode. It triggers IoCommands.save.
@@ -170,20 +168,12 @@ void main() {
 
     // Provider logic inside 'save' command should have consumed 'mysave'
     // and created 'mysave.sav'
-    expect(
-      provider.hasSavedGame('mysave.sav'),
-      isTrue,
-      reason: "Save file should exist",
-    );
+    expect(provider.hasSavedGame('mysave.sav'), isTrue, reason: "Save file should exist");
 
     // 3. Verify Data
     final savedData = provider.getSavedGame('mysave.sav');
     expect(savedData, isNotNull);
-    expect(
-      savedData!.length,
-      greaterThan(100),
-      reason: "Save data should be substantial",
-    );
+    expect(savedData!.length, greaterThan(100), reason: "Save data should be substantial");
 
     // 4. Restore
     // We are back at input prompt (hopefully, depending on minizork behavior after save)

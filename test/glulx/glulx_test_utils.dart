@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:zart/src/loaders/game_loader.dart';
 import 'package:zart/src/loaders/blorb.dart';
 
 class GlulxTestUtils {
@@ -17,7 +18,7 @@ class GlulxTestUtils {
     final bytes = file.readAsBytesSync();
 
     if (Blorb.isBlorbFile(bytes)) {
-      final (storyData, type) = Blorb.getStoryFileData(bytes);
+      final (storyData, type) = GameLoader.load(bytes);
       if (storyData == null) {
         throw Exception('No story data found in Blorb file: $path');
       }
