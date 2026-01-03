@@ -37,10 +37,10 @@ class T3FunctionSetDepList {
 
   /// Parses an FNSD block from raw data.
   ///
-  /// FNSD block format:
+  /// FNSD block format (from reference VM vmimage.cpp):
   /// - UINT2: number of entries
   /// - For each entry:
-  ///   - UINT2: name length
+  ///   - UBYTE: name length
   ///   - bytes: name (ASCII)
   factory T3FunctionSetDepList.parse(Uint8List data) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
@@ -50,10 +50,11 @@ class T3FunctionSetDepList {
     var offset = 2;
 
     for (var i = 0; i < count; i++) {
-      // Read name length and name
-      final nameLen = view.getUint16(offset, Endian.little);
-      offset += 2;
+      // Read name length (UBYTE, not UINT2!)
+      final nameLen = data[offset];
+      offset += 1;
 
+      // Read name
       final nameBytes = data.sublist(offset, offset + nameLen);
       final identifier = String.fromCharCodes(nameBytes);
       offset += nameLen;

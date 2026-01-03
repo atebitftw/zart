@@ -1,6 +1,6 @@
 import 'dart:typed_data';
-
-import 't3_value.dart';
+import 'package:zart/src/tads3/vm/t3_utf8.dart';
+import 'package:zart/src/tads3/vm/t3_value.dart';
 
 /// T3 VM constant pool.
 ///
@@ -111,8 +111,6 @@ class T3ConstantPool {
     return Uint8List.sublistView(page, pageOffset, pageOffset + length);
   }
 
-  // ==================== Constant String Access ====================
-
   /// Reads a constant string at the given pool offset.
   ///
   /// String format: UINT2 length + UTF-8 bytes
@@ -121,39 +119,7 @@ class T3ConstantPool {
     final length = readUint16(offset);
     final bytes = readBytes(offset + 2, length);
 
-    // Decode UTF-8
-    return _decodeUtf8(bytes);
-  }
-
-  /// Decodes UTF-8 bytes to a string.
-  String _decodeUtf8(Uint8List bytes) {
-    final codeUnits = <int>[];
-    var i = 0;
-
-    while (i < bytes.length) {
-      final b = bytes[i];
-      if ((b & 0x80) == 0) {
-        // Single byte character (0x00-0x7F)
-        codeUnits.add(b);
-        i++;
-      } else if ((b & 0xE0) == 0xC0) {
-        // Two byte character (0x80-0x7FF)
-        final c = ((b & 0x1F) << 6) | (bytes[i + 1] & 0x3F);
-        codeUnits.add(c);
-        i += 2;
-      } else if ((b & 0xF0) == 0xE0) {
-        // Three byte character (0x800-0xFFFF)
-        final c = ((b & 0x0F) << 12) | ((bytes[i + 1] & 0x3F) << 6) | (bytes[i + 2] & 0x3F);
-        codeUnits.add(c);
-        i += 3;
-      } else {
-        // Invalid UTF-8 or surrogate - skip
-        codeUnits.add(0xFFFD); // Replacement character
-        i++;
-      }
-    }
-
-    return String.fromCharCodes(codeUnits);
+    return T3Utf8.decode(bytes);
   }
 
   // ==================== Constant List Access ====================

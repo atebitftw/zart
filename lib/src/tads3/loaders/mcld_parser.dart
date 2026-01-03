@@ -51,12 +51,14 @@ class T3MetaclassDepList {
 
   /// Parses an MCLD block from raw data.
   ///
-  /// MCLD block format:
+  /// MCLD block format (from reference VM vmimage.cpp):
   /// - UINT2: number of entries
   /// - For each entry:
-  ///   - UINT2: name length
+  ///   - UINT2: entry size (total size of this entry, including this field)
+  ///   - UBYTE: name length
   ///   - bytes: name (ASCII)
-  ///   - UINT2: number of property IDs
+  ///   - UINT2: property count
+  ///   - UINT2: property entry size (minimum 2)
   ///   - UINT2 * n: property IDs
   factory T3MetaclassDepList.parse(Uint8List data) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
@@ -66,10 +68,16 @@ class T3MetaclassDepList {
     var offset = 2;
 
     for (var i = 0; i < count; i++) {
-      // Read name length and name
-      final nameLen = view.getUint16(offset, Endian.little);
+      // Read entry size (we'll use this to skip any unknown trailing data)
+      final entrySize = view.getUint16(offset, Endian.little);
+      final entryEnd = offset + entrySize;
       offset += 2;
 
+      // Read name length (UBYTE, not UINT2!)
+      final nameLen = data[offset];
+      offset += 1;
+
+      // Read name
       final nameBytes = data.sublist(offset, offset + nameLen);
       final identifier = String.fromCharCodes(nameBytes);
       offset += nameLen;
@@ -87,14 +95,18 @@ class T3MetaclassDepList {
         version = null;
       }
 
-      // Read property count and IDs
+      // Read property count and property entry size
       final propCount = view.getUint16(offset, Endian.little);
       offset += 2;
+      final propEntrySize = view.getUint16(offset, Endian.little);
+      offset += 2;
 
+      // Read property IDs
       final propIds = <int>[];
       for (var j = 0; j < propCount; j++) {
         propIds.add(view.getUint16(offset, Endian.little));
-        offset += 2;
+        // Skip any extra bytes in property entry (future-compat)
+        offset += propEntrySize;
       }
 
       deps.add(
@@ -107,6 +119,9 @@ class T3MetaclassDepList {
           propertyIds: propIds,
         ),
       );
+
+      // Skip to the end of this entry (in case there's extra data)
+      offset = entryEnd;
     }
 
     return T3MetaclassDepList(deps);

@@ -1,4 +1,4 @@
-import 't3_value.dart';
+import 'package:zart/src/tads3/vm/t3_value.dart';
 
 /// T3 VM machine registers.
 ///

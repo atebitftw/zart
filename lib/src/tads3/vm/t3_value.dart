@@ -80,22 +80,17 @@ class T3Value {
   T3DataType type;
 
   /// The raw value, interpretation depends on [type].
-  ///
-  /// - For [T3DataType.nil]: always 0
-  /// - For [T3DataType.true_]: always 1
-  /// - For [T3DataType.int_]: 32-bit signed integer
-  /// - For [T3DataType.obj]: object ID (0 = invalid)
-  /// - For [T3DataType.prop]: property ID
-  /// - For [T3DataType.sstring], [T3DataType.dstring]: constant pool offset
-  /// - For [T3DataType.list]: constant pool offset
-  /// - For [T3DataType.codeofs], [T3DataType.funcptr]: code pool offset
-  /// - For [T3DataType.enum_]: enumeration constant value
-  /// - For [T3DataType.bifptr]: (set_idx << 16) | func_idx
   int value;
 
-  T3Value(this.type, this.value);
+  /// Optional extra data for complex types (e.g. inline strings).
+  dynamic data;
+
+  T3Value(this.type, this.value, [this.data]);
 
   // ==================== Factory Constructors ====================
+
+  /// Creates an inline string value.
+  factory T3Value.fromInlineString(Uint8List bytes) => T3Value(T3DataType.sstring, -1, bytes);
 
   /// Creates a nil value.
   factory T3Value.nil() => T3Value(T3DataType.nil, 0);
@@ -148,6 +143,13 @@ class T3Value {
 
   bool get isNil => type == T3DataType.nil;
   bool get isTrue => type == T3DataType.true_;
+
+  /// Converts the value to an integer, throwing if it's not one.
+  int numToInt() {
+    if (type == T3DataType.int_) return value;
+    throw Exception('Value is not an integer: $type');
+  }
+
   bool get isEmpty => type == T3DataType.empty;
   bool get isInt => type == T3DataType.int_;
   bool get isObject => type == T3DataType.obj;
@@ -244,7 +246,7 @@ class T3Value {
   // ==================== Utility ====================
 
   /// Creates a copy of this value.
-  T3Value copy() => T3Value(type, value);
+  T3Value copy() => T3Value(type, value, data);
 
   @override
   String toString() {

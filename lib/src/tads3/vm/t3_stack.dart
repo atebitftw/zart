@@ -1,4 +1,4 @@
-import 't3_value.dart';
+import 'package:zart/src/tads3/vm/t3_value.dart';
 
 /// T3 VM stack implementation.
 ///
@@ -95,6 +95,21 @@ class T3Stack {
     _stack[_sp - 1 - indexFromTop] = value.copy();
   }
 
+  /// Inserts a value at specified depth from top (0 = new top).
+  void insertAt(int depth, T3Value value) {
+    assert(depth >= 0 && depth <= _sp, 'Invalid stack depth');
+    assert(_sp < _stack.length, 'Stack overflow');
+
+    // Shift elements above the insertion point up by one
+    for (var i = 0; i < depth; i++) {
+      _stack[_sp - i] = _stack[_sp - 1 - i];
+    }
+
+    // Insert the new value and update SP
+    _stack[_sp - depth] = value.copy();
+    _sp++;
+  }
+
   /// Discards the top n elements from the stack.
   void discard([int count = 1]) {
     assert(_sp >= count, 'Stack underflow');
@@ -109,16 +124,20 @@ class T3Stack {
   // ==================== Frame Pointer Operations ====================
 
   /// Frame header offsets (relative to FP, negative = before FP).
-  static const int fpOfsTargetProp = -9;
-  static const int fpOfsTargetObj = -8;
-  static const int fpOfsDefObj = -7;
-  static const int fpOfsSelf = -6;
-  static const int fpOfsInvokee = -5;
-  static const int fpOfsFrameRef = -4;
-  static const int fpOfsReturnAddr = -3;
-  static const int fpOfsEntryPtr = -2;
-  static const int fpOfsArgCount = -1;
-  // FP itself contains the enclosing frame pointer
+  /// These match the reference VM's VMRUN_FPOFS_* constants from vmrun.h.
+  static const int fpOfsArg1 = -11; // First argument (args go -11, -12, ...)
+  static const int fpOfsTargetProp = -10; // VMRUN_FPOFS_PROP
+  static const int fpOfsTargetObj = -9; // VMRUN_FPOFS_ORIGTARG
+  static const int fpOfsDefObj = -8; // VMRUN_FPOFS_DEFOBJ
+  static const int fpOfsSelf = -7; // VMRUN_FPOFS_SELF
+  static const int fpOfsInvokee = -6; // VMRUN_FPOFS_INVOKEE
+  static const int fpOfsFrameRef = -5; // VMRUN_FPOFS_FRAMEREF
+  static const int fpOfsRcDesc = -4; // VMRUN_FPOFS_RCDESC (recursive call descriptor)
+  static const int fpOfsReturnAddr = -3; // VMRUN_FPOFS_RET
+  static const int fpOfsEntryPtr = -2; // VMRUN_FPOFS_ENC_EP
+  static const int fpOfsArgCount = -1; // VMRUN_FPOFS_ARGC
+  // FP+0: enclosing frame pointer (VMRUN_FPOFS_ENC_FP)
+  // FP+1: first local (VMRUN_FPOFS_LCL1)
 
   /// Gets a value relative to the frame pointer.
   T3Value getFromFrame(int offset) {
@@ -155,14 +174,14 @@ class T3Stack {
   }
 
   /// Gets an argument by index.
-  /// Arg 0 is at FP-10, Arg 1 at FP-11, etc.
+  /// Arg 0 is at FP-11, Arg 1 at FP-12, etc. (per reference VM).
   T3Value getArg(int index) {
-    return _stack[_fp + fpOfsTargetProp - 1 - index];
+    return _stack[_fp + fpOfsArg1 - index];
   }
 
   /// Sets an argument by index.
   void setArg(int index, T3Value value) {
-    _stack[_fp + fpOfsTargetProp - 1 - index] = value.copy();
+    _stack[_fp + fpOfsArg1 - index] = value.copy();
   }
 
   // ==================== Self and Target Access ====================
@@ -201,25 +220,34 @@ class T3Stack {
     required int targetProp,
     required T3Value invokee,
   }) {
-    // Push frame header (in order, so first pushed is at lowest address)
-    push(T3Value.fromProp(targetProp)); // FP-9
-    push(targetObj); // FP-8
-    push(definingObj); // FP-7
-    push(self); // FP-6
-    push(invokee); // FP-5
-    push(T3Value.nil()); // FP-4: frame reference (nil initially)
-    push(T3Value.fromCodeOffset(returnAddr)); // FP-3
-    push(T3Value.fromCodeOffset(entryPtr)); // FP-2
-    push(T3Value.fromInt(argCount)); // FP-1
+    // Push frame header in reverse order (first pushed ends up at lowest offset)
+    // Per reference VM vmrun.h VMRUN_FPOFS_* constants:
+    push(T3Value.fromProp(targetProp)); // FP-10: target property
+    push(targetObj); // FP-9: original target object
+    push(definingObj); // FP-8: defining object
+    push(self); // FP-7: self
+    push(invokee); // FP-6: invokee
+    push(T3Value.nil()); // FP-5: frame reference (nil initially)
+    push(T3Value.nil()); // FP-4: recursive call descriptor (nil initially)
+    push(T3Value.fromCodeOffset(returnAddr)); // FP-3: return address
+    push(T3Value.fromCodeOffset(entryPtr)); // FP-2: enclosing entry pointer
+    push(T3Value.fromInt(argCount)); // FP-1: argument count
 
     // Save old FP and set new FP
     final oldFp = _fp;
-    push(T3Value.fromInt(oldFp)); // FP: enclosing frame pointer
+    push(T3Value.fromInt(oldFp)); // FP+0: enclosing frame pointer
     _fp = _sp - 1;
 
     // Allocate space for locals (initialized to nil)
     for (var i = 0; i < localCount; i++) {
       push(T3Value.nil());
+    }
+
+    // Copy arguments into the local variable area (per reference VM).
+    // The first arg (Arg 1) goes to FP+1, second to FP+2, etc. (assuming R-to-L push).
+    final copyCount = argCount < localCount ? argCount : localCount;
+    for (var i = 0; i < copyCount; i++) {
+      setLocal(i, getArg(i));
     }
 
     return _fp;
@@ -235,7 +263,7 @@ class T3Stack {
     final argCount = getArgCount();
 
     // Restore SP to before frame header + args
-    // Frame header is 10 slots, args are below that
+    // Frame header is 11 slots (FP-10 through FP+0), args are at FP-11 and below
     _sp = _fp + fpOfsTargetProp - argCount;
 
     // Restore old FP

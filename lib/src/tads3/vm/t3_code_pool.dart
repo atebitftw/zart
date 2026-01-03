@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:zart/src/tads3/vm/t3_utf8.dart';
 
 /// T3 VM code pool.
 ///
@@ -159,6 +160,15 @@ class T3CodePool {
       debugRecordOffset: debugRecordOffset,
       headerSize: headerSize,
     );
+  }
+
+  // ==================== String Access ====================
+
+  /// Reads a string at the given pool offset (e.g. for dstring).
+  String readString(int offset) {
+    final length = readUint16(offset);
+    final bytes = readBytes(offset + 2, length);
+    return T3Utf8.decode(bytes);
   }
 
   // ==================== Utility ====================

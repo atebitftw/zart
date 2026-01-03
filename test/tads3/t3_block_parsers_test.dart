@@ -5,6 +5,46 @@ import 'package:zart/src/tads3/loaders/entp_parser.dart';
 import 'package:zart/src/tads3/loaders/fnsd_parser.dart';
 import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 
+/// Helper to build MCLD block data in the correct format.
+///
+/// MCLD format per reference VM:
+/// - UINT2: entry count
+/// - For each entry:
+///   - UINT2: entry size (includes this field)
+///   - UBYTE: name length
+///   - bytes: name
+///   - UINT2: property count
+///   - UINT2: property entry size
+///   - UINT2 × N: property IDs
+List<int> buildMcldEntry(String name, List<int> propIds, {int propEntrySize = 2}) {
+  final nameBytes = name.codeUnits;
+  // entry size = 2 (entry size) + 1 (name len) + name.length + 2 (prop count) + 2 (prop entry size) + propIds.length * propEntrySize
+  final entrySize = 2 + 1 + nameBytes.length + 2 + 2 + propIds.length * propEntrySize;
+  return [
+    entrySize & 0xFF, (entrySize >> 8) & 0xFF, // entry size (UINT2)
+    nameBytes.length, // name length (UBYTE)
+    ...nameBytes, // name
+    propIds.length & 0xFF, (propIds.length >> 8) & 0xFF, // property count (UINT2)
+    propEntrySize & 0xFF, (propEntrySize >> 8) & 0xFF, // property entry size (UINT2)
+    for (final propId in propIds) ...[propId & 0xFF, (propId >> 8) & 0xFF], // property IDs
+  ];
+}
+
+/// Helper to build FNSD block data in the correct format.
+///
+/// FNSD format per reference VM:
+/// - UINT2: entry count
+/// - For each entry:
+///   - UBYTE: name length
+///   - bytes: name
+List<int> buildFnsdEntry(String name) {
+  final nameBytes = name.codeUnits;
+  return [
+    nameBytes.length, // name length (UBYTE)
+    ...nameBytes, // name
+  ];
+}
+
 void main() {
   group('T3Entrypoint', () {
     test('parses minimal ENTP block', () {
@@ -92,15 +132,9 @@ void main() {
     });
 
     test('parses single metaclass without version', () {
-      // "tads-object" without version, 0 properties
-      final name = 'tads-object';
-      final nameBytes = name.codeUnits;
-
       final data = Uint8List.fromList([
         0x01, 0x00, // count = 1
-        nameBytes.length, 0x00, // name length
-        ...nameBytes, // name
-        0x00, 0x00, // property count = 0
+        ...buildMcldEntry('tads-object', []),
       ]);
 
       final mcld = T3MetaclassDepList.parse(data);
@@ -114,14 +148,9 @@ void main() {
     });
 
     test('parses metaclass with version', () {
-      final name = 'tads-object/030005';
-      final nameBytes = name.codeUnits;
-
       final data = Uint8List.fromList([
         0x01, 0x00, // count = 1
-        nameBytes.length, 0x00, // name length
-        ...nameBytes, // name
-        0x00, 0x00, // property count = 0
+        ...buildMcldEntry('tads-object/030005', []),
       ]);
 
       final mcld = T3MetaclassDepList.parse(data);
@@ -131,17 +160,9 @@ void main() {
     });
 
     test('parses metaclass with properties', () {
-      final name = 'string';
-      final nameBytes = name.codeUnits;
-
       final data = Uint8List.fromList([
         0x01, 0x00, // count = 1
-        nameBytes.length, 0x00, // name length
-        ...nameBytes, // name
-        0x03, 0x00, // property count = 3
-        0x10, 0x00, // prop ID 0x10
-        0x11, 0x00, // prop ID 0x11
-        0x12, 0x00, // prop ID 0x12
+        ...buildMcldEntry('string', [0x10, 0x11, 0x12]),
       ]);
 
       final mcld = T3MetaclassDepList.parse(data);
@@ -151,13 +172,10 @@ void main() {
     });
 
     test('parses multiple metaclasses', () {
-      final name1 = 'tads-object';
-      final name2 = 'string';
-
       final data = Uint8List.fromList([
         0x02, 0x00, // count = 2
-        name1.length, 0x00, ...name1.codeUnits, 0x00, 0x00,
-        name2.length, 0x00, ...name2.codeUnits, 0x00, 0x00,
+        ...buildMcldEntry('tads-object', []),
+        ...buildMcldEntry('string', []),
       ]);
 
       final mcld = T3MetaclassDepList.parse(data);
@@ -170,22 +188,10 @@ void main() {
     });
 
     test('byIndex returns correct metaclass', () {
-      final name1 = 'list';
-      final name2 = 'vector';
-
       final data = Uint8List.fromList([
-        0x02,
-        0x00,
-        name1.length,
-        0x00,
-        ...name1.codeUnits,
-        0x00,
-        0x00,
-        name2.length,
-        0x00,
-        ...name2.codeUnits,
-        0x00,
-        0x00,
+        0x02, 0x00, // count = 2
+        ...buildMcldEntry('list', []),
+        ...buildMcldEntry('vector', []),
       ]);
 
       final mcld = T3MetaclassDepList.parse(data);
@@ -197,22 +203,10 @@ void main() {
     });
 
     test('byName returns correct metaclass', () {
-      final name1 = 'list';
-      final name2 = 'vector';
-
       final data = Uint8List.fromList([
-        0x02,
-        0x00,
-        name1.length,
-        0x00,
-        ...name1.codeUnits,
-        0x00,
-        0x00,
-        name2.length,
-        0x00,
-        ...name2.codeUnits,
-        0x00,
-        0x00,
+        0x02, 0x00, // count = 2
+        ...buildMcldEntry('list', []),
+        ...buildMcldEntry('vector', []),
       ]);
 
       final mcld = T3MetaclassDepList.parse(data);
@@ -234,13 +228,9 @@ void main() {
     });
 
     test('parses single function set', () {
-      final name = 't3vm/030000';
-      final nameBytes = name.codeUnits;
-
       final data = Uint8List.fromList([
         0x01, 0x00, // count = 1
-        nameBytes.length, 0x00, // name length
-        ...nameBytes, // name
+        ...buildFnsdEntry('t3vm/030000'),
       ]);
 
       final fnsd = T3FunctionSetDepList.parse(data);
@@ -253,15 +243,11 @@ void main() {
     });
 
     test('parses multiple function sets', () {
-      final name1 = 't3vm/030000';
-      final name2 = 'tads-gen/030000';
-      final name3 = 'tads-io/030000';
-
       final data = Uint8List.fromList([
         0x03, 0x00, // count = 3
-        name1.length, 0x00, ...name1.codeUnits,
-        name2.length, 0x00, ...name2.codeUnits,
-        name3.length, 0x00, ...name3.codeUnits,
+        ...buildFnsdEntry('t3vm/030000'),
+        ...buildFnsdEntry('tads-gen/030000'),
+        ...buildFnsdEntry('tads-io/030000'),
       ]);
 
       final fnsd = T3FunctionSetDepList.parse(data);
@@ -273,18 +259,10 @@ void main() {
     });
 
     test('byIndex returns correct function set', () {
-      final name1 = 't3vm';
-      final name2 = 'tads-gen';
-
       final data = Uint8List.fromList([
-        0x02,
-        0x00,
-        name1.length,
-        0x00,
-        ...name1.codeUnits,
-        name2.length,
-        0x00,
-        ...name2.codeUnits,
+        0x02, 0x00, // count = 2
+        ...buildFnsdEntry('t3vm'),
+        ...buildFnsdEntry('tads-gen'),
       ]);
 
       final fnsd = T3FunctionSetDepList.parse(data);
@@ -295,18 +273,10 @@ void main() {
     });
 
     test('byName returns correct function set', () {
-      final name1 = 't3vm';
-      final name2 = 'tads-gen';
-
       final data = Uint8List.fromList([
-        0x02,
-        0x00,
-        name1.length,
-        0x00,
-        ...name1.codeUnits,
-        name2.length,
-        0x00,
-        ...name2.codeUnits,
+        0x02, 0x00, // count = 2
+        ...buildFnsdEntry('t3vm'),
+        ...buildFnsdEntry('tads-gen'),
       ]);
 
       final fnsd = T3FunctionSetDepList.parse(data);
