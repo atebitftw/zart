@@ -237,7 +237,7 @@ void main() {
       expect(stack.getReturnAddress(), 0x2000);
 
       // Pop second frame
-      final (retAddr, _) = stack.popFrame();
+      final (retAddr, _, _) = stack.popFrame();
       expect(retAddr, 0x2000);
       expect(stack.fp, fp1);
 

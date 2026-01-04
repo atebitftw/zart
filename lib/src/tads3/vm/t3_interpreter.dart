@@ -666,9 +666,42 @@ class T3Interpreter {
 
       // ==================== Jump/Branch Operations ====================
 
+      case T3Opcodes.SWITCH:
+        {
+          final controlVal = _stack.pop();
+          final numCases = _codePool!.readUint16(_registers.ip);
+          _registers.ip += 2;
+
+          bool matched = false;
+          for (var i = 0; i < numCases; i++) {
+            // Read 5-byte data holder for the case value
+            final caseValue = T3Value.fromPortable(_codePool!.readBytes(_registers.ip, 5), 0);
+            _registers.ip += 5;
+
+            // Read 2-byte signed offset
+            final offset = _codePool!.readInt16(_registers.ip);
+
+            if (controlVal.equals(caseValue)) {
+              // Match found: jump relative to current IP (the offset field address)
+              _registers.ip += offset;
+              matched = true;
+              break;
+            }
+            // No match: skip the 2-byte offset and move to next entry
+            _registers.ip += 2;
+          }
+
+          if (!matched) {
+            // Default case: read 2-byte signed offset and jump relative to its address
+            final defaultOffset = _codePool!.readInt16(_registers.ip);
+            _registers.ip += defaultOffset;
+          }
+        }
+        return T3ExecutionResult.continue_;
+
       case T3Opcodes.JMP: // Unconditional jump
-        final offset = _codePool!.readInt16(_registers.ip);
-        _registers.ip += offset; // offset is relative to current IP
+        final offsetJump = _codePool!.readInt16(_registers.ip);
+        _registers.ip += offsetJump; // offset is relative to current IP
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.JT: // Jump if true
@@ -1346,7 +1379,7 @@ class T3Interpreter {
       argCount: actualArgc,
       localCount: header.localCount,
       returnAddr: _registers.ip,
-      entryPtr: codeOffset,
+      entryPtr: _registers.ep, // Save CALLER's EP
       self: self ?? T3Value.nil(),
       targetObj: targetObj ?? T3Value.nil(),
       definingObj: definingObj ?? T3Value.nil(),
@@ -1356,7 +1389,7 @@ class T3Interpreter {
 
     // Position IP at the first instruction after the header
     _registers.ip = codeOffset + methodHeaderSize;
-    _registers.ep = codeOffset;
+    _registers.ep = codeOffset; // Set to CALLEE's EP
   }
 
   /// Handles function return.
@@ -1386,11 +1419,16 @@ class T3Interpreter {
       return T3ExecutionResult.quit;
     }
 
-    final (returnAddr, _) = _stack.popFrame();
+    final (returnAddr, oldFp, entryPtr) = _stack.popFrame();
     _registers.ip = returnAddr;
 
-    // Read the entry pointer from the restored frame
-    _registers.ep = _stack.getEntryPointer();
+    // Restore the entry pointer from the popped frame
+    _registers.ep = entryPtr;
+
+    if (oldFp == 0) {
+      // Popped the top-level frame, we are done
+      return T3ExecutionResult.quit;
+    }
 
     return T3ExecutionResult.continue_;
   }

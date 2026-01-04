@@ -255,21 +255,22 @@ class T3Stack {
 
   /// Pops the current activation frame.
   ///
-  /// Returns the (returnAddr, oldFp) for continuing execution.
-  (int returnAddr, int oldFp) popFrame() {
+  /// Returns the (returnAddr, oldFp, entryPtr) for continuing execution.
+  (int returnAddr, int oldFp, int entryPtr) popFrame() {
     // Get return info from frame header
     final returnAddr = getFromFrame(fpOfsReturnAddr).value;
+    final entryPtr = getFromFrame(fpOfsEntryPtr).value;
     final oldFp = getFromFrame(0).value; // FP contains old FP
     final argCount = getArgCount();
 
     // Restore SP to before frame header + args
     // Frame header is 11 slots (FP-10 through FP+0), args are at FP-11 and below
-    _sp = _fp + fpOfsTargetProp - argCount;
+    _sp = _fp + fpOfsArg1 - (argCount - 1);
 
     // Restore old FP
     _fp = oldFp;
 
-    return (returnAddr, oldFp);
+    return (returnAddr, oldFp, entryPtr);
   }
 
   /// Gets the return address for the current frame.
