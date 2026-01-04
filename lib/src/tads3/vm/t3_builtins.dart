@@ -107,7 +107,13 @@ class T3BuiltinRegistry {
 
     // TODO: Connect to actual I/O system
     if (val.type == T3DataType.sstring) {
-      final text = interp.constantPool!.readString(val.value);
+      // Check if it's a dynamic string first (from concatenation)
+      String text;
+      if (interp.dynamicStrings.containsKey(val.value)) {
+        text = interp.dynamicStrings[val.value]!;
+      } else {
+        text = interp.constantPool!.readString(val.value);
+      }
       print('TADS-SAY: $text');
     } else if (val.type == T3DataType.dstring) {
       // dstring is already handled by opcodes usually, but if called as bif...

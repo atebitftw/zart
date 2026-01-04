@@ -79,11 +79,19 @@ class T3Interpreter {
   /// The global symbol table.
   final Map<String, T3Value> _symbols = {};
 
+  /// Dynamic strings created at runtime (concatenation, etc.)
+  /// Maps offset to string content
+  final Map<int, String> _dynamicStrings = {};
+  int _nextDynamicStringOffset = 0x80000000; // Start at high offset to avoid conflicts
+
   /// The loaded image.
   T3Image? _image;
 
   /// Whether the interpreter has been loaded.
   bool get isLoaded => _image != null;
+
+  /// Dynamic strings map (for builtins to access concatenated strings)
+  Map<int, String> get dynamicStrings => _dynamicStrings;
 
   /// Total instructions executed (for debugging).
   int _instructionCount = 0;
@@ -461,6 +469,18 @@ class T3Interpreter {
         _stack.push(_stack.getSelf());
         return T3ExecutionResult.continue_;
 
+      // Return opcodes
+      case T3Opcodes.RETVAL: // return with value from stack
+        _registers.r0 = _stack.pop();
+        return _doReturn();
+
+      case T3Opcodes.RET: // return (keeps R0)
+        return _doReturn();
+
+      case T3Opcodes.RETTRUE: // return true
+        _registers.r0 = T3Value.true_();
+        return _doReturn();
+
       // Zero local variable opcodes
       case T3Opcodes.ZEROLCL1: // set local 1 to 0
         _stack.setLocal(1, T3Value.fromInt(0));
@@ -493,18 +513,6 @@ class T3Interpreter {
 
       case T3Opcodes.GETLCLN5: // push local 5
         _stack.push(_stack.getLocal(5));
-        return T3ExecutionResult.continue_;
-
-      // Set local variable opcodes
-      case T3Opcodes.SETLCL1: // set local (1-byte index)
-        final localNum1 = _codePool!.readByte(_registers.ip++);
-        _stack.setLocal(localNum1, _stack.pop());
-        return T3ExecutionResult.continue_;
-
-      case T3Opcodes.SETLCL2: // set local (2-byte index)
-        final localNum2 = _codePool!.readUint16(_registers.ip);
-        _registers.ip += 2;
-        _stack.setLocal(localNum2, _stack.pop());
         return T3ExecutionResult.continue_;
 
       // Local variable modification opcodes
@@ -573,18 +581,6 @@ class T3Interpreter {
         final localNumOne2 = _codePool!.readUint16(_registers.ip);
         _registers.ip += 2;
         _stack.setLocal(localNumOne2, T3Value.fromInt(1));
-        return T3ExecutionResult.continue_;
-
-      // Get local variable opcodes (with operand)
-      case T3Opcodes.GETLCL1: // get local (1-byte index)
-        final getLcl1Idx = _codePool!.readByte(_registers.ip++);
-        _stack.push(_stack.getLocal(getLcl1Idx));
-        return T3ExecutionResult.continue_;
-
-      case T3Opcodes.GETLCL2: // get local (2-byte index)
-        final getLcl2Idx = _codePool!.readUint16(_registers.ip);
-        _registers.ip += 2;
-        _stack.push(_stack.getLocal(getLcl2Idx));
         return T3ExecutionResult.continue_;
 
       // Set argument opcodes
@@ -793,36 +789,41 @@ class T3Interpreter {
         }
         // String concatenation
         else if (a.isStringLike || b.isStringLike) {
-          // TODO: Implement proper string concatenation with constant pool lookup
-          // For now, convert values to string representation
-          String aStr = '';
-          String bStr = '';
-
-          if (a.isStringLike) {
-            // TODO: Look up string from constant pool at offset a.value
-            aStr = '<string@${a.value}>';
-          } else if (a.isInt) {
-            aStr = a.value.toString();
-          } else if (a.isNil) {
-            aStr = '';
-          } else {
-            aStr = a.toString();
+          // Helper to get string representation
+          String getString(T3Value val) {
+            if (val.isStringLike) {
+              // Check if it's a dynamic string first
+              if (_dynamicStrings.containsKey(val.value)) {
+                return _dynamicStrings[val.value]!;
+              }
+              // Otherwise read from constant pool
+              try {
+                return _constantPool!.readString(val.value);
+              } catch (e) {
+                throw T3Exception(
+                  'Failed to read string at offset 0x${val.value.toRadixString(16)}: $e. '
+                  'Value type: ${val.type}, isStringLike: ${val.isStringLike}',
+                );
+              }
+            } else if (val.isInt) {
+              return val.value.toString();
+            } else if (val.isNil) {
+              return '';
+            } else {
+              return val.toString();
+            }
           }
 
-          if (b.isStringLike) {
-            // TODO: Look up string from constant pool at offset b.value
-            bStr = '<string@${b.value}>';
-          } else if (b.isInt) {
-            bStr = b.value.toString();
-          } else if (b.isNil) {
-            bStr = '';
-          } else {
-            bStr = b.toString();
-          }
+          final aStr = getString(a);
+          final bStr = getString(b);
+          final result = aStr + bStr;
 
-          // For now, just push a placeholder string value
-          // TODO: Create actual string in constant pool
-          _stack.push(T3Value.fromString(0));
+          // Store the concatenated string
+          final offset = _nextDynamicStringOffset++;
+          _dynamicStrings[offset] = result;
+
+          // Push a string value with the dynamic offset
+          _stack.push(T3Value.fromString(offset));
         } else {
           throw T3Exception('ADD: unsupported operand types ${a.type} + ${b.type}');
         }
@@ -995,33 +996,6 @@ class T3Interpreter {
           _stack.push(a.value >= b.value ? T3Value.true_() : T3Value.nil());
         } else {
           throw T3Exception('GE: unsupported operand types');
-        }
-        return T3ExecutionResult.continue_;
-
-      // ==================== Branch Operations ====================
-
-      case T3Opcodes.JMP:
-        final offset = _codePool!.readInt16(_registers.ip);
-        _registers.ip += offset; // Note: offset is relative to start of operand
-        return T3ExecutionResult.continue_;
-
-      case T3Opcodes.JT:
-        final offset = _codePool!.readInt16(_registers.ip);
-        final val = _stack.pop();
-        if (!val.isNil) {
-          _registers.ip += offset;
-        } else {
-          _registers.ip += 2;
-        }
-        return T3ExecutionResult.continue_;
-
-      case T3Opcodes.JF:
-        final offset = _codePool!.readInt16(_registers.ip);
-        final val = _stack.pop();
-        if (val.isNil) {
-          _registers.ip += offset;
-        } else {
-          _registers.ip += 2;
         }
         return T3ExecutionResult.continue_;
 
@@ -1299,20 +1273,6 @@ class T3Interpreter {
           _setPropertyValue(T3Value.fromObject(objId), propId, val);
         }
         return T3ExecutionResult.continue_;
-
-      // ==================== Return Operations ====================
-
-      case T3Opcodes.RETNIL:
-        _registers.r0 = T3Value.nil();
-        return _doReturn();
-
-      case T3Opcodes.RETTRUE:
-        _registers.r0 = T3Value.true_();
-        return _doReturn();
-
-      case T3Opcodes.RETVAL:
-        _registers.r0 = _stack.pop();
-        return _doReturn();
 
       // ==================== Default ====================
 
