@@ -519,26 +519,27 @@ class T3Interpreter {
         return T3ExecutionResult.continue_;
 
       // Local variable modification opcodes
-      case T3Opcodes.ADDILCL1: // add immediate 1-byte int to local
+      case T3Opcodes.ADDILCL1: // add immediate 1-byte int to local (UBYTE index)
         final localNumAdd1 = _codePool!.readByte(_registers.ip++);
-        final addVal1 = _codePool!.readByte(_registers.ip++).toSigned(8);
+        final addVal1 = _codePool!.readInt8(_registers.ip++);
         final localVal1 = _stack.getLocal(localNumAdd1);
         if (localVal1.isInt) {
           _stack.setLocal(localNumAdd1, T3Value.fromInt(localVal1.value + addVal1));
         } else {
-          throw T3Exception('ADDILCL1: local is not an integer');
+          throw T3Exception('ADDILCL1: local $localNumAdd1 is not an integer');
         }
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.ADDILCL4: // add immediate 4-byte int to local (UBYTE index)
-        final localNumAdd4 = _codePool!.readByte(_registers.ip++);
+      case T3Opcodes.ADDILCL4: // add immediate 4-byte int to local (UINT2 index)
+        final localNumAdd4 = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
         final addVal4 = _codePool!.readInt32(_registers.ip);
         _registers.ip += 4;
         final localVal4 = _stack.getLocal(localNumAdd4);
         if (localVal4.isInt) {
           _stack.setLocal(localNumAdd4, T3Value.fromInt(localVal4.value + addVal4));
         } else {
-          throw T3Exception('ADDILCL4: local is not an integer');
+          throw T3Exception('ADDILCL4: local $localNumAdd4 is not an integer');
         }
         return T3ExecutionResult.continue_;
 
@@ -559,7 +560,7 @@ class T3Interpreter {
           final offset = _nextDynamicStringOffset++;
           _dynamicStrings[offset] = resultStr;
 
-          _stack.setLocal(localNumAddTo, T3Value.fromDynamicString(offset));
+          _stack.setLocal(localNumAddTo, T3Value.fromDString(offset));
         } else {
           throw T3Exception('ADDTOLCL: operands must be integers or strings');
         }
@@ -1354,6 +1355,23 @@ class T3Interpreter {
   }
 
   /// Handles function return.
+  /// Gets the string representation of a value.
+  String _getStringValue(T3Value val) {
+    if (val.isStringLike) {
+      final offset = val.value;
+      if (offset >= 0x80000000) {
+        return _dynamicStrings[offset] ?? '';
+      } else {
+        return _codePool!.readString(offset);
+      }
+    } else if (val.isInt) {
+      return val.value.toString();
+    } else if (val.isNil) {
+      return '';
+    }
+    return '';
+  }
+
   T3ExecutionResult _doReturn() {
     if (_stack.fp == 0) {
       // Return from entry function - program ends
