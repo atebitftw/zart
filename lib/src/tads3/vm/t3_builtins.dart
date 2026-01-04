@@ -105,23 +105,9 @@ class T3BuiltinRegistry {
     final val = interp.stack.pop();
     if (argc > 1) interp.stack.discard(argc - 1);
 
-    // TODO: Connect to actual I/O system
-    if (val.type == T3DataType.sstring) {
-      // Check if it's a dynamic string first (from concatenation)
-      String text;
-      if (interp.dynamicStrings.containsKey(val.value)) {
-        text = interp.dynamicStrings[val.value]!;
-      } else {
-        text = interp.constantPool!.readString(val.value);
-      }
-      print('$text');
-    } else if (val.type == T3DataType.dstring) {
-      // dstring is already handled by opcodes usually, but if called as bif...
-      final text = interp.codePool!.readString(val.value);
-      print('$text');
-    } else {
-      print('$val');
-    }
+    final text = interp.getStringValue(val);
+    // ignore: avoid_print
+    print(text);
 
     interp.registers.r0 = T3Value.nil();
   }

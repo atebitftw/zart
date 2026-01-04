@@ -9,6 +9,7 @@ import 'package:zart/src/tads3/loaders/fnsd_parser.dart';
 import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 import 'package:zart/src/tads3/loaders/objs_parser.dart';
 import 'package:zart/src/tads3/loaders/symd_parser.dart';
+import 'package:zart/src/tads3/vm/t3_utf8.dart';
 import 'package:zart/src/tads3/vm/t3_code_pool.dart';
 import 'package:zart/src/tads3/vm/t3_constant_pool.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
@@ -474,6 +475,10 @@ class T3Interpreter {
         _registers.r0 = _stack.pop();
         return _doReturn();
 
+      case T3Opcodes.RETNIL: // return nil
+        _registers.r0 = T3Value.nil();
+        return _doReturn();
+
       case T3Opcodes.RET: // return (keeps R0)
         return _doReturn();
 
@@ -553,8 +558,8 @@ class T3Interpreter {
           _stack.setLocal(localNumAddTo, T3Value.fromInt(localValAddTo.value + addToVal.value));
         } else if (localValAddTo.isStringLike || addToVal.isStringLike) {
           // String concatenation
-          final s1 = _getStringValue(localValAddTo);
-          final s2 = _getStringValue(addToVal);
+          final s1 = getStringValue(localValAddTo);
+          final s2 = getStringValue(addToVal);
 
           final resultStr = s1 + s2;
           final offset = _nextDynamicStringOffset++;
@@ -1356,13 +1361,16 @@ class T3Interpreter {
 
   /// Handles function return.
   /// Gets the string representation of a value.
-  String _getStringValue(T3Value val) {
+  String getStringValue(T3Value val) {
     if (val.isStringLike) {
+      if (val.data is Uint8List) {
+        return T3Utf8.decode(val.data as Uint8List);
+      }
       final offset = val.value;
       if (offset >= 0x80000000) {
         return _dynamicStrings[offset] ?? '';
       } else {
-        return _codePool!.readString(offset);
+        return _constantPool!.readString(offset);
       }
     } else if (val.isInt) {
       return val.value.toString();
@@ -1620,25 +1628,9 @@ class T3Interpreter {
 
   /// Prints a T3 value to the console.
   void _printValue(T3Value val) {
-    if (val.isStringLike) {
-      if (val.data is Uint8List) {
-        // ignore: avoid_print
-        print(String.fromCharCodes(val.data as Uint8List));
-      } else {
-        final text = _constantPool!.readString(val.value);
-        // ignore: avoid_print
-        print(text);
-      }
-    } else if (val.isNil) {
-      // ignore: avoid_print
-      print('nil');
-    } else if (val.isInt) {
-      // ignore: avoid_print
-      print(val.value);
-    } else {
-      // ignore: avoid_print
-      print(val.toString());
-    }
+    final text = getStringValue(val);
+    // ignore: avoid_print
+    print(text);
   }
 
   // ==================== Debug/Utility ====================
