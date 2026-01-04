@@ -482,12 +482,15 @@ class T3Interpreter {
         return _doReturn();
 
       // Zero local variable opcodes
-      case T3Opcodes.ZEROLCL1: // set local 1 to 0
-        _stack.setLocal(1, T3Value.fromInt(0));
+      case T3Opcodes.ZEROLCL1: // set local to 0 (1-byte index)
+        final localNumZero1 = _codePool!.readByte(_registers.ip++);
+        _stack.setLocal(localNumZero1, T3Value.fromInt(0));
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.ZEROLCL2: // set local 2 to 0
-        _stack.setLocal(2, T3Value.fromInt(0));
+      case T3Opcodes.ZEROLCL2: // set local to 0 (2-byte index)
+        final localNumZero2 = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.setLocal(localNumZero2, T3Value.fromInt(0));
         return T3ExecutionResult.continue_;
 
       // Get local variable opcodes (optimized versions)
@@ -527,7 +530,7 @@ class T3Interpreter {
         }
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.ADDILCL4: // add immediate 4-byte int to local
+      case T3Opcodes.ADDILCL4: // add immediate 4-byte int to local (UBYTE index)
         final localNumAdd4 = _codePool!.readByte(_registers.ip++);
         final addVal4 = _codePool!.readInt32(_registers.ip);
         _registers.ip += 4;
@@ -539,19 +542,32 @@ class T3Interpreter {
         }
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.ADDTOLCL: // add stack value to local
-        final localNumAddTo = _codePool!.readByte(_registers.ip++);
+      case T3Opcodes.ADDTOLCL: // add stack value to local (UINT2 index)
+        final localNumAddTo = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
         final addToVal = _stack.pop();
         final localValAddTo = _stack.getLocal(localNumAddTo);
+
         if (localValAddTo.isInt && addToVal.isInt) {
           _stack.setLocal(localNumAddTo, T3Value.fromInt(localValAddTo.value + addToVal.value));
+        } else if (localValAddTo.isStringLike || addToVal.isStringLike) {
+          // String concatenation
+          final s1 = _getStringValue(localValAddTo);
+          final s2 = _getStringValue(addToVal);
+
+          final resultStr = s1 + s2;
+          final offset = _nextDynamicStringOffset++;
+          _dynamicStrings[offset] = resultStr;
+
+          _stack.setLocal(localNumAddTo, T3Value.fromDynamicString(offset));
         } else {
-          throw T3Exception('ADDTOLCL: operands must be integers');
+          throw T3Exception('ADDTOLCL: operands must be integers or strings');
         }
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.SUBFROMLCL: // subtract stack value from local
-        final localNumSubFrom = _codePool!.readByte(_registers.ip++);
+      case T3Opcodes.SUBFROMLCL: // subtract stack value from local (UINT2 index)
+        final localNumSubFrom = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
         final subFromVal = _stack.pop();
         final localValSubFrom = _stack.getLocal(localNumSubFrom);
         if (localValSubFrom.isInt && subFromVal.isInt) {
@@ -619,9 +635,10 @@ class T3Interpreter {
         _stack.push(_stack.getArg(getDbArgIdx));
         return T3ExecutionResult.continue_;
 
-      // Increment/decrement local variables
+      // Increment/decrement local variables (UINT2 index)
       case T3Opcodes.INCLCL: // increment local variable
-        final localNum = _codePool!.readByte(_registers.ip++);
+        final localNum = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
         final val = _stack.getLocal(localNum);
         if (val.isInt) {
           _stack.setLocal(localNum, T3Value.fromInt(val.value + 1));
@@ -631,7 +648,8 @@ class T3Interpreter {
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.DECLCL: // decrement local variable
-        final localNum = _codePool!.readByte(_registers.ip++);
+        final localNum = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
         final val = _stack.getLocal(localNum);
         if (val.isInt) {
           _stack.setLocal(localNum, T3Value.fromInt(val.value - 1));

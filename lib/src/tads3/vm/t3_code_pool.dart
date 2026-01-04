@@ -24,6 +24,9 @@ class T3CodePool {
   T3CodePool({required this.poolId, required this.pageCount, required this.pageSize})
     : _pages = List<Uint8List?>.filled(pageCount, null);
 
+  /// Total size of the pool in bytes.
+  int get totalSize => pageCount * pageSize;
+
   /// Loads a page from CPPG block data.
   void loadPage(int pageIndex, Uint8List data) {
     assert(pageIndex >= 0 && pageIndex < pageCount, 'Invalid page index');

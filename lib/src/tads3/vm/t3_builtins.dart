@@ -114,13 +114,13 @@ class T3BuiltinRegistry {
       } else {
         text = interp.constantPool!.readString(val.value);
       }
-      print('TADS-SAY: $text');
+      print('$text');
     } else if (val.type == T3DataType.dstring) {
       // dstring is already handled by opcodes usually, but if called as bif...
       final text = interp.codePool!.readString(val.value);
-      print('TADS-SAY (d): $text');
+      print('$text');
     } else {
-      print('TADS-SAY: $val');
+      print('$val');
     }
 
     interp.registers.r0 = T3Value.nil();
