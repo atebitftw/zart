@@ -181,9 +181,15 @@ class T3Interpreter {
 
       final poolId = view.getUint16(0, Endian.little);
       final pageIndex = view.getUint32(2, Endian.little);
+      final xorMask = data[6];
 
-      // Page data starts at offset 6
-      final pageData = data.sublist(6);
+      // Page data starts at offset 7 (after pool ID, page index, and XOR mask)
+      var pageData = data.sublist(7);
+
+      // Apply XOR mask if non-zero
+      if (xorMask != 0) {
+        pageData = Uint8List.fromList([for (var byte in pageData) byte ^ xorMask]);
+      }
 
       if (poolId == 2 && _constantPool != null) {
         _constantPool!.loadPage(pageIndex, pageData);
@@ -251,8 +257,10 @@ class T3Interpreter {
     }
 
     // Set up initial state by "calling" the entrypoint.
-    // This correctly sets up the initial stack frame and IP.
-    _callFunction(_entrypoint!.codeOffset, 0);
+    // The entrypoint expects 1 argument: a List of command-line arguments.
+    // TODO: Create a proper T3 List object instead of nil
+    _stack.push(T3Value.nil());
+    _callFunction(_entrypoint!.codeOffset, 1);
 
     // Main execution loop
     while (true) {
@@ -279,6 +287,10 @@ class T3Interpreter {
   T3ExecutionResult _executeOpcode(int opcode) {
     switch (opcode) {
       // ==================== Push Operations ====================
+
+      // Note: 0x00 appears in bytecode but is not documented. Treating as NOP.
+      case 0x00:
+        return T3ExecutionResult.continue_;
 
       case T3Opcodes.NOP:
         return T3ExecutionResult.continue_;
@@ -428,8 +440,333 @@ class T3Interpreter {
         _stack.push(_stack.getArg(idx));
         return T3ExecutionResult.continue_;
 
+      // Optimized argument access opcodes
+      case T3Opcodes.GETARGN0: // push argument 0
+        _stack.push(_stack.getArg(0));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETARGN1: // push argument 1
+        _stack.push(_stack.getArg(1));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETARGN2: // push argument 2
+        _stack.push(_stack.getArg(2));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETARGN3: // push argument 3
+        _stack.push(_stack.getArg(3));
+        return T3ExecutionResult.continue_;
+
       case T3Opcodes.PUSHSELF:
         _stack.push(_stack.getSelf());
+        return T3ExecutionResult.continue_;
+
+      // Zero local variable opcodes
+      case T3Opcodes.ZEROLCL1: // set local 1 to 0
+        _stack.setLocal(1, T3Value.fromInt(0));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.ZEROLCL2: // set local 2 to 0
+        _stack.setLocal(2, T3Value.fromInt(0));
+        return T3ExecutionResult.continue_;
+
+      // Get local variable opcodes (optimized versions)
+      case T3Opcodes.GETLCLN2: // push local 2
+        _stack.push(_stack.getLocal(2));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETLCLN3: // push local 3
+        _stack.push(_stack.getLocal(3));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETLCLN0: // push local 0
+        _stack.push(_stack.getLocal(0));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETLCLN1: // push local 1
+        _stack.push(_stack.getLocal(1));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETLCLN4: // push local 4
+        _stack.push(_stack.getLocal(4));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETLCLN5: // push local 5
+        _stack.push(_stack.getLocal(5));
+        return T3ExecutionResult.continue_;
+
+      // Set local variable opcodes
+      case T3Opcodes.SETLCL1: // set local (1-byte index)
+        final localNum1 = _codePool!.readByte(_registers.ip++);
+        _stack.setLocal(localNum1, _stack.pop());
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.SETLCL2: // set local (2-byte index)
+        final localNum2 = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.setLocal(localNum2, _stack.pop());
+        return T3ExecutionResult.continue_;
+
+      // Local variable modification opcodes
+      case T3Opcodes.ADDILCL1: // add immediate 1-byte int to local
+        final localNumAdd1 = _codePool!.readByte(_registers.ip++);
+        final addVal1 = _codePool!.readByte(_registers.ip++).toSigned(8);
+        final localVal1 = _stack.getLocal(localNumAdd1);
+        if (localVal1.isInt) {
+          _stack.setLocal(localNumAdd1, T3Value.fromInt(localVal1.value + addVal1));
+        } else {
+          throw T3Exception('ADDILCL1: local is not an integer');
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.ADDILCL4: // add immediate 4-byte int to local
+        final localNumAdd4 = _codePool!.readByte(_registers.ip++);
+        final addVal4 = _codePool!.readInt32(_registers.ip);
+        _registers.ip += 4;
+        final localVal4 = _stack.getLocal(localNumAdd4);
+        if (localVal4.isInt) {
+          _stack.setLocal(localNumAdd4, T3Value.fromInt(localVal4.value + addVal4));
+        } else {
+          throw T3Exception('ADDILCL4: local is not an integer');
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.ADDTOLCL: // add stack value to local
+        final localNumAddTo = _codePool!.readByte(_registers.ip++);
+        final addToVal = _stack.pop();
+        final localValAddTo = _stack.getLocal(localNumAddTo);
+        if (localValAddTo.isInt && addToVal.isInt) {
+          _stack.setLocal(localNumAddTo, T3Value.fromInt(localValAddTo.value + addToVal.value));
+        } else {
+          throw T3Exception('ADDTOLCL: operands must be integers');
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.SUBFROMLCL: // subtract stack value from local
+        final localNumSubFrom = _codePool!.readByte(_registers.ip++);
+        final subFromVal = _stack.pop();
+        final localValSubFrom = _stack.getLocal(localNumSubFrom);
+        if (localValSubFrom.isInt && subFromVal.isInt) {
+          _stack.setLocal(localNumSubFrom, T3Value.fromInt(localValSubFrom.value - subFromVal.value));
+        } else {
+          throw T3Exception('SUBFROMLCL: operands must be integers');
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.NILLCL1: // set local to nil (1-byte index)
+        final localNumNil1 = _codePool!.readByte(_registers.ip++);
+        _stack.setLocal(localNumNil1, T3Value.nil());
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.NILLCL2: // set local to nil (2-byte index)
+        final localNumNil2 = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.setLocal(localNumNil2, T3Value.nil());
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.ONELCL1: // set local to 1 (1-byte index)
+        final localNumOne1 = _codePool!.readByte(_registers.ip++);
+        _stack.setLocal(localNumOne1, T3Value.fromInt(1));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.ONELCL2: // set local to 1 (2-byte index)
+        final localNumOne2 = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.setLocal(localNumOne2, T3Value.fromInt(1));
+        return T3ExecutionResult.continue_;
+
+      // Get local variable opcodes (with operand)
+      case T3Opcodes.GETLCL1: // get local (1-byte index)
+        final getLcl1Idx = _codePool!.readByte(_registers.ip++);
+        _stack.push(_stack.getLocal(getLcl1Idx));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETLCL2: // get local (2-byte index)
+        final getLcl2Idx = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.push(_stack.getLocal(getLcl2Idx));
+        return T3ExecutionResult.continue_;
+
+      // Set argument opcodes
+      case T3Opcodes.SETARG1: // set argument (1-byte index)
+        final setArg1Idx = _codePool!.readByte(_registers.ip++);
+        _stack.setArg(setArg1Idx, _stack.pop());
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.SETARG2: // set argument (2-byte index)
+        final setArg2Idx = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.setArg(setArg2Idx, _stack.pop());
+        return T3ExecutionResult.continue_;
+
+      // Register R0 opcodes
+      case T3Opcodes.SETLCL1R0: // set local from R0 (1-byte index)
+        final setLcl1R0Idx = _codePool!.readByte(_registers.ip++);
+        _stack.setLocal(setLcl1R0Idx, _registers.r0);
+        return T3ExecutionResult.continue_;
+
+      // Debugger variable access (treat as regular variables for now)
+      case T3Opcodes.GETDBARGC: // get debugger argument count
+        // TODO: Track actual argument count
+        _stack.push(T3Value.fromInt(0));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETDBLCL: // get debugger local
+        final getDbLclIdx = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.push(_stack.getLocal(getDbLclIdx));
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.GETDBARG: // get debugger argument
+        final getDbArgIdx = _codePool!.readUint16(_registers.ip);
+        _registers.ip += 2;
+        _stack.push(_stack.getArg(getDbArgIdx));
+        return T3ExecutionResult.continue_;
+
+      // Increment/decrement local variables
+      case T3Opcodes.INCLCL: // increment local variable
+        final localNum = _codePool!.readByte(_registers.ip++);
+        final val = _stack.getLocal(localNum);
+        if (val.isInt) {
+          _stack.setLocal(localNum, T3Value.fromInt(val.value + 1));
+        } else {
+          throw T3Exception('INCLCL: local $localNum is not an integer');
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.DECLCL: // decrement local variable
+        final localNum = _codePool!.readByte(_registers.ip++);
+        final val = _stack.getLocal(localNum);
+        if (val.isInt) {
+          _stack.setLocal(localNum, T3Value.fromInt(val.value - 1));
+        } else {
+          throw T3Exception('DECLCL: local $localNum is not an integer');
+        }
+        return T3ExecutionResult.continue_;
+
+      // ==================== Jump/Branch Operations ====================
+
+      case T3Opcodes.JMP: // Unconditional jump
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += offset; // offset is relative to current IP
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JT: // Jump if true
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final val = _stack.pop();
+        if (val.isLogicalTrue) {
+          _registers.ip += offset - 2; // offset is from start of instruction
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JF: // Jump if false/nil
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final val = _stack.pop();
+        if (!val.isLogicalTrue) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JE: // Jump if equal
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final b = _stack.pop();
+        final a = _stack.pop();
+        if (a.equals(b)) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JNE: // Jump if not equal
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final b = _stack.pop();
+        final a = _stack.pop();
+        if (!a.equals(b)) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JGT: // Jump if greater than
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final b = _stack.pop();
+        final a = _stack.pop();
+        if (a.isInt && b.isInt && a.value > b.value) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JGE: // Jump if greater or equal
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final b = _stack.pop();
+        final a = _stack.pop();
+        if (a.isInt && b.isInt && a.value >= b.value) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JLT: // Jump if less than
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final b = _stack.pop();
+        final a = _stack.pop();
+        if (a.isInt && b.isInt && a.value < b.value) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JLE: // Jump if less or equal
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final b = _stack.pop();
+        final a = _stack.pop();
+        if (a.isInt && b.isInt && a.value <= b.value) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JST: // Jump and save if true
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final val = _stack.peek();
+        if (val.isLogicalTrue) {
+          _registers.ip += offset - 2;
+        } else {
+          _stack.pop(); // discard if false
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JSF: // Jump and save if false
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final val = _stack.peek();
+        if (!val.isLogicalTrue) {
+          _registers.ip += offset - 2;
+        } else {
+          _stack.pop(); // discard if true
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JNIL: // Jump if nil
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final val = _stack.pop();
+        if (val.isNil) {
+          _registers.ip += offset - 2;
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.JNOTNIL: // Jump if not nil
+        final offset = _codePool!.readInt16(_registers.ip);
+        _registers.ip += 2;
+        final val = _stack.pop();
+        if (!val.isNil) {
+          _registers.ip += offset - 2;
+        }
         return T3ExecutionResult.continue_;
 
       // ==================== Boolean Operations ====================
@@ -449,10 +786,44 @@ class T3Interpreter {
       case T3Opcodes.ADD:
         final b = _stack.pop();
         final a = _stack.pop();
+
+        // Integer addition
         if (a.isInt && b.isInt) {
           _stack.push(T3Value.fromInt(a.value + b.value));
+        }
+        // String concatenation
+        else if (a.isStringLike || b.isStringLike) {
+          // TODO: Implement proper string concatenation with constant pool lookup
+          // For now, convert values to string representation
+          String aStr = '';
+          String bStr = '';
+
+          if (a.isStringLike) {
+            // TODO: Look up string from constant pool at offset a.value
+            aStr = '<string@${a.value}>';
+          } else if (a.isInt) {
+            aStr = a.value.toString();
+          } else if (a.isNil) {
+            aStr = '';
+          } else {
+            aStr = a.toString();
+          }
+
+          if (b.isStringLike) {
+            // TODO: Look up string from constant pool at offset b.value
+            bStr = '<string@${b.value}>';
+          } else if (b.isInt) {
+            bStr = b.value.toString();
+          } else if (b.isNil) {
+            bStr = '';
+          } else {
+            bStr = b.toString();
+          }
+
+          // For now, just push a placeholder string value
+          // TODO: Create actual string in constant pool
+          _stack.push(T3Value.fromString(0));
         } else {
-          // TODO: String concatenation, list concatenation, operator overloading
           throw T3Exception('ADD: unsupported operand types ${a.type} + ${b.type}');
         }
         return T3ExecutionResult.continue_;
@@ -957,15 +1328,19 @@ class T3Interpreter {
   /// This parses the function header, sets up the stack frame, and positions
   /// the IP at the first instruction.
   void _callFunction(int codeOffset, int argc, {T3Value? self, T3Value? targetObj, T3Value? definingObj, int? propId}) {
-    // Read the header from the code pool
-    final headerBytes = _codePool!.readBytes(codeOffset, 10);
+    // Get the method header size from the entrypoint
+    final methodHeaderSize = _entrypoint!.methodHeaderSize;
+
+    // Read the header from the code pool (minimum 10 bytes, but may be larger)
+    final headerBytes = _codePool!.readBytes(codeOffset, methodHeaderSize);
     final header = T3FunctionHeader.parse(headerBytes);
 
     // Verify argument count
-    if (!header.isVarargs && argc != header.minArgs) {
+    final maxArgs = header.minArgs + header.optionalArgc;
+    if (!header.isVarargs && (argc < header.minArgs || argc > maxArgs)) {
       throw T3Exception(
         'Argument count mismatch calling function at 0x${codeOffset.toRadixString(16)}: '
-        'expected ${header.minArgs}, got $argc',
+        'expected ${header.minArgs}-$maxArgs, got $argc',
       );
     }
     if (header.isVarargs && argc < header.minArgs) {
@@ -975,9 +1350,16 @@ class T3Interpreter {
       );
     }
 
+    // Push nil for any optional arguments that weren't provided
+    // The bytecode may try to access these arguments, so they must exist on the stack
+    final actualArgc = argc < maxArgs ? maxArgs : argc;
+    for (var i = argc; i < actualArgc; i++) {
+      _stack.push(T3Value.nil());
+    }
+
     // Set up the stack frame
     _stack.pushFrame(
-      argCount: argc,
+      argCount: actualArgc,
       localCount: header.localCount,
       returnAddr: _registers.ip,
       entryPtr: codeOffset,
@@ -989,7 +1371,7 @@ class T3Interpreter {
     );
 
     // Position IP at the first instruction after the header
-    _registers.ip = codeOffset + 10;
+    _registers.ip = codeOffset + methodHeaderSize;
     _registers.ep = codeOffset;
   }
 

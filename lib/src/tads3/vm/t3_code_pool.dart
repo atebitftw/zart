@@ -76,7 +76,7 @@ class T3CodePool {
     if (page == null) {
       throw StateError('Code page $pageIndex not loaded');
     }
-    return page[pageOffset] | (page[pageOffset + 1] << 8);
+    return (page[pageOffset] & 0xFF) | ((page[pageOffset + 1] & 0xFF) << 8);
   }
 
   /// Reads a 16-bit signed integer (little-endian) at the given offset.
@@ -92,7 +92,11 @@ class T3CodePool {
     if (page == null) {
       throw StateError('Code page $pageIndex not loaded');
     }
-    return page[pageOffset] | (page[pageOffset + 1] << 8) | (page[pageOffset + 2] << 16) | (page[pageOffset + 3] << 24);
+    // Mask each byte to prevent sign extension when shifting
+    return (page[pageOffset] & 0xFF) |
+        ((page[pageOffset + 1] & 0xFF) << 8) |
+        ((page[pageOffset + 2] & 0xFF) << 16) |
+        ((page[pageOffset + 3] & 0xFF) << 24);
   }
 
   /// Reads a 32-bit signed integer (little-endian) at the given offset.

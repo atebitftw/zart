@@ -1,0 +1,72 @@
+... this is _main() ...
+iter[0]: 7! = 5040
+iter[1]: 7! = 5040
+iter[2]: 7! = 5040
+iter[3]: 7! = 5040
+iter[4]: 7! = 5040
+i = 1, j = hello, x = bye
+i = 2, j = hello, x = bye!
+i = 3, j = hello, x = bye!!
+i = 4, j = hello, x = bye!!!
+at outer scope: i = outer i
+test break - i = 1
+test break - i = 2
+test break - i = 3
+test break - i = 4
+test break - i = 5
+test continue - i = 1
+...not continuing this time!
+test continue - i = 2
+...not continuing this time!
+test continue - i = 3
+...not continuing this time!
+test continue - i = 4
+...not continuing this time!
+test continue - i = 5
+test continue - i = 6
+test continue - i = 7
+test continue - i = 8
+test continue - i = 9
+this is while loop iteration #0
+this is while loop iteration #1
+this is while loop iteration #2
+this is while loop iteration #3
+this is while loop iteration #4
+this is while loop 2 - iteration #5
+this is while loop 3 - iteration #5
+this is while loop 3 - iteration #3
+this is while loop 3 - iteration #2
+this is while loop 3 - iteration #1
+this is do loop - iteration #0
+this is do loop - iteration #1
+this is do loop - iteration #2
+this is do loop - iteration #3
+this is do loop - iteration #4
+this is do loop - iteration #5
+this is do loop 2 - iteration #6
+this is do loop 2 - iteration #7
+this is do loop 3 - iteration #7
+this is do loop 3 - iteration #5
+this is do loop 3 - iteration #3
+this is do loop 3 - iteration #2
+this is do loop 3 - iteration #1
+no breaks - i = 3
+case 3
+case 4
+case 5
+default 1
+with breaks - i = 2
+case 2
+ 
+Labeled Break Test
+ 
+starting stm1:
+we're now in stm1...
+preparing to break...
+here we are after stm1
+starting stm2:
+   - loop: i = 1
+   - loop: i = 2
+   - loop: i = 3
+after stm2
+... _main() exiting ...
