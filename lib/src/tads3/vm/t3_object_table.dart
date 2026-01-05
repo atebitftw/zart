@@ -139,6 +139,7 @@ class T3ObjectTable {
       case 'list':
         return T3ListObject.fromData(objectId, data, isTransient: isTransient);
       case 'vector':
+      case 'anon-func-ptr': // anon-func-ptr is a Vector subclass
         return T3VectorObject.fromData(objectId, data, isTransient: isTransient);
       default:
         // Unknown metaclass - store as generic object

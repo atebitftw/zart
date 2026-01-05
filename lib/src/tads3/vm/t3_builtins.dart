@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:zart/src/loaders/tads/t3_exception.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:zart/src/tads3/vm/t3_interpreter.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
+import 'package:zart/src/tads3/vm/t3_object_table.dart';
 
 /// Prototype for a T3 built-in function.
 typedef T3BuiltinFunc = void Function(T3Interpreter interpreter, int argc);
@@ -27,8 +29,8 @@ class T3BuiltinRegistry {
   static final List<T3BuiltinFunc?> _tadsGenFunctions = [
     _datatype, // 0
     _getarg, // 1
-    null, // 2: firstobj
-    null, // 3: nextobj
+    _firstObj, // 2
+    _nextObj, // 3
     null, // 4: randomize
     null, // 5: rand
     null, // 6: toString
@@ -97,6 +99,136 @@ class T3BuiltinRegistry {
 
     final offset = interp.addDynamicList(list);
     interp.registers.r0 = T3Value.fromList(offset);
+  }
+
+  /// firstObj(cls?, flags?) - Get first object in memory.
+  static void _firstObj(T3Interpreter interp, int argc) {
+    // Parse optional arguments
+    int? cls;
+    int flags = 0x0003; // ObjAll = ObjInstances | ObjClasses
+
+    if (argc >= 1) {
+      final clsVal = interp.stack.pop();
+      if (!clsVal.isNil) {
+        cls = clsVal.value;
+      }
+    }
+    if (argc >= 2) {
+      final flagsVal = interp.stack.pop();
+      if (flagsVal.isInt) {
+        flags = flagsVal.value;
+      }
+    }
+    if (argc > 2) interp.stack.discard(argc - 2);
+
+    // ignore: avoid_print
+    print('DEBUG: firstObj(cls=$cls, flags=$flags)');
+
+    // Iterate through objects to find first matching one
+    final table = interp.objectTable;
+    // ignore: avoid_print
+    print('DEBUG: object table has ${table.count} objects');
+
+    int checked = 0;
+    for (final obj in table.all) {
+      checked++;
+      if (_matchesObjFilter(obj, cls, flags, table)) {
+        // ignore: avoid_print
+        print('DEBUG: firstObj found match: ${obj.objectId} (${obj.metaclass})');
+        interp.registers.r0 = T3Value.fromObject(obj.objectId);
+        return;
+      }
+    }
+
+    // ignore: avoid_print
+    print('DEBUG: firstObj checked $checked objects, no match found');
+    // No matching object found
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  /// nextObj(obj, cls?, flags?) - Get next object after the given one.
+  static void _nextObj(T3Interpreter interp, int argc) {
+    if (argc < 1) throw T3Exception('nextObj() requires at least 1 argument');
+
+    final objVal = interp.stack.pop();
+    int? cls;
+    int flags = 0x0003; // ObjAll
+
+    if (argc >= 2) {
+      final clsVal = interp.stack.pop();
+      if (!clsVal.isNil) {
+        cls = clsVal.value;
+      }
+    }
+    if (argc >= 3) {
+      final flagsVal = interp.stack.pop();
+      if (flagsVal.isInt) {
+        flags = flagsVal.value;
+      }
+    }
+    if (argc > 3) interp.stack.discard(argc - 3);
+
+    final currentId = objVal.value;
+    final table = interp.objectTable;
+
+    // Find objects after the current one
+    bool foundCurrent = false;
+    for (final obj in table.all) {
+      if (foundCurrent && _matchesObjFilter(obj, cls, flags, table)) {
+        interp.registers.r0 = T3Value.fromObject(obj.objectId);
+        return;
+      }
+      if (obj.objectId == currentId) {
+        foundCurrent = true;
+      }
+    }
+
+    // No more matching objects
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  /// Helper to check if an object matches the filter criteria.
+  static bool _matchesObjFilter(T3Object obj, int? cls, int flags, T3ObjectTable table) {
+    // Only consider tads-object metaclass objects for firstObj/nextObj
+    if (obj is! T3TadsObject) return false;
+
+    // Check flags: 0x0001 = instances, 0x0002 = classes
+    final isClass = obj.isClass;
+    final includeInstances = (flags & 0x0001) != 0;
+    final includeClasses = (flags & 0x0002) != 0;
+
+    if (isClass && !includeClasses) return false;
+    if (!isClass && !includeInstances) return false;
+
+    // Check class filter if specified
+    if (cls != null) {
+      // Object must be an instance of or inherit from the specified class
+      if (!_isInstanceOf(obj, cls, table)) return false;
+    }
+
+    return true;
+  }
+
+  /// Check if object is an instance of (or inherits from) the given class.
+  static bool _isInstanceOf(T3TadsObject obj, int cls, T3ObjectTable table) {
+    // Check direct superclasses and their inheritance chain
+    final visited = <int>{};
+    final queue = <int>[...obj.superclasses];
+
+    while (queue.isNotEmpty) {
+      final scId = queue.removeAt(0);
+      if (visited.contains(scId)) continue;
+      visited.add(scId);
+
+      if (scId == cls) return true;
+
+      final scObj = table.lookup(scId);
+      if (scObj is T3TadsObject) {
+        queue.addAll(scObj.superclasses.where((id) => !visited.contains(id)));
+      }
+    }
+
+    return false;
   }
 
   // ==================== t3vm ====================

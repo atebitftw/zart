@@ -14,6 +14,7 @@ import 'package:zart/src/tads3/vm/t3_utf8.dart';
 import 'package:zart/src/tads3/vm/t3_code_pool.dart';
 import 'package:zart/src/tads3/vm/t3_constant_pool.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
 import 'package:zart/src/tads3/vm/t3_registers.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
@@ -2081,11 +2082,46 @@ class T3Interpreter {
     if (func.type == T3DataType.funcptr || func.type == T3DataType.codeofs) {
       _callFunction(func.value, argc);
     } else if (func.type == T3DataType.obj) {
-      // TODO: Call object's callProp or equivalent
-      throw T3Exception('Calling objects as functions not yet fully implemented');
+      // Handle anon-func-ptr and other callable objects
+      final codeOfs = _getCallableOffset(func.value);
+      if (codeOfs != null) {
+        _callFunction(codeOfs, argc);
+      } else {
+        throw T3Exception('Object ${func.value} is not callable');
+      }
     } else {
       throw T3Exception('Value of type ${func.type} is not callable');
     }
+  }
+
+  /// Gets the code offset for a callable object (anon-func-ptr, etc.)
+  int? _getCallableOffset(int objectId) {
+    final obj = _objectTable.lookup(objectId);
+    // ignore: avoid_print
+    print('DEBUG: _getCallableOffset(${objectId}) -> metaclass=${obj?.metaclass}, runtimeType=${obj.runtimeType}');
+    if (obj == null) return null;
+
+    // For anon-func-ptr and vector: element 0 contains the entry point (per reference VM)
+    if (obj is T3VectorObject) {
+      if (obj.elements.isNotEmpty) {
+        final entryVal = obj.elements[0];
+        // ignore: avoid_print
+        print('DEBUG: anon-func-ptr/vector elements[0]: ${entryVal.type} = ${entryVal.value}');
+        if (entryVal.isCodeOffset || entryVal.isFuncPtr) {
+          return entryVal.value;
+        }
+      }
+    }
+
+    // For tads-object: try looking up 'ObjectCallProp' property (property 5)
+    if (obj is T3TadsObject) {
+      final callProp = obj.getProperty(5);
+      if (callProp != null && (callProp.isCodeOffset || callProp.isFuncPtr)) {
+        return callProp.value;
+      }
+    }
+
+    return null;
   }
 
   // ==================== Debug/Utility ====================
@@ -2114,10 +2150,23 @@ class T3Interpreter {
 
   void _handlePtrCallOp(int argc) {
     final funcPtr = _stack.pop();
-    if (!funcPtr.isCodeOffset && !funcPtr.isFuncPtr) {
+    // ignore: avoid_print
+    print('DEBUG: _handlePtrCallOp argc=$argc funcPtr=${funcPtr.type}:${funcPtr.value}');
+    if (funcPtr.isCodeOffset || funcPtr.isFuncPtr) {
+      _callFunction(funcPtr.value, argc);
+    } else if (funcPtr.type == T3DataType.obj) {
+      // Handle anon-func-ptr objects
+      final codeOfs = _getCallableOffset(funcPtr.value);
+      // ignore: avoid_print
+      print('DEBUG: PTRCALL object ${funcPtr.value} -> codeOfs=$codeOfs');
+      if (codeOfs != null) {
+        _callFunction(codeOfs, argc);
+      } else {
+        throw T3Exception('PTRCALL: object ${funcPtr.value} is not callable');
+      }
+    } else {
       throw T3Exception('PTRCALL requires function pointer, got ${funcPtr.type}');
     }
-    _callFunction(funcPtr.value, argc);
   }
 
   void _handleCallPropOp(int argc) {
