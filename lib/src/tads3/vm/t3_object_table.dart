@@ -139,8 +139,9 @@ class T3ObjectTable {
       case 'list':
         return T3ListObject.fromData(objectId, data, isTransient: isTransient);
       case 'vector':
-      case 'anon-func-ptr': // anon-func-ptr is a Vector subclass
         return T3VectorObject.fromData(objectId, data, isTransient: isTransient);
+      case 'anon-func-ptr':
+        return T3AnonFnObject.fromData(objectId, data, isTransient: isTransient);
       default:
         // Unknown metaclass - store as generic object
         return T3GenericObject(objectId: objectId, metaclass: metaclassName, rawData: data, isTransient: isTransient);
@@ -182,6 +183,15 @@ class T3ObjectTable {
       case 'vector':
         // Create a vector from the constructor arguments
         obj = T3VectorObject(objectId: objId, elements: args, allocatedSize: args.length, isTransient: isTransient);
+        break;
+      case 'anon-func-ptr':
+        // Create an anonymous function object (inherits from Vector)
+        obj = T3AnonFnObject(objectId: objId, elements: args, allocatedSize: args.length, isTransient: isTransient);
+        break;
+      case 'iterator':
+        // Collection ID is usually passed in constructor
+        final collectionId = (args.isNotEmpty && args[0].isObject) ? args[0].value : 0;
+        obj = T3IteratorObject(objectId: objId, collectionObjectId: collectionId, isTransient: isTransient);
         break;
       default:
         // Unknown metaclass - create as generic object

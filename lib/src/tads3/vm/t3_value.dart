@@ -139,6 +139,9 @@ class T3Value {
     return T3Value.fromObject(objId);
   }
 
+  /// Creates a T3Value from a boolean.
+  factory T3Value.fromBool(bool val) => val ? T3Value.true_() : T3Value.nil();
+
   // ==================== Type Checking ====================
 
   bool get isNil => type == T3DataType.nil;

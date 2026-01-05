@@ -239,7 +239,12 @@ class T3ListObject extends T3Object {
 
   @override
   T3Value? getProperty(int propId) {
-    // List metaclass methods would be handled here
+    // 68 is the exported prop ID for the List.createIterator property
+    if (propId == 68) {
+      // Return a code offset or a specialized value that createIterator handles?
+      // In TADS, these are typically intrinsic methods.
+      // For now, let's assume we can return a "magic" value or handle it in evalProperty.
+    }
     return null;
   }
 
@@ -330,6 +335,91 @@ class T3VectorObject extends T3Object {
 
   @override
   String toString() => 'T3VectorObject(#$objectId, $length elements, alloc: $allocatedSize)';
+}
+
+/// Anonymous function pointer object.
+///
+/// Inherits from Vector. Element 0 is usually the method pointer (CodeOffset).
+/// Elements 1..N are the closure environment.
+class T3AnonFnObject extends T3VectorObject {
+  T3AnonFnObject({required super.objectId, required super.elements, required super.allocatedSize, super.isTransient})
+    : super();
+
+  @override
+  String get metaclass => 'anon-func-ptr';
+
+  /// Parses an anonymous function object from image file data.
+  factory T3AnonFnObject.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
+    final vector = T3VectorObject.fromData(objectId, data, isTransient: isTransient);
+    return T3AnonFnObject(
+      objectId: objectId,
+      elements: vector.elements,
+      allocatedSize: vector.allocatedSize,
+      isTransient: isTransient,
+    );
+  }
+
+  @override
+  String toString() => 'T3AnonFnObject(#$objectId, length: $length)';
+}
+
+/// Iterator object.
+///
+/// Used for iterating over collections.
+class T3IteratorObject extends T3Object {
+  final int collectionObjectId;
+  int _index = 0;
+
+  T3IteratorObject({required super.objectId, required this.collectionObjectId, super.isTransient})
+    : super(metaclass: 'iterator');
+
+  @override
+  T3Value? getProperty(int propId) {
+    // These properties are often mapped to BIFs or handled in metaclass methods
+    // prop 183: getNext
+    // prop 190: isNextAvailable
+    // prop 196: resetIterator
+    // prop 204: getCurKey
+    // prop 210: getCurVal
+    return null;
+  }
+
+  @override
+  void setProperty(int propId, T3Value value) {
+    throw UnsupportedError('Iterator properties are read-only');
+  }
+
+  /// Advances to next item and returns its value.
+  T3Value getNext(List<T3Value> collectionElements) {
+    if (_index < collectionElements.length) {
+      return collectionElements[_index++];
+    }
+    return T3Value.nil();
+  }
+
+  bool isNextAvailable(List<T3Value> collectionElements) => _index < collectionElements.length;
+
+  void reset() => _index = 0;
+
+  T3Value getCurKey() => T3Value.fromInt(_index + 1); // 1-indexed in TADS?
+
+  T3Value getCurVal(List<T3Value> collectionElements) {
+    if (_index > 0 && _index <= collectionElements.length) {
+      return collectionElements[_index - 1];
+    }
+    return T3Value.nil();
+  }
+
+  @override
+  Map<String, dynamic> get debugInfo => {
+    'objectId': objectId,
+    'metaclass': metaclass,
+    'collectionId': collectionObjectId,
+    'index': _index,
+  };
+
+  @override
+  String toString() => 'T3IteratorObject(#$objectId, collection: #$collectionObjectId, index: $_index)';
 }
 
 /// Generic/unknown object for metaclasses we don't have specific implementations for.

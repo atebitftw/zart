@@ -19,7 +19,16 @@ mixin T3CallHelpers {
   T3ObjectTable get callObjectTable;
 
   // Required method references - must be provided by implementing class
-  void callFunction(int codeOffset, int argc);
+  void callFunction(
+    int codeOffset,
+    int argc, {
+    T3Value? self,
+    T3Value? targetObj,
+    T3Value? definingObj,
+    int? propId,
+    T3Value? invokee,
+    T3Value? context,
+  });
   void evalProperty(T3Value target, int propId, {int? argc});
   void callBuiltin(int setIdx, int funcIdx, int argc);
 
@@ -41,9 +50,16 @@ mixin T3CallHelpers {
       // Handle anon-func-ptr objects
       final codeOfs = getCallableOffset(funcPtr.value);
       if (codeOfs != null) {
-        callFunction(codeOfs, argc);
+        callFunction(codeOfs, argc, self: funcPtr, invokee: funcPtr, context: funcPtr);
       } else {
-        throw T3Exception('PTRCALL: object ${funcPtr.value} is not callable');
+        final obj = callObjectTable.lookup(funcPtr.value);
+        final elementsStr = (obj is T3VectorObject) ? obj.elements.toString() : 'N/A';
+        throw T3Exception(
+          'PTRCALL: object ${funcPtr.value} is not callable '
+          '(metaclass: ${obj?.metaclass}, '
+          'runtimeType: ${obj.runtimeType}, '
+          'elements: $elementsStr)',
+        );
       }
     } else {
       throw T3Exception('PTRCALL requires function pointer, got ${funcPtr.type}');
@@ -136,6 +152,7 @@ mixin T3CallHelpers {
       }
     }
 
+    // print('getCallableOffset: ID $objectId, metaclass ${obj.metaclass}, type ${obj.runtimeType} -> NOT CALLABLE');
     return null;
   }
 
@@ -146,7 +163,7 @@ mixin T3CallHelpers {
     } else if (func.type == T3DataType.obj) {
       final codeOfs = getCallableOffset(func.value);
       if (codeOfs != null) {
-        callFunction(codeOfs, argc);
+        callFunction(codeOfs, argc, self: func, invokee: func);
       } else {
         throw T3Exception('Object ${func.value} is not callable');
       }

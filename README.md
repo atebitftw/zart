@@ -3,7 +3,7 @@
 
 A modern, multi-platform interpreter library, for playing Interactive Fiction (IF) games.
 
-![Zart CLI Title Screen](https://atebitftw.github.io/site/assets/zart_cli_title_screen.png)
+![Zart Logo](https://atebitftw.github.io/site/assets/zart_logo.png)
 
 Some of my most memorable early gaming experiences were playing Infocom interactive fiction (IF) games.  I also love programming and so decided to write my own interpreter in Dart.
 
@@ -14,8 +14,9 @@ Enjoy!
 ## Features
 * Plays Z-Machine ("Infocom" games).
 * Plays Inform v6 & v7 games.
-* Supports all popular game file formats (.z3, .z5, .z8, .dat, .blorb, .zblorb, .gblorb, .ulx, etc).
-* Provides an API that allows you to build your own player for any platform that Flutter/Dart runs on.
+* Plays TADS 3 games.
+* Supports all popular game file formats (.z3, .z5, .z8, .dat, .blorb, .zblorb, .gblorb, .ulx, .t3, etc).
+* Provides a unified API that allows you to build your own player for any platform that Flutter/Dart runs on.
 * Full-features CLI player and Flutter Web Player available.
 
 ## Getting Started

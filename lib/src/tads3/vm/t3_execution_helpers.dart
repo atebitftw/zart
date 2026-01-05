@@ -15,6 +15,7 @@ import 'package:zart/src/tads3/vm/t3_registers.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
 import 'package:zart/src/tads3/vm/t3_utf8.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
+import 'package:zart/src/tads3/vm/t3_value_helpers.dart';
 
 /// Mixin providing execution helpers for function calls, property access,
 /// object creation, and output handling.
@@ -40,6 +41,7 @@ mixin T3ExecutionHelpers {
   int? get execStringMetaclassIdx;
   int? get execListMetaclassIdx;
   int get methodHeaderSize;
+  T3ValueHelpers get execValueHelpers;
 
   // ==================== Object Creation ====================
 
@@ -50,14 +52,13 @@ mixin T3ExecutionHelpers {
       throw T3Exception('NEW: invalid metaclass index $metaclassIdx');
     }
 
-    // Pop constructor arguments (in reverse order)
+    // Pop constructor arguments (in Top-to-Bottom order, as expected by Reference VM)
     final args = <T3Value>[];
     for (var i = 0; i < argc; i++) {
       args.add(execStack.pop());
     }
-    final reversedArgs = args.reversed.toList();
 
-    final newObjId = execObjectTable.createDynamicObject(metaclass.name, reversedArgs, isTransient: isTransient);
+    final newObjId = execObjectTable.createDynamicObject(metaclass.name, args, isTransient: isTransient);
     execRegisters.r0 = T3Value.fromObject(newObjId);
   }
 
@@ -105,11 +106,17 @@ mixin T3ExecutionHelpers {
     if (objId == classId) return true;
     final obj = execObjectTable.lookup(objId);
     if (obj == null) return false;
+
+    // Handle TADS objects with explicit superclasses
     if (obj is T3TadsObject) {
       for (final superclassId in obj.superclasses) {
         if (checkIsInstanceOf(superclassId, classId)) return true;
       }
     }
+
+    // TODO: Handle intrinsic class hierarchy (e.g., Vector -> Collection)
+    // This requires mapping metaclass names to their intrinsic class object IDs.
+
     return false;
   }
 
@@ -123,6 +130,8 @@ mixin T3ExecutionHelpers {
     T3Value? targetObj,
     T3Value? definingObj,
     int? propId,
+    T3Value? invokee,
+    T3Value? context,
   }) {
     final headerBytes = execCodePool!.readBytes(codeOffset, methodHeaderSize);
     final header = T3FunctionHeader.parse(headerBytes);
@@ -155,7 +164,8 @@ mixin T3ExecutionHelpers {
       targetObj: targetObj ?? T3Value.nil(),
       definingObj: definingObj ?? T3Value.nil(),
       targetProp: propId ?? 0,
-      invokee: targetObj ?? T3Value.nil(),
+      invokee: invokee ?? targetObj ?? T3Value.nil(),
+      context: context,
     );
 
     execRegisters.ip = codeOffset + methodHeaderSize;
@@ -182,6 +192,21 @@ mixin T3ExecutionHelpers {
       case T3DataType.obj:
         final result = execObjectTable.lookupProperty(target.value, propId);
         if (result == null) {
+          // Check for intrinsic methods on dynamic objects
+          final obj = execObjectTable.lookup(target.value);
+          if (obj != null) {
+            if (obj.metaclass == 'list') {
+              handleListIntrinsic(-1, target, argc, propId: propId);
+              return;
+            } else if (obj.metaclass == 'vector' || obj.metaclass == 'anon-func-ptr') {
+              handleVectorIntrinsic(-1, target, argc, propId: propId);
+              return;
+            } else if (obj.metaclass == 'iterator') {
+              handleIteratorIntrinsic(-1, target, argc, propId: propId);
+              return;
+            }
+          }
+
           final propUndefId = getSymbolPropertyId('propNotDefined');
           if (propUndefId != null && propUndefId != propId) {
             final undefResult = execObjectTable.lookupProperty(target.value, propUndefId);
@@ -250,6 +275,17 @@ mixin T3ExecutionHelpers {
   /// Handles property access on intrinsic types (string, list).
   void handleIntrinsic(int? metaclassIdx, T3Value target, int propId, int? argc) {
     if (metaclassIdx == null || execMetaclasses == null) {
+      // Try handling common props like length even without metaclass info
+      if (propId == 2) {
+        // length
+        if (target.type == T3DataType.list) {
+          handleListIntrinsic(-1, target, argc, propId: propId);
+          return;
+        } else if (target.type == T3DataType.sstring) {
+          handleStringIntrinsic(-1, target, argc, propId: propId);
+          return;
+        }
+      }
       execRegisters.r0 = T3Value.nil();
       return;
     }
@@ -259,13 +295,19 @@ mixin T3ExecutionHelpers {
       final funcIdx = dep.propertyIds.indexOf(propId);
       if (funcIdx >= 0) {
         if (dep.name == 'string') {
-          handleStringIntrinsic(funcIdx, target, argc);
+          handleStringIntrinsic(funcIdx, target, argc, propId: propId);
           return;
         } else if (dep.name == 'list') {
-          handleListIntrinsic(funcIdx, target, argc);
+          handleListIntrinsic(funcIdx, target, argc, propId: propId);
           return;
         }
       }
+    }
+
+    // Fallback for known property IDs if not in MCLD
+    if (target.type == T3DataType.list) {
+      handleListIntrinsic(-1, target, argc, propId: propId);
+      return;
     }
 
     final placeholderName = target.type == T3DataType.sstring ? '*ConstStrObj' : '*ConstLstObj';
@@ -279,8 +321,9 @@ mixin T3ExecutionHelpers {
     execRegisters.r0 = T3Value.nil();
   }
 
-  void handleStringIntrinsic(int funcIdx, T3Value target, int? argc) {
-    if (funcIdx == 0) {
+  void handleStringIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
+    if (funcIdx == 0 || propId == 2) {
+      // length
       if (argc != null && argc > 0) execStack.discard(argc);
       int length;
       if (execDynamicStrings.containsKey(target.value)) {
@@ -295,18 +338,89 @@ mixin T3ExecutionHelpers {
     execRegisters.r0 = T3Value.nil();
   }
 
-  void handleListIntrinsic(int funcIdx, T3Value target, int? argc) {
-    if (funcIdx == 2) {
+  void handleListIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
+    if (funcIdx == 2 || propId == 2) {
+      // length
       if (argc != null && argc > 0) execStack.discard(argc);
-      int length;
-      if (execDynamicLists.containsKey(target.value)) {
-        length = execDynamicLists[target.value]!.length;
-      } else {
-        length = execConstantPool!.readList(target.value).length;
-      }
-      execRegisters.r0 = T3Value.fromInt(length);
+      final elements = execValueHelpers.getListValues(target);
+      execRegisters.r0 = T3Value.fromInt(elements.length);
       return;
     }
+
+    if (funcIdx == 0 || propId == 68) {
+      // createIterator
+      if (argc != null && argc > 0) execStack.discard(argc);
+      final iterId = execObjectTable.createDynamicObject('iterator', [target]);
+      execRegisters.r0 = T3Value.fromObject(iterId);
+      return;
+    }
+
+    if (argc != null && argc > 0) execStack.discard(argc);
+    execRegisters.r0 = T3Value.nil();
+  }
+
+  void handleVectorIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
+    final obj = execObjectTable.lookup(target.value);
+    if (obj is! T3VectorObject) {
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    if (propId == 2) {
+      // length
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.fromInt(obj.length);
+      return;
+    }
+
+    if (propId == 84) {
+      // createIterator for Vector
+      if (argc != null && argc > 0) execStack.discard(argc);
+      final iterId = execObjectTable.createDynamicObject('iterator', [target]);
+      execRegisters.r0 = T3Value.fromObject(iterId);
+      return;
+    }
+
+    if (argc != null && argc > 0) execStack.discard(argc);
+    execRegisters.r0 = T3Value.nil();
+  }
+
+  void handleIteratorIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
+    final obj = execObjectTable.lookup(target.value);
+    if (obj is! T3IteratorObject) {
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    final collection = execObjectTable.lookup(obj.collectionObjectId);
+    final elements = collection != null
+        ? execValueHelpers.getListValues(T3Value.fromObject(collection.objectId))
+        : <T3Value>[];
+
+    switch (propId) {
+      case 183: // getNext
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = obj.getNext(elements);
+        return;
+      case 190: // isNextAvailable
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromBool(obj.isNextAvailable(elements));
+        return;
+      case 196: // resetIterator
+        if (argc != null && argc > 0) execStack.discard(argc);
+        obj.reset();
+        execRegisters.r0 = T3Value.nil();
+        return;
+      case 204: // getCurKey
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = obj.getCurKey();
+        return;
+      case 210: // getCurVal
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = obj.getCurVal(elements);
+        return;
+    }
+
     if (argc != null && argc > 0) execStack.discard(argc);
     execRegisters.r0 = T3Value.nil();
   }

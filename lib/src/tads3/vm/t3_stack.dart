@@ -201,20 +201,36 @@ class T3Stack {
   /// Gets the invokee for the current frame.
   T3Value getInvokee() => getFromFrame(fpOfsInvokee);
 
-  /// Gets the method context for the current frame.
-  T3Value getContext() => getFromFrame(fpOfsFrameRef);
-
   /// Sets the method context for the current frame.
-  void setContext(T3Value value) => setAtFrame(fpOfsFrameRef, value);
+  void setMethodContext({
+    required T3Value self,
+    required int targetProp,
+    required T3Value targetObj,
+    required T3Value definingObj,
+  }) {
+    setAtFrame(fpOfsSelf, self);
+    setAtFrame(fpOfsTargetProp, T3Value.fromProp(targetProp));
+    setAtFrame(fpOfsTargetObj, targetObj);
+    setAtFrame(fpOfsDefObj, definingObj);
+  }
 
   /// Sets the 'self' object for the current frame.
   void setSelf(T3Value value) => setAtFrame(fpOfsSelf, value);
 
-  /// Pushes the current method context to the stack (LOADCTX).
-  void pushContextToStack() => push(getContext());
+  /// Sets the target object for the current frame.
+  void setTargetObject(T3Value value) => setAtFrame(fpOfsTargetObj, value);
 
-  /// Pops a value from the stack and sets it as the method context (STORECTX).
-  void storeContextFromStack() => setContext(pop());
+  /// Sets the defining object for the current frame.
+  void setDefiningObject(T3Value value) => setAtFrame(fpOfsDefObj, value);
+
+  /// Sets the target property for the current frame.
+  void setTargetProp(int propId) => setAtFrame(fpOfsTargetProp, T3Value.fromProp(propId));
+
+  /// Pushes the current frame reference (FP-5) to the stack.
+  void pushFrameReference() => push(getFromFrame(fpOfsFrameRef));
+
+  /// Pops a value from the stack and sets it as the frame reference (FP-5).
+  void setFrameReference(T3Value value) => setAtFrame(fpOfsFrameRef, value);
 
   // ==================== Frame Management ====================
 
@@ -234,6 +250,7 @@ class T3Stack {
     required T3Value definingObj,
     required int targetProp,
     required T3Value invokee,
+    T3Value? context,
   }) {
     // Push frame header in reverse order (first pushed ends up at lowest offset)
     // Per reference VM vmrun.h VMRUN_FPOFS_* constants:
@@ -242,7 +259,7 @@ class T3Stack {
     push(definingObj); // FP-8: defining object
     push(self); // FP-7: self
     push(invokee); // FP-6: invokee
-    push(T3Value.nil()); // FP-5: frame reference (nil initially)
+    push(context ?? T3Value.nil()); // FP-5: frame reference
     push(T3Value.nil()); // FP-4: recursive call descriptor (nil initially)
     push(T3Value.fromCodeOffset(returnAddr)); // FP-3: return address
     push(T3Value.fromCodeOffset(entryPtr)); // FP-2: enclosing entry pointer

@@ -12,6 +12,7 @@ import 'package:zart/src/tads3/loaders/objs_parser.dart';
 import 'package:zart/src/tads3/loaders/symd_parser.dart';
 import 'package:zart/src/tads3/vm/t3_code_pool.dart';
 import 'package:zart/src/tads3/vm/t3_constant_pool.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
 import 'package:zart/src/tads3/vm/t3_registers.dart';
@@ -65,7 +66,25 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   @override
   T3ObjectTable get callObjectTable => _objectTable;
   @override
-  void callFunction(int codeOffset, int argc) => execCallFunction(codeOffset, argc);
+  void callFunction(
+    int codeOffset,
+    int argc, {
+    T3Value? self,
+    T3Value? targetObj,
+    T3Value? definingObj,
+    int? propId,
+    T3Value? invokee,
+    T3Value? context,
+  }) => execCallFunction(
+    codeOffset,
+    argc,
+    self: self,
+    targetObj: targetObj,
+    definingObj: definingObj,
+    propId: propId,
+    invokee: invokee,
+    context: context,
+  );
   @override
   void evalProperty(T3Value target, int propId, {int? argc}) => execEvalProperty(target, propId, argc: argc);
   @override
@@ -110,6 +129,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   int? get execStringMetaclassIdx => _stringMetaclassIdx;
   @override
   int? get execListMetaclassIdx => _listMetaclassIdx;
+  @override
+  T3ValueHelpers get execValueHelpers => this;
   @override
   void Function(int argc)? getBuiltinFunction(String setName, int funcIdx) {
     final func = T3BuiltinRegistry.getFunction(setName, funcIdx);
@@ -409,6 +430,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     _instructionCount++;
 
     final opcode = _codePool!.readByte(_registers.ip++);
+
     return _executeOpcode(opcode);
   }
 
@@ -1891,6 +1913,84 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         }
         return T3ExecutionResult.continue_;
 
+      case T3Opcodes.LOADCTX:
+        // LOADCTX: Restore method context
+        // Pop the context object (list or anon-fn) and set current frame context
+        {
+          final ctxVal = _stack.pop();
+          if (ctxVal.type == T3DataType.obj) {
+            final obj = _objectTable!.lookup(ctxVal.value);
+            if (obj is T3ListObject || obj is T3AnonFnObject) {
+              // Extract elements: [self, prop, targetObj, definingObj]
+              // Note: T3AnonFnObject element 0 is funcPtr, so context starts at 1
+              // T3ListObject context starts at 0
+              final isAnon = obj is T3AnonFnObject;
+              final listElements = (isAnon) ? (obj as T3VectorObject).elements : (obj as T3ListObject).elements;
+              final offset = isAnon ? 1 : 0;
+
+              if (listElements.length >= offset + 4) {
+                _stack.setMethodContext(
+                  self: listElements[offset + 0],
+                  targetProp: listElements[offset + 1].value, // Prop is stored as value
+                  targetObj: listElements[offset + 2],
+                  definingObj: listElements[offset + 3],
+                );
+              } else {
+                throw T3Exception('LOADCTX: Invalid context object size');
+              }
+            } else {
+              throw T3Exception('LOADCTX: Invalid object type for context');
+            }
+          } else if (ctxVal.type == T3DataType.nil) {
+            // Nil context - clear everything? Reference VM typically expects a list.
+            // We'll leave it as is or clear if needed.
+          } else {
+            throw T3Exception('LOADCTX: Invalid type');
+          }
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.STORECTX:
+        // STORECTX: Capture method context
+        // Create a list [self, prop, targetObj, definingObj], store in FP-5, and push list
+        {
+          final self = _stack.getSelf();
+          final targetProp = _stack.getTargetProp();
+          final targetObj = _stack.getTargetObject();
+          final definingObj = _stack.getDefiningObject();
+
+          final elements = [self, targetProp, targetObj, definingObj];
+          final newObjId = _objectTable!.createDynamicObject('list', elements, isTransient: false);
+          final ctxVal = T3Value.fromObject(newObjId);
+
+          _stack.setFrameReference(ctxVal);
+          _stack.push(ctxVal);
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.PUSHCTXELE:
+        // PUSHCTXELE: Push specific context element from current frame
+        {
+          final eleType = _codePool!.readByte(_registers.ip++);
+          switch (eleType) {
+            case 1: // PUSHCTXELE_TARGPROP
+              _stack.push(_stack.getTargetProp());
+              break;
+            case 2: // PUSHCTXELE_TARGOBJ
+              _stack.push(_stack.getTargetObject());
+              break;
+            case 3: // PUSHCTXELE_DEFOBJ
+              _stack.push(_stack.getDefiningObject());
+              break;
+            case 4: // PUSHCTXELE_INVOKEE
+              _stack.push(_stack.getInvokee());
+              break;
+            default:
+              throw T3Exception('PUSHCTXELE: Invalid element type $eleType');
+          }
+        }
+        return T3ExecutionResult.continue_;
+
       case T3Opcodes.SETIND:
         // Set indexed value: [container][index][value] -> sets container[index] = value
         {
@@ -1982,20 +2082,6 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
             // No handler found - terminate with unhandled exception
             throw T3Exception('Unhandled exception: object #${exceptionObj.value}');
           }
-        }
-        return T3ExecutionResult.continue_;
-
-      case T3Opcodes.LOADCTX:
-        // Load method context: push current context to stack
-        {
-          _stack.pushContextToStack();
-        }
-        return T3ExecutionResult.continue_;
-
-      case T3Opcodes.STORECTX:
-        // Store method context: pop current context from stack
-        {
-          _stack.storeContextFromStack();
         }
         return T3ExecutionResult.continue_;
 
