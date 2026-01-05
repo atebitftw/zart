@@ -147,6 +147,56 @@ class T3ObjectTable {
     }
   }
 
+  /// Next object ID for dynamically created objects.
+  /// Uses high range to avoid conflicts with static objects.
+  int _nextDynamicObjectId = 0x80000000;
+
+  /// Creates a new dynamic object at runtime.
+  ///
+  /// This is called by the NEW1/NEW2/TRNEW1/TRNEW2 opcodes.
+  /// Returns the new object's ID.
+  int createDynamicObject(String metaclassName, List<T3Value> args, {bool isTransient = false}) {
+    final objId = _nextDynamicObjectId++;
+
+    // Create appropriate object type based on metaclass
+    T3Object obj;
+    switch (metaclassName) {
+      case 'tads-object':
+        // For tads-object, first arg (if object) is the superclass
+        final superclasses = <int>[];
+        if (args.isNotEmpty && args[0].isObject) {
+          superclasses.add(args[0].value);
+        }
+        obj = T3TadsObject(
+          objectId: objId,
+          superclasses: superclasses,
+          loadImageProperties: [],
+          flags: 0,
+          isTransient: isTransient,
+        );
+        break;
+      case 'list':
+        // Create a list from the constructor arguments
+        obj = T3ListObject(objectId: objId, elements: args, isTransient: isTransient);
+        break;
+      case 'vector':
+        // Create a vector from the constructor arguments
+        obj = T3VectorObject(objectId: objId, elements: args, allocatedSize: args.length, isTransient: isTransient);
+        break;
+      default:
+        // Unknown metaclass - create as generic object
+        obj = T3GenericObject(
+          objectId: objId,
+          metaclass: metaclassName,
+          rawData: Uint8List(0),
+          isTransient: isTransient,
+        );
+    }
+
+    _objects[objId] = obj;
+    return objId;
+  }
+
   @override
   String toString() => 'T3ObjectTable($count objects)';
 
