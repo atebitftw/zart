@@ -129,13 +129,11 @@ class T3ConstantPool {
   /// List format: UINT2 length (bytes) + element data
   /// Each element: 1-byte type + 4-byte value
   List<T3Value> readList(int offset) {
-    final length = readUint16(offset);
+    final count = readUint16(offset);
     final elements = <T3Value>[];
 
     var pos = offset + 2;
-    final endPos = pos + length;
-
-    while (pos < endPos) {
+    for (var i = 0; i < count; i++) {
       final value = readValue(pos);
       elements.add(value);
       pos += T3Value.portableSize;

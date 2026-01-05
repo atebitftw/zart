@@ -163,8 +163,8 @@ class T3Value {
   bool get isBifPtr => type == T3DataType.bifptr || type == T3DataType.bifptrx;
 
   /// Returns true if this value represents a logical true.
-  /// In T3, nil is false, everything else is true.
-  bool get isLogicalTrue => type != T3DataType.nil;
+  /// In T3, nil and integer 0 are false, everything else is true.
+  bool get isLogicalTrue => type != T3DataType.nil && !(type == T3DataType.int_ && value == 0);
 
   /// Returns true if this value is numeric (currently just integer).
   bool get isNumeric => type == T3DataType.int_;
