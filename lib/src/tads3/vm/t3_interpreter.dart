@@ -10,17 +10,14 @@ import 'package:zart/src/tads3/loaders/fnsd_parser.dart';
 import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 import 'package:zart/src/tads3/loaders/objs_parser.dart';
 import 'package:zart/src/tads3/loaders/symd_parser.dart';
-import 'package:zart/src/tads3/vm/t3_utf8.dart';
 import 'package:zart/src/tads3/vm/t3_code_pool.dart';
 import 'package:zart/src/tads3/vm/t3_constant_pool.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
-import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
 import 'package:zart/src/tads3/vm/t3_registers.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:zart/src/tads3/vm/t3_builtins.dart';
-import 'package:zart/src/tads3/vm/t3_function_header.dart';
 import 'package:zart/src/tads3/vm/t3_value_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_call_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_helpers.dart';
@@ -68,9 +65,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   @override
   T3ObjectTable get callObjectTable => _objectTable;
   @override
-  void callFunction(int codeOffset, int argc) => _callFunction(codeOffset, argc);
+  void callFunction(int codeOffset, int argc) => execCallFunction(codeOffset, argc);
   @override
-  void evalProperty(T3Value target, int propId, {int? argc}) => _evalProperty(target, propId, argc: argc);
+  void evalProperty(T3Value target, int propId, {int? argc}) => execEvalProperty(target, propId, argc: argc);
   @override
   void callBuiltin(int setIdx, int funcIdx, int argc) => execCallBuiltin(setIdx, funcIdx, argc);
 
@@ -392,7 +389,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     // The entrypoint expects 1 argument: a List of command-line arguments.
     // TODO: Create a proper T3 List object instead of nil
     _stack.push(T3Value.nil());
-    _callFunction(_entrypoint!.codeOffset, 1);
+    execCallFunction(_entrypoint!.codeOffset, 1);
 
     // Main execution loop
     while (true) {
@@ -710,18 +707,18 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       // Return opcodes
       case T3Opcodes.RETVAL: // return with value from stack
         _registers.r0 = _stack.pop();
-        return _doReturn();
+        return doReturn();
 
       case T3Opcodes.RETNIL: // return nil
         _registers.r0 = T3Value.nil();
-        return _doReturn();
+        return doReturn();
 
       case T3Opcodes.RET: // return (keeps R0)
-        return _doReturn();
+        return doReturn();
 
       case T3Opcodes.RETTRUE: // return true
         _registers.r0 = T3Value.true_();
-        return _doReturn();
+        return doReturn();
 
       // Zero local variable opcodes
       case T3Opcodes.ZEROLCL1: // set local to 0 (1-byte index)
@@ -897,13 +894,13 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         } else if (localValAddTo.isList || addToVal.isList) {
           final resultElements = <T3Value>[];
           if (localValAddTo.isList) {
-            resultElements.addAll(_getListValues(localValAddTo));
+            resultElements.addAll(getListValues(localValAddTo));
           } else {
             resultElements.add(localValAddTo.copy());
           }
 
           if (addToVal.isList) {
-            resultElements.addAll(_getListValues(addToVal));
+            resultElements.addAll(getListValues(addToVal));
           } else {
             resultElements.add(addToVal.copy());
           }
@@ -1250,7 +1247,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final jumpOffset = _codePool!.readInt16(_registers.ip);
 
           final iteratorVal = _stack.getLocal(localNum);
-          final nextVal = _getIteratorNext(iteratorVal);
+          final nextVal = getIteratorNext(iteratorVal);
 
           if (nextVal != null) {
             // More values available - push and skip offset bytes
@@ -1289,13 +1286,13 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         else if (a.isList || b.isList) {
           final resultElements = <T3Value>[];
           if (a.isList) {
-            resultElements.addAll(_getListValues(a));
+            resultElements.addAll(getListValues(a));
           } else {
             resultElements.add(a.copy());
           }
 
           if (b.isList) {
-            resultElements.addAll(_getListValues(b));
+            resultElements.addAll(getListValues(b));
           } else {
             resultElements.add(b.copy());
           }
@@ -1523,7 +1520,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
-          _getPropertyValue(target, propId);
+          execEvalProperty(target, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
 
@@ -1533,7 +1530,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final self = _stack.getSelf();
-          _getPropertyValue(self, propId);
+          execEvalProperty(self, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
 
@@ -1542,7 +1539,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
-          _getPropertyValue(_registers.r0, propId);
+          execEvalProperty(_registers.r0, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
 
@@ -1554,7 +1551,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = T3Value.fromObject(objId);
-          _getPropertyValue(target, propId);
+          execEvalProperty(target, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
 
@@ -1565,7 +1562,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.getLocal(lclIdx);
-          _getPropertyValue(target, propId);
+          execEvalProperty(target, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
 
@@ -1575,7 +1572,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
-          _getPropertyValue(target, propId);
+          execEvalProperty(target, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
 
@@ -1584,7 +1581,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final propPtr = _stack.pop();
           final target = _stack.pop();
-          _getPropertyValue(target, propPtr.value);
+          execEvalProperty(target, propPtr.value, argc: null);
         }
         return T3ExecutionResult.continue_;
 
@@ -1597,7 +1594,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
-          _evalProperty(target, propId, argc: argc);
+          execEvalProperty(target, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1642,7 +1639,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           if (!propVal.isProp) {
             throw T3Exception('PTRCALLPROP: expected property value');
           }
-          _evalProperty(target, propVal.value, argc: argc);
+          execEvalProperty(target, propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1654,7 +1651,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           if (!propVal.isProp) {
             throw T3Exception('PTRCALLPROPSELF: expected property value');
           }
-          _evalProperty(_stack.getSelf(), propVal.value, argc: argc);
+          execEvalProperty(_stack.getSelf(), propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1664,7 +1661,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final argc = _codePool!.readByte(_registers.ip++);
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
-          _inheritProperty(propId, argc);
+          inheritProperty(propId, argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1676,7 +1673,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           if (!propVal.isProp) {
             throw T3Exception('PTRINHERIT: expected property value');
           }
-          _inheritProperty(propVal.value, argc);
+          inheritProperty(propVal.value, argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1689,7 +1686,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final superclassId = _codePool!.readUint32(_registers.ip);
           _registers.ip += 4;
           final superclass = T3Value.fromObject(superclassId);
-          _evalProperty(superclass, propId, argc: argc);
+          execEvalProperty(superclass, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1704,7 +1701,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
             throw T3Exception('PTREXPINHERIT: expected property value');
           }
           final superclass = T3Value.fromObject(superclassId);
-          _evalProperty(superclass, propVal.value, argc: argc);
+          execEvalProperty(superclass, propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1715,7 +1712,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
-          _evalProperty(target, propId, argc: argc);
+          execEvalProperty(target, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1728,7 +1725,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           if (!propVal.isProp) {
             throw T3Exception('PTRDELEGATE: expected property value');
           }
-          _evalProperty(target, propVal.value, argc: argc);
+          execEvalProperty(target, propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
@@ -1752,7 +1749,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final offset = _codePool!.readUint32(_registers.ip);
           _registers.ip += 4;
-          _invokeSay(T3Value.fromString(offset));
+          invokeSay(T3Value.fromString(offset));
         }
         return T3ExecutionResult.continue_;
 
@@ -1809,7 +1806,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.SAYVAL:
         {
           final val = _stack.pop();
-          _invokeSay(val);
+          invokeSay(val);
         }
         return T3ExecutionResult.continue_;
 
@@ -1822,7 +1819,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           _registers.ip += 2;
           final target = _stack.pop();
           final val = _stack.pop();
-          _setPropertyValue(target, propId, val);
+          setPropertyValue(target, propId, val);
         }
         return T3ExecutionResult.continue_;
 
@@ -1832,7 +1829,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propPtr = _stack.pop();
           final target = _stack.pop();
           final val = _stack.pop();
-          _setPropertyValue(target, propPtr.value, val);
+          setPropertyValue(target, propPtr.value, val);
         }
         return T3ExecutionResult.continue_;
 
@@ -1842,7 +1839,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final val = _stack.pop();
-          _setPropertyValue(_stack.getSelf(), propId, val);
+          setPropertyValue(_stack.getSelf(), propId, val);
         }
         return T3ExecutionResult.continue_;
 
@@ -1854,7 +1851,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final val = _stack.pop();
-          _setPropertyValue(T3Value.fromObject(objId), propId, val);
+          setPropertyValue(T3Value.fromObject(objId), propId, val);
         }
         return T3ExecutionResult.continue_;
 
@@ -1866,7 +1863,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final localNum = _codePool!.readByte(_registers.ip++);
           final idx = _codePool!.readByte(_registers.ip++);
           final listVal = _stack.getLocal(localNum);
-          final result = _applyIndex(listVal, idx);
+          final result = applyIndex(listVal, idx);
           _stack.push(result);
         }
         return T3ExecutionResult.continue_;
@@ -1876,7 +1873,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final idx = _codePool!.readByte(_registers.ip++);
           final listVal = _stack.pop();
-          final result = _applyIndex(listVal, idx);
+          final result = applyIndex(listVal, idx);
           _stack.push(result);
         }
         return T3ExecutionResult.continue_;
@@ -1889,7 +1886,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           if (!idxVal.isInt) {
             throw T3Exception('INDEX: index must be an integer');
           }
-          final result = _applyIndex(listVal, idxVal.value);
+          final result = applyIndex(listVal, idxVal.value);
           _stack.push(result);
         }
         return T3ExecutionResult.continue_;
@@ -1903,7 +1900,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           if (!idxVal.isInt) {
             throw T3Exception('SETIND: index must be an integer');
           }
-          _setIndexedValue(containerVal, idxVal.value, newVal);
+          setIndexedValue(containerVal, idxVal.value, newVal);
         }
         return T3ExecutionResult.continue_;
 
@@ -1914,7 +1911,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final idx = _codePool!.readInt8(_registers.ip++);
           final newVal = _stack.pop();
           final listVal = _stack.getLocal(localNum);
-          _setIndexedValue(listVal, idx, newVal);
+          setIndexedValue(listVal, idx, newVal);
         }
         return T3ExecutionResult.continue_;
 
@@ -1926,7 +1923,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final argc = _codePool!.readByte(_registers.ip++);
           final metaclassIdx = _codePool!.readByte(_registers.ip++);
-          _createNewObject(metaclassIdx, argc, isTransient: false);
+          createNewObject(metaclassIdx, argc, isTransient: false);
         }
         return T3ExecutionResult.continue_;
 
@@ -1938,7 +1935,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           _registers.ip += 2;
           final metaclassIdx = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
-          _createNewObject(metaclassIdx, argc, isTransient: false);
+          createNewObject(metaclassIdx, argc, isTransient: false);
         }
         return T3ExecutionResult.continue_;
 
@@ -1948,7 +1945,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final argc = _codePool!.readByte(_registers.ip++);
           final metaclassIdx = _codePool!.readByte(_registers.ip++);
-          _createNewObject(metaclassIdx, argc, isTransient: true);
+          createNewObject(metaclassIdx, argc, isTransient: true);
         }
         return T3ExecutionResult.continue_;
 
@@ -1960,7 +1957,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           _registers.ip += 2;
           final metaclassIdx = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
-          _createNewObject(metaclassIdx, argc, isTransient: true);
+          createNewObject(metaclassIdx, argc, isTransient: true);
         }
         return T3ExecutionResult.continue_;
 
@@ -1976,7 +1973,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           }
 
           // Try to find an exception handler
-          final handlerAddr = _findExceptionHandler(exceptionObj.value);
+          final handlerAddr = findExceptionHandler(exceptionObj.value);
           if (handlerAddr != null) {
             // Handler found - push exception and jump to handler
             _stack.push(exceptionObj);
@@ -1985,6 +1982,68 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
             // No handler found - terminate with unhandled exception
             throw T3Exception('Unhandled exception: object #${exceptionObj.value}');
           }
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.LOADCTX:
+        // Load method context: push current context to stack
+        {
+          _stack.pushContextToStack();
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.STORECTX:
+        // Store method context: pop current context from stack
+        {
+          _stack.storeContextFromStack();
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.SETSELF:
+        // Set self object: pop from stack and set as current self
+        {
+          final newVal = _stack.pop();
+          _stack.setSelf(newVal);
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.NAMEDARGPTR:
+        // Named argument pointer (UBYTE argc) - placeholder
+        {
+          _registers.ip++;
+          // TODO: Implement named arguments
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.NAMEDARGTAB:
+        // Named argument table (UINT2 element_count) - placeholder
+        {
+          _registers.ip += 2;
+          // TODO: Implement named arguments
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.CALLEXT:
+        // Call external function (UBYTE idx, UBYTE argc) - placeholder
+        {
+          _registers.ip += 2;
+          // External functions are host-level, return nil for now
+          _registers.r0 = T3Value.nil();
+        }
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.BP:
+        // Breakpoint - no-op for us
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.SETDBLCL:
+        _registers.ip += 2;
+        return T3ExecutionResult.continue_;
+
+      case T3Opcodes.SETDBARG:
+        // Debug opcodes - no-op for us
+        {
+          _registers.ip += 2;
         }
         return T3ExecutionResult.continue_;
 
@@ -1998,765 +2057,12 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     }
   }
 
-  /// Creates a new dynamic object from a metaclass.
-  ///
-  /// This implements the NEW1/NEW2/TRNEW1/TRNEW2 opcodes per the T3 spec.
-  /// Pops constructor arguments from the stack, creates the object using
-  /// the object table, and stores the result in R0.
-  void _createNewObject(int metaclassIdx, int argc, {bool isTransient = false}) {
-    final metaclass = _metaclasses!.byIndex(metaclassIdx);
-    if (metaclass == null) {
-      throw T3Exception('NEW: invalid metaclass index $metaclassIdx');
-    }
-
-    // Pop constructor arguments (in reverse order)
-    final args = <T3Value>[];
-    for (var i = 0; i < argc; i++) {
-      args.add(_stack.pop());
-    }
-    // Arguments are popped in reverse order, so reverse to get correct order
-    final reversedArgs = args.reversed.toList();
-
-    // Create object based on metaclass type
-    final newObjId = _objectTable.createDynamicObject(metaclass.name, reversedArgs, isTransient: isTransient);
-
-    // Store object reference in R0
-    _registers.r0 = T3Value.fromObject(newObjId);
-  }
-
-  /// Finds an exception handler for the given exception object.
-  ///
-  /// Searches the exception table in the current function, and if no handler
-  /// is found, unwinds the stack to the caller and continues searching.
-  /// Returns the handler address if found, or null if unhandled.
-  int? _findExceptionHandler(int exceptionObjId) {
-    // Loop while we have stack frames to search
-    while (true) {
-      // Get the current function's entry pointer
-      final ep = _registers.ep;
-
-      // Read the function header to find exception table offset
-      final headerBytes = _codePool!.readBytes(ep, methodHeaderSize);
-      final header = T3FunctionHeader.parse(headerBytes);
-
-      if (header.exceptionTableOffset > 0) {
-        // Calculate current offset within the function
-        final currentOffset = _registers.ip - ep;
-
-        // Read exception table
-        final tableAddr = ep + header.exceptionTableOffset;
-        final entryCount = _codePool!.readUint16(tableAddr);
-
-        // Search each entry
-        for (var i = 0; i < entryCount; i++) {
-          final entryAddr = tableAddr + 2 + (i * 10); // 10 bytes per entry
-
-          final startOfs = _codePool!.readUint16(entryAddr);
-          final endOfs = _codePool!.readUint16(entryAddr + 2);
-          final exceptionClass = _codePool!.readUint32(entryAddr + 4);
-          final handlerOfs = _codePool!.readUint16(entryAddr + 8);
-
-          // Check if current IP is in the protected range
-          if (currentOffset >= startOfs && currentOffset <= endOfs) {
-            // Check if this handler catches this exception type
-            // exceptionClass == 0 means catch-all
-            if (exceptionClass == 0 || _isInstanceOf(exceptionObjId, exceptionClass)) {
-              // Found a handler - return absolute address
-              return ep + handlerOfs;
-            }
-          }
-        }
-      }
-
-      // No handler in this frame - try to unwind to caller
-      if (_stack.depth <= 10) {
-        // No more frames to search (at entry frame)
-        return null;
-      }
-
-      // Pop the current frame and continue searching
-      final (returnAddr, oldFp, entryPtr) = _stack.popFrame();
-      _registers.ip = returnAddr;
-      _registers.ep = entryPtr;
-
-      // If we've returned to the entry point, no handler found
-      if (returnAddr == 0) {
-        return null;
-      }
-    }
-  }
-
-  /// Checks if an object is an instance of (or inherits from) a class.
-  bool _isInstanceOf(int objId, int classId) {
-    if (objId == classId) return true;
-
-    final obj = _objectTable.lookup(objId);
-    if (obj == null) return false;
-
-    if (obj is T3TadsObject) {
-      // Check superclasses recursively
-      for (final superclassId in obj.superclasses) {
-        if (_isInstanceOf(superclassId, classId)) return true;
-      }
-    }
-
-    return false;
-  }
-
-  /// Calls a function at the given code pool offset.
-  /// This parses the function header, sets up the stack frame, and positions
-  /// the IP at the first instruction.
-  void _callFunction(int codeOffset, int argc, {T3Value? self, T3Value? targetObj, T3Value? definingObj, int? propId}) {
-    // Get the method header size from the entrypoint
-    final methodHeaderSize = _entrypoint!.methodHeaderSize;
-
-    // Read the header from the code pool (minimum 10 bytes, but may be larger)
-    final headerBytes = _codePool!.readBytes(codeOffset, methodHeaderSize);
-    final header = T3FunctionHeader.parse(headerBytes);
-
-    // Verify argument count
-    final maxArgs = header.minArgs + header.optionalArgc;
-    if (!header.isVarargs && (argc < header.minArgs || argc > maxArgs)) {
-      throw T3Exception(
-        'Argument count mismatch calling function at 0x${codeOffset.toRadixString(16)}: '
-        'expected ${header.minArgs}-$maxArgs, got $argc',
-      );
-    }
-    if (header.isVarargs && argc < header.minArgs) {
-      throw T3Exception(
-        'Argument count mismatch (varargs) at 0x${codeOffset.toRadixString(16)}: '
-        'expected at least ${header.minArgs}, got $argc',
-      );
-    }
-
-    // Push nil for any optional arguments that weren't provided
-    // The bytecode may try to access these arguments, so they must exist on the stack
-    final actualArgc = argc < maxArgs ? maxArgs : argc;
-    for (var i = argc; i < actualArgc; i++) {
-      _stack.push(T3Value.nil());
-    }
-
-    // Set up the stack frame
-    _stack.pushFrame(
-      argCount: actualArgc,
-      localCount: header.localCount,
-      returnAddr: _registers.ip,
-      entryPtr: _registers.ep, // Save CALLER's EP
-      self: self ?? T3Value.nil(),
-      targetObj: targetObj ?? T3Value.nil(),
-      definingObj: definingObj ?? T3Value.nil(),
-      targetProp: propId ?? 0,
-      invokee: targetObj ?? T3Value.nil(),
-    );
-
-    // Position IP at the first instruction after the header
-    _registers.ip = codeOffset + methodHeaderSize;
-    _registers.ep = codeOffset; // Set to CALLEE's EP
-  }
-
-  /// Handles function return.
-  /// Gets the string representation of a value.
-  String getStringValue(T3Value val) {
-    if (val.isStringLike) {
-      if (val.data is Uint8List) {
-        return T3Utf8.decode(val.data as Uint8List);
-      }
-      final offset = val.value;
-      if (offset >= 0x80000000) {
-        return _dynamicStrings[offset] ?? '';
-      } else {
-        return _constantPool!.readString(offset);
-      }
-    } else if (val.isInt) {
-      return val.value.toString();
-    } else if (val.isNil) {
-      return '';
-    } else if (val.isList) {
-      final elements = _getListValues(val);
-      final buffer = StringBuffer();
-      buffer.write('[');
-      for (var i = 0; i < elements.length; i++) {
-        if (i > 0) buffer.write(' ');
-        buffer.write(getStringValue(elements[i]));
-      }
-      buffer.write(']');
-      return buffer.toString();
-    }
-    return '';
-  }
-
-  T3ExecutionResult _doReturn() {
-    if (_stack.fp == 0) {
-      // Return from entry function - program ends
-      return T3ExecutionResult.quit;
-    }
-
-    final (returnAddr, oldFp, entryPtr) = _stack.popFrame();
-    _registers.ip = returnAddr;
-
-    // Restore the entry pointer from the popped frame
-    _registers.ep = entryPtr;
-
-    if (oldFp == 0) {
-      // Popped the top-level frame, we are done
-      return T3ExecutionResult.quit;
-    }
-
-    return T3ExecutionResult.continue_;
-  }
-
-  /// Evaluates a property on a target object.
-  ///
-  /// This handles property lookup based on the target's type:
-  /// - Object: Look up property with inheritance, invoke if code
-  /// - String constant: TODO - Use string metaclass methods
-  /// - List constant: TODO - Use list metaclass methods
-  /// - Nil: Throws nil dereference error
-  /// - Other: Throws type error
-  ///
-  /// If [argc] is non-null, this is a method call with that many arguments on
-  /// the stack. If it's null, this is a property access (no args allowed for
-  /// code properties - they're just stored in R0).
-  void _evalProperty(T3Value target, int propId, {int? argc}) {
-    switch (target.type) {
-      case T3DataType.obj:
-        // Look up property with inheritance
-        final result = _objectTable.lookupProperty(target.value, propId);
-        if (result == null) {
-          // Property not found - check for propNotDefined
-          final propUndefId = _getSymbolPropertyId('propNotDefined');
-          if (propUndefId != null && propUndefId != propId) {
-            final undefResult = _objectTable.lookupProperty(target.value, propUndefId);
-            if (undefResult != null) {
-              // Found propNotDefined - invoke it
-              // Arguments: (originalPropId, ...originalArgs)
-              final actualArgCount = argc ?? 0;
-              _stack.insertAt(actualArgCount, T3Value.fromProp(propId));
-
-              // Evaluate propNotDefined as a method
-              _evalProperty(target, propUndefId, argc: actualArgCount + 1);
-              return;
-            }
-          }
-
-          // propNotDefined not found or failed - discard arguments and return nil
-          if (argc != null && argc > 0) {
-            _stack.discard(argc);
-          }
-          _registers.r0 = T3Value.nil();
-          return;
-        }
-
-        // Evaluate the property value based on its type
-        final propVal = result.value;
-
-        switch (propVal.type) {
-          case T3DataType.codeofs:
-          case T3DataType.funcptr:
-            // It's a method - invoke it
-            if (argc == null) {
-              // GETPROP with code property - store in R0 without invoking
-              _registers.r0 = propVal;
-              return;
-            }
-
-            // Read the method header to get local count
-            final methodAddr = propVal.value;
-
-            // Set up method invocation
-            _callFunction(
-              methodAddr,
-              argc,
-              self: target,
-              targetObj: target,
-              definingObj: T3Value.fromObject(result.definingObjectId),
-              propId: propId,
-            );
-            return;
-
-          case T3DataType.dstring:
-            // Self-printing string - TODO: display via output system
-            if (argc != null && argc > 0) {
-              throw T3Exception('Arguments not allowed for dstring property');
-            }
-            _registers.r0 = propVal;
-            break;
-
-          default:
-            // Data property - arguments not allowed if calling
-            if (argc != null && argc > 0) {
-              throw T3Exception('Arguments not allowed for data property of type ${propVal.type}');
-            }
-            _registers.r0 = propVal;
-            break;
-        }
-        break;
-
-      case T3DataType.nil:
-        throw T3Exception('Nil dereference: attempted to get property $propId of nil');
-
-      case T3DataType.sstring:
-        _handleIntrinsic(_stringMetaclassIdx, target, propId, argc);
-        break;
-
-      case T3DataType.list:
-        _handleIntrinsic(_listMetaclassIdx, target, propId, argc);
-        break;
-
-      default:
-        throw T3Exception('Cannot get property of ${target.type}');
-    }
-  }
-
-  /// Backward compatible wrapper for property get (no args).
-  void _getPropertyValue(T3Value target, int propId) {
-    _evalProperty(target, propId, argc: null);
-  }
-
-  /// Handles property access on intrinsic types (string, list).
-  void _handleIntrinsic(int? metaclassIdx, T3Value target, int propId, int? argc) {
-    if (metaclassIdx == null || _metaclasses == null) {
-      _registers.r0 = T3Value.nil();
-      return;
-    }
-
-    final dep = _metaclasses?.byIndex(metaclassIdx);
-    if (dep != null) {
-      final funcIdx = dep.propertyIds.indexOf(propId);
-      if (funcIdx >= 0) {
-        // Dispatch to internal implementation
-        if (dep.name == 'string') {
-          _handleStringIntrinsic(funcIdx, target, argc);
-          return;
-        } else if (dep.name == 'list') {
-          _handleListIntrinsic(funcIdx, target, argc);
-          return;
-        }
-      }
-    }
-
-    // fallback to placeholder object lookup
-    final placeholderName = target.type == T3DataType.sstring ? '*ConstStrObj' : '*ConstLstObj';
-    final placeholder = _symbols[placeholderName];
-    if (placeholder != null && placeholder.type == T3DataType.obj) {
-      // Look up on the placeholder class
-      // In TADS3, when a property isn't an intrinsic method, it's looked up on the
-      // corresponding class.
-      _evalProperty(placeholder, propId, argc: argc);
-      return;
-    }
-
-    // Not found
-    if (argc != null && argc > 0) _stack.discard(argc);
-    _registers.r0 = T3Value.nil();
-  }
-
-  void _handleStringIntrinsic(int funcIdx, T3Value target, int? argc) {
-    // length() is index 0 for strings
-    if (funcIdx == 0) {
-      if (argc != null && argc > 0) _stack.discard(argc);
-
-      int length;
-      if (_dynamicStrings.containsKey(target.value)) {
-        length = _dynamicStrings[target.value]!.length;
-      } else {
-        final text = _constantPool!.readString(target.value);
-        length = text.length;
-      }
-      _registers.r0 = T3Value.fromInt(length);
-      return;
-    }
-
-    // TODO: Implement other string intrinsics
-    if (argc != null && argc > 0) _stack.discard(argc);
-    _registers.r0 = T3Value.nil();
-  }
-
-  void _handleListIntrinsic(int funcIdx, T3Value target, int? argc) {
-    // length() is index 2 for lists (based on dump_mcld)
-    if (funcIdx == 2) {
-      if (argc != null && argc > 0) _stack.discard(argc);
-
-      int length;
-      if (_dynamicLists.containsKey(target.value)) {
-        length = _dynamicLists[target.value]!.length;
-      } else {
-        final list = _constantPool!.readList(target.value);
-        length = list.length;
-      }
-      _registers.r0 = T3Value.fromInt(length);
-      return;
-    }
-
-    if (argc != null && argc > 0) _stack.discard(argc);
-    _registers.r0 = T3Value.nil();
-  }
-
-  /// Gets a property ID from the symbol table by name.
-  int? _getSymbolPropertyId(String name) {
-    final val = _symbols[name];
-    if (val != null && val.type == T3DataType.prop) {
-      return val.value;
-    }
-    return null;
-  }
-
-  /// Applies an index to a list or string value.
-  /// Returns the indexed element. Returns nil if container is nil.
-  T3Value _applyIndex(T3Value container, int index) {
-    // Nil container returns nil (TADS behavior)
-    if (container.isNil) {
-      return T3Value.nil();
-    }
-
-    if (container.isList) {
-      // Check if it's a dynamic list
-      if (_dynamicLists.containsKey(container.value)) {
-        final list = _dynamicLists[container.value]!;
-        // TADS uses 1-based indexing
-        if (index < 1 || index > list.length) {
-          throw T3Exception('List index out of range: $index (length: ${list.length})');
-        }
-        return list[index - 1].copy();
-      }
-      // Otherwise read from constant pool
-      final list = _constantPool!.readList(container.value);
-      // TADS uses 1-based indexing
-      if (index < 1 || index > list.length) {
-        throw T3Exception('List index out of range: $index (length: ${list.length})');
-      }
-      return list[index - 1];
-    } else if (container.isStringLike) {
-      // String indexing - return a single character string
-      String str;
-      if (_dynamicStrings.containsKey(container.value)) {
-        str = _dynamicStrings[container.value]!;
-      } else {
-        str = _constantPool!.readString(container.value);
-      }
-      // TADS uses 1-based indexing
-      if (index < 1 || index > str.length) {
-        throw T3Exception('String index out of range: $index (length: ${str.length})');
-      }
-      final char = str[index - 1];
-      // Store as dynamic string and return
-      final offset = _nextDynamicStringOffset++;
-      _dynamicStrings[offset] = char;
-      return T3Value.fromString(offset);
-    } else {
-      throw T3Exception('Cannot index value of type ${container.type}');
-    }
-  }
-
-  /// Sets a property on a target object.
-  void _setPropertyValue(T3Value target, int propId, T3Value value) {
-    if (target.type != T3DataType.obj) {
-      throw T3Exception('Cannot set property $propId on type ${target.type}');
-    }
-
-    final obj = _objectTable.lookup(target.value);
-    if (obj == null) {
-      throw T3Exception('Attempted to set property $propId on non-existent object ${target.value}');
-    }
-
-    obj.setProperty(propId, value);
-  }
-
-  /// Sets a value at an index in a container (list or vector).
-  void _setIndexedValue(T3Value container, int index, T3Value value) {
-    if (container.isList) {
-      // For lists, we need to get/modify the dynamic list
-      if (_dynamicLists.containsKey(container.value)) {
-        final list = _dynamicLists[container.value]!;
-        if (index >= 1 && index <= list.length) {
-          list[index - 1] = value; // 1-based indexing
-        } else {
-          throw T3Exception('SETIND: list index $index out of bounds (1..${list.length})');
-        }
-      } else {
-        // Constant pool list - need to copy to dynamic list first
-        final originalList = _constantPool!.readList(container.value);
-        if (index >= 1 && index <= originalList.length) {
-          final newList = originalList.map((v) => v.copy()).toList();
-          newList[index - 1] = value;
-          _dynamicLists[container.value] = newList;
-        } else {
-          throw T3Exception('SETIND: list index $index out of bounds (1..${originalList.length})');
-        }
-      }
-    } else if (container.isObject) {
-      // Check if it's a vector object
-      final obj = _objectTable.lookup(container.value);
-      if (obj is T3VectorObject) {
-        if (index >= 1 && index <= obj.elements.length) {
-          obj.elements[index - 1] = value;
-        } else {
-          throw T3Exception('SETIND: vector index $index out of bounds (1..${obj.elements.length})');
-        }
-      } else {
-        throw T3Exception('SETIND: cannot set index on object type ${obj?.metaclass}');
-      }
-    } else {
-      throw T3Exception('SETIND: cannot set index on ${container.type}');
-    }
-  }
-
-  /// Inherits a property from the superclass of the current object.
-  void _inheritProperty(int propId, int argc) {
-    final self = _stack.getSelf();
-    if (!self.isObject) {
-      throw T3Exception('INHERIT: no self object');
-    }
-
-    // Get the defining object (superclass to inherit from)
-    final defObj = _stack.getDefiningObject();
-    if (!defObj.isObject) {
-      // No defining object, try self's superclass
-      final selfObj = _objectTable.lookup(self.value);
-      if (selfObj is T3TadsObject && selfObj.superclasses.isNotEmpty) {
-        final superclass = T3Value.fromObject(selfObj.superclasses.first);
-        _evalProperty(superclass, propId, argc: argc);
-      } else {
-        // No superclass, return nil
-        if (argc > 0) _stack.discard(argc);
-        _registers.r0 = T3Value.nil();
-      }
-    } else {
-      // Inherit from parent of defining object
-      final defObjInst = _objectTable.lookup(defObj.value);
-      if (defObjInst is T3TadsObject && defObjInst.superclasses.isNotEmpty) {
-        final superclass = T3Value.fromObject(defObjInst.superclasses.first);
-        _evalProperty(superclass, propId, argc: argc);
-      } else {
-        // No parent superclass
-        if (argc > 0) _stack.discard(argc);
-        _registers.r0 = T3Value.nil();
-      }
-    }
-  }
-
-  /// Gets the next value from an iterator object.
-  /// Returns null if the iterator is exhausted.
-  ///
-  /// Iterators in TADS are objects with internal state tracking position.
-  /// For list/vector iterators, we track position in a simple way.
-  T3Value? _getIteratorNext(T3Value iterator) {
-    if (!iterator.isObject) return null;
-
-    final obj = _objectTable.lookup(iterator.value);
-    if (obj == null) return null;
-
-    // Check if it's a list-like iterator (IndexedIterator or similar)
-    if (obj is T3TadsObject) {
-      // Get the 'curVal_' property which holds the current index
-      // and 'coll_' which holds the collection being iterated
-      final curIdxProp = obj.getProperty(1); // curVal_ is typically prop 1
-      final collProp = obj.getProperty(2); // coll_ is typically prop 2
-
-      if (curIdxProp != null && curIdxProp.isInt && collProp != null) {
-        final currentIdx = curIdxProp.value;
-        List<T3Value> elements = [];
-
-        if (collProp.isList) {
-          elements = _getListValues(collProp);
-        } else if (collProp.isObject) {
-          final coll = _objectTable.lookup(collProp.value);
-          if (coll is T3ListObject) elements = coll.elements;
-          if (coll is T3VectorObject) elements = coll.elements;
-        }
-
-        if (currentIdx <= elements.length) {
-          // Get current value and increment index
-          final value = elements[currentIdx - 1];
-          obj.setProperty(1, T3Value.fromInt(currentIdx + 1));
-          return value;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /// Calls a built-in function from a function set.
-  ///
-  /// [setIdx] is the function set index from the FNSD dependency list.
-  /// [funcIdx] is the function index within that set.
-  /// [argc] is the number of arguments on the stack.
-  ///
-  /// Results are placed in R0. Arguments are consumed from the stack.
-  void _callBuiltin(int setIdx, int funcIdx, int argc) {
-    // Get the function set name
-    final funcSet = _functionSets?.byIndex(setIdx);
-    final setName = funcSet?.name ?? 'unknown-$setIdx';
-
-    final func = T3BuiltinRegistry.getFunction(setName, funcIdx);
-    if (func != null) {
-      func(this, argc);
-      return;
-    }
-
-    // For now, just discard args and return nil
-    if (argc > 0) {
-      _stack.discard(argc);
-    }
-
-    // Stub: Set R0 to nil
-    _registers.r0 = T3Value.nil();
-
-    // ignore: avoid_print
-    print('Warning: Built-in $setName[$funcIdx] not implemented');
-  }
-
-  /// Invokes the SAY handler for the given value.
-  void _invokeSay(T3Value val) {
-    if (val.isString) {
-      final text = getStringValue(val);
-      _processOutputText(text);
-      return;
-    }
-
-    // If there's a valid 'self' object and a default display method, use it.
-    final self = _stack.getSelf();
-    if (_sayMethod != 0 && !self.isNil) {
-      // TODO: Implement proper property lookup and call if present
-    }
-
-    // If the "say" function is set, call it.
-    if (!_sayFunc.isNil) {
-      _stack.push(val);
-      _callFunctionPointer(_sayFunc, 1);
-      return;
-    }
-
-    // Default: print to console
-    _printValue(val);
-  }
-
-  /// Processes output text, handling basic HTML tag filtering.
-  void _processOutputText(String text) {
-    // Basic tag parsing to handle <aboutbox> and <title>
-    var currentIndex = 0;
-    while (currentIndex < text.length) {
-      final tagStart = text.indexOf('<', currentIndex);
-      if (tagStart == -1) {
-        // No more tags, print the rest if not ignored
-        if (_outputIgnoreDepth == 0) {
-          printRaw(text.substring(currentIndex));
-        }
-        break;
-      }
-
-      // Print text before tag if not ignored
-      if (tagStart > currentIndex && _outputIgnoreDepth == 0) {
-        printRaw(text.substring(currentIndex, tagStart));
-      }
-
-      final tagEnd = text.indexOf('>', tagStart);
-      if (tagEnd == -1) {
-        // Malformed tag, just treat as text
-        if (_outputIgnoreDepth == 0) {
-          printRaw(text.substring(tagStart));
-        }
-        break;
-      }
-
-      final tagContent = text.substring(tagStart + 1, tagEnd).trim().toLowerCase();
-      final isEndTag = tagContent.startsWith('/');
-      final tagName = isEndTag ? tagContent.substring(1).trim() : tagContent.split(RegExp(r'\s+'))[0];
-
-      if (tagName == 'aboutbox' || tagName == 'title') {
-        if (isEndTag) {
-          _outputIgnoreDepth = (_outputIgnoreDepth > 0) ? _outputIgnoreDepth - 1 : 0;
-        } else {
-          _outputIgnoreDepth++;
-        }
-      }
-
-      currentIndex = tagEnd + 1;
-    }
-  }
-
-  /// Prints a T3 value to the console.
-  void _printValue(T3Value val) {
-    if (_outputIgnoreDepth > 0) return;
-    final text = getStringValue(val);
-    printRaw(text);
-  }
-
+  /// Raw print to console - bridge for mixins.
   void printRaw(String text) {
     if (text.isEmpty) return;
     // ignore: avoid_print
     stdout.write(text);
   }
-
-  /// Gets the list of values for a list T3Value (handles dynamic and pool lists).
-  List<T3Value> _getListValues(T3Value listVal) {
-    if (!listVal.isList) return [];
-
-    if (_dynamicLists.containsKey(listVal.value)) {
-      return _dynamicLists[listVal.value]!;
-    } else {
-      return _constantPool!.readList(listVal.value);
-    }
-  }
-
-  /// Calls a function pointer or object.
-  void _callFunctionPointer(T3Value func, int argc) {
-    if (func.type == T3DataType.funcptr || func.type == T3DataType.codeofs) {
-      _callFunction(func.value, argc);
-    } else if (func.type == T3DataType.obj) {
-      // Handle anon-func-ptr and other callable objects
-      final codeOfs = _getCallableOffset(func.value);
-      if (codeOfs != null) {
-        _callFunction(codeOfs, argc);
-      } else {
-        throw T3Exception('Object ${func.value} is not callable');
-      }
-    } else {
-      throw T3Exception('Value of type ${func.type} is not callable');
-    }
-  }
-
-  /// Gets the code offset for a callable object (anon-func-ptr, etc.)
-  int? _getCallableOffset(int objectId) {
-    final obj = _objectTable.lookup(objectId);
-    // ignore: avoid_print
-    print('DEBUG: _getCallableOffset(${objectId}) -> metaclass=${obj?.metaclass}, runtimeType=${obj.runtimeType}');
-    if (obj == null) return null;
-
-    // For anon-func-ptr and vector: element 0 contains the entry point (per reference VM)
-    if (obj is T3VectorObject) {
-      if (obj.elements.isNotEmpty) {
-        final entryVal = obj.elements[0];
-        // ignore: avoid_print
-        print('DEBUG: anon-func-ptr/vector elements[0]: ${entryVal.type} = ${entryVal.value}');
-        if (entryVal.isCodeOffset || entryVal.isFuncPtr) {
-          return entryVal.value;
-        }
-      }
-    }
-
-    // For tads-object: try looking up 'ObjectCallProp' property (property 5)
-    if (obj is T3TadsObject) {
-      final callProp = obj.getProperty(5);
-      if (callProp != null && (callProp.isCodeOffset || callProp.isFuncPtr)) {
-        return callProp.value;
-      }
-    }
-
-    return null;
-  }
-
-  // ==================== Debug/Utility ====================
-
-  /// Gets the number of instructions executed.
-  int get instructionCount => _instructionCount;
-
-  /// Gets the current IP.
-  int get ip => _registers.ip;
-
-  /// Gets the current stack depth.
-  int get stackDepth => _stack.depth;
 
   /// Gets info for debugging.
   String debugInfo() {

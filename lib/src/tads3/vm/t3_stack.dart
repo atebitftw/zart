@@ -201,6 +201,21 @@ class T3Stack {
   /// Gets the invokee for the current frame.
   T3Value getInvokee() => getFromFrame(fpOfsInvokee);
 
+  /// Gets the method context for the current frame.
+  T3Value getContext() => getFromFrame(fpOfsFrameRef);
+
+  /// Sets the method context for the current frame.
+  void setContext(T3Value value) => setAtFrame(fpOfsFrameRef, value);
+
+  /// Sets the 'self' object for the current frame.
+  void setSelf(T3Value value) => setAtFrame(fpOfsSelf, value);
+
+  /// Pushes the current method context to the stack (LOADCTX).
+  void pushContextToStack() => push(getContext());
+
+  /// Pops a value from the stack and sets it as the method context (STORECTX).
+  void storeContextFromStack() => setContext(pop());
+
   // ==================== Frame Management ====================
 
   /// Pushes a new activation frame.
