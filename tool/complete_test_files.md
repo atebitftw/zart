@@ -20,21 +20,13 @@ The following test files run successfully to completion:
 
 ## Partially Working Tests (partial output before failure)
 - object.t3 - some outputs correct, but does not match expected output
-- undo.t3 - Runs until NEW1 opcode
-- finally.t3 - some outputs correct, but does not match expected output
-
-## Known Blocked Tests
-
-### Blocked by NEW1 opcode (0xc0) - Dynamic Object Creation
-Many tests fail when they need to dynamically create objects (exceptions, anonymous objects, etc):
-- catch.t3
-- try_catch.t3
-- undo.t3
+- finally.t3 - some outputs correct, but does not match expected outpu
 
 ### Blocked by Missing Built-in Functions
 - rand.t3 - Needs tads-gen[5] (rand/randomize)
 - pi.t3 - Needs tads-gen[8]
 - fib.t3 - Needs tads-gen[8]
+- undo.t3 - Some built-ins not implemented.
 
 ### Blocked by Missing Operators
 - listsub.t3 - Needs list subtraction operator

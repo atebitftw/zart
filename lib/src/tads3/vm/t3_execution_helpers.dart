@@ -130,7 +130,8 @@ mixin T3ExecutionHelpers {
   // ==================== Exception Handling ====================
 
   /// Finds an exception handler for the given exception object.
-  int? findExceptionHandler(int exceptionObjId) {
+  /// If [exceptionObjId] is null, it only matches 'finally' blocks (exceptionClass == 0).
+  int? findExceptionHandler(int? exceptionObjId) {
     while (true) {
       final ep = execRegisters.ep;
       final headerBytes = execCodePool!.readBytes(ep, methodHeaderSize);
@@ -149,7 +150,7 @@ mixin T3ExecutionHelpers {
           final handlerOfs = execCodePool!.readUint16(entryAddr + 8);
 
           if (currentOffset >= startOfs && currentOffset <= endOfs) {
-            if (exceptionClass == 0 || checkIsInstanceOf(exceptionObjId, exceptionClass)) {
+            if (exceptionClass == 0 || (exceptionObjId != null && checkIsInstanceOf(exceptionObjId, exceptionClass))) {
               return ep + handlerOfs;
             }
           }
@@ -857,5 +858,93 @@ mixin T3ExecutionHelpers {
       return execDynamicLists[listVal.value]!;
     }
     return execConstantPool!.readList(listVal.value);
+  }
+
+  bool isListType(T3Value val) {
+    if (val.isList) return true;
+    if (val.isObject) {
+      final obj = execObjectTable.lookup(val.value);
+      return obj is T3ListObject || obj is T3VectorObject;
+    }
+    return false;
+  }
+
+  List<T3Value> getElements(T3Value val, bool isList) {
+    if (!isList) return [val];
+    if (val.isList) return execValueHelpers.getListValues(val);
+    final obj = execObjectTable.lookup(val.value);
+    if (obj is T3ListObject) return obj.elements;
+    if (obj is T3VectorObject) return obj.elements;
+    return [];
+  }
+
+  /// Throws a TADS 3 RuntimeError with the given error number.
+  void throwRuntimeError(int errno) {
+    final errMsg = _runtimeErrorToString(errno);
+
+    // 1. Look up 'RuntimeError' class in symbols
+    final runtimeErrorClass = execSymbols['RuntimeError'];
+    if (runtimeErrorClass != null && runtimeErrorClass.isObject) {
+      // Push error number as constructor argument
+      execStack.push(T3Value.fromInt(errno));
+
+      final mcIdx = execMetaclasses?.byName('tads-object')?.index;
+      if (mcIdx != null) {
+        // Create an instance. createNewObject handles constructor invocation.
+        createNewObject(mcIdx, 1);
+        final excObj = execRegisters.r0;
+
+        // Try to find an exception handler
+        final handlerAddr = findExceptionHandler(excObj.value);
+        if (handlerAddr != null) {
+          // Handler found - push exception and jump to handler
+          execStack.push(excObj);
+          execRegisters.ip = handlerAddr;
+          return;
+        } else {
+          // No handler found - terminate with unhandled exception
+          throw T3Exception('Unhandled exception: $errMsg');
+        }
+      }
+    }
+
+    // 2. Fallback: If no RuntimeError class is available, we still try to run finally blocks.
+    // Use null for exceptionObjId to match only 'finally' blocks (exceptionClass == 0).
+    final handlerAddr = findExceptionHandler(null);
+    if (handlerAddr != null) {
+      // Push placeholder nil to satisfy handlers that expect an object on stack
+      execStack.push(T3Value.nil());
+      execRegisters.ip = handlerAddr;
+    } else {
+      // No more handlers - terminate
+      throw T3Exception('Unhandled exception: $errMsg');
+    }
+  }
+
+  String _runtimeErrorToString(int errno) {
+    switch (errno) {
+      case 2003:
+        return 'invalid datatype for "add" operator';
+      case 2004:
+        return 'numeric value required';
+      case 2005:
+        return 'integer value required';
+      case 2007:
+        return 'invalid datatype for "subtract" operator';
+      case 2008:
+        return 'division by zero';
+      case 2024:
+        return 'invalid datatype for "multiply" operator';
+      case 2025:
+        return 'invalid datatype for "divide" operator';
+      case 2026:
+        return 'invalid datatype for "negate" operator';
+      case 2032:
+        return 'bad type for modulo';
+      case 2203:
+        return 'nil object reference';
+      default:
+        return 'error code $errno';
+    }
   }
 }

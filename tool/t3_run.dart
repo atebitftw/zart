@@ -10,11 +10,17 @@ void main(List<String> args) async {
   final data = File(args[0]).readAsBytesSync();
   final interp = T3Interpreter();
 
-  print('Loading ${args[0]}...');
-  interp.load(data);
+  try {
+    print('Loading ${args[0]}...');
+    interp.load(data);
+    print('Loading successful.');
+  } catch (e, stack) {
+    print('Failed to load ${args[0]}: $e');
+    print(stack);
+    return;
+  }
 
   print('Entrypoint: ${interp.entrypoint}');
-
   print('Starting execution...');
   try {
     interp.maxInstructions = 50000; // Limit execution for safety in debug tool
