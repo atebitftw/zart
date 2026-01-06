@@ -346,18 +346,84 @@ mixin T3ExecutionHelpers {
   }
 
   void handleStringIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
+    // Get the string content
+    String str;
+    if (execDynamicStrings.containsKey(target.value)) {
+      str = execDynamicStrings[target.value]!;
+    } else {
+      str = execConstantPool!.readString(target.value);
+    }
+
+    // Metaclass slots for String (from vmstr.cpp func_table_):
+    // 0: getp_undef
+    // 1: getp_len
+    // 2: getp_substr
+
+    // Handle length property (Slot 1)
     if (funcIdx == 0 || propId == 2) {
-      // length
       if (argc != null && argc > 0) execStack.discard(argc);
-      int length;
-      if (execDynamicStrings.containsKey(target.value)) {
-        length = execDynamicStrings[target.value]!.length;
-      } else {
-        length = execConstantPool!.readString(target.value).length;
-      }
-      execRegisters.r0 = T3Value.fromInt(length);
+      execRegisters.r0 = T3Value.fromInt(str.length);
       return;
     }
+
+    // Handle substr method (Slot 2)
+    // Common propId for substr is often 0x006d (109)
+    if (funcIdx == 1 || propId == 0x6d) {
+      int start = 1;
+      int? len;
+
+      // Arguments are pushed right-to-left (TOS is Arg1):
+      // substr(start, len) -> [..., len, start]
+      // pop() -> start
+      // pop() -> len
+      if (argc != null && argc >= 1) {
+        start = execStack.pop().numToInt();
+      }
+      if (argc != null && argc >= 2) {
+        len = execStack.pop().numToInt();
+      }
+
+      final strLen = str.length;
+      int startIdx;
+      int endIdx;
+
+      // Convert start to 0-based index
+      if (start > 0) {
+        startIdx = start - 1;
+      } else if (start < 0) {
+        startIdx = strLen + start;
+      } else {
+        startIdx = 0;
+      }
+
+      // Calculate end index
+      if (len == null) {
+        endIdx = strLen;
+      } else if (len >= 0) {
+        endIdx = startIdx + len;
+      } else {
+        // Negative length: number of characters to remove from end
+        endIdx = strLen + len;
+      }
+
+      // Clamp indices to [0, strLen]
+      if (startIdx < 0) startIdx = 0;
+      if (startIdx > strLen) startIdx = strLen;
+      if (endIdx < 0) endIdx = 0;
+      if (endIdx > strLen) endIdx = strLen;
+      if (endIdx < startIdx) endIdx = startIdx;
+
+      String result = str.substring(startIdx, endIdx);
+
+      // Create new dynamic string and return it
+      final newOffset = execNextDynamicStringOffset;
+      execNextDynamicStringOffset = newOffset + 1;
+      execDynamicStrings[newOffset] = result;
+      execRegisters.r0 = T3Value.fromString(newOffset);
+      return;
+    }
+
+    // Unknown method - discard args and return nil
     if (argc != null && argc > 0) execStack.discard(argc);
     execRegisters.r0 = T3Value.nil();
   }
@@ -717,6 +783,12 @@ mixin T3ExecutionHelpers {
       } else {
         return execConstantPool!.readString(offset);
       }
+    } else if (val.isObject) {
+      final obj = execObjectTable.lookup(val.value);
+      if (obj is T3StringObject) {
+        return obj.text;
+      }
+      return '';
     } else if (val.isInt) {
       return val.value.toString();
     } else if (val.isNil) {

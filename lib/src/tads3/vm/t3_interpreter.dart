@@ -1672,9 +1672,6 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
-          print(
-            'CALLPROP: propId=0x${propId.toRadixString(16)} argc=$argc args=${[for (int i = 0; i < argc; i++) _stack.get(i)]}',
-          );
           execEvalProperty(target, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;
