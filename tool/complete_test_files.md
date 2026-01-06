@@ -15,13 +15,13 @@ The following test files run successfully to completion:
 - anon.t3 - Anonymous functions and inheritance
 - foreach.t3 - Vector applyAll and iterator snapshotting
 - iter.t3 - Iterator operations for lists and vectors
+- substr.t3 - String substring operations
+- try_catch.t3 - Exception handling
 
 ## Partially Working Tests (partial output before failure)
 - object.t3 - some outputs correct, but does not match expected output
-- try_catch.t3 - Runs until NEW1 opcode needed for exception creation
 - undo.t3 - Runs until NEW1 opcode
 - finally.t3 - some outputs correct, but does not match expected output
-- substr.t3 - String substring operations (note: output shows empty strings - may need intrinsic fix)
 
 ## Known Blocked Tests
 

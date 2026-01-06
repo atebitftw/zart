@@ -58,9 +58,53 @@ mixin T3ExecutionHelpers {
     }
 
     // Pop constructor arguments (in Top-to-Bottom order, as expected by Reference VM)
+    // TADS3 pushes arguments right-to-left, so popping them one by one gives:
+    // args[0] = Top-of-stack (last pushed, e.g., superclass for tads-object)
+    // args[1] = Second-on-stack (e.g., first constructor argument)
+    // ...
     final args = <T3Value>[];
     for (var i = 0; i < argc; i++) {
       args.add(execStack.pop());
+    }
+
+    if (metaclass.name == 'tads-object') {
+      // Create the object using the first argument as superclass (handled in createDynamicObject)
+      // For TadsObject, first arg (args[0]) is the superclass, remaining are for construct()
+      final newObjId = execObjectTable.createDynamicObject(metaclass.name, args, isTransient: isTransient);
+      final newObj = T3Value.fromObject(newObjId);
+
+      // Check for 'construct' method
+      var constructPropId = getSymbolPropertyId('construct');
+      if (constructPropId == null) {
+        // Fallback to standard TADS3 predefined property ID for construct
+        constructPropId = 1;
+      }
+
+      T3PropertyLookupResult? constructResult;
+      constructResult = execObjectTable.lookupProperty(newObjId, constructPropId);
+
+      if (constructResult != null && (constructResult.value.isCodeOffset || constructResult.value.isFuncPtr)) {
+        // Push constructor arguments back to stack (args[1] to args[n])
+        // To push them such that Arg 2 is at TOS, we push them in reverse: args[n], ..., args[1]
+        for (var i = args.length - 1; i >= 1; i--) {
+          execStack.push(args[i]);
+        }
+
+        // Call the constructor
+        execCallFunction(
+          constructResult.value.value,
+          args.length - 1,
+          self: newObj,
+          targetObj: newObj,
+          definingObj: T3Value.fromObject(constructResult.definingObjectId),
+          propId: constructPropId,
+        );
+        // The constructor is expected to return 'self' (the new object), which will be placed in R0
+      } else {
+        // No constructor found or it's not callable - just return the object in R0
+        execRegisters.r0 = newObj;
+      }
+      return;
     }
 
     // Special handling for Vector constructor with list source argument
