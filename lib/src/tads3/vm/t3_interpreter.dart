@@ -322,6 +322,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     }
     final data = _image!.getBlockData(block);
     _metaclasses = T3MetaclassDepList.parse(data);
+    for (final dep in _metaclasses!.dependencies) {
+      // print('DEBUG: Metaclass ${dep.name} index=${dep.index} props=${dep.propertyIds}');
+    }
 
     // Cache indices for primitive types
     _stringMetaclassIdx = _metaclasses!.byName('string')?.index;
@@ -447,8 +450,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
     // Set up initial state by "calling" the entrypoint.
     // The entrypoint expects 1 argument: a List of command-line arguments.
-    // TODO: Create a proper T3 List object instead of nil
-    _stack.push(T3Value.nil());
+    // Create an empty dynamic list for the args.
+    final argsListOffset = _nextDynamicListOffset++;
+    _dynamicLists[argsListOffset] = <T3Value>[];
+    _stack.push(T3Value.fromList(argsListOffset));
     execCallFunction(_entrypoint!.codeOffset, 1);
 
     // Main execution loop
@@ -469,6 +474,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     _instructionCount++;
 
     final opcode = _codePool!.readByte(_registers.ip++);
+    // Uncomment for full trace:
+    // print('TRACE: 0x${opcode.toRadixString(16).toUpperCase()} at 0x${(_registers.ip - 1).toRadixString(16)} stack=${_stack.depth}');
+    // if (_stack.depth > 0) print(_stack.dumpTop(5));
 
     return _executeOpcode(opcode);
   }
@@ -574,21 +582,22 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         // Operand: UBYTE - number of fixed parameters
         {
           final fixedCount = _codePool!.readByte(_registers.ip++);
-          final totalArgs = _stack.getArgCount();
-          final varargCount = totalArgs - fixedCount;
+          final actualArgc = _stack.getArgCount();
 
-          // Build the list from the variable arguments
-          final elements = <T3Value>[];
-          for (var i = 0; i < varargCount; i++) {
-            elements.add(_stack.getArg(fixedCount + i).copy());
+          if (actualArgc <= fixedCount) {
+            _stack.push(T3Value.nil());
+          } else {
+            final varArgc = actualArgc - fixedCount;
+            final elements = <T3Value>[];
+            for (var i = 0; i < varArgc; i++) {
+              // Arguments are relative to the current frame's base pointer
+              elements.add(_stack.getArg(fixedCount + i).copy());
+            }
+
+            final offset = _nextDynamicListOffset++;
+            _dynamicLists[offset] = elements;
+            _stack.push(T3Value.fromList(offset));
           }
-
-          // Store as a dynamic list
-          final offset = _nextDynamicListOffset++;
-          _dynamicLists[offset] = elements;
-
-          // Push as a list value
-          _stack.push(T3Value.fromList(offset));
         }
         return T3ExecutionResult.continue_;
 
@@ -599,19 +608,32 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final listVal = _stack.pop();
           final countVal = _stack.pop();
           if (!countVal.isInt) {
-            throw T3Exception('MAKELSTPAR: expected integer argument count on stack');
+            throw T3Exception(
+              'MAKELSTPAR: expected integer argument count on stack at IP=${(_registers.ip - 2).toRadixString(16)}',
+            );
           }
 
           var currentCount = countVal.value;
-          if (listVal.isList) {
+          final obj = listVal.isObject ? _objectTable!.lookup(listVal.value) : null;
+          final isListLike = listVal.isList || obj is T3VectorObject || obj is T3ListObject;
+
+          if (isListLike) {
             List<T3Value> elements;
-            if (_dynamicLists.containsKey(listVal.value)) {
-              elements = _dynamicLists[listVal.value]!;
+            if (listVal.isList) {
+              if (_dynamicLists.containsKey(listVal.value)) {
+                elements = _dynamicLists[listVal.value]!;
+              } else {
+                elements = _constantPool!.readList(listVal.value);
+              }
+            } else if (obj is T3VectorObject) {
+              elements = obj.elements;
+            } else if (obj is T3ListObject) {
+              elements = obj.elements;
             } else {
-              elements = _constantPool!.readList(listVal.value);
+              elements = [];
             }
 
-            // Push elements in reverse order so first is at top
+            // Push elements in reverse order so first is at top (as Arg0)
             for (var i = elements.length - 1; i >= 0; i--) {
               _stack.push(elements[i]);
             }
@@ -872,7 +894,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
           final countVal = _stack.pop();
           if (!countVal.isInt) {
-            throw T3Exception('VARARGC: expected integer argument count on stack');
+            throw T3Exception(
+              'VARARGC: expected integer argument count on stack at IP=${(_registers.ip - 3).toRadixString(16)}, got $countVal',
+            );
           }
           final argc = countVal.value;
 
@@ -917,7 +941,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
               handleBuiltin2Op(argc);
               break;
             default:
-              throw T3Exception('VARARGC: unsupported modified opcode 0x${nextOpcode.toRadixString(16)}');
+              throw T3Exception('VARARGC followed by invalid opcode 0x${nextOpcode.toRadixString(16)}');
           }
         }
         return T3ExecutionResult.continue_;
@@ -1572,6 +1596,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
+          // print('DEBUG: GETPROP propId=0x${propId.toRadixString(16)} target=$target');
           execEvalProperty(target, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
@@ -1582,6 +1607,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final self = _stack.getSelf();
+          // print('DEBUG: GETPROPSELF propId=0x${propId.toRadixString(16)} target=$self');
           execEvalProperty(self, propId, argc: null);
         }
         return T3ExecutionResult.continue_;
@@ -1646,6 +1672,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
+          print(
+            'CALLPROP: propId=0x${propId.toRadixString(16)} argc=$argc args=${[for (int i = 0; i < argc; i++) _stack.get(i)]}',
+          );
           execEvalProperty(target, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;

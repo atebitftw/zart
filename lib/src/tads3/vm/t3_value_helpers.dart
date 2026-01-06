@@ -111,10 +111,16 @@ mixin T3ValueHelpers {
       // Check if it's a vector object
       final obj = helperObjectTable.lookup(container.value);
       if (obj is T3VectorObject) {
-        if (index >= 1 && index <= obj.elements.length) {
+        // TADS3 Vectors auto-expand when assigning beyond current length
+        if (index >= 1) {
+          // Expand vector if needed
+          while (obj.elements.length < index) {
+            obj.elements.add(T3Value.nil());
+          }
           obj.elements[index - 1] = value;
+          if (obj.allocatedSize < index) obj.allocatedSize = index;
         } else {
-          throw T3Exception('SETIND: vector index $index out of bounds (1..${obj.elements.length})');
+          throw T3Exception('SETIND: vector index $index must be >= 1');
         }
       } else if (obj is T3ListObject) {
         if (index >= 1 && index <= obj.elements.length) {

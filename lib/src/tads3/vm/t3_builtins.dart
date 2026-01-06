@@ -42,8 +42,8 @@ class T3BuiltinRegistry {
     null, // 12: re_replace
     null, // 13: savepoint
     null, // 14: undo
-    null, // 15: save
-    null, // 16: restore
+    _saveGame, // 15: save
+    _restoreGame, // 16: restore
     null, // 17: restart
     null, // 18: get_max
     null, // 19: get_min
@@ -99,6 +99,24 @@ class T3BuiltinRegistry {
 
     final offset = interp.addDynamicList(list);
     interp.registers.r0 = T3Value.fromList(offset);
+  }
+
+  /// saveGame(filename) - Save game state to file.
+  /// Currently a stub that just returns nil (save not implemented).
+  static void _saveGame(T3Interpreter interp, int argc) {
+    // Discard all arguments
+    if (argc > 0) interp.stack.discard(argc);
+    // Return nil to indicate success (actual save not implemented)
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  /// restoreGame(filename) - Restore game state from file.
+  /// Currently a stub that just returns nil (restore not implemented).
+  static void _restoreGame(T3Interpreter interp, int argc) {
+    // Discard all arguments
+    if (argc > 0) interp.stack.discard(argc);
+    // Return nil to indicate failure (actual restore not implemented)
+    interp.registers.r0 = T3Value.nil();
   }
 
   /// firstObj(cls?, flags?) - Get first object in memory.

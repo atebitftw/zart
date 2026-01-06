@@ -63,6 +63,22 @@ mixin T3ExecutionHelpers {
       args.add(execStack.pop());
     }
 
+    // Special handling for Vector constructor with list source argument
+    // The ObjectTable can't access the constant pool, so we need to extract
+    // pool list elements here before passing to createDynamicObject.
+    if (metaclass.name == 'vector' && args.isNotEmpty) {
+      // Check for Vector(capacity, sourceList) or Vector(sourceList) patterns
+      // Args are in reverse order: args[0] is last pushed (sourceList), args[1] is first pushed (capacity)
+      for (var i = 0; i < args.length; i++) {
+        if (args[i].isList && !args[i].isObject) {
+          // This is a pool-based list - extract elements to a new list object
+          final elements = execValueHelpers.getListValues(args[i]);
+          final listObjId = execObjectTable.createDynamicObject('list', elements);
+          args[i] = T3Value.fromObject(listObjId);
+        }
+      }
+    }
+
     final newObjId = execObjectTable.createDynamicObject(metaclass.name, args, isTransient: isTransient);
     execRegisters.r0 = T3Value.fromObject(newObjId);
   }
@@ -138,6 +154,8 @@ mixin T3ExecutionHelpers {
     T3Value? invokee,
     T3Value? context,
   }) {
+    // print('CALL: codeOffset=0x${codeOffset.toRadixString(16)} argc=$argc');
+    final methodHeader = execCodePool!.readByte(codeOffset);
     final headerBytes = execCodePool!.readBytes(codeOffset, methodHeaderSize);
     final header = T3FunctionHeader.parse(headerBytes);
 
@@ -193,6 +211,7 @@ mixin T3ExecutionHelpers {
 
   /// Evaluates a property on a target object.
   void execEvalProperty(T3Value target, int propId, {int? argc}) {
+    // print('EVALPROP: target=$target propId=0x${propId.toRadixString(16)}');
     switch (target.type) {
       case T3DataType.obj:
         final result = execObjectTable.lookupProperty(target.value, propId);
@@ -379,13 +398,31 @@ mixin T3ExecutionHelpers {
   void _createListIterator(T3Value target, int? argc) {
     if (argc != null && argc > 0) execStack.discard(argc);
 
-    // Snapshot the collection elements for the iterator
-    final elements = execValueHelpers.getListValues(target);
-
-    // Pass target AS FIRST ARG, and then all snapshot elements
-    final iterArgs = [target, ...elements];
-    final iterId = execObjectTable.createDynamicObject('iterator', iterArgs);
-    execRegisters.r0 = T3Value.fromObject(iterId);
+    // For object-based collections (Vector, List), create live iterator
+    // For pool lists, use static snapshot
+    if (target.isObject) {
+      final objId = target.value;
+      // Create live iterator with getter that fetches elements dynamically
+      final iterId = execObjectTable.allocateObjectId();
+      final iterator = T3IteratorObject.live(
+        objectId: iterId,
+        collection: target,
+        elementGetter: () {
+          final obj = execObjectTable.lookup(objId);
+          if (obj is T3VectorObject) return obj.elements;
+          if (obj is T3ListObject) return obj.elements;
+          return <T3Value>[];
+        },
+      );
+      execObjectTable.registerObject(iterator);
+      execRegisters.r0 = T3Value.fromObject(iterId);
+    } else {
+      // Pool list - use static snapshot
+      final elements = execValueHelpers.getListValues(target);
+      final iterArgs = [target, ...elements];
+      final iterId = execObjectTable.createDynamicObject('iterator', iterArgs);
+      execRegisters.r0 = T3Value.fromObject(iterId);
+    }
   }
 
   void handleVectorIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
@@ -474,51 +511,55 @@ mixin T3ExecutionHelpers {
   void handleIteratorIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
     final obj = execObjectTable.lookup(target.value);
     if (obj is! T3IteratorObject) {
+      if (argc != null && argc > 0) execStack.discard(argc);
       execRegisters.r0 = T3Value.nil();
       return;
     }
 
     // Look up funcIdx from metaclass property table if not provided
+    // Reference VM vmiter.cpp func_table_ order:
+    // [0]=undef, [1]=getNext, [2]=isNextAvailable, [3]=resetIterator, [4]=getCurKey, [5]=getCurVal
     if (funcIdx == -1 && propId != null) {
       final iterMeta = execMetaclasses?.byName('iterator');
       if (iterMeta != null) {
         final idx = iterMeta.propertyIds.indexOf(propId);
         if (idx >= 0) {
-          funcIdx = idx + 1; // Convert to 1-based to match reference VM
+          funcIdx = idx + 1; // Convert to 1-based
         }
       }
     }
 
-    // Dispatch based on function index from metaclass dependency table
-    if (funcIdx == 1 || propId == 183 || propId == 68) {
-      // getNext (prop 68) - throws if iterator exhausted per reference VM
-      if (argc != null && argc > 0) execStack.discard(argc);
-      if (!obj.isNextAvailable()) {
-        throw T3Exception('Iterator out of range: getNext called on exhausted iterator');
-      }
-      execRegisters.r0 = obj.getNext();
-      return;
-    } else if (funcIdx == 2 || propId == 190) {
-      // isNextAvailable
-      if (argc != null && argc > 0) execStack.discard(argc);
-      execRegisters.r0 = T3Value.fromBool(obj.isNextAvailable());
-      return;
-    } else if (funcIdx == 3 || propId == 196) {
-      // resetIterator
-      if (argc != null && argc > 0) execStack.discard(argc);
-      obj.reset();
-      execRegisters.r0 = T3Value.nil();
-      return;
-    } else if (funcIdx == 4 || propId == 204) {
-      // getCurKey
-      if (argc != null && argc > 0) execStack.discard(argc);
-      execRegisters.r0 = obj.getCurKey();
-      return;
-    } else if (funcIdx == 5 || propId == 210) {
-      // getCurVal
-      if (argc != null && argc > 0) execStack.discard(argc);
-      execRegisters.r0 = obj.getCurVal();
-      return;
+    // Dispatch based on function index from reference VM vmiter.cpp func_table_
+    switch (funcIdx) {
+      case 1:
+        // getNext - advances iterator and returns the value
+        if (argc != null && argc > 0) execStack.discard(argc);
+        if (!obj.isNextAvailable()) {
+          throw T3Exception('Iterator out of range: getNext called on exhausted iterator');
+        }
+        execRegisters.r0 = obj.getNext();
+        return;
+      case 2:
+        // isNextAvailable
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromBool(obj.isNextAvailable());
+        return;
+      case 3:
+        // resetIterator
+        if (argc != null && argc > 0) execStack.discard(argc);
+        obj.reset();
+        execRegisters.r0 = T3Value.nil();
+        return;
+      case 4:
+        // getCurKey - returns current index (1-based)
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = obj.getCurKey();
+        return;
+      case 5:
+        // getCurVal - returns current value
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = obj.getCurVal();
+        return;
     }
 
     if (argc != null && argc > 0) execStack.discard(argc);

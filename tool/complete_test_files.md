@@ -13,6 +13,8 @@ The following test files run successfully to completion:
 - props.t3 - Property definitions (no output on our version AND the reference interpreter version?? how do we know this is working correctly?)
 - enum2.t3 - Enumerations (no output on our version AND the reference interpreter version?? how do we know this is working correctly?)
 - anon.t3 - Anonymous functions and inheritance
+- foreach.t3 - Vector applyAll and iterator snapshotting
+- iter.t3 - Iterator operations for lists and vectors
 
 ## Partially Working Tests (partial output before failure)
 - object.t3 - some outputs correct, but does not match expected output
@@ -26,8 +28,6 @@ The following test files run successfully to completion:
 ### Blocked by NEW1 opcode (0xc0) - Dynamic Object Creation
 Many tests fail when they need to dynamically create objects (exceptions, anonymous objects, etc):
 - catch.t3
-- foreach.t3
-- iter.t3
 - try_catch.t3
 - undo.t3
 
@@ -155,6 +155,7 @@ Many tests fail when they need to dynamically create objects (exceptions, anonym
 - ls.t3
 - macrotab.t3
 - mainargs.t3
+- match.t3
 - match.t3
 - md5.t3
 - miscchars-cyr.t3

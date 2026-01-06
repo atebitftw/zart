@@ -384,14 +384,37 @@ class T3AnonFnObject extends T3VectorObject {
 
 /// Iterator object.
 ///
-/// Used for iterating over collections.
+/// Used for iterating over collections. Supports both:
+/// - Static element list (snapshot at creation time)
+/// - Dynamic element getter (live access to collection)
 class T3IteratorObject extends T3Object {
   final T3Value collection;
-  final List<T3Value> elements;
+  final List<T3Value>? _staticElements;
+  final List<T3Value> Function()? _elementGetter;
   int _index = 0;
 
-  T3IteratorObject({required super.objectId, required this.collection, required this.elements, super.isTransient})
-    : super(metaclass: 'iterator');
+  /// Creates iterator with static element list (snapshot).
+  T3IteratorObject({
+    required super.objectId,
+    required this.collection,
+    required List<T3Value> elements,
+    super.isTransient,
+  }) : _staticElements = elements,
+       _elementGetter = null,
+       super(metaclass: 'iterator');
+
+  /// Creates iterator with dynamic element getter (live access).
+  T3IteratorObject.live({
+    required super.objectId,
+    required this.collection,
+    required List<T3Value> Function() elementGetter,
+    super.isTransient,
+  }) : _staticElements = null,
+       _elementGetter = elementGetter,
+       super(metaclass: 'iterator');
+
+  /// Gets current elements (static or dynamic).
+  List<T3Value> get elements => _elementGetter?.call() ?? _staticElements ?? [];
 
   @override
   T3Value? getProperty(int propId) {
@@ -405,8 +428,9 @@ class T3IteratorObject extends T3Object {
 
   /// Advances to next item and returns its value.
   T3Value getNext() {
-    if (_index < elements.length) {
-      return elements[_index++];
+    final elems = elements;
+    if (_index < elems.length) {
+      return elems[_index++];
     }
     return T3Value.nil();
   }
@@ -415,11 +439,12 @@ class T3IteratorObject extends T3Object {
 
   void reset() => _index = 0;
 
-  T3Value getCurKey() => T3Value.fromInt(_index + 1);
+  T3Value getCurKey() => T3Value.fromInt(_index);
 
   T3Value getCurVal() {
-    if (_index > 0 && _index <= elements.length) {
-      return elements[_index - 1];
+    final elems = elements;
+    if (_index > 0 && _index <= elems.length) {
+      return elems[_index - 1];
     }
     return T3Value.nil();
   }

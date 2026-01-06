@@ -152,6 +152,15 @@ class T3ObjectTable {
   /// Uses high range to avoid conflicts with static objects.
   int _nextDynamicObjectId = 0x80000000;
 
+  /// Allocates a new object ID without creating an object.
+  /// Used when the caller will create the object directly.
+  int allocateObjectId() => _nextDynamicObjectId++;
+
+  /// Registers a pre-created object in the table.
+  void registerObject(T3Object obj) {
+    _objects[obj.objectId] = obj;
+  }
+
   /// Creates a new dynamic object at runtime.
   ///
   /// This is called by the NEW1/NEW2/TRNEW1/TRNEW2 opcodes.
@@ -190,21 +199,54 @@ class T3ObjectTable {
         var elements = <T3Value>[];
 
         if (args.isNotEmpty) {
-          // Check if we have two int arguments (capacity, fillCount)
+          // Handle Vector constructor patterns:
+          // TADS pushes args left-to-right: first arg ends up at stack top
+          // Our pop gives: args[0]=first param, args[1]=second param
+          // - Vector(capacity): args = [capacity]
+          // - Vector(capacity, fillCount): args = [capacity, fillCount] (both ints)
+          // - Vector(sourceList): args = [sourceList]
+          // - Vector(capacity, sourceList): args = [capacity, sourceList]
+
           if (args.length >= 2 && args[0].type == T3DataType.int_ && args[1].type == T3DataType.int_) {
-            // args[0] = fillCount (last pushed), args[1] = capacity (first pushed)
-            final fillCount = args[0].value;
-            allocatedSize = args[1].value;
+            // Vector(capacity, fillCount) - fill with nil elements
+            // args[0] = capacity (first param), args[1] = fillCount (second param)
+            allocatedSize = args[0].value;
+            final fillCount = args[1].value;
             for (var i = 0; i < fillCount; i++) {
               elements.add(T3Value.nil());
             }
             if (allocatedSize < fillCount) allocatedSize = fillCount;
+          } else if (args.length >= 2 && args[0].type == T3DataType.int_ && (args[1].isList || args[1].isObject)) {
+            // Vector(capacity, sourceList)
+            // args[0] = capacity, args[1] = sourceList
+            allocatedSize = args[0].value;
+            if (args[1].isList) {
+              elements = _getListElements(args[1]);
+            } else {
+              final sourceObj = lookup(args[1].value);
+              if (sourceObj is T3VectorObject) {
+                elements = sourceObj.elements.map((e) => e.copy()).toList();
+              } else if (sourceObj is T3ListObject) {
+                elements = sourceObj.elements.map((e) => e.copy()).toList();
+              }
+            }
+            if (allocatedSize < elements.length) allocatedSize = elements.length;
           } else if (args[0].type == T3DataType.int_) {
-            // Single int arg = capacity only, no elements
+            // Vector(capacity) - capacity only, no elements
             allocatedSize = args[0].value;
           } else if (args[0].isList || args[0].isObject) {
-            // Source object - TODO: implement copy
-            print('WARNING: Vector copy from source not fully implemented');
+            // Vector(sourceList) - single source list/object
+            if (args[0].isList) {
+              elements = _getListElements(args[0]);
+            } else {
+              final sourceObj = lookup(args[0].value);
+              if (sourceObj is T3VectorObject) {
+                elements = sourceObj.elements.map((e) => e.copy()).toList();
+              } else if (sourceObj is T3ListObject) {
+                elements = sourceObj.elements.map((e) => e.copy()).toList();
+              }
+            }
+            allocatedSize = elements.length;
           }
         }
 
@@ -237,6 +279,21 @@ class T3ObjectTable {
 
     _objects[objId] = obj;
     return objId;
+  }
+
+  /// Helper to extract elements from a list-type T3Value.
+  ///
+  /// Handles both pool-based list references and list object references.
+  List<T3Value> _getListElements(T3Value listValue) {
+    if (listValue.isObject) {
+      final obj = lookup(listValue.value);
+      if (obj is T3ListObject) {
+        return obj.elements.map((e) => e.copy()).toList();
+      }
+    }
+    // For pool list or empty case, return empty list
+    // The caller should handle pool list lookup via constant pool if needed
+    return <T3Value>[];
   }
 
   @override

@@ -17,7 +17,7 @@ void main(List<String> args) async {
 
   print('Starting execution...');
   try {
-    interp.maxInstructions = 10000; // Limit execution for safety in debug tool
+    interp.maxInstructions = 50000; // Limit execution for safety in debug tool
     await interp.run();
     print('Execution finished.');
   } catch (e, stack) {
