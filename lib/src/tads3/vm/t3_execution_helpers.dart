@@ -295,13 +295,9 @@ mixin T3ExecutionHelpers {
         switch (propVal.type) {
           case T3DataType.codeofs:
           case T3DataType.funcptr:
-            if (argc == null) {
-              execRegisters.r0 = propVal;
-              return;
-            }
             execCallFunction(
               propVal.value,
-              argc,
+              argc ?? 0,
               self: target,
               targetObj: target,
               definingObj: T3Value.fromObject(result.definingObjectId),
@@ -313,7 +309,8 @@ mixin T3ExecutionHelpers {
             if (argc != null && argc > 0) {
               throw T3Exception('Arguments not allowed for dstring property');
             }
-            execRegisters.r0 = propVal;
+            invokeSay(propVal);
+            execRegisters.r0 = T3Value.nil();
             break;
 
           default:

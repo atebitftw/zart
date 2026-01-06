@@ -17,10 +17,10 @@ The following test files run successfully to completion:
 - iter.t3 - Iterator operations for lists and vectors
 - substr.t3 - String substring operations
 - try_catch.t3 - Exception handling
+- finally.t3 - Exception handling
+- object.t3 - Object property access and inheritance
 
 ## Partially Working Tests (partial output before failure)
-- object.t3 - some outputs correct, but does not match expected output
-- finally.t3 - some outputs correct, but does not match expected outpu
 
 ### Blocked by Missing Built-in Functions
 - rand.t3 - Needs tads-gen[5] (rand/randomize)
