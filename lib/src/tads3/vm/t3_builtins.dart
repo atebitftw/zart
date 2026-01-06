@@ -122,26 +122,22 @@ class T3BuiltinRegistry {
     if (argc > 2) interp.stack.discard(argc - 2);
 
     // ignore: avoid_print
-    print('DEBUG: firstObj(cls=$cls, flags=$flags)');
 
     // Iterate through objects to find first matching one
     final table = interp.objectTable;
     // ignore: avoid_print
-    print('DEBUG: object table has ${table.count} objects');
 
-    int checked = 0;
     for (final obj in table.all) {
-      checked++;
       if (_matchesObjFilter(obj, cls, flags, table)) {
         // ignore: avoid_print
-        print('DEBUG: firstObj found match: ${obj.objectId} (${obj.metaclass})');
+
         interp.registers.r0 = T3Value.fromObject(obj.objectId);
         return;
       }
     }
 
     // ignore: avoid_print
-    print('DEBUG: firstObj checked $checked objects, no match found');
+
     // No matching object found
     interp.registers.r0 = T3Value.nil();
   }

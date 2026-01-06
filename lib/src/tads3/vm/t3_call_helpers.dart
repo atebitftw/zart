@@ -105,6 +105,7 @@ mixin T3CallHelpers {
   void handleCallPropR0Op(int argc) {
     final propId = callCodePool!.readUint16(callRegisters.ip);
     callRegisters.ip += 2;
+
     evalProperty(callRegisters.r0, propId, argc: argc);
   }
 

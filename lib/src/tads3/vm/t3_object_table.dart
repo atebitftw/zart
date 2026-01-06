@@ -182,16 +182,48 @@ class T3ObjectTable {
         break;
       case 'vector':
         // Create a vector from the constructor arguments
-        obj = T3VectorObject(objectId: objId, elements: args, allocatedSize: args.length, isTransient: isTransient);
+        // Args are popped in reverse order from stack, so:
+        // - For Vector(capacity): args = [capacity]
+        // - For Vector(capacity, fillCount): args = [fillCount, capacity]
+        // - For Vector(sourceList): args = [sourceList]
+        int allocatedSize = 10;
+        var elements = <T3Value>[];
+
+        if (args.isNotEmpty) {
+          // Check if we have two int arguments (capacity, fillCount)
+          if (args.length >= 2 && args[0].type == T3DataType.int_ && args[1].type == T3DataType.int_) {
+            // args[0] = fillCount (last pushed), args[1] = capacity (first pushed)
+            final fillCount = args[0].value;
+            allocatedSize = args[1].value;
+            for (var i = 0; i < fillCount; i++) {
+              elements.add(T3Value.nil());
+            }
+            if (allocatedSize < fillCount) allocatedSize = fillCount;
+          } else if (args[0].type == T3DataType.int_) {
+            // Single int arg = capacity only, no elements
+            allocatedSize = args[0].value;
+          } else if (args[0].isList || args[0].isObject) {
+            // Source object - TODO: implement copy
+            print('WARNING: Vector copy from source not fully implemented');
+          }
+        }
+
+        obj = T3VectorObject(
+          objectId: objId,
+          elements: elements,
+          allocatedSize: allocatedSize,
+          isTransient: isTransient,
+        );
         break;
       case 'anon-func-ptr':
         // Create an anonymous function object (inherits from Vector)
         obj = T3AnonFnObject(objectId: objId, elements: args, allocatedSize: args.length, isTransient: isTransient);
         break;
       case 'iterator':
-        // Collection ID is usually passed in constructor
-        final collectionId = (args.isNotEmpty && args[0].isObject) ? args[0].value : 0;
-        obj = T3IteratorObject(objectId: objId, collectionObjectId: collectionId, isTransient: isTransient);
+        // Collection is passed as first argument, remaining args are the snapshot elements
+        final collection = args.isNotEmpty ? args[0] : T3Value.nil();
+        final elements = args.length > 1 ? args.sublist(1) : <T3Value>[];
+        obj = T3IteratorObject(objectId: objId, collection: collection, elements: elements, isTransient: isTransient);
         break;
       default:
         // Unknown metaclass - create as generic object

@@ -239,11 +239,27 @@ class T3ListObject extends T3Object {
 
   @override
   T3Value? getProperty(int propId) {
-    // 68 is the exported prop ID for the List.createIterator property
+    // 68 is List.createIterator
     if (propId == 68) {
-      // Return a code offset or a specialized value that createIterator handles?
-      // In TADS, these are typically intrinsic methods.
-      // For now, let's assume we can return a "magic" value or handle it in evalProperty.
+      // In a real VM we'd return a method pointer or similar.
+      // But TADS3 often handles these as intrinsics or "metaclass methods".
+      // We can return a special internal value or handle it in evalProperty.
+      // HOWEVER, the error was "attempted to get property 68 of nil".
+      // This implies we returned null here.
+      // If we are to support `val.createIterator()`, we need to return something that IS callable.
+      // But wait - usually intrinsic methods are called via OPC_CALLPROP.
+      // If `getProperty` returns null, the VM might think the property doesn't exist.
+      // Let's implement this by registering an intrinsic function?
+      // Or, better yet, we might need a `T3IntrinsicMethodObject` if we want to return a "function".
+      // But wait: `createIterator` IS a method.
+      // If we return NULL, it means the property is missing.
+      // We should perhaps return a special value that the interpreter knows how to invoke?
+      // OR, simpler: The VM loop calls `evalProperty`. If we return null, it fails.
+      // If we return a "function pointer", it calls it.
+      // But `createIterator` is native code.
+      // Let's try to handle this at the `execEvalProperty` level in execution_helpers.
+      // Returning null here tells the lookup mechanism "not found".
+      return null;
     }
     return null;
   }
@@ -289,6 +305,9 @@ class T3VectorObject extends T3Object {
 
   /// Allocated capacity.
   int allocatedSize;
+
+  /// Internal iterator index (1-based) for when Vector is used as an iterator.
+  int iteratorIndex = 0;
 
   T3VectorObject({required super.objectId, required this.elements, required this.allocatedSize, super.isTransient})
     : super(metaclass: 'vector');
@@ -367,20 +386,15 @@ class T3AnonFnObject extends T3VectorObject {
 ///
 /// Used for iterating over collections.
 class T3IteratorObject extends T3Object {
-  final int collectionObjectId;
+  final T3Value collection;
+  final List<T3Value> elements;
   int _index = 0;
 
-  T3IteratorObject({required super.objectId, required this.collectionObjectId, super.isTransient})
+  T3IteratorObject({required super.objectId, required this.collection, required this.elements, super.isTransient})
     : super(metaclass: 'iterator');
 
   @override
   T3Value? getProperty(int propId) {
-    // These properties are often mapped to BIFs or handled in metaclass methods
-    // prop 183: getNext
-    // prop 190: isNextAvailable
-    // prop 196: resetIterator
-    // prop 204: getCurKey
-    // prop 210: getCurVal
     return null;
   }
 
@@ -390,22 +404,22 @@ class T3IteratorObject extends T3Object {
   }
 
   /// Advances to next item and returns its value.
-  T3Value getNext(List<T3Value> collectionElements) {
-    if (_index < collectionElements.length) {
-      return collectionElements[_index++];
+  T3Value getNext() {
+    if (_index < elements.length) {
+      return elements[_index++];
     }
     return T3Value.nil();
   }
 
-  bool isNextAvailable(List<T3Value> collectionElements) => _index < collectionElements.length;
+  bool isNextAvailable() => _index < elements.length;
 
   void reset() => _index = 0;
 
-  T3Value getCurKey() => T3Value.fromInt(_index + 1); // 1-indexed in TADS?
+  T3Value getCurKey() => T3Value.fromInt(_index + 1);
 
-  T3Value getCurVal(List<T3Value> collectionElements) {
-    if (_index > 0 && _index <= collectionElements.length) {
-      return collectionElements[_index - 1];
+  T3Value getCurVal() {
+    if (_index > 0 && _index <= elements.length) {
+      return elements[_index - 1];
     }
     return T3Value.nil();
   }
@@ -414,12 +428,12 @@ class T3IteratorObject extends T3Object {
   Map<String, dynamic> get debugInfo => {
     'objectId': objectId,
     'metaclass': metaclass,
-    'collectionId': collectionObjectId,
+    'collection': collection.toString(),
     'index': _index,
   };
 
   @override
-  String toString() => 'T3IteratorObject(#$objectId, collection: #$collectionObjectId, index: $_index)';
+  String toString() => 'T3IteratorObject(#$objectId, collection: $collection, index: $_index)';
 }
 
 /// Generic/unknown object for metaclasses we don't have specific implementations for.

@@ -216,6 +216,45 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   /// Method Header Size from Entrypoint
   int get methodHeaderSize => _entrypoint?.methodHeaderSize ?? 0;
 
+  /// Executes a callback function with the given arguments and returns the result.
+  /// Uses a nested execution loop, running until the stack frame returns.
+  @override
+  T3Value execCallback(T3Value callback, List<T3Value> args) {
+    // Save current frame pointer to detect return
+    final originalFp = _stack.fp;
+
+    // Push arguments in reverse order (right to left per VM convention)
+    for (var i = args.length - 1; i >= 0; i--) {
+      _stack.push(args[i]);
+    }
+
+    // Get the callable offset
+    int? codeOffset;
+    T3Value? context;
+    if (callback.type == T3DataType.funcptr || callback.type == T3DataType.codeofs) {
+      codeOffset = callback.value;
+    } else if (callback.type == T3DataType.obj) {
+      codeOffset = getCallableOffset(callback.value);
+      context = callback;
+    }
+
+    if (codeOffset == null) {
+      throw T3Exception('execCallback: callback is not callable: $callback');
+    }
+
+    // Call the function
+    execCallFunction(codeOffset, args.length, self: callback, invokee: callback, context: context);
+
+    // Run nested execution loop until we return to original frame
+    while (_stack.fp != originalFp) {
+      final result = executeInstruction();
+      if (result == T3ExecutionResult.quit) break;
+    }
+
+    // Return R0 which contains the callback result
+    return _registers.r0;
+  }
+
   /// Set the property ID used for specialized SAY handling.
   set sayMethod(int propId) => _sayMethod = propId;
 
@@ -784,8 +823,11 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final which = _codePool!.readByte(_registers.ip++);
           switch (which) {
+            case T3Opcodes.PUSHCTXELE_THIS:
+              _stack.pushFrameReference();
+              break;
             case T3Opcodes.PUSHCTXELE_TARGPROP:
-              _stack.push(_stack.getFromFrame(T3Stack.fpOfsTargetProp));
+              _stack.push(_stack.getTargetProp());
               break;
             case T3Opcodes.PUSHCTXELE_TARGOBJ:
               _stack.push(_stack.getTargetObject());
@@ -1303,64 +1345,52 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         // Integer addition
         if (a.isInt && b.isInt) {
           _stack.push(T3Value.fromInt(a.value + b.value));
-        }
-        // List operations
-        else if (a.isList || b.isList) {
-          final resultElements = <T3Value>[];
-          if (a.isList) {
-            resultElements.addAll(getListValues(a));
-          } else {
-            resultElements.add(a.copy());
-          }
-
-          if (b.isList) {
-            resultElements.addAll(getListValues(b));
-          } else {
-            resultElements.add(b.copy());
-          }
-
-          final offset = addDynamicList(resultElements);
-          _stack.push(T3Value.fromList(offset));
-        }
-        // String concatenation
-        else if (a.isStringLike || b.isStringLike) {
-          // Helper to get string representation
-          String getString(T3Value val) {
-            if (val.isStringLike) {
-              // Check if it's a dynamic string first
-              if (_dynamicStrings.containsKey(val.value)) {
-                return _dynamicStrings[val.value]!;
-              }
-              // Otherwise read from constant pool
-              try {
-                return _constantPool!.readString(val.value);
-              } catch (e) {
-                throw T3Exception(
-                  'Failed to read string at offset 0x${val.value.toRadixString(16)}: $e. '
-                  'Value type: ${val.type}, isStringLike: ${val.isStringLike}',
-                );
-              }
-            } else if (val.isInt) {
-              return val.value.toString();
-            } else if (val.isNil) {
-              return '';
-            } else {
-              return val.toString();
-            }
-          }
-
-          final aStr = getString(a);
-          final bStr = getString(b);
-          final result = aStr + bStr;
-
-          // Store the concatenated string
-          final offset = _nextDynamicStringOffset++;
-          _dynamicStrings[offset] = result;
-
-          // Push a string value with the dynamic offset
-          _stack.push(T3Value.fromString(offset));
         } else {
-          throw T3Exception('ADD: unsupported operand types ${a.type} and ${b.type}');
+          // List addition (check for both constant lists and object lists/vectors)
+          // We define 'isList' helper logic inline or just check types
+          bool isListType(T3Value val) {
+            if (val.isList) return true;
+            if (val.isObject) {
+              final obj = _objectTable!.lookup(val.value);
+              return obj is T3ListObject || obj is T3VectorObject;
+            }
+            return false;
+          }
+
+          final isListA = isListType(a);
+          final isListB = isListType(b);
+
+          if (isListA || isListB) {
+            List<T3Value> getElements(T3Value val, bool isList) {
+              if (!isList) return [val];
+              if (val.isList) return getListValues(val);
+              final obj = _objectTable!.lookup(val.value);
+              if (obj is T3ListObject) return obj.elements;
+              if (obj is T3VectorObject) return obj.elements;
+              return [];
+            }
+
+            final listA = getElements(a, isListA);
+            final listB = getElements(b, isListB);
+
+            final newList = [...listA, ...listB];
+            final newObjId = _objectTable!.createDynamicObject('list', newList);
+
+            _stack.push(T3Value.fromObject(newObjId));
+          } else if (a.isStringLike || b.isStringLike) {
+            // String concatenation
+            final aStr = getStringValue(a);
+            final bStr = getStringValue(b);
+            final result = aStr + bStr;
+
+            // Store the concatenated string
+            final offset = _nextDynamicStringOffset++;
+            _dynamicStrings[offset] = result;
+
+            _stack.push(T3Value.fromString(offset));
+          } else {
+            throw T3Exception('ADD: unsupported operand types ${a.type} and ${b.type}');
+          }
         }
         return T3ExecutionResult.continue_;
 

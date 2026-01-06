@@ -146,13 +146,28 @@ mixin T3ValueHelpers {
 
   /// Gets the list of values for a list T3Value (handles dynamic and pool lists).
   List<T3Value> getListValues(T3Value listVal) {
-    if (!listVal.isList) return [];
-
-    if (helperDynamicLists.containsKey(listVal.value)) {
-      return helperDynamicLists[listVal.value]!;
-    } else {
-      return helperConstantPool!.readList(listVal.value);
+    if (listVal.isList) {
+      if (helperDynamicLists.containsKey(listVal.value)) {
+        return helperDynamicLists[listVal.value]!;
+      } else {
+        return helperConstantPool!.readList(listVal.value);
+      }
+    } else if (listVal.isObject) {
+      final obj = helperObjectTable.lookup(listVal.value);
+      if (obj is T3ListObject) return obj.elements;
+      if (obj is T3VectorObject) return obj.elements;
     }
+    return [];
+  }
+
+  /// Checks if a value is a list (constant, dynamic, or object).
+  bool isListValue(T3Value val) {
+    if (val.isList) return true;
+    if (val.isObject) {
+      final obj = helperObjectTable.lookup(val.value);
+      return obj is T3ListObject || obj is T3VectorObject;
+    }
+    return false;
   }
 
   /// Gets the next value from an iterator object.
@@ -165,6 +180,13 @@ mixin T3ValueHelpers {
 
     final obj = helperObjectTable.lookup(iterator.value);
     if (obj == null) return null;
+
+    if (obj is T3IteratorObject) {
+      if (obj.isNextAvailable()) {
+        return obj.getNext();
+      }
+      return null;
+    }
 
     // Check if it's a list-like iterator (IndexedIterator or similar)
     if (obj is T3TadsObject) {
@@ -212,5 +234,24 @@ mixin T3ValueHelpers {
     }
 
     return false;
+  }
+
+  /// Gets the string content of a T3Value (handles constant and dynamic strings).
+  String getStringValue(T3Value strVal) {
+    if (strVal.type == T3DataType.sstring) {
+      // Constant string
+      return helperConstantPool!.readString(strVal.value);
+    } else if (strVal.type == T3DataType.dstring) {
+      // Dynamic string
+      if (helperDynamicStrings.containsKey(strVal.value)) {
+        return helperDynamicStrings[strVal.value]!;
+      }
+      return ''; // Unknown dynamic string
+    } else if (strVal.type == T3DataType.list) {
+      // Use list to string conversion if needed? Or error?
+      // For now return empty or meaningful representation?
+      return '[List]';
+    }
+    return '';
   }
 }

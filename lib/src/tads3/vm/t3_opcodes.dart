@@ -542,6 +542,9 @@ abstract class T3Opcodes {
 
   // ==================== Context element codes ====================
 
+  /// PUSHCTXELE: push the context object (this/self in some contexts).
+  static const int PUSHCTXELE_THIS = 0x00;
+
   /// PUSHCTXELE: push target property.
   static const int PUSHCTXELE_TARGPROP = 0x01;
 
