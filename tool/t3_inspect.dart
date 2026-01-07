@@ -8,7 +8,18 @@ void main(List<String> args) async {
     return;
   }
 
-  final data = File(args[0]).readAsBytesSync();
+  String filePath = args[0];
+  bool disassemble = false;
+  if (args[0] == '--disasm') {
+    if (args.length < 2) {
+      print('Usage: dart t3_inspect.dart --disasm <file.t3>');
+      return;
+    }
+    disassemble = true;
+    filePath = args[1];
+  }
+
+  final data = File(filePath).readAsBytesSync();
   final interp = T3Interpreter();
 
   print('Loading ${args[0]}...');
@@ -71,5 +82,59 @@ void main(List<String> args) async {
     print(
       '  0x${offset.toRadixString(16).padLeft(2, '0')}: 0x${byte.toRadixString(16).padLeft(2, '0')} ($byte) - $opcodeName',
     );
+  }
+
+  if (disassemble) {
+    print('');
+    print('Disassembly:');
+    print('');
+
+    final codePool = interp.codePool;
+    if (codePool == null) {
+      print('No code pool loaded');
+      return;
+    }
+
+    var ip = interp.entrypoint!.codeOffset;
+    final endIp = ip + 10000; // Limit to 10000 bytes
+
+    while (ip < endIp) {
+      final opcode = codePool.readByte(ip);
+      final opcodeName = T3Opcodes.getName(opcode);
+
+      var extra = '';
+      var len = 1;
+
+      // Simple heuristic for common opcodes to show operands
+      // This is NOT comprehensive, just enough for debugging
+      try {
+        if (opcodeName == 'INCLCL') {
+          final lclIdx = codePool.readByte(ip + 1);
+          extra = ' local($lclIdx)';
+          len = 2;
+        } else if (opcodeName == 'GETLCL1' || opcodeName == 'SETLCL1') {
+          final lclIdx = codePool.readByte(ip + 1);
+          extra = ' local($lclIdx)';
+          len = 2;
+        } else if (opcodeName == 'PUSHSTR') {
+          final offset = codePool.readUint32(ip + 1);
+          extra = ' offset=$offset';
+          len = 5;
+        } else if (opcodeName == 'JMP' || opcodeName == 'JT' || opcodeName == 'JF') {
+          final offset = codePool.readInt16(ip + 1);
+          extra = ' target=${(ip + offset + 3).toRadixString(16)}'; // relative to next instruction
+          len = 3;
+        }
+      } catch (e) {
+        // ignore read errors at end of file
+      }
+
+      print(
+        '0x${ip.toRadixString(16).padLeft(4, '0')}: ${opcode.toRadixString(16).padLeft(2, '0')} ($opcodeName)$extra',
+      );
+
+      ip += len; // rudimentary step
+      // Ideally we need opcode lengths table
+    }
   }
 }

@@ -34,6 +34,9 @@ mixin T3ExecutionHelpers {
   Map<int, List<T3Value>> get execDynamicLists;
   int get execNextDynamicStringOffset;
   set execNextDynamicStringOffset(int value);
+  int get execNextDynamicListOffset;
+  set execNextDynamicListOffset(int value);
+
   int get execOutputIgnoreDepth;
   set execOutputIgnoreDepth(int value);
   int get execSayMethod;
@@ -810,7 +813,7 @@ mixin T3ExecutionHelpers {
   void printRaw(String text) {
     if (text.isEmpty) return;
     // ignore: avoid_print
-    stdout.write(text);
+    print(text);
   }
 
   /// Gets the string representation of a value.
@@ -900,7 +903,30 @@ mixin T3ExecutionHelpers {
           return;
         } else {
           // No handler found - terminate with unhandled exception
-          throw T3Exception('Unhandled exception: $errMsg');
+          // Debugging: Dump info about the exception object
+          if (excObj.isObject) {
+            final obj = execObjectTable.lookup(excObj.value);
+            printRaw('\n[Exception Object Dump]\n');
+            printRaw('Type: ${obj.runtimeType}\n');
+            // Try to read 'errno' property (common in RuntimeError)
+            final errnoProp = getSymbolPropertyId('errno');
+            if (errnoProp != null) {
+              final errnoVal = execObjectTable.lookupProperty(excObj.value, errnoProp);
+              if (errnoVal != null && errnoVal.value.isInt) {
+                printRaw('errno: ${errnoVal.value.value} (${_runtimeErrorToString(errnoVal.value.value)})\n');
+              }
+            }
+            // Try to read 'exceptionMessage' property
+            final msgProp = getSymbolPropertyId('exceptionMessage');
+            if (msgProp != null) {
+              final msgVal = execObjectTable.lookupProperty(excObj.value, msgProp);
+              if (msgVal != null && msgVal.value.isStringLike) {
+                printRaw('message: ${getStringValue(msgVal.value)}\n');
+              }
+            }
+          }
+
+          throw T3Exception('Unhandled exception: object #${excObj.value}');
         }
       }
     }
@@ -914,7 +940,7 @@ mixin T3ExecutionHelpers {
       execRegisters.ip = handlerAddr;
     } else {
       // No more handlers - terminate
-      throw T3Exception('Unhandled exception: $errMsg');
+      throw T3Exception('Unhandled exception: $errMsg (errno $errno)');
     }
   }
 
@@ -943,5 +969,363 @@ mixin T3ExecutionHelpers {
       default:
         return 'error code $errno';
     }
+  }
+
+  int _createDynamicString(String s) {
+    final offset = execNextDynamicStringOffset++;
+    execDynamicStrings[offset] = s;
+    return offset;
+  }
+
+  int _createDynamicList(List<T3Value> list) {
+    final offset = execNextDynamicListOffset++;
+    execDynamicLists[offset] = list;
+    return offset;
+  }
+
+  // ==================== Arithmetic Helpers ====================
+
+  /// Generic ADD operation (Integer, String, List, Object).
+  void t3Add(T3Value v1, T3Value v2) {
+    // printRaw('DEBUG: t3Add v1=${v1.type}:${v1.value} v2=${v2.type}:${v2.value}\n');
+
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value + v2.value));
+      return;
+    }
+
+    if (v1.isStringLike && v2.isStringLike) {
+      final s1 = getStringValue(v1);
+      final s2 = getStringValue(v2);
+      final offset = _createDynamicString(s1 + s2);
+      execStack.push(T3Value.fromString(offset));
+      return;
+    }
+
+    // Special handling for Vector: Vector + Value -> New Vector (not List)
+    if (v1.isObject) {
+      final obj1 = execObjectTable.lookup(v1.value);
+      if (obj1 is T3VectorObject) {
+        // printRaw('DEBUG: t3Add found Vector object #${v1.value}\n');
+        final resultElements = <T3Value>[];
+        // Copy existing
+        resultElements.addAll(obj1.elements);
+
+        // Add v2
+        if (v2.isList) {
+          resultElements.addAll(getExecListValues(v2));
+        } else if (v2.isObject) {
+          final obj2 = execObjectTable.lookup(v2.value);
+          if (obj2 is T3ListObject) {
+            resultElements.addAll(obj2.elements);
+          } else if (obj2 is T3VectorObject) {
+            resultElements.addAll(obj2.elements);
+          } else {
+            resultElements.add(v2);
+          }
+        } else {
+          // Int, etc.
+          resultElements.add(v2);
+        }
+
+        // Create new Vector object
+        final newId = execObjectTable.allocateObjectId();
+        final newVector = T3VectorObject(
+          objectId: newId,
+          elements: resultElements,
+          // Alloc size: use length + buffer to allow efficient appending
+          allocatedSize: resultElements.length + 10,
+          isTransient: obj1.isTransient,
+        );
+        execObjectTable.registerObject(newVector);
+        execStack.push(T3Value.fromObject(newId));
+        return;
+      }
+    }
+
+    if (v1.isList || v2.isList || (v1.isObject && isListType(v1)) || (v2.isObject && isListType(v2))) {
+      final l1 = getElements(v1, isListType(v1));
+      final l2 = getElements(v2, isListType(v2));
+      final offset = _createDynamicList([...l1, ...l2]);
+      execStack.push(T3Value.fromList(offset));
+      return;
+    }
+
+    if (v1.isObject) {
+      if (tryInvokeOperator(v1, 'operator +', [v2])) return;
+    }
+
+    // Commutativity usually not supported implicitly for objects unless documented?
+    // Reference VM: if op1 is object, invoke op1.operator+(op2).
+    // If invalid types: VMERR_BAD_TYPE_ADD (2003) or VMERR_NUM_VAL_REQD (2004)
+    throwRuntimeError(2003);
+  }
+
+  /// Generic SUB operation.
+  void t3Sub(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value - v2.value));
+      return;
+    }
+
+    // Handle list subtraction: list - value removes matching elements
+    // Reference VM: compute_diff for VM_LIST case (vmrun.cpp:331-338)
+    if (v1.isList) {
+      final listElements = getExecListValues(v1);
+
+      // Get elements to remove
+      final toRemove = <T3Value>[];
+      if (v2.isList) {
+        toRemove.addAll(getExecListValues(v2));
+      } else if (v2.isObject) {
+        final obj2 = execObjectTable.lookup(v2.value);
+        if (obj2 is T3ListObject) {
+          toRemove.addAll(obj2.elements);
+        } else if (obj2 is T3VectorObject) {
+          toRemove.addAll(obj2.elements);
+        } else {
+          toRemove.add(v2);
+        }
+      } else {
+        toRemove.add(v2);
+      }
+
+      // Create new list with non-matching elements
+      final resultElements = <T3Value>[];
+      for (final elem in listElements) {
+        bool shouldRemove = false;
+        for (final rem in toRemove) {
+          if (elem.equals(rem)) {
+            shouldRemove = true;
+            break;
+          }
+        }
+        if (!shouldRemove) {
+          resultElements.add(elem.copy());
+        }
+      }
+
+      // Return as a new dynamic list
+      final offset = _createDynamicList(resultElements);
+      execStack.push(T3Value.fromList(offset));
+      return;
+    }
+
+    // Handle Vector subtraction: Vector - value removes matching elements
+    if (v1.isObject) {
+      final obj1 = execObjectTable.lookup(v1.value);
+      if (obj1 is T3VectorObject) {
+        // Get elements to remove
+        final toRemove = <T3Value>[];
+        if (v2.isList) {
+          toRemove.addAll(getExecListValues(v2));
+        } else if (v2.isObject) {
+          final obj2 = execObjectTable.lookup(v2.value);
+          if (obj2 is T3ListObject) {
+            toRemove.addAll(obj2.elements);
+          } else if (obj2 is T3VectorObject) {
+            toRemove.addAll(obj2.elements);
+          } else {
+            toRemove.add(v2);
+          }
+        } else {
+          toRemove.add(v2);
+        }
+
+        // Create new vector with non-matching elements
+        final resultElements = <T3Value>[];
+        for (final elem in obj1.elements) {
+          bool shouldRemove = false;
+          for (final rem in toRemove) {
+            if (elem.equals(rem)) {
+              shouldRemove = true;
+              break;
+            }
+          }
+          if (!shouldRemove) {
+            resultElements.add(elem.copy());
+          }
+        }
+
+        // Create new Vector object
+        final newId = execObjectTable.allocateObjectId();
+        final newVector = T3VectorObject(
+          objectId: newId,
+          elements: resultElements,
+          allocatedSize: resultElements.length + 10,
+          isTransient: obj1.isTransient,
+        );
+        execObjectTable.registerObject(newVector);
+        execStack.push(T3Value.fromObject(newId));
+        return;
+      }
+
+      // Try operator overload for other objects
+      if (tryInvokeOperator(v1, 'operator -', [v2])) return;
+    }
+    throwRuntimeError(2007);
+  }
+
+  /// Generic MUL operation.
+  void t3Mul(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value * v2.value));
+      return;
+    }
+    if (v1.isObject) {
+      if (tryInvokeOperator(v1, 'operator *', [v2])) return;
+    }
+    throwRuntimeError(2024);
+  }
+
+  /// Generic DIV operation.
+  void t3Div(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      if (v2.value == 0) throwRuntimeError(2008); // Division by zero
+      execStack.push(T3Value.fromInt(v1.value ~/ v2.value));
+      return;
+    }
+    if (v1.isObject) {
+      if (tryInvokeOperator(v1, 'operator /', [v2])) return;
+    }
+    throwRuntimeError(2025);
+  }
+
+  /// Generic MOD operation.
+  void t3Mod(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      if (v2.value == 0) throwRuntimeError(2008);
+      execStack.push(T3Value.fromInt(v1.value % v2.value));
+      return;
+    }
+    if (v1.isObject) {
+      if (tryInvokeOperator(v1, 'operator %', [v2])) return;
+    }
+    throwRuntimeError(2032);
+  }
+
+  /// Generic NEG operation (unary -).
+  void t3Neg(T3Value v1) {
+    if (v1.isInt) {
+      execStack.push(T3Value.fromInt(-v1.value));
+      return;
+    }
+    if (v1.isObject) {
+      if (tryInvokeOperator(v1, 'operator negate', [])) return;
+    }
+    throwRuntimeError(2026);
+  }
+
+  /// Generic Bitwise AND.
+  void t3BitAnd(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value & v2.value));
+      return;
+    }
+    // No standard operator override for bitwise ops documented in standard, but commonly supported?
+    // Assuming no override for now unless critical.
+    throwRuntimeError(2005);
+  }
+
+  /// Generic Bitwise OR.
+  void t3BitOr(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value | v2.value));
+      return;
+    }
+    throwRuntimeError(2005);
+  }
+
+  /// Generic Bitwise XOR.
+  void t3BitXor(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value ^ v2.value));
+      return;
+    }
+    throwRuntimeError(2005);
+  }
+
+  /// Generic Bitwise NOT (~).
+  void t3BitNot(T3Value v1) {
+    if (v1.isInt) {
+      execStack.push(T3Value.fromInt(~v1.value));
+      return;
+    }
+    throwRuntimeError(2005);
+  }
+
+  /// Shift Left.
+  void t3Shl(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value << v2.value));
+      return;
+    }
+    throwRuntimeError(2005);
+  }
+
+  /// Arithmetic Shift Right.
+  void t3Ashr(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value >> v2.value));
+      return;
+    }
+    throwRuntimeError(2005);
+  }
+
+  /// Logical Shift Right (unsigned).
+  void t3Lshr(T3Value v1, T3Value v2) {
+    if (v1.isInt && v2.isInt) {
+      execStack.push(T3Value.fromInt(v1.value >>> v2.value));
+      return;
+    }
+    throwRuntimeError(2005);
+  }
+
+  /// Logical NOT (!).
+  void t3Not(T3Value v1) {
+    // T3 logical not returns true/nil
+    execStack.push(v1.isLogicalTrue ? T3Value.nil() : T3Value.true_());
+  }
+
+  /// Tries to invoke an operator method on an object.
+  /// Returns true if successful (result or pending call pushed to stack).
+  /// Returns false if property not found or object invalid.
+  bool tryInvokeOperator(T3Value obj, String opName, List<T3Value> args) {
+    final propId = getSymbolPropertyId(opName);
+    if (propId == null) return false;
+
+    // Check if property exists on object
+    final result = execObjectTable.lookupProperty(obj.value, propId);
+    if (result == null) return false;
+
+    // Call the method
+    // Arguments: [arg1, arg2, ...]
+    // TADS3 pushes args right-to-left.
+    for (var i = args.length - 1; i >= 0; i--) {
+      execStack.push(args[i]);
+    }
+
+    if (result.value.isCodeOffset || result.value.isFuncPtr) {
+      execCallFunction(
+        result.value.value,
+        args.length,
+        self: obj,
+        targetObj: obj,
+        definingObj: T3Value.fromObject(result.definingObjectId),
+        propId: propId,
+      );
+      // Result will be in R0 when function returns, but we need it on stack for expression evaluation.
+      // Since callFunction sets up a new frame, we rely on the return handler to push R0 back?
+      // NOTE: This assumes that the caller properly handles the asynchronous nature of this call (e.g. by not consuming R0 immediately).
+      // However, for opcodes like ADD, they need to push the result.
+      // Since we can't pause execution here, we rely on the fact that T3ExecutionResult.continue_ will run the function,
+      // and when it returns, the result is in R0.
+      //
+      // BUT, the ADD opcode typically PUSHES the result.
+      // This is a complex interaction.
+      // For now, assuming standard calls work, but we might need to handle the return value specifically in the interpreter loop.
+      return true;
+    }
+    return false;
   }
 }

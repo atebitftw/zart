@@ -118,6 +118,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   @override
   set execNextDynamicStringOffset(int value) => _nextDynamicStringOffset = value;
   @override
+  int get execNextDynamicListOffset => _nextDynamicListOffset;
+  @override
+  set execNextDynamicListOffset(int value) => _nextDynamicListOffset = value;
+  @override
   int get execOutputIgnoreDepth => _outputIgnoreDepth;
   @override
   set execOutputIgnoreDepth(int value) => _outputIgnoreDepth = value;
@@ -483,6 +487,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
   /// Executes the given opcode.
   T3ExecutionResult _executeOpcode(int opcode) {
+    // Debug tracing
+    printRaw('IP:${(_registers.ip - 1).toRadixString(16)} Op:${opcode.toRadixString(16)}\n');
+
     switch (opcode) {
       // ==================== Push Operations ====================
 
@@ -955,7 +962,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           if (localVal.isInt) {
             _stack.setLocal(localNum, T3Value.fromInt(localVal.value + addVal));
           } else {
-            throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
+            // Fallback to generic arithmetic for objects (Vector, List, etc.)
+            t3Add(localVal, T3Value.fromInt(addVal));
+            _stack.setLocal(localNum, _stack.pop());
           }
         }
         return T3ExecutionResult.continue_;
@@ -976,53 +985,44 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.ADDTOLCL: // add stack value to local (UINT2 index)
+        // Reference VM: handles integers inline, otherwise uses compute_sum (our t3Add)
         {
           final localNum = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final addVal = _stack.pop();
           final localVal = _stack.getLocal(localNum);
 
-          if (localVal.isInt) {
-            if (addVal.isInt) {
-              _stack.setLocal(localNum, T3Value.fromInt(localVal.value + addVal.value));
-            } else {
-              throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-            }
-          } else if (isListType(localVal)) {
-            final aElements = getElements(localVal, true);
-            final bElements = getElements(addVal, isListType(addVal));
-
-            final List<T3Value> resultElements = [...aElements, ...bElements];
-            final offset = addDynamicList(resultElements);
-            _stack.setLocal(localNum, T3Value.fromList(offset));
-          } else if (localVal.isStringLike) {
-            final s1 = getStringValue(localVal);
-            final s2 = getStringValue(addVal);
-            final resultStr = s1 + s2;
-
-            final offset = _nextDynamicStringOffset++;
-            _dynamicStrings[offset] = resultStr;
-            _stack.setLocal(localNum, T3Value.fromString(offset));
+          if (localVal.isInt && addVal.isInt) {
+            // Fast path for integers
+            _stack.setLocal(localNum, T3Value.fromInt(localVal.value + addVal.value));
           } else {
-            throwRuntimeError(2003); // VMERR_BAD_TYPE_ADD
+            // Use t3Add for objects (Vectors, lists, strings, etc.)
+            // t3Add pushes result to stack
+            t3Add(localVal, addVal);
+            final result = _stack.pop();
+            _stack.setLocal(localNum, result);
           }
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.SUBFROMLCL: // subtract stack value from local (UINT2 index)
+        // Reference VM vmrun.cpp:3117-3153 - handles integers inline,
+        // otherwise tries compute_diff (our t3Sub) or operator overload
         {
           final localNum = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final subVal = _stack.pop();
           final localVal = _stack.getLocal(localNum);
-          if (localVal.isInt) {
-            if (subVal.isInt) {
-              _stack.setLocal(localNum, T3Value.fromInt(localVal.value - subVal.value));
-            } else {
-              throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-            }
+
+          if (localVal.isInt && subVal.isInt) {
+            // Fast path for integers
+            _stack.setLocal(localNum, T3Value.fromInt(localVal.value - subVal.value));
           } else {
-            throwRuntimeError(2007); // VMERR_BAD_TYPE_SUB
+            // Use t3Sub for objects (Vectors, etc.) or mixed types
+            // t3Sub pushes result to stack
+            t3Sub(localVal, subVal);
+            final result = _stack.pop();
+            _stack.setLocal(localNum, result);
           }
         }
         return T3ExecutionResult.continue_;
@@ -1085,26 +1085,32 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         _stack.push(_stack.getArg(getDbArgIdx));
         return T3ExecutionResult.continue_;
 
-      // Increment/decrement local variables (UINT2 index)
+      // Increment/decrement local variables (UBYTE index)
       case T3Opcodes.INCLCL: // increment local variable
-        final localNum = _codePool!.readUint16(_registers.ip);
-        _registers.ip += 2;
+        final localNum = _codePool!.readByte(_registers.ip);
+        _registers.ip++;
         final val = _stack.getLocal(localNum);
+        // Optimize for integer common case
         if (val.isInt) {
           _stack.setLocal(localNum, T3Value.fromInt(val.value + 1));
         } else {
-          throw T3Exception('INCLCL: local $localNum is not an integer');
+          // Fallback to generic arithmetic (pushes result to stack)
+          t3Add(val, T3Value.fromInt(1));
+          _stack.setLocal(localNum, _stack.pop());
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.DECLCL: // decrement local variable
-        final localNum = _codePool!.readUint16(_registers.ip);
-        _registers.ip += 2;
+        final localNum = _codePool!.readByte(_registers.ip);
+        _registers.ip++;
         final val = _stack.getLocal(localNum);
+        // Optimize for integer common case
         if (val.isInt) {
           _stack.setLocal(localNum, T3Value.fromInt(val.value - 1));
         } else {
-          throw T3Exception('DECLCL: local $localNum is not an integer');
+          // Fallback to generic arithmetic
+          t3Sub(val, T3Value.fromInt(1));
+          _stack.setLocal(localNum, _stack.pop());
         }
         return T3ExecutionResult.continue_;
 
@@ -1371,37 +1377,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final b = _stack.pop();
           final a = _stack.pop();
-
-          if (a.isInt) {
-            if (b.isInt) {
-              _stack.push(T3Value.fromInt(a.value + b.value));
-            } else {
-              throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-            }
-          } else if (isListType(a)) {
-            final aElements = getElements(a, true);
-            final bElements = getElements(b, isListType(b));
-
-            final List<T3Value> result = List.from(aElements);
-            if (isListType(b)) {
-              result.addAll(bElements);
-            } else {
-              result.add(b);
-            }
-
-            final listId = addDynamicList(result);
-            _stack.push(T3Value.fromList(listId));
-          } else if (a.isStringLike) {
-            final s1 = getStringValue(a);
-            final s2 = getStringValue(b);
-            final result = s1 + s2;
-
-            final offset = _nextDynamicStringOffset++;
-            _dynamicStrings[offset] = result;
-            _stack.push(T3Value.fromString(offset));
-          } else {
-            throwRuntimeError(2003); // VMERR_BAD_TYPE_ADD
-          }
+          t3Add(a, b);
         }
         return T3ExecutionResult.continue_;
 
@@ -1409,15 +1385,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final b = _stack.pop();
           final a = _stack.pop();
-          if (a.isInt) {
-            if (b.isInt) {
-              _stack.push(T3Value.fromInt(a.value - b.value));
-            } else {
-              throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-            }
-          } else {
-            throwRuntimeError(2007); // VMERR_BAD_TYPE_SUB
-          }
+          t3Sub(a, b);
         }
         return T3ExecutionResult.continue_;
 
@@ -1425,15 +1393,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final b = _stack.pop();
           final a = _stack.pop();
-          if (a.isInt) {
-            if (b.isInt) {
-              _stack.push(T3Value.fromInt(a.value * b.value));
-            } else {
-              throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-            }
-          } else {
-            throwRuntimeError(2024); // VMERR_BAD_TYPE_MUL
-          }
+          t3Mul(a, b);
         }
         return T3ExecutionResult.continue_;
 
@@ -1441,18 +1401,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final b = _stack.pop();
           final a = _stack.pop();
-          if (a.isInt) {
-            if (b.isInt) {
-              if (b.value == 0) {
-                throwRuntimeError(2008); // VMERR_DIVIDE_BY_ZERO
-              }
-              _stack.push(T3Value.fromInt(a.value ~/ b.value));
-            } else {
-              throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-            }
-          } else {
-            throwRuntimeError(2025); // VMERR_BAD_TYPE_DIV
-          }
+          t3Div(a, b);
         }
         return T3ExecutionResult.continue_;
 
@@ -1460,95 +1409,88 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         {
           final b = _stack.pop();
           final a = _stack.pop();
-          if (a.isInt) {
-            if (b.isInt) {
-              if (b.value == 0) {
-                throwRuntimeError(2008); // VMERR_DIVIDE_BY_ZERO
-              }
-              _stack.push(T3Value.fromInt(a.value % b.value));
-            } else {
-              throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-            }
-          } else {
-            throwRuntimeError(2032); // VMERR_BAD_TYPE_MOD
-          }
+          t3Mod(a, b);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.NEG:
         {
           final val = _stack.pop();
-          if (val.isInt) {
-            _stack.push(T3Value.fromInt(-val.value));
-          } else {
-            throwRuntimeError(2026); // VMERR_BAD_TYPE_NEG
-          }
+          t3Neg(val);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.INC:
         {
+          // INC opcode pops, increments, pushes back.
+          // Spec: increments the value on the stack.
           final val = _stack.pop();
-          if (val.isInt) {
-            _stack.push(T3Value.fromInt(val.value + 1));
-          } else {
-            throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-          }
+          t3Add(val, T3Value.fromInt(1));
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.DEC:
         {
           final val = _stack.pop();
-          if (val.isInt) {
-            _stack.push(T3Value.fromInt(val.value - 1));
-          } else {
-            throwRuntimeError(2004); // VMERR_NUM_VAL_REQD
-          }
+          t3Sub(val, T3Value.fromInt(1));
         }
         return T3ExecutionResult.continue_;
 
       // ==================== Bitwise Operations ====================
 
       case T3Opcodes.BAND:
-        final b = _stack.pop();
-        final a = _stack.pop();
-        _stack.push(T3Value.fromInt(a.value & b.value));
+        {
+          final b = _stack.pop();
+          final a = _stack.pop();
+          t3BitAnd(a, b);
+        }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.BOR:
-        final b = _stack.pop();
-        final a = _stack.pop();
-        _stack.push(T3Value.fromInt(a.value | b.value));
+        {
+          final b = _stack.pop();
+          final a = _stack.pop();
+          t3BitOr(a, b);
+        }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.XOR:
-        final b = _stack.pop();
-        final a = _stack.pop();
-        _stack.push(T3Value.fromInt(a.value ^ b.value));
+        {
+          final b = _stack.pop();
+          final a = _stack.pop();
+          t3BitXor(a, b);
+        }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.BNOT:
-        final val = _stack.pop();
-        _stack.push(T3Value.fromInt(~val.value));
+        {
+          final val = _stack.pop();
+          t3BitNot(val);
+        }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.SHL:
-        final b = _stack.pop();
-        final a = _stack.pop();
-        _stack.push(T3Value.fromInt(a.value << (b.value & 0x1F)));
+        {
+          final b = _stack.pop();
+          final a = _stack.pop();
+          t3Shl(a, b);
+        }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.ASHR:
-        final b = _stack.pop();
-        final a = _stack.pop();
-        _stack.push(T3Value.fromInt(a.value >> (b.value & 0x1F)));
+        {
+          final b = _stack.pop();
+          final a = _stack.pop();
+          t3Ashr(a, b);
+        }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.LSHR:
-        final b = _stack.pop();
-        final a = _stack.pop();
-        _stack.push(T3Value.fromInt((a.value & 0xFFFFFFFF) >>> (b.value & 0x1F)));
+        {
+          final b = _stack.pop();
+          final a = _stack.pop();
+          t3Lshr(a, b);
+        }
         return T3ExecutionResult.continue_;
 
       // ==================== Comparison Operations ====================
@@ -2065,15 +2007,26 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.SETIND:
-        // Set indexed value: [container][index][value] -> sets container[index] = value
+        // Set indexed value: Stack order per reference VM (vmrun.cpp:3209-3220):
+        // Pop order: index, container, value. Then set container[index] = value.
+        // Per reference VM (vmrun.cpp:3223), push the new container value afterward.
         {
-          final newVal = _stack.pop();
-          final idxVal = _stack.pop();
-          final containerVal = _stack.pop();
+          // printRaw('DEBUG: SETIND stack depth=${_stack.depth}\n');
+          // Reference VM: popval(&val2) = index, popval(&val) = container, popval(&val3) = value
+          final idxVal = _stack.pop(); // First pop: index
+          final containerVal = _stack.pop(); // Second pop: container
+          final newVal = _stack.pop(); // Third pop: value to assign
+          // printRaw(
+          //   'DEBUG: SETIND container=${containerVal.type}:${containerVal.value} idx=${idxVal.type}:${idxVal.value} val=${newVal.type}:${newVal.value}\n',
+          // );
+
           if (!idxVal.isInt) {
             throw T3Exception('SETIND: index must be an integer');
           }
           setIndexedValue(containerVal, idxVal.value, newVal);
+
+          // Push the new container value (reference VM vmrun.cpp:3223)
+          _stack.push(containerVal);
         }
         return T3ExecutionResult.continue_;
 
@@ -2156,6 +2109,31 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           } else {
             // No handler found - terminate with unhandled exception
             final msg = exceptionId != null ? 'object #$exceptionId' : 'unknown (nil)';
+
+            // Debugging: Dump info about the exception object
+            if (exceptionObj.isObject) {
+              final obj = execObjectTable.lookup(exceptionObj.value);
+              printRaw('\n[Exception Object Dump (THROW)]\n');
+              printRaw('Type: ${obj.runtimeType}\n');
+
+              // Use helper methods from T3ExecutionHelpers mixin
+              final errnoProp = getSymbolPropertyId('errno');
+              if (errnoProp != null) {
+                final errnoVal = execObjectTable.lookupProperty(exceptionObj.value, errnoProp);
+                if (errnoVal != null && errnoVal.value.isInt) {
+                  printRaw('errno: ${errnoVal.value.value}\n');
+                }
+              }
+
+              final msgProp = getSymbolPropertyId('exceptionMessage');
+              if (msgProp != null) {
+                final msgVal = execObjectTable.lookupProperty(exceptionObj.value, msgProp);
+                if (msgVal != null && msgVal.value.isStringLike) {
+                  printRaw('message: ${getStringValue(msgVal.value)}\n');
+                }
+              }
+            }
+
             throw T3Exception('Unhandled exception: $msg');
           }
         }
