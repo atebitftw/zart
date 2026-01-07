@@ -326,8 +326,7 @@ class T3BuiltinRegistry {
   static void _morePrompt(T3Interpreter interp, int argc) {
     if (argc > 0) interp.stack.discard(argc);
 
-    // ignore: avoid_print
-    stdout.write('[more]');
+    interp.printRaw('[more]');
     stdin.readLineSync();
 
     interp.registers.r0 = T3Value.nil();

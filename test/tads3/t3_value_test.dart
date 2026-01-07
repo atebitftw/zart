@@ -140,11 +140,13 @@ void main() {
       expect(T3Value.fromString(0).isNumeric, isFalse);
     });
 
-    test('isLogicalTrue returns false only for nil', () {
+    /// Spec: In T3, nil and integer 0 are logically false, everything else is true.
+    test('isLogicalTrue returns false only for nil and int 0', () {
       expect(T3Value.nil().isLogicalTrue, isFalse);
+      expect(T3Value.fromInt(0).isLogicalTrue, isFalse); // 0 is false
       expect(T3Value.true_().isLogicalTrue, isTrue);
-      expect(T3Value.fromInt(0).isLogicalTrue, isTrue);
       expect(T3Value.fromInt(1).isLogicalTrue, isTrue);
+      expect(T3Value.fromInt(-1).isLogicalTrue, isTrue);
       expect(T3Value.fromObject(0).isLogicalTrue, isTrue);
     });
   });
