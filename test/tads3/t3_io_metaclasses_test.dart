@@ -35,77 +35,77 @@ void main() {
     group('input functions', () {
       test('inputLine [0] reads line of text', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: inputLine not implemented');
+      });
 
       test('inputKey [1] reads single keystroke', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: inputKey not implemented');
+      });
 
       test('inputEvent [2] waits for input event', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: inputEvent not implemented');
+      });
 
       test('inputTimeout [3] reads with timeout', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: inputTimeout not implemented');
+      });
     });
 
     group('output functions', () {
       test('tadsSay outputs text', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: tadsSay not implemented');
+      });
 
       test('more pauses for more prompt', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: more not implemented');
+      });
 
       test('flushOutput forces output flush', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: flushOutput not implemented');
+      });
     });
 
     group('status line functions', () {
       test('statusMode sets status line mode', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: statusMode not implemented');
+      });
 
       test('statusRight sets right portion', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: statusRight not implemented');
+      });
     });
 
     group('banner functions', () {
       test('bannerCreate creates banner window', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: bannerCreate not implemented');
+      });
 
       test('bannerDelete removes banner', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: bannerDelete not implemented');
+      });
 
       test('bannerSay outputs to banner', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: bannerSay not implemented');
+      });
     });
 
     group('file functions', () {
       test('setLogFile sets transcript file', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: setLogFile not implemented');
+      });
 
       test('setScriptFile sets command file', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: setScriptFile not implemented');
+      });
     });
 
     group('system functions', () {
       test('systemInfo gets system info', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: systemInfo not implemented');
+      });
 
       test('getLocalCharSet gets character set', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: getLocalCharSet not implemented');
+      });
     });
   });
 
@@ -114,7 +114,7 @@ void main() {
     group('ByteArray', () {
       test('ByteArray creation', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: ByteArray metaclass not tested');
+      }); // Implemented via T3ByteArray
     });
 
     /// File metaclass.

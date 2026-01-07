@@ -81,9 +81,23 @@ class T3BuiltinRegistry {
 
   // ==================== tads-io ====================
   static final List<T3BuiltinFunc?> _tadsIoFunctions = [
-    T3BuiltinIO.say, // 0
-    T3BuiltinIO.setLogFile, // 1
-    T3BuiltinIO.clearScreen, // 2
-    T3BuiltinIO.morePrompt, // 3
+    T3BuiltinIO.inputLine, // 0
+    T3BuiltinIO.inputKey, // 1
+    T3BuiltinIO.inputEvent, // 2
+    T3BuiltinIO.inputTimeout, // 3
+    T3BuiltinIO.tadsSay, // 4
+    T3BuiltinIO.flushOutput, // 5
+    T3BuiltinIO.morePrompt, // 6
+    T3BuiltinIO.statusMode, // 7
+    T3BuiltinIO.statusRight, // 8
+    T3BuiltinIO.bannerCreate, // 9
+    T3BuiltinIO.bannerDelete, // 10
+    T3BuiltinIO.bannerSay, // 11
+    T3BuiltinIO.bannerSizeTo, // 12
+    T3BuiltinIO.bannerSetSize, // 13
+    T3BuiltinIO.setLogFile, // 14
+    T3BuiltinIO.setScriptFile, // 15
+    T3BuiltinIO.systemInfo, // 16
+    T3BuiltinIO.getLocalCharSet, // 17
   ];
 }

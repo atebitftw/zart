@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:zart/src/tads3/vm/t3_lookup_table.dart';
+import 'package:zart/src/tads3/vm/t3_byte_array.dart';
 
 import 'package:zart/src/loaders/tads/t3_exception.dart';
 import 'package:zart/src/tads3/loaders/entp_parser.dart';
@@ -602,10 +603,15 @@ mixin T3ExecutionHelpers {
         return;
 
       case 9: // toByteArray [10]
-        // Stub
+        // toByteArray(charset?)
         if (argc != null && argc > 0) execStack.discard(argc);
-        // Should create ByteArray
-        execRegisters.r0 = T3Value.nil();
+
+        // Convert string to bytes using UTF-8 (ignoring charset arg for MVP)
+        final bytes = utf8.encode(str);
+
+        final ba = T3ByteArray(objectId: execObjectTable.allocateObjectId(), data: Uint8List.fromList(bytes));
+        execObjectTable.registerObject(ba);
+        execRegisters.r0 = T3Value.fromObject(ba.objectId);
         return;
 
       case 10: // replace [11]
