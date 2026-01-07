@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:zart/src/tads3/vm/t3_value.dart';
+import 'package:zart/src/tads3/vm/t3_undo.dart';
 
 /// Base class for all T3 runtime objects.
 ///
@@ -23,10 +24,10 @@ abstract class T3Object {
   /// Returns null if the property is not defined on this object.
   T3Value? getProperty(int propId);
 
-  /// Sets a property value by property ID.
+  /// sets a property value by property ID.
   ///
   /// Throws if the property cannot be set on this object type.
-  void setProperty(int propId, T3Value value);
+  void setProperty(int propId, T3Value value, {T3UndoManager? undoManager});
 
   /// Returns info about this object for debugging.
   Map<String, dynamic> get debugInfo;
@@ -112,7 +113,11 @@ class T3TadsObject extends T3Object {
   }
 
   @override
-  void setProperty(int propId, T3Value value) {
+  void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
+    if (undoManager != null && undoManager.isActive) {
+      final oldValue = getProperty(propId);
+      undoManager.addRecord(T3UndoPropRecord(objectId, propId, oldValue));
+    }
     modifiedProperties[propId] = value;
   }
 
@@ -194,7 +199,7 @@ class T3StringObject extends T3Object {
   }
 
   @override
-  void setProperty(int propId, T3Value value) {
+  void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
     throw UnsupportedError('String objects are immutable');
   }
 
@@ -265,7 +270,7 @@ class T3ListObject extends T3Object {
   }
 
   @override
-  void setProperty(int propId, T3Value value) {
+  void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
     throw UnsupportedError('List objects are immutable');
   }
 
@@ -322,7 +327,7 @@ class T3VectorObject extends T3Object {
   }
 
   @override
-  void setProperty(int propId, T3Value value) {
+  void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
     // TODO: Implement vector property setting
     throw UnimplementedError('Vector property setting not yet implemented');
   }
@@ -422,7 +427,7 @@ class T3IteratorObject extends T3Object {
   }
 
   @override
-  void setProperty(int propId, T3Value value) {
+  void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
     throw UnsupportedError('Iterator properties are read-only');
   }
 
@@ -477,7 +482,7 @@ class T3GenericObject extends T3Object {
   }
 
   @override
-  void setProperty(int propId, T3Value value) {
+  void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
     throw UnsupportedError('Cannot set properties on unknown metaclass: $metaclass');
   }
 

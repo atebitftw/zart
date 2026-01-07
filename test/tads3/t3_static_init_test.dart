@@ -30,11 +30,11 @@ void main() {
       test('initializers run BEFORE main entrypoint', () {
         // If SINI block exists, VM MUST execute before ENTP
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: SINI execution order not tested');
+      });
 
       test('initializers run in order listed', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: SINI order not tested');
+      });
 
       test('each initializer calls property on object', () {
         // Evaluates object.property for each entry

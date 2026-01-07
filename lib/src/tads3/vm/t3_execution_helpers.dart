@@ -1,5 +1,7 @@
-import 'dart:io';
 import 'dart:typed_data';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:zart/src/tads3/vm/t3_lookup_table.dart';
 
 import 'package:zart/src/loaders/tads/t3_exception.dart';
 import 'package:zart/src/tads3/loaders/entp_parser.dart';
@@ -13,6 +15,7 @@ import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
 import 'package:zart/src/tads3/vm/t3_registers.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
+import 'package:zart/src/tads3/vm/t3_undo.dart';
 import 'package:zart/src/tads3/vm/t3_utf8.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:zart/src/tads3/vm/t3_value_helpers.dart';
@@ -21,6 +24,7 @@ import 'package:zart/src/tads3/vm/t3_value_helpers.dart';
 /// object creation, and output handling.
 mixin T3ExecutionHelpers {
   // Required accessors - must be provided by implementing class
+  T3UndoManager get execUndoManager;
   T3Stack get execStack;
   T3Registers get execRegisters;
   T3CodePool? get execCodePool;
@@ -47,6 +51,7 @@ mixin T3ExecutionHelpers {
   T3ValueHelpers get execValueHelpers;
 
   /// Executes a callback function with the given arguments and returns the result.
+  /// T3VM function set (0) - already implemented
   /// This must be implemented by the interpreter to run the callback to completion.
   /// Returns R0 after the callback completes.
   T3Value execCallback(T3Value callback, List<T3Value> args);
@@ -73,7 +78,12 @@ mixin T3ExecutionHelpers {
     if (metaclass.name == 'tads-object') {
       // Create the object using the first argument as superclass (handled in createDynamicObject)
       // For TadsObject, first arg (args[0]) is the superclass, remaining are for construct()
-      final newObjId = execObjectTable.createDynamicObject(metaclass.name, args, isTransient: isTransient);
+      final newObjId = execObjectTable.createDynamicObject(
+        metaclass.name,
+        args,
+        isTransient: isTransient,
+        undoManager: execUndoManager,
+      );
       final newObj = T3Value.fromObject(newObjId);
 
       // Check for 'construct' method
@@ -126,7 +136,12 @@ mixin T3ExecutionHelpers {
       }
     }
 
-    final newObjId = execObjectTable.createDynamicObject(metaclass.name, args, isTransient: isTransient);
+    final newObjId = execObjectTable.createDynamicObject(
+      metaclass.name,
+      args,
+      isTransient: isTransient,
+      undoManager: execUndoManager,
+    );
     execRegisters.r0 = T3Value.fromObject(newObjId);
   }
 
@@ -162,7 +177,7 @@ mixin T3ExecutionHelpers {
 
       if (execStack.depth <= 10) return null;
 
-      final (returnAddr, oldFp, entryPtr) = execStack.popFrame();
+      final (returnAddr, oldFp, entryPtr, _) = execStack.popFrame();
       execRegisters.ip = returnAddr;
       execRegisters.ep = entryPtr;
 
@@ -200,6 +215,7 @@ mixin T3ExecutionHelpers {
     T3Value? definingObj,
     int? propId,
     T3Value? invokee,
+    int? namedArgTableAddr,
     T3Value? context,
   }) {
     // print('CALL: codeOffset=0x${codeOffset.toRadixString(16)} argc=$argc');
@@ -236,6 +252,7 @@ mixin T3ExecutionHelpers {
       definingObj: definingObj ?? T3Value.nil(),
       targetProp: propId ?? 0,
       invokee: invokee ?? targetObj ?? T3Value.nil(),
+      namedArgTableAddr: namedArgTableAddr,
       context: context,
     );
 
@@ -247,7 +264,7 @@ mixin T3ExecutionHelpers {
   T3ExecutionResult doReturn() {
     if (execStack.fp == 0) return T3ExecutionResult.quit;
 
-    final (returnAddr, oldFp, entryPtr) = execStack.popFrame();
+    final (returnAddr, oldFp, entryPtr, _) = execStack.popFrame();
     execRegisters.ip = returnAddr;
     execRegisters.ep = entryPtr;
 
@@ -258,7 +275,7 @@ mixin T3ExecutionHelpers {
   // ==================== Property Evaluation ====================
 
   /// Evaluates a property on a target object.
-  void execEvalProperty(T3Value target, int propId, {int? argc}) {
+  void execEvalProperty(T3Value target, int propId, {int? argc, int? namedArgTableAddr}) {
     // print('EVALPROP: target=$target propId=0x${propId.toRadixString(16)}');
     switch (target.type) {
       case T3DataType.obj:
@@ -276,6 +293,9 @@ mixin T3ExecutionHelpers {
             } else if (obj.metaclass == 'iterator') {
               handleIteratorIntrinsic(-1, target, argc, propId: propId);
               return;
+            } else if (obj.metaclass == 'lookuptable') {
+              handleLookupTableIntrinsic(-1, target, argc, propId: propId);
+              return;
             }
           }
 
@@ -285,7 +305,7 @@ mixin T3ExecutionHelpers {
             if (undefResult != null) {
               final actualArgCount = argc ?? 0;
               execStack.insertAt(actualArgCount, T3Value.fromProp(propId));
-              execEvalProperty(target, propUndefId, argc: actualArgCount + 1);
+              execEvalProperty(target, propUndefId, argc: actualArgCount + 1, namedArgTableAddr: namedArgTableAddr);
               return;
             }
           }
@@ -399,73 +419,437 @@ mixin T3ExecutionHelpers {
       str = execConstantPool!.readString(target.value);
     }
 
-    // Metaclass slots for String (from vmstr.cpp func_table_):
-    // 0: getp_undef
-    // 1: getp_len
-    // 2: getp_substr
-
-    // Handle length property (Slot 1)
-    if (funcIdx == 0 || propId == 2) {
-      if (argc != null && argc > 0) execStack.discard(argc);
-      execRegisters.r0 = T3Value.fromInt(str.length);
-      return;
+    // Helper to get string from T3Value (arg)
+    String? getString(T3Value val) {
+      if (execDynamicStrings.containsKey(val.value)) return execDynamicStrings[val.value];
+      if (val.isString) return execConstantPool!.readString(val.value);
+      return null;
     }
 
-    // Handle substr method (Slot 2)
-    // Common propId for substr is often 0x006d (109)
-    if (funcIdx == 1 || propId == 0x6d) {
-      int start = 1;
-      int? len;
+    // Metaclass slots for String (from vmstr.cpp func_table_):
+    // Indices are shifted by -1 because 0 (undef) is skipped in property mapping
+    // [0] len (1)
+    // [1] substr (2)
+    // [2] upper (3)
+    // [3] lower (4)
+    // [4] find (5)
+    // [5] toUnicode (6)
+    // [6] htmlify (7)
+    // [7] startsWith (8)
+    // [8] endsWith (9)
+    // [9] toByteArray (10)
+    // [10] replace (11)
+    // [11] splice (12)
+    // [12] split (13)
+    // [13] specialsToHtml (14)
+    // [14] specialsToText (15)
+    // [15] urlEncode (16)
+    // [16] urlDecode (17)
+    // [17] sha256 (18)
+    // [18] md5 (19)
+    // [19] packBytes (20)
+    // [20] unpackBytes (21)
+    // [21] toTitleCase (22)
+    // [22] toFoldedCase (23)
+    // [23] compareTo (24)
+    // [24] compareIgnoreCase (25)
+    // [25] findLast (26)
+    // [26] findAll (27)
+    // [27] match (28)
 
-      // Arguments are pushed right-to-left (TOS is Arg1):
-      // substr(start, len) -> [..., len, start]
-      // pop() -> start
-      // pop() -> len
-      if (argc != null && argc >= 1) {
-        start = execStack.pop().numToInt();
-      }
-      if (argc != null && argc >= 2) {
-        len = execStack.pop().numToInt();
-      }
+    // Manual property ID overrides if funcIdx is not resolved
+    if (funcIdx == -1) {
+      if (propId == 2)
+        funcIdx = 0; // len
+      else if (propId == 0x6d)
+        funcIdx = 1; // substr
+      // Add others if needed
+    }
 
-      final strLen = str.length;
-      int startIdx;
-      int endIdx;
+    switch (funcIdx) {
+      case 0: // len [1]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromInt(str.length);
+        return;
 
-      // Convert start to 0-based index
-      if (start > 0) {
-        startIdx = start - 1;
-      } else if (start < 0) {
-        startIdx = strLen + start;
-      } else {
-        startIdx = 0;
-      }
+      case 1: // substr [2]
+        int start = 1;
+        int? len;
+        // Arguments are pushed right-to-left (TOS is Arg1):
+        // substr(start, len) -> [..., len, start]
+        if (argc != null && argc >= 1) start = execStack.pop().numToInt();
+        if (argc != null && argc >= 2) len = execStack.pop().numToInt();
 
-      // Calculate end index
-      if (len == null) {
-        endIdx = strLen;
-      } else if (len >= 0) {
-        endIdx = startIdx + len;
-      } else {
-        // Negative length: number of characters to remove from end
-        endIdx = strLen + len;
-      }
+        final strLen = str.length;
+        int startIdx;
+        int endIdx;
 
-      // Clamp indices to [0, strLen]
-      if (startIdx < 0) startIdx = 0;
-      if (startIdx > strLen) startIdx = strLen;
-      if (endIdx < 0) endIdx = 0;
-      if (endIdx > strLen) endIdx = strLen;
-      if (endIdx < startIdx) endIdx = startIdx;
+        // Convert start to 0-based index
+        if (start > 0) {
+          startIdx = start - 1;
+        } else if (start < 0) {
+          startIdx = strLen + start;
+        } else {
+          startIdx = 0;
+        }
 
-      String result = str.substring(startIdx, endIdx);
+        // Calculate end index
+        if (len == null) {
+          endIdx = strLen;
+        } else if (len >= 0) {
+          endIdx = startIdx + len;
+        } else {
+          // Negative length: number of characters to remove from end
+          endIdx = strLen + len;
+        }
 
-      // Create new dynamic string and return it
-      final newOffset = execNextDynamicStringOffset;
-      execNextDynamicStringOffset = newOffset + 1;
-      execDynamicStrings[newOffset] = result;
-      execRegisters.r0 = T3Value.fromString(newOffset);
-      return;
+        // Clamp indices to [0, strLen]
+        if (startIdx < 0) startIdx = 0;
+        if (startIdx > strLen) startIdx = strLen;
+        if (endIdx < 0) endIdx = 0;
+        if (endIdx > strLen) endIdx = strLen;
+        if (endIdx < startIdx) endIdx = startIdx;
+
+        String result = str.substring(startIdx, endIdx);
+
+        // Create new dynamic string and return it
+        final newOffset = execNextDynamicStringOffset;
+        execNextDynamicStringOffset = newOffset + 1;
+        execDynamicStrings[newOffset] = result;
+        execRegisters.r0 = T3Value.fromString(newOffset);
+        return;
+
+      case 2: // upper [3]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final upper = str.toUpperCase();
+        final upperOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[upperOffset] = upper;
+        execRegisters.r0 = T3Value.fromString(upperOffset);
+        return;
+
+      case 3: // lower [4]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final lower = str.toLowerCase();
+        final lowerOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[lowerOffset] = lower;
+        execRegisters.r0 = T3Value.fromString(lowerOffset);
+        return;
+
+      case 4: // find [5]
+        // find(substring, index?)
+        final subVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final idxVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 2) execStack.discard(argc - 2);
+
+        final sub = getString(subVal);
+        final startIdx = (idxVal.type == T3DataType.int_) ? idxVal.value - 1 : 0; // 1-based index
+
+        if (sub == null) {
+          execRegisters.r0 = T3Value.nil(); // Invalid arg
+          return;
+        }
+
+        int found = str.indexOf(sub, startIdx < 0 ? 0 : startIdx);
+        if (found >= 0) {
+          execRegisters.r0 = T3Value.fromInt(found + 1); // 1-based return
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 5: // toUnicode [6]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final runes = str.runes.toList();
+        final listId = execObjectTable.createDynamicObject('list', runes.map((r) => T3Value.fromInt(r)).toList());
+        execRegisters.r0 = T3Value.fromList(listId);
+        return;
+
+      case 6: // htmlify [7] - stub for now
+        if (argc != null && argc > 0) execStack.discard(argc);
+        // Simple HTML escaping
+        final html = str
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;');
+        final htmlOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[htmlOffset] = html;
+        execRegisters.r0 = T3Value.fromString(htmlOffset);
+        return;
+
+      case 7: // startsWith [8]
+        final matchVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+
+        final match = getString(matchVal);
+        if (match != null) {
+          execRegisters.r0 = T3Value.fromBool(str.startsWith(match));
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 8: // endsWith [9]
+        final matchVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+
+        final match = getString(matchVal);
+        if (match != null) {
+          execRegisters.r0 = T3Value.fromBool(str.endsWith(match));
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 9: // toByteArray [10]
+        // Stub
+        if (argc != null && argc > 0) execStack.discard(argc);
+        // Should create ByteArray
+        execRegisters.r0 = T3Value.nil();
+        return;
+
+      case 10: // replace [11]
+        // replace(old, new, flags?, index?, limit?)
+        final oldVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final newVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
+        final _ = (argc != null && argc >= 3) ? execStack.pop() : T3Value.nil();
+        // we ignore index/limit for now
+        if (argc != null && argc > 3) execStack.discard(argc - 3);
+
+        final oldStr = getString(oldVal);
+        final newStr = getString(newVal);
+
+        if (oldStr != null && newStr != null) {
+          final rep = str.replaceAll(oldStr, newStr);
+          final repOffset = execNextDynamicStringOffset++;
+          execDynamicStrings[repOffset] = rep;
+          execRegisters.r0 = T3Value.fromString(repOffset);
+        } else {
+          execRegisters.r0 = T3Value.fromString(target.value); // Return original if invalid
+        }
+        return;
+
+      case 11: // splice [12]
+        // splice(idx, len, insert?)
+        final idxVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.fromInt(1);
+        final lenVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.fromInt(0);
+        final insVal = (argc != null && argc >= 3) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 3) execStack.discard(argc - 3);
+
+        final start = (idxVal.type == T3DataType.int_) ? idxVal.value - 1 : 0;
+        final len = (lenVal.type == T3DataType.int_) ? lenVal.value : 0;
+        final ins = getString(insVal) ?? '';
+
+        final strLen = str.length;
+
+        // Robust clamping
+        int clampedStart = start;
+        if (clampedStart < 0) clampedStart = 0;
+        if (clampedStart > strLen) clampedStart = strLen;
+
+        // TADS splice length logic: if len < 0, it means delete nothing? or from end?
+        // Spec usually implies non-negative length for deletion.
+        // We'll clamp end.
+        int end = start + len;
+
+        int clampedEnd = end;
+        if (clampedEnd < clampedStart) clampedEnd = clampedStart;
+        if (clampedEnd > strLen) clampedEnd = strLen;
+
+        final spliced = str.replaceRange(clampedStart, clampedEnd, ins);
+        final spOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[spOffset] = spliced;
+        execRegisters.r0 = T3Value.fromString(spOffset);
+        return;
+
+      case 12: // split [13]
+        // split(delim?, limit?)
+        final delimVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final limitVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 2) execStack.discard(argc - 2);
+
+        final delim = getString(delimVal);
+        List<String> parts;
+        if (delim == null) {
+          parts = str.trim().split(RegExp(r'\s+'));
+          if (parts.length == 1 && parts[0].isEmpty) parts = [];
+        } else {
+          parts = str.split(delim);
+        }
+
+        if (limitVal.type == T3DataType.int_ && limitVal.value > 0 && limitVal.value < parts.length) {
+          parts = parts.sublist(0, limitVal.value);
+        }
+
+        final listIds = parts.map((s) {
+          final off = execNextDynamicStringOffset++;
+          execDynamicStrings[off] = s;
+          return T3Value.fromString(off);
+        }).toList();
+        final splitListId = execObjectTable.createDynamicObject('list', listIds);
+        execRegisters.r0 = T3Value.fromList(splitListId);
+        return;
+
+      case 13: // specialsToHtml [14]
+        // Stub implementation - just return the string or simple replacements
+        // TODO: Full mapping of TADS specials
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromString(target.value);
+        return;
+
+      case 14: // specialsToText [15]
+        // Stub implementation
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromString(target.value);
+        return;
+
+      case 15: // urlEncode [16]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final encoded = Uri.encodeComponent(str);
+        final encOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[encOffset] = encoded;
+        execRegisters.r0 = T3Value.fromString(encOffset);
+        return;
+
+      case 16: // urlDecode [17]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final decoded = Uri.decodeComponent(str);
+        final decOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[decOffset] = decoded;
+        execRegisters.r0 = T3Value.fromString(decOffset);
+        return;
+
+      case 17: // sha256 [18]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final bytes17 = utf8.encode(str);
+        final digest17 = sha256.convert(bytes17);
+        final hex17 = digest17.toString();
+        final off17 = execNextDynamicStringOffset++;
+        execDynamicStrings[off17] = hex17;
+        execRegisters.r0 = T3Value.fromString(off17);
+        return;
+
+      case 18: // md5 [19]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final bytes18 = utf8.encode(str);
+        final digest18 = md5.convert(bytes18);
+        final hex18 = digest18.toString();
+        final off18 = execNextDynamicStringOffset++;
+        execDynamicStrings[off18] = hex18;
+        execRegisters.r0 = T3Value.fromString(off18);
+        return;
+
+      case 21: // toTitleCase [22]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final title = str.replaceAllMapped(RegExp(r'\b\w'), (match) => match.group(0)!.toUpperCase());
+        final tOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[tOffset] = title;
+        execRegisters.r0 = T3Value.fromString(tOffset);
+        return;
+
+      case 22: // toFoldedCase [23]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final folded = str.toLowerCase();
+        final fOffset = execNextDynamicStringOffset++;
+        execDynamicStrings[fOffset] = folded;
+        execRegisters.r0 = T3Value.fromString(fOffset);
+        return;
+
+      case 23: // compareTo [24]
+        final otherVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        final other = getString(otherVal);
+        if (other != null) {
+          execRegisters.r0 = T3Value.fromInt(str.compareTo(other));
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 24: // compareIgnoreCase [25]
+        final other2Val = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        final other2 = getString(other2Val);
+        if (other2 != null) {
+          execRegisters.r0 = T3Value.fromInt(str.toLowerCase().compareTo(other2.toLowerCase()));
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 25: // findLast [26]
+        // findLast(sub, index?)
+        final subVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final idxVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 2) execStack.discard(argc - 2);
+
+        final sub = getString(subVal);
+        final idx = (idxVal.type == T3DataType.int_) ? idxVal.value - 1 : str.length - 1;
+
+        if (sub != null) {
+          int start = idx;
+          if (start >= str.length) start = str.length - 1;
+          int found = str.lastIndexOf(sub, start);
+          if (found >= 0) {
+            execRegisters.r0 = T3Value.fromInt(found + 1);
+          } else {
+            execRegisters.r0 = T3Value.nil();
+          }
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 26: // findAll [27]
+        // findAll(regex) -> return list of match strings
+        final reVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        final reStr = getString(reVal);
+        if (reStr != null) {
+          final matches = RegExp(reStr).allMatches(str);
+          final listIds = matches.map((m) {
+            final off = execNextDynamicStringOffset++;
+            execDynamicStrings[off] = m.group(0)!;
+            return T3Value.fromString(off);
+          }).toList();
+          final listId = execObjectTable.createDynamicObject('list', listIds);
+          execRegisters.r0 = T3Value.fromList(listId);
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 27: // match [28]
+        // match(regex, index?) -> match info
+        final re2Val = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final id2Val = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 2) execStack.discard(argc - 2);
+
+        final re2Str = getString(re2Val);
+        final start2 = (id2Val.type == T3DataType.int_) ? id2Val.value - 1 : 0;
+        if (re2Str != null) {
+          final match = RegExp(re2Str).firstMatch(str.substring(start2));
+          if (match != null) {
+            final off = execNextDynamicStringOffset++;
+            execDynamicStrings[off] = match.group(0)!;
+            execRegisters.r0 = T3Value.fromString(off);
+          } else {
+            execRegisters.r0 = T3Value.nil();
+          }
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 19: // packBytes [20]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.nil();
+        return;
+
+      case 20: // unpackBytes [21]
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.nil();
+        return;
     }
 
     // Unknown method - discard args and return nil
@@ -666,11 +1050,6 @@ mixin T3ExecutionHelpers {
         if (argc != null && argc > 0) execStack.discard(argc);
         execRegisters.r0 = obj.getCurKey();
         return;
-      case 5:
-        // getCurVal - returns current value
-        if (argc != null && argc > 0) execStack.discard(argc);
-        execRegisters.r0 = obj.getCurVal();
-        return;
     }
 
     if (argc != null && argc > 0) execStack.discard(argc);
@@ -682,6 +1061,140 @@ mixin T3ExecutionHelpers {
     final val = execSymbols[name];
     if (val != null && val.type == T3DataType.prop) return val.value;
     return null;
+  }
+
+  void handleLookupTableIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
+    final obj = execObjectTable.lookup(target.value);
+    if (obj is! T3LookupTable) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    // Lookup Table metaclass methods (vmlookup.cpp)
+    // 0: undef
+    // 1: isKeyPresent (prop 0x1404)
+    // 2: removeElement (prop 0x1405)
+    // 3: applyAll (prop 0x1406)
+    // 4: forEach (prop 0x1407)
+    // 5: getBucketCount (prop 0x1408)
+    // 6: getEntryCount (prop 0x1409)
+    // 7: keysToList (prop 0x140a)
+    // 8: valsToList (prop 0x140b)
+    // 9: this[] (prop 0x1402) - operator []
+    // 10: this[]= (prop 0x1403) - operator []=
+    // 11: setDefaultValue (prop 0x140c)
+    // 12: getDefaultValue (prop 0x140d)
+
+    // Auto-resolve funcIdx if propId is provided
+    if (funcIdx == -1 && propId != null) {
+      final meta = execMetaclasses?.byName('lookuptable');
+      if (meta != null) {
+        final idx = meta.propertyIds.indexOf(propId);
+        if (idx >= 0) funcIdx = idx;
+      }
+    }
+
+    // Method dispatch
+    switch (funcIdx) {
+      case 1: // isKeyPresent(key)
+        final key = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        execRegisters.r0 = T3Value.fromBool(obj.isKeyPresent(key));
+        return;
+
+      case 2: // removeElement(key)
+        final key = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        obj.remove(key);
+        execRegisters.r0 = T3Value.nil();
+        return;
+
+      case 3: // applyAll(func)
+        // Requires recursive run or callback mechanism
+        // For now, no-op or throw?
+        // Let's log warning
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.nil();
+        return;
+
+      case 4: // forEach(func)
+        // Requires recursive run
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.nil();
+        return;
+
+      case 5: // getBucketCount()
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromInt(obj.bucketCount);
+        return;
+
+      case 6: // getEntryCount()
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromInt(obj.entryCount);
+        return;
+
+      case 7: // keysToList()
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final keysListId = execObjectTable.createDynamicObject('list', obj.keys);
+        execRegisters.r0 = T3Value.fromList(keysListId);
+        return;
+
+      case 8: // valsToList()
+        if (argc != null && argc > 0) execStack.discard(argc);
+        final valsListId = execObjectTable.createDynamicObject('list', obj.values);
+        execRegisters.r0 = T3Value.fromList(valsListId);
+        return;
+
+      case 9: // this[key]
+        final key = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        execRegisters.r0 = obj.get(key);
+        return;
+
+      case 10: // this[key] = val
+        final val = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final key = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 2) execStack.discard(argc - 2);
+        obj.set(key, val);
+        execRegisters.r0 = val;
+        return;
+
+      case 11: // setDefaultValue(val)
+        final defVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        obj.defaultValue = defVal;
+        execRegisters.r0 = T3Value.nil();
+        return;
+
+      case 12: // getDefaultValue()
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = obj.defaultValue;
+        return;
+
+      case 13: // nthKey(n)
+        final keyIdx = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        if (keyIdx.isInt) {
+          execRegisters.r0 = obj.nthKey(keyIdx.value);
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+
+      case 14: // nthVal(n)
+        final valIdx = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        if (argc != null && argc > 1) execStack.discard(argc - 1);
+        if (valIdx.isInt) {
+          execRegisters.r0 = obj.nthVal(valIdx.value);
+        } else {
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+    }
+
+    if (argc != null && argc > 0) execStack.discard(argc);
+    execRegisters.r0 = T3Value.nil();
   }
 
   // ==================== Inheritance ====================
@@ -718,7 +1231,19 @@ mixin T3ExecutionHelpers {
   /// Calls a built-in function.
   void execCallBuiltin(int setIdx, int funcIdx, int argc) {
     final funcSet = execFunctionSets?.byIndex(setIdx);
-    final setName = funcSet?.name ?? 'unknown-$setIdx';
+    var setName = funcSet?.name;
+
+    // Default mappings for common TADS 3 built-in sets if not in image
+    if (setName == null) {
+      if (setIdx == 0)
+        setName = 'tads-gen';
+      else if (setIdx == 1)
+        setName = 't3vm';
+      else if (setIdx == 2)
+        setName = 'tads-io';
+    }
+
+    setName ??= 'unknown-$setIdx';
 
     // Note: T3BuiltinRegistry.getFunction requires the interpreter instance
     // This will be provided via an indirect reference
@@ -823,11 +1348,10 @@ mixin T3ExecutionHelpers {
         return T3Utf8.decode(val.data as Uint8List);
       }
       final offset = val.value;
-      if (offset >= 0x80000000) {
-        return execDynamicStrings[offset] ?? '';
-      } else {
-        return execConstantPool!.readString(offset);
-      }
+      final dynamicStr = execDynamicStrings[offset];
+      if (dynamicStr != null) return dynamicStr;
+
+      return execConstantPool?.readString(offset) ?? '';
     } else if (val.isObject) {
       final obj = execObjectTable.lookup(val.value);
       if (obj is T3StringObject) {

@@ -17,6 +17,8 @@ mixin T3CallHelpers {
   T3Registers get callRegisters;
   T3CodePool? get callCodePool;
   T3ObjectTable get callObjectTable;
+  int? get pendingNamedArgTableAddr;
+  void clearPendingNamedArgTable();
 
   // Required method references - must be provided by implementing class
   void callFunction(
@@ -27,9 +29,10 @@ mixin T3CallHelpers {
     T3Value? definingObj,
     int? propId,
     T3Value? invokee,
+    int? namedArgTableAddr,
     T3Value? context,
   });
-  void evalProperty(T3Value target, int propId, {int? argc});
+  void evalProperty(T3Value target, int propId, {int? argc, int? namedArgTableAddr});
   void callBuiltin(int setIdx, int funcIdx, int argc);
 
   // ==================== Call Opcode Helpers ====================
@@ -38,19 +41,24 @@ mixin T3CallHelpers {
   void handleCallOp(int argc) {
     final targetAddr = callCodePool!.readUint32(callRegisters.ip);
     callRegisters.ip += 4;
-    callFunction(targetAddr, argc);
+    final namedArgs = pendingNamedArgTableAddr;
+    clearPendingNamedArgTable();
+    callFunction(targetAddr, argc, namedArgTableAddr: namedArgs);
   }
 
   /// Handles PTRCALL opcode - pops function pointer and calls it.
   void handlePtrCallOp(int argc) {
     final funcPtr = callStack.pop();
+    final namedArgs = pendingNamedArgTableAddr;
+    clearPendingNamedArgTable();
+
     if (funcPtr.isCodeOffset || funcPtr.isFuncPtr) {
-      callFunction(funcPtr.value, argc);
+      callFunction(funcPtr.value, argc, namedArgTableAddr: namedArgs);
     } else if (funcPtr.type == T3DataType.obj) {
       // Handle anon-func-ptr objects
       final codeOfs = getCallableOffset(funcPtr.value);
       if (codeOfs != null) {
-        callFunction(codeOfs, argc, self: funcPtr, invokee: funcPtr, context: funcPtr);
+        callFunction(codeOfs, argc, self: funcPtr, invokee: funcPtr, context: funcPtr, namedArgTableAddr: namedArgs);
       } else {
         final obj = callObjectTable.lookup(funcPtr.value);
         final elementsStr = (obj is T3VectorObject) ? obj.elements.toString() : 'N/A';
@@ -71,7 +79,9 @@ mixin T3CallHelpers {
     final propId = callCodePool!.readUint16(callRegisters.ip);
     callRegisters.ip += 2;
     final target = callStack.pop();
-    evalProperty(target, propId, argc: argc);
+    final namedArgs = pendingNamedArgTableAddr;
+    clearPendingNamedArgTable();
+    evalProperty(target, propId, argc: argc, namedArgTableAddr: namedArgs);
   }
 
   /// Handles CALLPROPSELF opcode - reads property ID and calls on self.
@@ -79,7 +89,9 @@ mixin T3CallHelpers {
     final propId = callCodePool!.readUint16(callRegisters.ip);
     callRegisters.ip += 2;
     final self = callStack.getSelf();
-    evalProperty(self, propId, argc: argc);
+    final namedArgs = pendingNamedArgTableAddr;
+    clearPendingNamedArgTable();
+    evalProperty(self, propId, argc: argc, namedArgTableAddr: namedArgs);
   }
 
   /// Handles OBJCALLPROP opcode - reads object ID, property ID, and calls.
@@ -89,7 +101,9 @@ mixin T3CallHelpers {
     final propId = callCodePool!.readUint16(callRegisters.ip);
     callRegisters.ip += 2;
     final target = T3Value.fromObject(objId);
-    evalProperty(target, propId, argc: argc);
+    final namedArgs = pendingNamedArgTableAddr;
+    clearPendingNamedArgTable();
+    evalProperty(target, propId, argc: argc, namedArgTableAddr: namedArgs);
   }
 
   /// Handles CALLPROPLCL1 opcode - reads local number, property ID, and calls.
@@ -98,7 +112,9 @@ mixin T3CallHelpers {
     final propId = callCodePool!.readUint16(callRegisters.ip);
     callRegisters.ip += 2;
     final target = callStack.getLocal(localNum);
-    evalProperty(target, propId, argc: argc);
+    final namedArgs = pendingNamedArgTableAddr;
+    clearPendingNamedArgTable();
+    evalProperty(target, propId, argc: argc, namedArgTableAddr: namedArgs);
   }
 
   /// Handles CALLPROPR0 opcode - reads property ID and calls on R0.
@@ -106,7 +122,9 @@ mixin T3CallHelpers {
     final propId = callCodePool!.readUint16(callRegisters.ip);
     callRegisters.ip += 2;
 
-    evalProperty(callRegisters.r0, propId, argc: argc);
+    final namedArgs = pendingNamedArgTableAddr;
+    clearPendingNamedArgTable();
+    evalProperty(callRegisters.r0, propId, argc: argc, namedArgTableAddr: namedArgs);
   }
 
   /// Handles BUILTIN_A/B/C/D opcodes - calls builtin from specified set.

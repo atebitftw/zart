@@ -125,26 +125,31 @@ class T3Stack {
 
   /// Frame header offsets (relative to FP, negative = before FP).
   /// These match the reference VM's VMRUN_FPOFS_* constants from vmrun.h.
-  static const int fpOfsArg1 = -11; // First argument (args go -11, -12, ...)
+  static const int fpOfsNamedArgs = -11; // VMRUN_FPOFS_NAMEDARGS (v3.1)
   static const int fpOfsTargetProp = -10; // VMRUN_FPOFS_PROP
   static const int fpOfsTargetObj = -9; // VMRUN_FPOFS_ORIGTARG
   static const int fpOfsDefObj = -8; // VMRUN_FPOFS_DEFOBJ
   static const int fpOfsSelf = -7; // VMRUN_FPOFS_SELF
   static const int fpOfsInvokee = -6; // VMRUN_FPOFS_INVOKEE
   static const int fpOfsFrameRef = -5; // VMRUN_FPOFS_FRAMEREF
-  static const int fpOfsRcDesc = -4; // VMRUN_FPOFS_RCDESC (recursive call descriptor)
+  static const int fpOfsRcDesc = -4; // VMRUN_FPOFS_RCDESC
   static const int fpOfsReturnAddr = -3; // VMRUN_FPOFS_RET
   static const int fpOfsEntryPtr = -2; // VMRUN_FPOFS_ENC_EP
   static const int fpOfsArgCount = -1; // VMRUN_FPOFS_ARGC
   // FP+0: enclosing frame pointer (VMRUN_FPOFS_ENC_FP)
   // FP+1: first local (VMRUN_FPOFS_LCL1)
 
-  /// Gets a value relative to the frame pointer.
-  T3Value getFromFrame(int offset) {
-    final index = _fp + offset;
+  static const int fpOfsArg1 = -12; // First argument (args go -12, -13, ...)
+
+  /// Gets a value relative to the specified frame pointer.
+  T3Value getValueAt(int fp, int offset) {
+    final index = fp + offset;
     assert(index >= 0 && index < _sp, 'Invalid frame offset');
     return _stack[index];
   }
+
+  /// Gets a value relative to the current frame pointer.
+  T3Value getFromFrame(int offset) => getValueAt(_fp, offset);
 
   /// Sets a value relative to the frame pointer.
   void setAtFrame(int offset, T3Value value) {
@@ -176,6 +181,9 @@ class T3Stack {
   /// Gets an argument by index.
   /// Arg 0 is at FP-11, Arg 1 at FP-12, etc. (per reference VM).
   T3Value getArg(int index) {
+    // Arg 0 is the last argument pushed (Top of args).
+    // Layout: [Arg N-1] ... [Arg 1] [Arg 0] [Header(11 elements)] [FP]
+    // Arg 0 is at FP - 11 - 1 = FP - 12 (fpOfsArg1)
     return _stack[_fp + fpOfsArg1 - index];
   }
 
@@ -250,10 +258,11 @@ class T3Stack {
     required T3Value definingObj,
     required int targetProp,
     required T3Value invokee,
+    int? namedArgTableAddr,
     T3Value? context,
   }) {
     // Push frame header in reverse order (first pushed ends up at lowest offset)
-    // Per reference VM vmrun.h VMRUN_FPOFS_* constants:
+    push(T3Value.fromInt(namedArgTableAddr ?? 0)); // FP-11: named arg table ptr
     push(T3Value.fromProp(targetProp)); // FP-10: target property
     push(targetObj); // FP-9: original target object
     push(definingObj); // FP-8: defining object
@@ -285,25 +294,27 @@ class T3Stack {
     return _fp;
   }
 
-  /// Pops the current activation frame.
-  ///
-  /// Returns the (returnAddr, oldFp, entryPtr) for continuing execution.
-  (int returnAddr, int oldFp, int entryPtr) popFrame() {
+  /// Returns the (returnAddr, oldFp, entryPtr, namedArgTableAddr) for continuing execution.
+  (int returnAddr, int oldFp, int entryPtr, int namedArgTableAddr) popFrame() {
     // Get return info from frame header
     final returnAddr = getFromFrame(fpOfsReturnAddr).value;
     final entryPtr = getFromFrame(fpOfsEntryPtr).value;
+    final namedArgTableAddr = getFromFrame(fpOfsNamedArgs).value;
     final oldFp = getFromFrame(0).value; // FP contains old FP
     final argCount = getArgCount();
 
     // Restore SP to before frame header + args
-    // Frame header is 11 slots (FP-10 through FP+0), args are at FP-11 and below
+    // Frame header is 12 slots (FP-11 through FP+0), args are at FP-12 and below
     _sp = _fp + fpOfsArg1 - (argCount - 1);
 
     // Restore old FP
     _fp = oldFp;
 
-    return (returnAddr, oldFp, entryPtr);
+    return (returnAddr, oldFp, entryPtr, namedArgTableAddr);
   }
+
+  /// Gets the named argument table address for the current frame.
+  int getNamedArgTableAddr() => getFromFrame(fpOfsNamedArgs).value;
 
   /// Gets the return address for the current frame.
   int getReturnAddress() => getFromFrame(fpOfsReturnAddr).value;

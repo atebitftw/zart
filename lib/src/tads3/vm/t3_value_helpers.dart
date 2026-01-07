@@ -1,6 +1,7 @@
 import 'package:zart/src/tads3/vm/t3_constant_pool.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
+import 'package:zart/src/tads3/vm/t3_undo.dart';
 import 'package:zart/src/tads3/vm/t3_registers.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
@@ -13,6 +14,7 @@ import 'package:zart/src/loaders/tads/t3_exception.dart';
 /// helpers keeps the main interpreter file focused on opcode execution.
 mixin T3ValueHelpers {
   // Required accessors that must be provided by the implementing class
+  T3UndoManager get helperUndoManager;
   T3Stack get helperStack;
   T3Registers get helperRegisters;
   T3ObjectTable get helperObjectTable;
@@ -128,6 +130,11 @@ mixin T3ValueHelpers {
         } else {
           throw T3Exception('SETIND: list index $index out of bounds (1..${obj.elements.length})');
         }
+      } else if (obj is T3VectorObject) {
+        if (helperUndoManager.isActive) {
+          helperUndoManager.addRecord(T3UndoVectorRecord(container.value, index, obj.elements[index]));
+        }
+        obj.elements[index] = value;
       } else {
         throw T3Exception('SETIND: cannot set index on object type ${obj?.metaclass}');
       }
@@ -147,7 +154,7 @@ mixin T3ValueHelpers {
       throw T3Exception('Attempted to set property $propId on non-existent object ${target.value}');
     }
 
-    obj.setProperty(propId, value);
+    obj.setProperty(propId, value, undoManager: helperUndoManager);
   }
 
   /// Gets the list of values for a list T3Value (handles dynamic and pool lists).
@@ -259,5 +266,33 @@ mixin T3ValueHelpers {
       return '[List]';
     }
     return '';
+  }
+
+  /// Converts a T3Value to its string representation.
+  String valueToString(T3Value val) {
+    switch (val.type) {
+      case T3DataType.nil:
+        return 'nil';
+      case T3DataType.true_:
+        return 'true';
+      case T3DataType.int_:
+        return val.value.toString();
+      case T3DataType.sstring:
+      case T3DataType.dstring:
+        return getStringValue(val);
+      case T3DataType.obj:
+        final obj = helperObjectTable.lookup(val.value);
+        if (obj is T3TadsObject) {
+          // Check for 'name' property or similar?
+          // For now just return object ID
+          return 'object#${val.value}';
+        }
+        return 'object#${val.value}';
+      case T3DataType.list:
+        final elements = getListValues(val);
+        return '[${elements.map(valueToString).join(', ')}]';
+      default:
+        return val.toString();
+    }
   }
 }

@@ -10,15 +10,17 @@ import 'package:zart/src/tads3/loaders/fnsd_parser.dart';
 import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 import 'package:zart/src/tads3/loaders/objs_parser.dart';
 import 'package:zart/src/tads3/loaders/symd_parser.dart';
+import 'package:zart/src/tads3/loaders/sini_parser.dart';
 import 'package:zart/src/tads3/vm/t3_code_pool.dart';
 import 'package:zart/src/tads3/vm/t3_constant_pool.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
+import 'package:zart/src/tads3/vm/t3_undo.dart';
 import 'package:zart/src/tads3/vm/t3_registers.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
-import 'package:zart/src/tads3/vm/t3_builtins.dart';
+import 'package:zart/src/tads3/vm/t3_builtin_registry.dart';
 import 'package:zart/src/tads3/vm/t3_value_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_call_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_helpers.dart';
@@ -35,8 +37,11 @@ import 'package:zart/src/tads3/vm/t3_execution_result.dart';
 /// interpreter.load(gameData);
 /// await interpreter.run();
 /// ```
-class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
+class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers implements TUndoContext {
   // ==================== VM State ====================
+
+  int? _pendingNamedArgTableAddr;
+  bool _varArgcPending = false;
 
   // Mixin accessors for T3ValueHelpers
   @override
@@ -56,6 +61,11 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   @override
   set helperNextDynamicStringOffset(int value) => _nextDynamicStringOffset = value;
 
+  @override
+  T3UndoManager get helperUndoManager => undoManager;
+  @override
+  T3UndoManager get execUndoManager => undoManager;
+
   // Mixin accessors for T3CallHelpers
   @override
   T3Stack get callStack => _stack;
@@ -66,6 +76,11 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   @override
   T3ObjectTable get callObjectTable => _objectTable;
   @override
+  int? get pendingNamedArgTableAddr => _pendingNamedArgTableAddr;
+  @override
+  void clearPendingNamedArgTable() => _pendingNamedArgTableAddr = null;
+
+  @override
   void callFunction(
     int codeOffset,
     int argc, {
@@ -74,6 +89,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     T3Value? definingObj,
     int? propId,
     T3Value? invokee,
+    int? namedArgTableAddr,
     T3Value? context,
   }) => execCallFunction(
     codeOffset,
@@ -83,10 +99,12 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     definingObj: definingObj,
     propId: propId,
     invokee: invokee,
+    namedArgTableAddr: namedArgTableAddr,
     context: context,
   );
   @override
-  void evalProperty(T3Value target, int propId, {int? argc}) => execEvalProperty(target, propId, argc: argc);
+  void evalProperty(T3Value target, int propId, {int? argc, int? namedArgTableAddr}) =>
+      execEvalProperty(target, propId, argc: argc, namedArgTableAddr: namedArgTableAddr);
   @override
   void callBuiltin(int setIdx, int funcIdx, int argc) => execCallBuiltin(setIdx, funcIdx, argc);
 
@@ -135,6 +153,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   int? get execListMetaclassIdx => _listMetaclassIdx;
   @override
   T3ValueHelpers get execValueHelpers => this;
+
   @override
   void Function(int argc)? getBuiltinFunction(String setName, int funcIdx) {
     final func = T3BuiltinRegistry.getFunction(setName, funcIdx);
@@ -160,6 +179,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
   /// Machine registers.
   final T3Registers _registers = T3Registers();
+
+  /// Manager for undo history.
+  final T3UndoManager undoManager = T3UndoManager();
 
   /// The VM stack.
   late final T3Stack _stack;
@@ -192,7 +214,13 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   /// Dynamic strings created at runtime (concatenation, etc.)
   /// Maps offset to string content
   final Map<int, String> _dynamicStrings = {};
-  int _nextDynamicStringOffset = 0x80000000; // Start at high offset to avoid conflicts
+  int _nextDynamicStringOffset = 0x80000001;
+
+  /// Last regex match state
+  Match? lastRegexMatch;
+  String? lastRegexString;
+
+  /// Undo manager for the VM.at high offset to avoid conflicts
 
   /// Dynamic lists created at runtime (from varargs, etc.)
   /// Maps offset to list of T3Values
@@ -271,13 +299,6 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   /// Get the function or object used for specialized SAY handling.
   T3Value get sayFunc => _sayFunc;
 
-  /// Adds a list to the dynamic list storage and returns its offset.
-  int addDynamicList(List<T3Value> elements) {
-    final offset = _nextDynamicListOffset++;
-    _dynamicLists[offset] = elements;
-    return offset;
-  }
-
   /// Total instructions executed (for debugging).
   int _instructionCount = 0;
 
@@ -304,6 +325,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     _loadCodePools();
     _loadSymbols();
     _loadObjects();
+    _runStaticInitializers();
   }
 
   /// Loads the ENTP block.
@@ -412,13 +434,23 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
     }
   }
 
-  /// Loads all global symbols from SYMD blocks.
+  /// Loads all global symbols from SYMD and GSYM blocks.
   void _loadSymbols() {
     _symbols.clear();
-    final blocks = _image!.findBlocks(T3Block.typeSymbolicNames);
-    for (final block in blocks) {
+
+    // Load SYMD (Symbolic names for debugging)
+    final symdBlocks = _image!.findBlocks(T3Block.typeSymbolicNames);
+    for (final block in symdBlocks) {
       final data = _image!.getBlockData(block);
       final parsed = T3SymdBlock.parse(data);
+      _symbols.addAll(parsed.symbols);
+    }
+
+    // Load GSYM (Global symbols)
+    final gsymBlocks = _image!.findBlocks(T3Block.typeGlobalSymbols);
+    for (final block in gsymBlocks) {
+      final data = _image!.getBlockData(block);
+      final parsed = T3SymdBlock.parse(data); // Same format as SYMD
       _symbols.addAll(parsed.symbols);
     }
   }
@@ -428,6 +460,11 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
   /// Gets the global symbol table.
   Map<String, T3Value> get symbols => Map.unmodifiable(_symbols);
+
+  /// Adds a global symbol (for testing).
+  void addGlobalSymbol(String name, T3Value value) {
+    _symbols[name] = value;
+  }
 
   /// Gets the VM stack.
   T3Stack get stack => _stack;
@@ -440,9 +477,75 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
   /// Gets the constant pool.
   T3ConstantPool? get constantPool => _constantPool;
+  set constantPool(T3ConstantPool? value) => _constantPool = value;
 
   /// Gets the code pool.
   T3CodePool? get codePool => _codePool;
+  set codePool(T3CodePool? value) => _codePool = value;
+
+  /// Counter for allocating new property IDs.
+  int _nextPropertyId = 0x10000; // Start above typical static property range
+
+  /// Runs all static initializers from SINI blocks.
+  void _runStaticInitializers() {
+    final blocks = _image!.findBlocks(T3Block.typeStaticInit);
+    for (final block in blocks) {
+      final data = _image!.getBlockData(block);
+      final parsed = T3SiniBlock.parse(data);
+      for (final init in parsed.initializers) {
+        final objId = init.$1;
+        final propId = init.$2;
+        _runSynchronousTask(() {
+          evalProperty(T3Value.fromObject(objId), propId);
+        });
+      }
+    }
+  }
+
+  /// Runs a single task (e.g., an initializer) to completion synchronously.
+  void _runSynchronousTask(void Function() setup) {
+    final initialFp = _stack.fp;
+    setup();
+
+    // If setup pushed a frame, run until that frame is popped.
+    while (_stack.fp > initialFp) {
+      final result = executeInstruction();
+      if (result == T3ExecutionResult.error) {
+        throw T3Exception('Error during static initialization');
+      }
+      if (result == T3ExecutionResult.quit) {
+        throw T3Exception('Unexpected quit during static initialization');
+      }
+    }
+  }
+
+  /// Allocates a new unique property ID.
+  int allocatePropertyId() => _nextPropertyId++;
+
+  /// Adds a dynamic string at runtime and returns its offset.
+  int addDynamicString(String str) {
+    final offset = _nextDynamicStringOffset++;
+    _dynamicStrings[offset] = str;
+    return offset;
+  }
+
+  /// Gets the elements of a list value.
+  List<T3Value> getListElements(T3Value listVal) {
+    if (!listVal.isList) {
+      throw T3Exception('getListElements: expected list, got ${listVal.type}');
+    }
+    if (_dynamicLists.containsKey(listVal.value)) {
+      return _dynamicLists[listVal.value]!;
+    }
+    return _constantPool!.readList(listVal.value);
+  }
+
+  /// Adds a dynamic list at runtime and returns its ID.
+  int addDynamicList(List<T3Value> elements) {
+    final id = _nextDynamicListOffset++;
+    _dynamicLists[id] = elements;
+    return id;
+  }
 
   // ==================== Execution ====================
 
@@ -563,9 +666,6 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
           _registers.ip += 2;
           final bytes = _codePool!.readBytes(_registers.ip, len);
           _registers.ip += len;
-          // For now, push as a string with offset 0 and inline data?
-          // Actually, TADS3 usually puts these in the pool.
-          // Inline strings are literal bytes in the code stream.
           _stack.push(T3Value.fromInlineString(bytes));
         }
         return T3ExecutionResult.continue_;
@@ -893,64 +993,13 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
       case T3Opcodes.VARARGC:
         // Modifier: next call uses argument count from stack
-        {
-          final nextOpcode = _codePool!.readByte(_registers.ip++);
-          // All call opcodes that can follow VARARGC have a 1-byte argc operand first.
-          // We consume and ignore it.
-          _codePool!.readByte(_registers.ip++);
+        _varArgcPending = true;
+        return T3ExecutionResult.continue_;
 
-          final countVal = _stack.pop();
-          if (!countVal.isInt) {
-            throw T3Exception(
-              'VARARGC: expected integer argument count on stack at IP=${(_registers.ip - 3).toRadixString(16)}, got $countVal',
-            );
-          }
-          final argc = countVal.value;
-
-          switch (nextOpcode) {
-            case T3Opcodes.CALL:
-              handleCallOp(argc);
-              break;
-            case T3Opcodes.PTRCALL:
-              handlePtrCallOp(argc);
-              break;
-            case T3Opcodes.CALLPROP:
-              handleCallPropOp(argc);
-              break;
-            case T3Opcodes.CALLPROPSELF:
-              handleCallPropSelfOp(argc);
-              break;
-            case T3Opcodes.OBJCALLPROP:
-              handleObjCallPropOp(argc);
-              break;
-            case T3Opcodes.CALLPROPLCL1:
-              handleCallPropLcl1Op(argc);
-              break;
-            case T3Opcodes.CALLPROPR0:
-              handleCallPropR0Op(argc);
-              break;
-            case T3Opcodes.BUILTIN_A:
-              handleBuiltinOp(0, argc);
-              break;
-            case T3Opcodes.BUILTIN_B:
-              handleBuiltinOp(1, argc);
-              break;
-            case T3Opcodes.BUILTIN_C:
-              handleBuiltinOp(2, argc);
-              break;
-            case T3Opcodes.BUILTIN_D:
-              handleBuiltinOp(3, argc);
-              break;
-            case T3Opcodes.BUILTIN1:
-              handleBuiltin1Op(argc);
-              break;
-            case T3Opcodes.BUILTIN2:
-              handleBuiltin2Op(argc);
-              break;
-            default:
-              throw T3Exception('VARARGC followed by invalid opcode 0x${nextOpcode.toRadixString(16)}');
-          }
-        }
+      case T3Opcodes.NAMEDARGPTR:
+        // Named argument pointer (UINT4 offset)
+        _pendingNamedArgTableAddr = _codePool!.readUint32(_registers.ip);
+        _registers.ip += 4;
         return T3ExecutionResult.continue_;
 
       // Local variable modification opcodes
@@ -1627,18 +1676,18 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.CALLPROP:
         // Call method: pop target, call property with argc args
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
-          execEvalProperty(target, propId, argc: argc);
+          evalProperty(target, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.CALLPROPSELF:
         // Call method on self
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleCallPropSelfOp(argc);
         }
         return T3ExecutionResult.continue_;
@@ -1646,7 +1695,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.OBJCALLPROP:
         // Call method on immediate object ID
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleObjCallPropOp(argc);
         }
         return T3ExecutionResult.continue_;
@@ -1654,7 +1703,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.CALLPROPLCL1:
         // Call method using local variable as target
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleCallPropLcl1Op(argc);
         }
         return T3ExecutionResult.continue_;
@@ -1662,7 +1711,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.CALLPROPR0:
         // Call method on R0
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleCallPropR0Op(argc);
         }
         return T3ExecutionResult.continue_;
@@ -1670,32 +1719,32 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.PTRCALLPROP:
         // Call property via pointer from stack
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propVal = _stack.pop();
           final target = _stack.pop();
           if (!propVal.isProp) {
             throw T3Exception('PTRCALLPROP: expected property value');
           }
-          execEvalProperty(target, propVal.value, argc: argc);
+          evalProperty(target, propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.PTRCALLPROPSELF:
         // Call property on self via pointer from stack
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propVal = _stack.pop();
           if (!propVal.isProp) {
             throw T3Exception('PTRCALLPROPSELF: expected property value');
           }
-          execEvalProperty(_stack.getSelf(), propVal.value, argc: argc);
+          evalProperty(_stack.getSelf(), propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.INHERIT:
         // Inherit property from superclass (UBYTE argc, UINT2 propId)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           inheritProperty(propId, argc);
@@ -1705,7 +1754,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.PTRINHERIT:
         // Inherit property via pointer (UBYTE argc)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propVal = _stack.pop();
           if (!propVal.isProp) {
             throw T3Exception('PTRINHERIT: expected property value');
@@ -1717,20 +1766,20 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.EXPINHERIT:
         // Inherit from explicit superclass (UBYTE argc, UINT2 propId, UINT4 objId)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final superclassId = _codePool!.readUint32(_registers.ip);
           _registers.ip += 4;
           final superclass = T3Value.fromObject(superclassId);
-          execEvalProperty(superclass, propId, argc: argc);
+          evalProperty(superclass, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.PTREXPINHERIT:
         // Inherit from explicit superclass via pointer (UBYTE argc, UINT4 objId)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propVal = _stack.pop();
           final superclassId = _codePool!.readUint32(_registers.ip);
           _registers.ip += 4;
@@ -1738,38 +1787,38 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
             throw T3Exception('PTREXPINHERIT: expected property value');
           }
           final superclass = T3Value.fromObject(superclassId);
-          execEvalProperty(superclass, propVal.value, argc: argc);
+          evalProperty(superclass, propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.DELEGATE:
         // Delegate to object on stack (UBYTE argc, UINT2 propId)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propId = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
           final target = _stack.pop();
-          execEvalProperty(target, propId, argc: argc);
+          evalProperty(target, propId, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.PTRDELEGATE:
         // Delegate via property pointer (UBYTE argc)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           final propVal = _stack.pop();
           final target = _stack.pop();
           if (!propVal.isProp) {
             throw T3Exception('PTRDELEGATE: expected property value');
           }
-          execEvalProperty(target, propVal.value, argc: argc);
+          evalProperty(target, propVal.value, argc: argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.CALL:
         // Call function at immediate code offset
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleCallOp(argc);
         }
         return T3ExecutionResult.continue_;
@@ -1777,14 +1826,14 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.PTRCALL:
         // Call function through pointer on stack
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handlePtrCallOp(argc);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.SAY:
         {
-          final offset = _codePool!.readUint32(_registers.ip);
+          final offset = codePool!.readUint32(_registers.ip);
           _registers.ip += 4;
           invokeSay(T3Value.fromString(offset));
         }
@@ -1795,7 +1844,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.BUILTIN_A:
         // Call built-in function from set 0
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleBuiltinOp(0, argc);
         }
         return T3ExecutionResult.continue_;
@@ -1803,7 +1852,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.BUILTIN_B:
         // Call built-in from set 1
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleBuiltinOp(1, argc);
         }
         return T3ExecutionResult.continue_;
@@ -1811,7 +1860,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.BUILTIN_C:
         // Call built-in from set 2
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleBuiltinOp(2, argc);
         }
         return T3ExecutionResult.continue_;
@@ -1819,7 +1868,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.BUILTIN_D:
         // Call built-in from set 3
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleBuiltinOp(3, argc);
         }
         return T3ExecutionResult.continue_;
@@ -1827,7 +1876,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.BUILTIN1:
         // Call built-in function from any set (8-bit index)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleBuiltin1Op(argc);
         }
         return T3ExecutionResult.continue_;
@@ -1835,7 +1884,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
       case T3Opcodes.BUILTIN2:
         // Call built-in function from any set (16-bit index)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           handleBuiltin2Op(argc);
         }
         return T3ExecutionResult.continue_;
@@ -2045,44 +2094,40 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
 
       case T3Opcodes.NEW1:
         // Create new object (1-byte operands)
-        // Format: [0xC0] [argc UBYTE] [metaclass_idx UBYTE]
+        // Format: [0xC0] [metaclass_idx UBYTE] [argc UBYTE]
         {
-          final argc = _codePool!.readByte(_registers.ip++);
           final metaclassIdx = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           createNewObject(metaclassIdx, argc, isTransient: false);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.NEW2:
         // Create new object (2-byte operands)
-        // Format: [0xC1] [argc UINT2] [metaclass_idx UINT2]
+        // Format: [0xC1] [metaclass_idx UINT2] [argc UBYTE]
         {
-          final argc = _codePool!.readUint16(_registers.ip);
-          _registers.ip += 2;
           final metaclassIdx = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
+          final argc = _resolveArgc();
           createNewObject(metaclassIdx, argc, isTransient: false);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.TRNEW1:
-        // Create new transient object (1-byte operands)
-        // Format: [0xC2] [argc UBYTE] [metaclass_idx UBYTE]
+        // Create transient object (1-byte operands)
         {
-          final argc = _codePool!.readByte(_registers.ip++);
           final metaclassIdx = _codePool!.readByte(_registers.ip++);
+          final argc = _resolveArgc();
           createNewObject(metaclassIdx, argc, isTransient: true);
         }
         return T3ExecutionResult.continue_;
 
       case T3Opcodes.TRNEW2:
-        // Create new transient object (2-byte operands)
-        // Format: [0xC3] [argc UINT2] [metaclass_idx UINT2]
+        // Create transient object (2-byte operands)
         {
-          final argc = _codePool!.readUint16(_registers.ip);
-          _registers.ip += 2;
           final metaclassIdx = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
+          final argc = _resolveArgc();
           createNewObject(metaclassIdx, argc, isTransient: true);
         }
         return T3ExecutionResult.continue_;
@@ -2147,19 +2192,11 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
         }
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.NAMEDARGPTR:
-        // Named argument pointer (UBYTE argc) - placeholder
-        {
-          _registers.ip++;
-          // TODO: Implement named arguments
-        }
-        return T3ExecutionResult.continue_;
-
       case T3Opcodes.NAMEDARGTAB:
-        // Named argument table (UINT2 element_count) - placeholder
+        // Named argument table (UINT2 element_count) - skip it, it's just data
         {
-          _registers.ip += 2;
-          // TODO: Implement named arguments
+          final count = _codePool!.readUint16(_registers.ip);
+          _registers.ip += 2 + (count * 6);
         }
         return T3ExecutionResult.continue_;
 
@@ -2205,8 +2242,60 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers {
   }
 
   /// Gets info for debugging.
+  /// Resolves the argument count for a call, handling the VARARGC modifier.
+  int _resolveArgc({bool argcIsSecondOperand = false}) {
+    if (_varArgcPending) {
+      _varArgcPending = false;
+      // Skip the 1-byte argc operand in the code stream
+      _registers.ip++;
+      final countVal = _stack.pop();
+      if (!countVal.isInt) {
+        throw T3Exception('VARARGC: expected integer argument count on stack');
+      }
+      return countVal.value;
+    } else {
+      if (argcIsSecondOperand) {
+        // For NEW1/TRNEW1, argc is the second operand.
+        // We need to read the first operand (metaclassIdx), then argc.
+        // But wait, the main loop already handles this by calling _resolveArgc
+        // specifically for the argc operand.
+        return _codePool!.readByte(_registers.ip++);
+      }
+      return _codePool!.readByte(_registers.ip++);
+    }
+  }
+
   String debugInfo() {
     return 'T3Interpreter: ip=0x${_registers.ip.toRadixString(16)}, '
         'stack=${_stack.depth}, instructions=$_instructionCount';
+  }
+
+  // --- Undo Context Implementation ---
+
+  @override
+  void undoSetProperty(int objectId, int propId, T3Value? oldValue) {
+    final obj = _objectTable.lookup(objectId);
+    if (obj is T3TadsObject) {
+      if (oldValue == null) {
+        obj.modifiedProperties.remove(propId);
+      } else {
+        obj.modifiedProperties[propId] = oldValue;
+      }
+    }
+  }
+
+  @override
+  void undoCreateObject(int objectId) {
+    _objectTable.remove(objectId);
+  }
+
+  @override
+  void undoVectorSet(int objectId, int index, T3Value oldValue) {
+    final obj = _objectTable.lookup(objectId);
+    if (obj is T3VectorObject) {
+      if (index >= 0 && index < obj.elements.length) {
+        obj.elements[index] = oldValue;
+      }
+    }
   }
 }

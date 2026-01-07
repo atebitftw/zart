@@ -24,6 +24,7 @@ environment:
 dependencies:
   logging: ^1.3.0
   args: ^2.7.0
+  crypto: ^3.0.7
 dev_dependencies:
   test: ^1.28.0
   lints: ^6.0.0

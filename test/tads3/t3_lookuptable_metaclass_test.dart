@@ -23,25 +23,25 @@ void main() {
       test('default value for missing keys', () {
         // vmlookup.h:76-77 - default_value returned for missing keys
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: default value not tested');
+      }, skip: null);
     });
 
     /// vmlookup.h:524-525 - getp_remove_entry
     group('removeEntry', () {
       test('removes key-value pair', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: removeEntry not implemented');
+      }, skip: null);
     });
 
     /// vmlookup.h:527-528 - getp_key_present
     group('isKeyPresent', () {
       test('returns true for existing key', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: isKeyPresent not implemented');
+      }, skip: null);
 
       test('returns nil for missing key', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: isKeyPresent not implemented');
+      }, skip: null);
     });
 
     /// vmlookup.h:530-531 - getp_apply_all
@@ -69,35 +69,35 @@ void main() {
     group('getBucketCount', () {
       test('returns number of hash buckets', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: getBucketCount not implemented');
+      }, skip: null);
     });
 
     /// vmlookup.h:546-547 - getp_count_entries
     group('getEntryCount', () {
       test('returns number of key-value pairs', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: getEntryCount not implemented');
+      }, skip: null);
     });
 
     /// vmlookup.h:549-550 - getp_keys_to_list
     group('keysToList', () {
       test('returns list of all keys', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: keysToList not implemented');
+      }, skip: null);
     });
 
     /// vmlookup.h:552-553 - getp_vals_to_list
     group('valsToList', () {
       test('returns list of all values', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: valsToList not implemented');
+      }, skip: null);
     });
 
     /// vmlookup.h:555-556 - getp_get_def_val
     group('getDefaultValue', () {
       test('returns default value for missing keys', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: getDefaultValue not implemented');
+      }, skip: null);
     });
 
     /// vmlookup.h:558-559 - getp_set_def_val

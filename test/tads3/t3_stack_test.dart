@@ -288,7 +288,7 @@ void main() {
       expect(stack.getReturnAddress(), 0x2000);
 
       // Pop second frame
-      final (retAddr, _, _) = stack.popFrame();
+      final (retAddr, _, _, _) = stack.popFrame();
       expect(retAddr, 0x2000);
       expect(stack.fp, fp1);
       expect(stack.getLocal(0).value, 111);
@@ -596,7 +596,7 @@ void main() {
       stack.push(T3Value.fromInt(123));
 
       // Return
-      final (returnAddr, _, entryPtr) = stack.popFrame();
+      final (returnAddr, _, entryPtr, _) = stack.popFrame();
 
       /// Spec: model.htm lines 1344-1348:
       /// "Pop the item at the top of the stack; this is the return
@@ -663,7 +663,7 @@ void main() {
       expect(T3Stack.fpOfsDefObj, -8);
       expect(T3Stack.fpOfsTargetObj, -9);
       expect(T3Stack.fpOfsTargetProp, -10);
-      expect(T3Stack.fpOfsArg1, -11);
+      expect(T3Stack.fpOfsArg1, -12);
     });
   });
 }

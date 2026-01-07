@@ -2,270 +2,286 @@ import 'package:test/test.dart';
 import 'package:zart/src/tads3/vm/t3_interpreter.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
+import 'package:zart/src/tads3/vm/t3_execution_helpers.dart';
 
 /// T3 String Metaclass unit tests with spec validation.
 ///
 /// Spec Reference: packages/tads-runner/tads3/vmstr.cpp (func_table_)
-/// The String metaclass has 29 methods (indices 0-28).
 void main() {
   group('String metaclass methods per vmstr.cpp', () {
     late T3Interpreter interp;
+
+    // Helper to create a T3Value string in dynamic memory
+    T3Value makeStr(String s) {
+      final offset = interp.execNextDynamicStringOffset++;
+      interp.execDynamicStrings[offset] = s;
+      return T3Value.fromString(offset);
+    }
 
     setUp(() {
       interp = T3Interpreter();
     });
 
-    /// vmstr.cpp:76 - getp_len [1]
-    /// Returns the length of the string in characters.
     group('length [1]', () {
       test('returns character count', () {
-        // Test conceptual - String length method
-        const testString = 'hello';
-        expect(testString.length, 5);
+        final target = makeStr('hello');
+        interp.handleStringIntrinsic(0, target, 0);
+        expect(interp.registers.r0.value, 5);
       });
     });
 
-    /// vmstr.cpp:77 - getp_substr [2]
-    /// Returns a substring.
     group('substr [2]', () {
       test('extracts substring', () {
-        const testString = 'hello world';
-        expect(testString.substring(0, 5), 'hello');
+        final target = makeStr('hello world');
+        interp.stack.push(T3Value.fromInt(5));
+        interp.stack.push(T3Value.fromInt(1));
+        interp.handleStringIntrinsic(1, target, 2);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello');
       });
     });
 
-    /// vmstr.cpp:78 - getp_upper [3]
-    /// Converts string to uppercase.
     group('toUpper [3]', () {
       test('converts to uppercase', () {
-        const testString = 'Hello World';
-        expect(testString.toUpperCase(), 'HELLO WORLD');
+        final target = makeStr('Hello World');
+        interp.handleStringIntrinsic(2, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'HELLO WORLD');
       });
     });
 
-    /// vmstr.cpp:79 - getp_lower [4]
-    /// Converts string to lowercase.
     group('toLower [4]', () {
       test('converts to lowercase', () {
-        const testString = 'Hello World';
-        expect(testString.toLowerCase(), 'hello world');
+        final target = makeStr('Hello World');
+        interp.handleStringIntrinsic(3, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello world');
       });
     });
 
-    /// vmstr.cpp:80 - getp_find [5]
-    /// Finds first occurrence of substring.
     group('find [5]', () {
       test('finds substring position', () {
-        const testString = 'hello world';
-        expect(testString.indexOf('world'), 6);
-      });
-
-      test('returns -1 if not found', () {
-        const testString = 'hello world';
-        expect(testString.indexOf('xyz'), -1);
+        final target = makeStr('hello world');
+        final sub = makeStr('world');
+        interp.stack.push(sub);
+        interp.handleStringIntrinsic(4, target, 1);
+        expect(interp.registers.r0.value, 7);
       });
     });
 
-    /// vmstr.cpp:81 - getp_to_uni [6]
-    /// Converts string to list of Unicode code points.
     group('toUnicode [6]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: toUnicode not tested - string metaclass invocation needed');
+      test('converts string to list of code points', () {
+        final target = makeStr('ABC');
+        interp.handleStringIntrinsic(5, target, 0);
+        final listId = interp.registers.r0.value;
+        expect(interp.objectTable.lookup(listId), isNotNull);
+      });
     });
 
-    /// vmstr.cpp:82 - getp_htmlify [7]
-    /// Converts special chars to HTML entities.
     group('htmlify [7]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: htmlify not tested');
+      test('escapes HTML characters', () {
+        final target = makeStr('A < B');
+        interp.handleStringIntrinsic(6, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'A &lt; B');
+      });
     });
 
-    /// vmstr.cpp:83 - getp_starts_with [8]
-    /// Checks if string starts with prefix.
     group('startsWith [8]', () {
       test('checks prefix match', () {
-        const testString = 'hello world';
-        expect(testString.startsWith('hello'), isTrue);
-        expect(testString.startsWith('world'), isFalse);
+        final target = makeStr('hello world');
+        final arg = makeStr('hello');
+        interp.stack.push(arg);
+        interp.handleStringIntrinsic(7, target, 1);
+        expect(interp.registers.r0.type, T3DataType.true_);
       });
     });
 
-    /// vmstr.cpp:84 - getp_ends_with [9]
-    /// Checks if string ends with suffix.
     group('endsWith [9]', () {
       test('checks suffix match', () {
-        const testString = 'hello world';
-        expect(testString.endsWith('world'), isTrue);
-        expect(testString.endsWith('hello'), isFalse);
+        final target = makeStr('hello world');
+        final arg = makeStr('world');
+        interp.stack.push(arg);
+        interp.handleStringIntrinsic(8, target, 1);
+        expect(interp.registers.r0.type, T3DataType.true_);
       });
     });
 
-    /// vmstr.cpp:85 - getp_to_byte_array [10]
-    /// Converts string to ByteArray.
     group('toByteArray [10]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: toByteArray not tested');
-    });
-
-    /// vmstr.cpp:86 - getp_replace [11]
-    /// Replaces occurrences in string.
-    group('replace [11]', () {
-      test('replaces substring', () {
-        const testString = 'hello world';
-        expect(testString.replaceAll('world', 'dart'), 'hello dart');
+      test('stub returns nil', () {
+        final target = makeStr('hello');
+        interp.handleStringIntrinsic(9, target, 0);
+        expect(interp.registers.r0.type, T3DataType.nil);
       });
     });
 
-    /// vmstr.cpp:87 - getp_splice [12]
-    /// Removes/inserts characters at position.
-    group('splice [12]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: splice not tested');
+    group('replace [11]', () {
+      test('replaces occurrences', () {
+        final target = makeStr('foo-bar-foo');
+        final oldStr = makeStr('foo');
+        final newStr = makeStr('baz');
+        interp.stack.push(T3Value.fromInt(0));
+        interp.stack.push(newStr);
+        interp.stack.push(oldStr);
+        interp.handleStringIntrinsic(10, target, 3);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'baz-bar-baz');
+      });
     });
 
-    /// vmstr.cpp:88 - getp_split [13]
-    /// Splits string by delimiter.
+    group('splice [12]', () {
+      test('replaces range', () {
+        final target = makeStr('123456');
+        interp.stack.push(makeStr('foo')); // insert
+        interp.stack.push(T3Value.fromInt(3)); // len
+        interp.stack.push(T3Value.fromInt(2)); // idx
+        interp.handleStringIntrinsic(11, target, 3);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], '1foo56');
+      });
+    });
+
     group('split [13]', () {
       test('splits by delimiter', () {
-        const testString = 'a,b,c';
-        expect(testString.split(','), ['a', 'b', 'c']);
+        final target = makeStr('a,b,c');
+        interp.stack.push(T3Value.nil()); // limit
+        interp.stack.push(makeStr(',')); // delim
+        interp.handleStringIntrinsic(12, target, 2);
+        final listId = interp.registers.r0.value;
+        expect(interp.objectTable.lookup(listId), isNotNull);
       });
     });
 
-    /// vmstr.cpp:89 - getp_specialsToHtml [14]
     group('specialsToHtml [14]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: specialsToHtml not tested');
+      test('stub returns original', () {
+        final target = makeStr('test');
+        interp.handleStringIntrinsic(13, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'test');
+      });
     });
 
-    /// vmstr.cpp:90 - getp_specialsToText [15]
     group('specialsToText [15]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: specialsToText not tested');
+      test('stub returns original', () {
+        final target = makeStr('test');
+        interp.handleStringIntrinsic(14, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'test');
+      });
     });
 
-    /// vmstr.cpp:91 - getp_urlEncode [16]
     group('urlEncode [16]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: urlEncode not tested');
+      test('encodes URL component', () {
+        final target = makeStr('hello world');
+        interp.handleStringIntrinsic(15, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello%20world');
+      });
     });
 
-    /// vmstr.cpp:92 - getp_urlDecode [17]
     group('urlDecode [17]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: urlDecode not tested');
+      test('decodes URL component', () {
+        final target = makeStr('hello%20world');
+        interp.handleStringIntrinsic(16, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello world');
+      });
     });
 
-    /// vmstr.cpp:93 - getp_sha256 [18]
     group('sha256 [18]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: sha256 not tested');
+      test('computes hash', () {
+        final target = makeStr('hello');
+        interp.handleStringIntrinsic(17, target, 0);
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
+        );
+      });
     });
 
-    /// vmstr.cpp:94 - getp_md5 [19]
     group('md5 [19]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: md5 not tested');
+      test('computes hash', () {
+        final target = makeStr('hello');
+        interp.handleStringIntrinsic(18, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], '5d41402abc4b2a76b9719d911017c592');
+      });
     });
 
-    /// vmstr.cpp:95 - getp_packBytes [20]
     group('packBytes [20]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: packBytes not tested');
+      test('stub returns nil', () {
+        final target = makeStr('hello');
+        interp.handleStringIntrinsic(19, target, 0);
+        expect(interp.registers.r0.type, T3DataType.nil);
+      });
     });
 
-    /// vmstr.cpp:96 - getp_unpackBytes [21]
     group('unpackBytes [21]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: unpackBytes not tested');
+      test('stub returns nil', () {
+        final target = makeStr('hello');
+        interp.handleStringIntrinsic(20, target, 0);
+        expect(interp.registers.r0.type, T3DataType.nil);
+      });
     });
 
-    /// vmstr.cpp:97 - getp_toTitleCase [22]
     group('toTitleCase [22]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: toTitleCase not tested');
+      test('capitalizes words', () {
+        final target = makeStr('hello world');
+        interp.handleStringIntrinsic(21, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'Hello World');
+      });
     });
 
-    /// vmstr.cpp:98 - getp_toFoldedCase [23]
     group('toFoldedCase [23]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: toFoldedCase not tested');
+      test('folds case', () {
+        final target = makeStr('HeLLo');
+        interp.handleStringIntrinsic(22, target, 0);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello');
+      });
     });
 
-    /// vmstr.cpp:99 - getp_compareTo [24]
     group('compareTo [24]', () {
-      test('compares strings', () {
-        expect('abc'.compareTo('abc'), 0);
-        expect('abc'.compareTo('abd'), lessThan(0));
-        expect('abd'.compareTo('abc'), greaterThan(0));
+      test('compares less', () {
+        final target = makeStr('a');
+        interp.stack.push(makeStr('b'));
+        interp.handleStringIntrinsic(23, target, 1);
+        expect(interp.registers.r0.value, -1);
       });
     });
 
-    /// vmstr.cpp:100 - getp_compareIgnoreCase [25]
     group('compareIgnoreCase [25]', () {
-      test('case-insensitive comparison', () {
-        expect('ABC'.toLowerCase().compareTo('abc'), 0);
+      test('compares ignoring case', () {
+        final target = makeStr('A');
+        interp.stack.push(makeStr('a'));
+        interp.handleStringIntrinsic(24, target, 1);
+        expect(interp.registers.r0.value, 0);
       });
     });
 
-    /// vmstr.cpp:101 - getp_findLast [26]
     group('findLast [26]', () {
       test('finds last occurrence', () {
-        const testString = 'hello hello';
-        expect(testString.lastIndexOf('hello'), 6);
+        final target = makeStr('hello world hello');
+        final sub = makeStr('hello');
+        interp.stack.push(T3Value.nil()); // index
+        interp.stack.push(sub); // sub
+        interp.handleStringIntrinsic(25, target, 2);
+        expect(interp.registers.r0.value, 13);
       });
     });
 
-    /// vmstr.cpp:102 - getp_findAll [27]
     group('findAll [27]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: findAll not tested');
+      test('finds all matches', () {
+        final target = makeStr('hello');
+        final re = makeStr('l');
+        interp.stack.push(re); // regex
+        interp.handleStringIntrinsic(26, target, 1);
+
+        final listId = interp.registers.r0.value;
+        final listObj = interp.objectTable.lookup(listId)!;
+        expect(listObj.metaclass, 'list');
+        // We happen to know the stub returns a list of matches strings.
+        // 'l', 'l'.
+      });
     });
 
-    /// vmstr.cpp:103 - getp_match [28]
     group('match [28]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: match not tested');
-    });
-  });
-
-  group('String arithmetic per vmstr.cpp:693', () {
-    /// vmstr.cpp:693-709 - add_val
-    /// String concatenation via + operator.
-    test('string + string concatenation', () {
-      expect('hello' + ' world', 'hello world');
-    });
-
-    test('string + int concatenation (implicit conversion)', () {
-      expect('value: ${42}', 'value: 42');
-    });
-  });
-
-  group('String comparison per spec', () {
-    /// vmstr.cpp:514-525 - cast_to_int
-    test('string to int parsing', () {
-      expect(int.parse('42'), 42);
-      expect(int.parse('-10'), -10);
-    });
-
-    test('string with leading zeros', () {
-      expect(int.parse('007'), 7);
+      test('finds match', () {
+        final target = makeStr('hello');
+        final re = makeStr('e');
+        interp.stack.push(T3Value.nil()); // index
+        interp.stack.push(re); // regex
+        interp.handleStringIntrinsic(27, target, 2);
+        expect(interp.execDynamicStrings[interp.registers.r0.value], 'e');
+      });
     });
   });
 }

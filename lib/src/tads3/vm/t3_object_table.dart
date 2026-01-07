@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 import 'package:zart/src/tads3/loaders/objs_parser.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
+import 'package:zart/src/tads3/vm/t3_undo.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 
 /// Result of a property lookup, including the defining object.
@@ -165,8 +166,17 @@ class T3ObjectTable {
   ///
   /// This is called by the NEW1/NEW2/TRNEW1/TRNEW2 opcodes.
   /// Returns the new object's ID.
-  int createDynamicObject(String metaclassName, List<T3Value> args, {bool isTransient = false}) {
+  int createDynamicObject(
+    String metaclassName,
+    List<T3Value> args, {
+    bool isTransient = false,
+    T3UndoManager? undoManager,
+  }) {
     final objId = _nextDynamicObjectId++;
+
+    if (!isTransient && undoManager != null && undoManager.isActive) {
+      undoManager.addRecord(T3UndoObjRecord(objId));
+    }
 
     // Create appropriate object type based on metaclass
     T3Object obj;
