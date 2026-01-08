@@ -1,12 +1,13 @@
 import 'package:test/test.dart';
-import 'package:zart/src/tads3/vm/t3_interpreter.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
 import 'package:zart/src/tads3/vm/t3_bignumber.dart';
 import 'package:zart/src/tads3/vm/t3_date.dart';
 import 'package:zart/src/tads3/vm/t3_lookup_table.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
-import 'dart:typed_data';
+import 'package:zart/src/tads3/vm/t3_dictionary.dart';
+import 'package:zart/src/tads3/vm/t3_grammar_production.dart';
+import 'package:zart/src/tads3/vm/t3_file.dart';
 
 /// T3 I/O and Display unit tests with spec validation.
 ///
@@ -125,22 +126,32 @@ void main() {
     /// File metaclass.
     group('File', () {
       test('File open/read/write', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: File metaclass not tested');
+        // Basic connectivity check, detailed tests are in t3_file_test.dart
+        final file = T3File.create(300);
+        expect(file.metaclass, 'file');
+        expect(file.isOpen, isFalse);
+      });
     });
 
     /// Dictionary metaclass.
     group('Dictionary', () {
       test('Dictionary word lookup', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: Dictionary metaclass not tested');
+        // Basic connectivity check, detailed tests are in t3_dictionary_test.dart
+        final dict = T3Dictionary.create(100);
+        dict.addWord('xyz', 1, 2);
+        expect(dict.isWordDefined('xyz'), isTrue);
+      });
     });
 
     /// GrammarProduction metaclass.
     group('GrammarProduction', () {
       test('Grammar matching', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: GrammarProduction metaclass not tested');
+        // Basic connectivity check, detailed tests are in t3_grammar_test.dart
+        final gram = T3GrammarProduction.create(200);
+        final alt = T3GrammarAlt(score: 10, badness: 0, processorObjId: 5, tokens: []);
+        gram.addAlt(alt);
+        expect(gram.alternatives.length, 1);
+      });
     });
 
     /// LookupTable metaclass.

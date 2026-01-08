@@ -7,6 +7,10 @@ import 'package:zart/src/tads3/vm/t3_lookup_table.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_undo.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
+import 'package:zart/src/tads3/vm/t3_regex_pattern.dart';
+import 'package:zart/src/tads3/vm/t3_dictionary.dart';
+import 'package:zart/src/tads3/vm/t3_grammar_production.dart';
+import 'package:zart/src/tads3/vm/t3_file.dart';
 
 /// Result of a property lookup, including the defining object.
 class T3PropertyLookupResult {
@@ -157,6 +161,14 @@ class T3ObjectTable {
         return T3Date.fromData(objectId, data, isTransient: isTransient);
       case 'timezone':
         return T3TimeZone.fromData(objectId, data, isTransient: isTransient);
+      case 'regex-pattern':
+        return T3RegexPattern.fromData(objectId, data);
+      case 'dictionary2':
+        return T3Dictionary.fromData(objectId, data);
+      case 'grammar-production':
+        return T3GrammarProduction.fromData(objectId, data);
+      case 'file':
+        return T3File.fromData(objectId, data, isTransient: isTransient);
       default:
         // Unknown metaclass - store as generic object
         return T3GenericObject(objectId: objectId, metaclass: metaclassName, rawData: data, isTransient: isTransient);
@@ -327,6 +339,21 @@ class T3ObjectTable {
         break;
       case 'timezone':
         obj = T3TimeZone.create(objId, isTransient: isTransient);
+        break;
+      case 'regex-pattern':
+        T3Value val = T3Value.nil();
+        if (args.isNotEmpty) val = args[0];
+        obj = T3RegexPattern.create(objId, val);
+        break;
+      case 'dictionary2':
+      case 'dictionary':
+        obj = T3Dictionary.create(objId);
+        break;
+      case 'grammar-production':
+        obj = T3GrammarProduction.create(objId);
+        break;
+      case 'file':
+        obj = T3File.create(objId);
         break;
       case 'iterator':
         // Collection is passed as first argument, remaining args are the snapshot elements

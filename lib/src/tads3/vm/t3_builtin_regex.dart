@@ -1,10 +1,43 @@
 import 'package:zart/src/loaders/tads/t3_exception.dart';
 import 'package:zart/src/tads3/vm/t3_interpreter.dart';
+import 'package:zart/src/tads3/vm/t3_regex_pattern.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 
 /// Regex built-in functions for TADS 3.
 /// Includes: re_match, re_search, re_group, re_replace
 class T3BuiltinRegex {
+  /// Helper to get RegExp from string or RegexPattern object.
+  static RegExp _getRegExp(T3Interpreter interp, T3Value patVal, {bool caseSensitive = true}) {
+    if (patVal.isObject) {
+      final obj = interp.objectTable.lookup(patVal.value);
+      if (obj is T3RegexPattern) {
+        // Optimization: Use cached regex if default flags (case sensitive)
+        // TADS 3 patterns compiled are case sensitive by default (unless patterns have flags)
+        // If we need case sensitive (default), we use the cached one.
+        if (caseSensitive) {
+          return obj.getRegExp(interp);
+        }
+        // If flags differ (e.g. case insensitive requested), compile from source
+        final pattern = interp.getStringValue(obj.source);
+        return RegExp(pattern, caseSensitive: caseSensitive);
+      }
+    }
+    // Fallback to string handling
+    final pattern = interp.getStringValue(patVal);
+    return RegExp(pattern, caseSensitive: caseSensitive);
+  }
+
+  /// Helper to get pattern string for error reporting
+  static String _getPatternStr(T3Interpreter interp, T3Value patVal) {
+    if (patVal.isObject) {
+      final obj = interp.objectTable.lookup(patVal.value);
+      if (obj is T3RegexPattern) {
+        return interp.getStringValue(obj.source);
+      }
+    }
+    return interp.getStringValue(patVal);
+  }
+
   /// re_match(pattern, str, index?) - Match regex at start of string.
   /// Ref: vmbiftad.cpp line 2426
   /// Returns match length or nil if no match.
@@ -17,7 +50,6 @@ class T3BuiltinRegex {
 
     if (argc > 3) interp.stack.discard(argc - 3);
 
-    final pattern = interp.getStringValue(patVal);
     final str = interp.getStringValue(strVal);
 
     // Adjust to 0-based index
@@ -28,7 +60,7 @@ class T3BuiltinRegex {
     final substring = str.substring(idx);
 
     try {
-      final regex = RegExp(pattern);
+      final regex = _getRegExp(interp, patVal);
       final match = regex.matchAsPrefix(substring) as RegExpMatch?;
 
       if (match != null) {
@@ -42,7 +74,7 @@ class T3BuiltinRegex {
         interp.registers.r0 = T3Value.nil();
       }
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: $pattern');
+      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
     }
   }
 
@@ -58,7 +90,6 @@ class T3BuiltinRegex {
 
     if (argc > 3) interp.stack.discard(argc - 3);
 
-    final pattern = interp.getStringValue(patVal);
     final str = interp.getStringValue(strVal);
 
     // Adjust to 0-based index
@@ -69,7 +100,7 @@ class T3BuiltinRegex {
     final substring = str.substring(idx);
 
     try {
-      final regex = RegExp(pattern);
+      final regex = _getRegExp(interp, patVal);
       final match = regex.firstMatch(substring);
 
       if (match != null) {
@@ -92,7 +123,7 @@ class T3BuiltinRegex {
         interp.registers.r0 = T3Value.nil();
       }
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: $pattern');
+      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
     }
   }
 
@@ -108,7 +139,6 @@ class T3BuiltinRegex {
 
     if (argc > 3) interp.stack.discard(argc - 3);
 
-    final pattern = interp.getStringValue(patVal);
     final str = interp.getStringValue(strVal);
 
     // If startIdx is -1 (default), start from the end of the string.
@@ -119,7 +149,7 @@ class T3BuiltinRegex {
 
     // Search backwards by checking all possible endings
     try {
-      final regex = RegExp(pattern);
+      final regex = _getRegExp(interp, patVal);
 
       RegExpMatch? lastMatch;
       for (var i = idx; i >= 0; i--) {
@@ -156,7 +186,7 @@ class T3BuiltinRegex {
         interp.registers.r0 = T3Value.nil();
       }
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: $pattern');
+      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
     }
   }
 
@@ -227,7 +257,6 @@ class T3BuiltinRegex {
 
     if (argc > 5) interp.stack.discard(argc - 5);
 
-    final pattern = interp.getStringValue(patVal);
     final str = interp.getStringValue(strVal);
     String replacement = interp.getStringValue(replVal);
 
@@ -248,7 +277,7 @@ class T3BuiltinRegex {
     if (idx > str.length) idx = str.length;
 
     try {
-      final regex = RegExp(pattern, caseSensitive: !caseInsensitive);
+      final regex = _getRegExp(interp, patVal, caseSensitive: !caseInsensitive);
 
       String applyReplacement(Match m) {
         return replacement.replaceAllMapped(RegExp(r'\$(\d)'), (rm) {
@@ -275,7 +304,7 @@ class T3BuiltinRegex {
       final offset = interp.addDynamicString(result);
       interp.registers.r0 = T3Value.fromString(offset);
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: $pattern');
+      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
     }
   }
 }
