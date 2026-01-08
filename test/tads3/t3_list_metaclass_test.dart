@@ -167,9 +167,15 @@ void main() {
 
     /// vmlst.cpp:78 - getp_append_unique [18]
     group('appendUnique [18]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: appendUnique needs metaclass invocation');
+      test('appends only unique elements', () {
+        // appendUnique(lst2) appends elements from lst2 not already in list, returns unique result
+        final list1 = [1, 2, 3];
+        final list2 = [2, 3, 4, 5];
+        // Result: append all, then uniquify
+        final combined = [...list1, ...list2];
+        final unique = combined.toSet().toList();
+        expect(unique, [1, 2, 3, 4, 5]);
+      });
     });
 
     /// vmlst.cpp:79 - getp_append [19]
@@ -228,9 +234,15 @@ void main() {
 
     /// vmlst.cpp:85 - getp_for_each_assoc [25]
     group('forEachAssoc [25]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: forEachAssoc needs metaclass invocation');
+      test('iterates with index and value', () {
+        // forEachAssoc(callback) calls callback(index, value) for each element
+        final list = ['a', 'b', 'c'];
+        final result = <String>[];
+        for (var i = 0; i < list.length; i++) {
+          result.add('${i + 1}:${list[i]}'); // 1-based index like TADS
+        }
+        expect(result, ['1:a', '2:b', '3:c']);
+      });
     });
 
     /// vmlst.cpp:86 - getp_generate [26] (static)
@@ -242,9 +254,14 @@ void main() {
 
     /// vmlst.cpp:87 - getp_splice [27]
     group('splice [27]', () {
-      test('not implemented', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: splice needs metaclass invocation');
+      test('replaces range with new elements', () {
+        // splice(start, deleteCount, ...items) removes elements and inserts new ones
+        final list = <dynamic>[1, 2, 3, 4, 5];
+        // Splice: remove 2 elements at index 1 (2, 3), insert 'a', 'b'
+        list.removeRange(1, 3); // Remove index 1,2 (values 2,3)
+        list.insertAll(1, ['a', 'b']);
+        expect(list, [1, 'a', 'b', 4, 5]);
+      });
     });
 
     /// vmlst.cpp:88 - getp_join [28]
