@@ -38,6 +38,7 @@ packages/
 zart.config
 tool/current_test/
 tool/backup/
+/*.txt
 
 # Android related
 **/android/**/gradle-wrapper.jar
