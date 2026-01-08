@@ -30,13 +30,11 @@ void main(List<String> args) async {
   print('Starting execution...');
   try {
     interp.traceExecution = false;
-    interp.maxInstructions = 50000; // Limit execution for safety in debug tool
+    interp.maxInstructions = 5000000; // Limit execution for safety in debug tool
     await interp.run();
     print('Execution finished.');
   } catch (e, stack) {
-    print(
-      'Execution stopped at IP 0x${interp.registers.ip.toRadixString(16)}: $e',
-    );
+    print('Execution stopped at IP 0x${interp.registers.ip.toRadixString(16)}: $e');
     // print('Registers: ${interp.debugInfo()}');
     if (e is! T3Exception) {
       print(stack);

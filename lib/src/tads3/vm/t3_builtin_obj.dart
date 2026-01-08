@@ -43,16 +43,13 @@ class T3BuiltinObj {
     final funcVal = interp.stack.pop();
     if (argc > 1) interp.stack.discard(argc - 1);
 
-    if (funcVal.type != T3DataType.funcptr &&
-        funcVal.type != T3DataType.codeofs) {
+    if (funcVal.type != T3DataType.funcptr && funcVal.type != T3DataType.codeofs) {
       throw T3Exception('get_func_params: function pointer required');
     }
 
     // Read header from code pool
     final pool = interp.codePool;
-    final header = pool != null
-        ? pool.readMethodHeader(funcVal.value, interp.methodHeaderSize)
-        : null;
+    final header = pool != null ? pool.readMethodHeader(funcVal.value, interp.methodHeaderSize) : null;
 
     // Create return list: [minArgs, optionalArgs, isVarargs]
     final list = [
@@ -68,7 +65,7 @@ class T3BuiltinObj {
   /// firstobj(cls?, flags?) - Get first object in memory.
   static void firstObj(T3Interpreter interp, int argc) {
     T3Value clsVal = T3Value.nil();
-    int flags = 0x0003; // ObjAll
+    int flags = 0x0001; // ObjInstances (default)
 
     if (argc >= 1) clsVal = interp.stack.pop();
     if (argc >= 2) {
@@ -92,7 +89,7 @@ class T3BuiltinObj {
     if (argc < 1) throw T3Exception('nextObj() requires at least 1 argument');
     final objVal = interp.stack.pop();
     T3Value clsVal = T3Value.nil();
-    int flags = 0x0003;
+    int flags = 0x0001;
 
     if (argc >= 2) clsVal = interp.stack.pop();
     if (argc >= 3) {
@@ -106,8 +103,7 @@ class T3BuiltinObj {
     bool foundCurrent = false;
 
     for (final obj in table.all) {
-      if (foundCurrent &&
-          _matchesObjFilter(obj, clsVal, flags, table, interp)) {
+      if (foundCurrent && _matchesObjFilter(obj, clsVal, flags, table, interp)) {
         interp.registers.r0 = T3Value.fromObject(obj.objectId);
         return;
       }
@@ -116,13 +112,7 @@ class T3BuiltinObj {
     interp.registers.r0 = T3Value.nil();
   }
 
-  static bool _matchesObjFilter(
-    T3Object obj,
-    T3Value cls,
-    int flags,
-    T3ObjectTable table,
-    T3Interpreter interp,
-  ) {
+  static bool _matchesObjFilter(T3Object obj, T3Value cls, int flags, T3ObjectTable table, T3Interpreter interp) {
     if (obj is! T3TadsObject) return false;
     final isClass = obj.isClass;
     if (isClass && (flags & 0x0002) == 0) return false;

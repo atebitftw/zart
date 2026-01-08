@@ -3,292 +3,287 @@
 The following test files run successfully to completion:
 
 ## Completed Tests
-- basic.t3
-- aboutbox.t3
-- addlist.t3
-- arith.t3 - Arithmetic operations
-- dstr.t3 - Double-quoted strings and embedded expressions
-- scope.t3 - Variable scoping
-- listpar.t3 - List parameters and varargs
-- props.t3 - Property definitions (no output on our version AND the reference interpreter version?? how do we know this is working correctly?)
-- enum2.t3 - Enumerations (no output on our version AND the reference interpreter version?? how do we know this is working correctly?)
-- anon.t3 - Anonymous functions and inheritance
-- substr.t3 - String substring operations
-- try_catch.t3 - Exception handling
-- object.t3 - Object property access and inheritance
-- iter.t3 - Iterator operations for lists and vectors
-- foreach.t3 - Vector applyAll and iterator snapshotting
-- finally.t3 - Exception handling (finishes with expected unhandled exception)
+- [basic.t3](../assets/testers/tads/basic.t3) / [basic.t](../packages/tads-runner/tads3/test/data/basic.t)
+- [aboutbox.t3](../assets/testers/tads/aboutbox.t3) / [aboutbox.t](../packages/tads-runner/tads3/test/data/aboutbox.t)
+- [addlist.t3](../assets/testers/tads/addlist.t3) / [addlist.t](../packages/tads-runner/tads3/test/data/addlist.t)
+- [arith.t3](../assets/testers/tads/arith.t3) / [arith.t](../packages/tads-runner/tads3/test/data/arith.t)
+- [dstr.t3](../assets/testers/tads/dstr.t3) / [dstr.t](../packages/tads-runner/tads3/test/data/dstr.t)
+- [scope.t3](../assets/testers/tads/scope.t3) / [scope.t](../packages/tads-runner/tads3/test/data/scope.t)
+- [listpar.t3](../assets/testers/tads/listpar.t3) / [listpar.t](../packages/tads-runner/tads3/test/data/listpar.t)
+- [props.t3](../assets/testers/tads/props.t3) / [props.t](../packages/tads-runner/tads3/test/data/props.t)
+- [enum2.t3](../assets/testers/tads/enum2.t3) / [enum2.t](../packages/tads-runner/tads3/test/data/enum2.t)
+- [anon.t3](../assets/testers/tads/anon.t3) / [anon.t](../packages/tads-runner/tads3/test/data/anon.t)
+- [substr.t3](../assets/testers/tads/substr.t3) / [substr.t](../packages/tads-runner/tads3/test/data/substr.t)
+- [try_catch.t3](../assets/testers/tads/try_catch.t3) / [try_catch.t](../packages/tads-runner/tads3/test/data/try_catch.t)
+- [object.t3](../assets/testers/tads/object.t3) / [object.t](../packages/tads-runner/tads3/test/data/object.t)
+- [iter.t3](../assets/testers/tads/iter.t3) / [iter.t](../packages/tads-runner/tads3/test/data/iter.t)
+- [foreach.t3](../assets/testers/tads/foreach.t3) / [foreach.t](../packages/tads-runner/tads3/test/data/foreach.t)
+- [finally.t3](../assets/testers/tads/finally.t3) / [finally.t](../packages/tads-runner/tads3/test/data/finally.t)
+- [anonfunc.t3](../assets/testers/tads/anonfunc.t3) / [anonfunc.t](../packages/tads-runner/tads3/test/data/anonfunc.t)
+- [anonlist.t3](../assets/testers/tads/anonlist.t3) / [anonlist.t](../packages/tads-runner/tads3/test/data/anonlist.t)
+- [anonvarg.t3](../assets/testers/tads/anonvarg.t3) / [anonvarg.t](../packages/tads-runner/tads3/test/data/anonvarg.t)
+- [adv3_adesc_test.t3](../assets/testers/tads/adv3_adesc_test.t3) / [adv3_adesc_test.t](../packages/tads-runner/tads3/test/data/adv3_adesc_test.t)
+- [adv3_num_test.t3](../assets/testers/tads/adv3_num_test.t3) / [adv3_num_test.t](../packages/tads-runner/tads3/test/data/adv3_num_test.t)
+- [anonobj.t3](../assets/testers/tads/anonobj.t3) / [anonobj.t](../packages/tads-runner/tads3/test/data/anonobj.t)
+- [listsub.t3](../assets/testers/tads/listsub.t3) / [listsub.t](../packages/tads-runner/tads3/test/data/listsub.t)
+- [rand.t3](../assets/testers/tads/rand.t3) / [rand.t](../packages/tads-runner/tads3/test/data/rand.t)
+- [fib.t3](../assets/testers/tads/fib.t3) / [fib.t](../packages/tads-runner/tads3/test/data/fib.t)
+- [bigvec.t3](../assets/testers/tads/bigvec.t3) / [bigvec.t](../packages/tads-runner/tads3/test/data/bigvec.t)
 
-## Partially Working Tests (partial output before failure)
 
-### Blocked by Missing Built-in Functions
-- rand.t3 - Needs tads-gen[5] (rand/randomize)
-- pi.t3 - Needs tads-gen[8]
-- fib.t3 - Needs tads-gen[8]
-- undo.t3 - Some built-ins not implemented.
-
-### Blocked by Missing Operators
-- listsub.t3 - Needs list subtraction operator
+## Blocked by Missing Built-in Functions
+- [pi.t3](../assets/testers/tads/pi.t3) / [pi.t](../packages/tads-runner/tads3/test/data/pi.t) - Needs tads-gen[8]
+- [undo.t3](../assets/testers/tads/undo.t3) / [undo.t](../packages/tads-runner/tads3/test/data/undo.t) - Some built-ins not implemented.
 
 ## Untested Tests
-- adv3_adesc_test.t3
-- adv3_num_test.t3
-- anonfunc.t3
-- anonlist.t3
-- anonobj.t3
-- anonvarg.t3
-- asi.t3
-- backslash.t3
-- banner_api.t3
-- banner_api2.t3
-- bifptr.t3
-- bignum.t3
-- bignum2.t3
-- bignum3.t3
-- bigvec.t3
-- bniter.t3
-- builtin.t3
-- bytarr.t3
-- bytarr2.t3
-- bytarr_rune.t3
-- bytarr_without_exc.t3
-- calc.t3
-- calc2.t3
-- callpropvar.t3
-- charconv.t3
-- charset.t3
-- circref.t3
-- clone.t3
-- color.t3
-- constregex.t3
-- copyfile.t3
-- coretest.t3
-- cp437.t3
-- cre_inst.t3
-- csetobj.t3
-- cube.t3
-- curdate.t3
-- curly.t3
-- datatypexlat.t3
-- date.t3
-- datefmt.t3
-- datelocale.t3
-- dateprs.t3
-- datesave.t3
-- debugTrace.t3
-- debuglog.t3
-- defined.t3
-- defmod.t3
-- dispmeth.t3
-- dstr1.t3
-- dynamicGrammar.t3
-- dyncomp.t3
-- dynctx.t3
-- embed2.t3
-- embed_in_tpl.t3
-- embedfmt.t3
-- emptyfinally.t3
-- enumInSwitchInAnonFunc.t3
-- enumprop.t3
-- eval.t3
-- eventlist.t3
-- except.t3
-- extern3.t3
-- fi_tst_1.t3
-- filenames.t3
-- files2.t3
-- finalize.t3
-- findall.t3
-- findreplace.t3
-- fivelocals.t3
-- floatfold.t3
-- fold.t3
-- fonts.t3
-- fontsizes.t3
-- forvar.t3
-- funcparm.t3
-- funcrep1.t3
-- getproplist.t3
-- gram_or2.t3
-- hashes.t3
-- html.t3
-- htmlify.t3
-- idxInc.t3
-- idxov.t3
-- ifnil.t3
-- infloop.t3
-- inh_next.t3
-- inh_undef.t3
-- inkey.t3
-- inkeyext.t3
-- inlineobj.t3
-- input.t3
-- inputKey.t3
-- int_exc.t3
-- intcl_ov_inh.t3
-- intcls.t3
-- intcls2.t3
-- isin.t3
-- join.t3
-- kf_sample5.t3
-- labeled-local.t3
-- lclprop.t3
-- lclvars.t3
-- list_perf.t3
-- listgen.t3
-- listminmax.t3
-- listmod.t3
-- listobjs.t3
-- listprop.t3
-- lookup.t3
-- lookup3.t3
-- lookupdef.t3
-- ls.t3
-- macrotab.t3
-- mainargs.t3
-- match.t3
-- match.t3
-- md5.t3
-- miscchars-cyr.t3
-- miscchars.t3
-- mod_bignum.t3
-- mod_dict_ext1.t3
-- mod_int.t3
-- mod_obj.t3
-- modfunc1.t3
-- modtobj.t3
-- multi_inh_tpl.t3
-- multidyn.t3
-- multimethod.t3
-- namedparam.t3
-- nested-anon-2.t3
-- nested-anon.t3
-- nested.t3
-- nested_comment.t3
-- nested_embed.t3
-- net0.t3
-- newembed.t3
-- newfor.t3
-- newgame.t3
-- newline_spacing.t3
-- newprop.t3
-- noun_ph.t3
-- null_ptr.t3
-- obj_and_expr.t3
-- objbrace.t3
-- objloop.t3
-- objloop2.t3
-- objmod1.t3
-- objrep1.t3
-- oneof.t3
-- oneof2.t3
-- op_prec.t3
-- opoverload.t3
-- optargs.t3
-- overflow.t3
-- packarr.t3
-- packfile.t3
-- packfloats.t3
-- packstr.t3
-- params.t3
-- part_list.t3
-- paths.t3
-- pre.t3
-- predef.t3
-- preinit.t3
-- printexpr.t3
-- prop_perf.t3
-- propaddr.t3
-- propdecl.t3
-- propdef.t3
-- propexpr.t3
-- propptr.t3
-- propset.t3
-- rand-mer.t3
-- rand2.t3
-- rand3.t3
-- randPhone.t3
-- rand_perf.t3
-- rand_perf_arr.t3
-- randpct.t3
-- randstr.t3
-- randvec.t3
-- regex.t3
-- replaced_in_anonfn.t3
-- res.t3
-- resfile.t3
-- rexassert.t3
-- rexreplace.t3
-- rootdirs.t3
-- rterr.t3
-- save.t3
-- sendhttpreq.t3
-- setmethod.t3
-- setsc.t3
-- shr.t3
-- shuffle.t3
-- shuffle2.t3
-- shuffle3.t3
-- shuffle4.t3
-- sortrand.t3
-- sound-fade.t3
-- spec2html.t3
-- spec2text.t3
-- split.t3
-- sprintf.t3
-- stack.t3
-- stathtml.t3
-- static.t3
-- strbuf.t3
-- strcmp3.t3
-- strcomp.t3
-- strcomp2.t3
-- strcomp3.t3
-- strtpl.t3
-- switch_warn.t3
-- symtab.t3
-- tabs.t3
-- tadsobj_inst.t3
-- targprop.t3
-- tempfile.t3
-- template.t3
-- tertiary.t3
-- test_exc.t3
-- test_func.t3
-- test_quest.t3
-- testaddr1.t3
-- testaddr2.t3
-- testaddr3.t3
-- testaddr4.t3
-- testov.t3
-- tilford-stringof-list2.t3
-- timeout.t3
-- timezone.t3
-- title.t3
-- titlecase.t3
-- tostring.t3
-- tpl.t3
-- tplex1.t3
-- triplequote.t3
-- ucs2_src.t3
-- undef.t3
-- undef2.t3
-- unhandled_exc.t3
-- unicode.t3
-- unicode_file.t3
-- unpackt3.t3
-- urlencode.t3
-- utf-16be.t3
-- utf-16le.t3
-- utf-8.t3
-- varmac.t3
-- vec_bug.t3
-- vec_each.t3
-- vec_pre.t3
-- vecmod.t3
-- vector.t3
-- vector2.t3
-- vector3.t3
-- wordpre.t3
-- words.t3
+- [asi.t3](../assets/testers/tads/asi.t3) / [asi.t](../packages/tads-runner/tads3/test/data/asi.t)
+- [backslash.t3](../assets/testers/tads/backslash.t3) / [backslash.t](../packages/tads-runner/tads3/test/data/backslash.t)
+- [banner_api.t3](../assets/testers/tads/banner_api.t3) / [banner_api.t](../packages/tads-runner/tads3/test/data/banner_api.t)
+- [banner_api2.t3](../assets/testers/tads/banner_api2.t3) / [banner_api2.t](../packages/tads-runner/tads3/test/data/banner_api2.t)
+- [bifptr.t3](../assets/testers/tads/bifptr.t3) / [bifptr.t](../packages/tads-runner/tads3/test/data/bifptr.t)
+- [bignum.t3](../assets/testers/tads/bignum.t3) / [bignum.t](../packages/tads-runner/tads3/test/data/bignum.t)
+- [bignum2.t3](../assets/testers/tads/bignum2.t3) / [bignum2.t](../packages/tads-runner/tads3/test/data/bignum2.t)
+- [bniter.t3](../assets/testers/tads/bniter.t3) / [bniter.t](../packages/tads-runner/tads3/test/data/bniter.t)
+- [builtin.t3](../assets/testers/tads/builtin.t3) / [builtin.t](../packages/tads-runner/tads3/test/data/builtin.t)
+- [bytarr.t3](../assets/testers/tads/bytarr.t3) / [bytarr.t](../packages/tads-runner/tads3/test/data/bytarr.t)
+- [bytarr2.t3](../assets/testers/tads/bytarr2.t3) / [bytarr2.t](../packages/tads-runner/tads3/test/data/bytarr2.t)
+- [bytarr_rune.t3](../assets/testers/tads/bytarr_rune.t3) / [bytarr_rune.t](../packages/tads-runner/tads3/test/data/bytarr_rune.t)
+- [bytarr_without_exc.t3](../assets/testers/tads/bytarr_without_exc.t3) / [bytarr_without_exc.t](../packages/tads-runner/tads3/test/data/bytarr_without_exc.t)
+- [calc.t3](../assets/testers/tads/calc.t3) / [calc.t](../packages/tads-runner/tads3/test/data/calc.t)
+- [calc2.t3](../assets/testers/tads/calc2.t3) / [calc2.t](../packages/tads-runner/tads3/test/data/calc2.t)
+- [callpropvar.t3](../assets/testers/tads/callpropvar.t3) / [callpropvar.t](../packages/tads-runner/tads3/test/data/callpropvar.t)
+- [charconv.t3](../assets/testers/tads/charconv.t3) / [charconv.t](../packages/tads-runner/tads3/test/data/charconv.t)
+- [charset.t3](../assets/testers/tads/charset.t3) / [charset.t](../packages/tads-runner/tads3/test/data/charset.t)
+- [circref.t3](../assets/testers/tads/circref.t3) / [circref.t](../packages/tads-runner/tads3/test/data/circref.t)
+- [clone.t3](../assets/testers/tads/clone.t3) / [clone.t](../packages/tads-runner/tads3/test/data/clone.t)
+- [color.t3](../assets/testers/tads/color.t3) / [color.t](../packages/tads-runner/tads3/test/data/color.t)
+- [constregex.t3](../assets/testers/tads/constregex.t3) / [constregex.t](../packages/tads-runner/tads3/test/data/constregex.t)
+- [copyfile.t3](../assets/testers/tads/copyfile.t3) / [copyfile.t](../packages/tads-runner/tads3/test/data/copyfile.t)
+- [coretest.t3](../assets/testers/tads/coretest.t3) / [coretest.t](../packages/tads-runner/tads3/test/data/coretest.t)
+- [cp437.t3](../assets/testers/tads/cp437.t3) / [cp437.t](../packages/tads-runner/tads3/test/data/cp437.t)
+- [cre_inst.t3](../assets/testers/tads/cre_inst.t3) / [cre_inst.t](../packages/tads-runner/tads3/test/data/cre_inst.t)
+- [csetobj.t3](../assets/testers/tads/csetobj.t3) / [csetobj.t](../packages/tads-runner/tads3/test/data/csetobj.t)
+- [cube.t3](../assets/testers/tads/cube.t3) / [cube.t](../packages/tads-runner/tads3/test/data/cube.t)
+- [curdate.t3](../assets/testers/tads/curdate.t3) / [curdate.t](../packages/tads-runner/tads3/test/data/curdate.t)
+- [curly.t3](../assets/testers/tads/curly.t3) / [curly.t](../packages/tads-runner/tads3/test/data/curly.t)
+- [datatypexlat.t3](../assets/testers/tads/datatypexlat.t3) / [datatypexlat.t](../packages/tads-runner/tads3/test/data/datatypexlat.t)
+- [date.t3](../assets/testers/tads/date.t3) / [date.t](../packages/tads-runner/tads3/test/data/date.t)
+- [datefmt.t3](../assets/testers/tads/datefmt.t3) / [datefmt.t](../packages/tads-runner/tads3/test/data/datefmt.t)
+- [datelocale.t3](../assets/testers/tads/datelocale.t3) / [datelocale.t](../packages/tads-runner/tads3/test/data/datelocale.t)
+- [dateprs.t3](../assets/testers/tads/dateprs.t3) / [dateprs.t](../packages/tads-runner/tads3/test/data/dateprs.t)
+- [datesave.t3](../assets/testers/tads/datesave.t3) / [datesave.t](../packages/tads-runner/tads3/test/data/datesave.t)
+- [debugTrace.t3](../assets/testers/tads/debugTrace.t3) / [debugTrace.t](../packages/tads-runner/tads3/test/data/debugTrace.t)
+- [debuglog.t3](../assets/testers/tads/debuglog.t3) / [debuglog.t](../packages/tads-runner/tads3/test/data/debuglog.t)
+- [defined.t3](../assets/testers/tads/defined.t3) / [defined.t](../packages/tads-runner/tads3/test/data/defined.t)
+- [defmod.t3](../assets/testers/tads/defmod.t3) / [defmod.t](../packages/tads-runner/tads3/test/data/defmod.t)
+- [dispmeth.t3](../assets/testers/tads/dispmeth.t3) / [dispmeth.t](../packages/tads-runner/tads3/test/data/dispmeth.t)
+- [dstr1.t3](../assets/testers/tads/dstr1.t3) / [dstr1.t](../packages/tads-runner/tads3/test/data/dstr1.t)
+- [dynamicGrammar.t3](../assets/testers/tads/dynamicGrammar.t3) / [dynamicGrammar.t](../packages/tads-runner/tads3/test/data/dynamicGrammar.t)
+- [dyncomp.t3](../assets/testers/tads/dyncomp.t3) / [dyncomp.t](../packages/tads-runner/tads3/test/data/dyncomp.t)
+- [dynctx.t3](../assets/testers/tads/dynctx.t3) / [dynctx.t](../packages/tads-runner/tads3/test/data/dynctx.t)
+- [embed2.t3](../assets/testers/tads/embed2.t3) / [embed2.t](../packages/tads-runner/tads3/test/data/embed2.t)
+- [embed_in_tpl.t3](../assets/testers/tads/embed_in_tpl.t3) / [embed_in_tpl.t](../packages/tads-runner/tads3/test/data/embed_in_tpl.t)
+- [embedfmt.t3](../assets/testers/tads/embedfmt.t3) / [embedfmt.t](../packages/tads-runner/tads3/test/data/embedfmt.t)
+- [emptyfinally.t3](../assets/testers/tads/emptyfinally.t3) / [emptyfinally.t](../packages/tads-runner/tads3/test/data/emptyfinally.t)
+- [enumInSwitchInAnonFunc.t3](../assets/testers/tads/enumInSwitchInAnonFunc.t3) / [enumInSwitchInAnonFunc.t](../packages/tads-runner/tads3/test/data/enumInSwitchInAnonFunc.t)
+- [enumprop.t3](../assets/testers/tads/enumprop.t3) / [enumprop.t](../packages/tads-runner/tads3/test/data/enumprop.t)
+- [eval.t3](../assets/testers/tads/eval.t3) / [eval.t](../packages/tads-runner/tads3/test/data/eval.t)
+- [eventlist.t3](../assets/testers/tads/eventlist.t3) / [eventlist.t](../packages/tads-runner/tads3/test/data/eventlist.t)
+- [except.t3](../assets/testers/tads/except.t3) / [except.t](../packages/tads-runner/tads3/test/data/except.t)
+- [extern3.t3](../assets/testers/tads/extern3.t3) / [extern3.t](../packages/tads-runner/tads3/test/data/extern3.t)
+- [fi_tst_1.t3](../assets/testers/tads/fi_tst_1.t3) / [fi_tst_1.t](../packages/tads-runner/tads3/test/data/fi_tst_1.t)
+- [filenames.t3](../assets/testers/tads/filenames.t3) / [filenames.t](../packages/tads-runner/tads3/test/data/filenames.t)
+- [files2.t3](../assets/testers/tads/files2.t3) / [files2.t](../packages/tads-runner/tads3/test/data/files2.t)
+- [finalize.t3](../assets/testers/tads/finalize.t3) / [finalize.t](../packages/tads-runner/tads3/test/data/finalize.t)
+- [findall.t3](../assets/testers/tads/findall.t3) / [findall.t](../packages/tads-runner/tads3/test/data/findall.t)
+- [findreplace.t3](../assets/testers/tads/findreplace.t3) / [findreplace.t](../packages/tads-runner/tads3/test/data/findreplace.t)
+- [fivelocals.t3](../assets/testers/tads/fivelocals.t3) / [fivelocals.t](../packages/tads-runner/tads3/test/data/fivelocals.t)
+- [floatfold.t3](../assets/testers/tads/floatfold.t3) / [floatfold.t](../packages/tads-runner/tads3/test/data/floatfold.t)
+- [fold.t3](../assets/testers/tads/fold.t3) / [fold.t](../packages/tads-runner/tads3/test/data/fold.t)
+- [fonts.t3](../assets/testers/tads/fonts.t3) / [fonts.t](../packages/tads-runner/tads3/test/data/fonts.t)
+- [fontsizes.t3](../assets/testers/tads/fontsizes.t3) / [fontsizes.t](../packages/tads-runner/tads3/test/data/fontsizes.t)
+- [forvar.t3](../assets/testers/tads/forvar.t3) / [forvar.t](../packages/tads-runner/tads3/test/data/forvar.t)
+- [funcparm.t3](../assets/testers/tads/funcparm.t3) / [funcparm.t](../packages/tads-runner/tads3/test/data/funcparm.t)
+- [funcrep1.t3](../assets/testers/tads/funcrep1.t3) / [funcrep1.t](../packages/tads-runner/tads3/test/data/funcrep1.t)
+- [getproplist.t3](../assets/testers/tads/getproplist.t3) / [getproplist.t](../packages/tads-runner/tads3/test/data/getproplist.t)
+- [gram_or2.t3](../assets/testers/tads/gram_or2.t3) / [gram_or2.t](../packages/tads-runner/tads3/test/data/gram_or2.t)
+- [hashes.t3](../assets/testers/tads/hashes.t3) / [hashes.t](../packages/tads-runner/tads3/test/data/hashes.t)
+- [html.t3](../assets/testers/tads/html.t3) / [html.t](../packages/tads-runner/tads3/test/data/html.t)
+- [htmlify.t3](../assets/testers/tads/htmlify.t3) / [htmlify.t](../packages/tads-runner/tads3/test/data/htmlify.t)
+- [idxInc.t3](../assets/testers/tads/idxInc.t3) / [idxInc.t](../packages/tads-runner/tads3/test/data/idxInc.t)
+- [idxov.t3](../assets/testers/tads/idxov.t3) / [idxov.t](../packages/tads-runner/tads3/test/data/idxov.t)
+- [ifnil.t3](../assets/testers/tads/ifnil.t3) / [ifnil.t](../packages/tads-runner/tads3/test/data/ifnil.t)
+- [infloop.t3](../assets/testers/tads/infloop.t3) / [infloop.t](../packages/tads-runner/tads3/test/data/infloop.t)
+- [inh_next.t3](../assets/testers/tads/inh_next.t3) / [inh_next.t](../packages/tads-runner/tads3/test/data/inh_next.t)
+- [inh_undef.t3](../assets/testers/tads/inh_undef.t3) / [inh_undef.t](../packages/tads-runner/tads3/test/data/inh_undef.t)
+- [inkey.t3](../assets/testers/tads/inkey.t3) / [inkey.t](../packages/tads-runner/tads3/test/data/inkey.t)
+- [inkeyext.t3](../assets/testers/tads/inkeyext.t3) / [inkeyext.t](../packages/tads-runner/tads3/test/data/inkeyext.t)
+- [inlineobj.t3](../assets/testers/tads/inlineobj.t3) / [inlineobj.t](../packages/tads-runner/tads3/test/data/inlineobj.t)
+- [input.t3](../assets/testers/tads/input.t3) / [input.t](../packages/tads-runner/tads3/test/data/input.t)
+- [inputKey.t3](../assets/testers/tads/inputKey.t3) / [inputKey.t](../packages/tads-runner/tads3/test/data/inputKey.t)
+- [int_exc.t3](../assets/testers/tads/int_exc.t3) / [int_exc.t](../packages/tads-runner/tads3/test/data/int_exc.t)
+- [intcl_ov_inh.t3](../assets/testers/tads/intcl_ov_inh.t3) / [intcl_ov_inh.t](../packages/tads-runner/tads3/test/data/intcl_ov_inh.t)
+- [intcls.t3](../assets/testers/tads/intcls.t3) / [intcls.t](../packages/tads-runner/tads3/test/data/intcls.t)
+- [intcls2.t3](../assets/testers/tads/intcls2.t3) / [intcls2.t](../packages/tads-runner/tads3/test/data/intcls2.t)
+- [isin.t3](../assets/testers/tads/isin.t3) / [isin.t](../packages/tads-runner/tads3/test/data/isin.t)
+- [join.t3](../assets/testers/tads/join.t3) / [join.t](../packages/tads-runner/tads3/test/data/join.t)
+- [kf_sample5.t3](../assets/testers/tads/kf_sample5.t3) / [kf_sample5.t](../packages/tads-runner/tads3/test/data/kf_sample5.t)
+- [labeled-local.t3](../assets/testers/tads/labeled-local.t3) / [labeled-local.t](../packages/tads-runner/tads3/test/data/labeled-local.t)
+- [lclprop.t3](../assets/testers/tads/lclprop.t3) / [lclprop.t](../packages/tads-runner/tads3/test/data/lclprop.t)
+- [lclvars.t3](../assets/testers/tads/lclvars.t3) / [lclvars.t](../packages/tads-runner/tads3/test/data/lclvars.t)
+- [list_perf.t3](../assets/testers/tads/list_perf.t3) / [list_perf.t](../packages/tads-runner/tads3/test/data/list_perf.t)
+- [listgen.t3](../assets/testers/tads/listgen.t3) / [listgen.t](../packages/tads-runner/tads3/test/data/listgen.t)
+- [listminmax.t3](../assets/testers/tads/listminmax.t3) / [listminmax.t](../packages/tads-runner/tads3/test/data/listminmax.t)
+- [listmod.t3](../assets/testers/tads/listmod.t3) / [listmod.t](../packages/tads-runner/tads3/test/data/listmod.t)
+- [listobjs.t3](../assets/testers/tads/listobjs.t3) / [listobjs.t](../packages/tads-runner/tads3/test/data/listobjs.t)
+- [listprop.t3](../assets/testers/tads/listprop.t3) / [listprop.t](../packages/tads-runner/tads3/test/data/listprop.t)
+- [lookup.t3](../assets/testers/tads/lookup.t3) / [lookup.t](../packages/tads-runner/tads3/test/data/lookup.t)
+- [lookup3.t3](../assets/testers/tads/lookup3.t3) / [lookup3.t](../packages/tads-runner/tads3/test/data/lookup3.t)
+- [lookupdef.t3](../assets/testers/tads/lookupdef.t3) / [lookupdef.t](../packages/tads-runner/tads3/test/data/lookupdef.t)
+- [ls.t3](../assets/testers/tads/ls.t3) / [ls.t](../packages/tads-runner/tads3/test/data/ls.t)
+- [macrotab.t3](../assets/testers/tads/macrotab.t3) / [macrotab.t](../packages/tads-runner/tads3/test/data/macrotab.t)
+- [mainargs.t3](../assets/testers/tads/mainargs.t3) / [mainargs.t](../packages/tads-runner/tads3/test/data/mainargs.t)
+- [match.t3](../assets/testers/tads/match.t3) / [match.t](../packages/tads-runner/tads3/test/data/match.t)
+- [md5.t3](../assets/testers/tads/md5.t3) / [md5.t](../packages/tads-runner/tads3/test/data/md5.t)
+- [miscchars-cyr.t3](../assets/testers/tads/miscchars-cyr.t3) / [miscchars-cyr.t](../packages/tads-runner/tads3/test/data/miscchars-cyr.t)
+- [miscchars.t3](../assets/testers/tads/miscchars.t3) / [miscchars.t](../packages/tads-runner/tads3/test/data/miscchars.t)
+- [mod_bignum.t3](../assets/testers/tads/mod_bignum.t3) / [mod_bignum.t](../packages/tads-runner/tads3/test/data/mod_bignum.t)
+- [mod_dict_ext1.t3](../assets/testers/tads/mod_dict_ext1.t3) / [mod_dict_ext1.t](../packages/tads-runner/tads3/test/data/mod_dict_ext1.t)
+- [mod_int.t3](../assets/testers/tads/mod_int.t3) / [mod_int.t](../packages/tads-runner/tads3/test/data/mod_int.t)
+- [mod_obj.t3](../assets/testers/tads/mod_obj.t3) / [mod_obj.t](../packages/tads-runner/tads3/test/data/mod_obj.t)
+- [modfunc1.t3](../assets/testers/tads/modfunc1.t3) / [modfunc1.t](../packages/tads-runner/tads3/test/data/modfunc1.t)
+- [modtobj.t3](../assets/testers/tads/modtobj.t3) / [modtobj.t](../packages/tads-runner/tads3/test/data/modtobj.t)
+- [multi_inh_tpl.t3](../assets/testers/tads/multi_inh_tpl.t3) / [multi_inh_tpl.t](../packages/tads-runner/tads3/test/data/multi_inh_tpl.t)
+- [multidy.t3](../assets/testers/tads/multidy.t3) / [multidy.t](../packages/tads-runner/tads3/test/data/multidy.t)
+- [multimethod.t3](../assets/testers/tads/multimethod.t3) / [multimethod.t](../packages/tads-runner/tads3/test/data/multimethod.t)
+- [namedparam.t3](../assets/testers/tads/namedparam.t3) / [namedparam.t](../packages/tads-runner/tads3/test/data/namedparam.t)
+- [nested-anon-2.t3](../assets/testers/tads/nested-anon-2.t3) / [nested-anon-2.t](../packages/tads-runner/tads3/test/data/nested-anon-2.t)
+- [nested-anon.t3](../assets/testers/tads/nested-anon.t3) / [nested-anon.t](../packages/tads-runner/tads3/test/data/nested-anon.t)
+- [nested.t3](../assets/testers/tads/nested.t3) / [nested.t](../packages/tads-runner/tads3/test/data/nested.t)
+- [nested_comment.t3](../assets/testers/tads/nested_comment.t3) / [nested_comment.t](../packages/tads-runner/tads3/test/data/nested_comment.t)
+- [nested_embed.t3](../assets/testers/tads/nested_embed.t3) / [nested_embed.t](../packages/tads-runner/tads3/test/data/nested_embed.t)
+- [net0.t3](../assets/testers/tads/net0.t3) / [net0.t](../packages/tads-runner/tads3/test/data/net0.t)
+- [newembed.t3](../assets/testers/tads/newembed.t3) / [newembed.t](../packages/tads-runner/tads3/test/data/newembed.t)
+- [newfor.t3](../assets/testers/tads/newfor.t3) / [newfor.t](../packages/tads-runner/tads3/test/data/newfor.t)
+- [newgame.t3](../assets/testers/tads/newgame.t3) / [newgame.t](../packages/tads-runner/tads3/test/data/newgame.t)
+- [newline_spacing.t3](../assets/testers/tads/newline_spacing.t3) / [newline_spacing.t](../packages/tads-runner/tads3/test/data/newline_spacing.t)
+- [newprop.t3](../assets/testers/tads/newprop.t3) / [newprop.t](../packages/tads-runner/tads3/test/data/newprop.t)
+- [noun_ph.t3](../assets/testers/tads/noun_ph.t3) / [noun_ph.t](../packages/tads-runner/tads3/test/data/noun_ph.t)
+- [null_ptr.t3](../assets/testers/tads/null_ptr.t3) / [null_ptr.t](../packages/tads-runner/tads3/test/data/null_ptr.t)
+- [obj_and_expr.t3](../assets/testers/tads/obj_and_expr.t3) / [obj_and_expr.t](../packages/tads-runner/tads3/test/data/obj_and_expr.t)
+- [objbrace.t3](../assets/testers/tads/objbrace.t3) / [objbrace.t](../packages/tads-runner/tads3/test/data/objbrace.t)
+- [objloop.t3](../assets/testers/tads/objloop.t3) / [objloop.t](../packages/tads-runner/tads3/test/data/objloop.t)
+- [objloop2.t3](../assets/testers/tads/objloop2.t3) / [objloop2.t](../packages/tads-runner/tads3/test/data/objloop2.t)
+- [objmod1.t3](../assets/testers/tads/objmod1.t3) / [objmod1.t](../packages/tads-runner/tads3/test/data/objmod1.t)
+- [objrep1.t3](../assets/testers/tads/objrep1.t3) / [objrep1.t](../packages/tads-runner/tads3/test/data/objrep1.t)
+- [oneof.t3](../assets/testers/tads/oneof.t3) / [oneof.t](../packages/tads-runner/tads3/test/data/oneof.t)
+- [oneof2.t3](../assets/testers/tads/oneof2.t3) / [oneof2.t](../packages/tads-runner/tads3/test/data/oneof2.t)
+- [op_prec.t3](../assets/testers/tads/op_prec.t3) / [op_prec.t](../packages/tads-runner/tads3/test/data/op_prec.t)
+- [opoverload.t3](../assets/testers/tads/opoverload.t3) / [opoverload.t](../packages/tads-runner/tads3/test/data/opoverload.t)
+- [optargs.t3](../assets/testers/tads/optargs.t3) / [optargs.t](../packages/tads-runner/tads3/test/data/optargs.t)
+- [overflow.t3](../assets/testers/tads/overflow.t3) / [overflow.t](../packages/tads-runner/tads3/test/data/overflow.t)
+- [packarr.t3](../assets/testers/tads/packarr.t3) / [packarr.t](../packages/tads-runner/tads3/test/data/packarr.t)
+- [packfile.t3](../assets/testers/tads/packfile.t3) / [packfile.t](../packages/tads-runner/tads3/test/data/packfile.t)
+- [packfloats.t3](../assets/testers/tads/packfloats.t3) / [packfloats.t](../packages/tads-runner/tads3/test/data/packfloats.t)
+- [packstr.t3](../assets/testers/tads/packstr.t3) / [packstr.t](../packages/tads-runner/tads3/test/data/packstr.t)
+- [params.t3](../assets/testers/tads/params.t3) / [params.t](../packages/tads-runner/tads3/test/data/params.t)
+- [part_list.t3](../assets/testers/tads/part_list.t3) / [part_list.t](../packages/tads-runner/tads3/test/data/part_list.t)
+- [paths.t3](../assets/testers/tads/paths.t3) / [paths.t](../packages/tads-runner/tads3/test/data/paths.t)
+- [pre.t3](../assets/testers/tads/pre.t3) / [pre.t](../packages/tads-runner/tads3/test/data/pre.t)
+- [predef.t3](../assets/testers/tads/predef.t3) / [predef.t](../packages/tads-runner/tads3/test/data/predef.t)
+- [preinit.t3](../assets/testers/tads/preinit.t3) / [preinit.t](../packages/tads-runner/tads3/test/data/preinit.t)
+- [printexpr.t3](../assets/testers/tads/printexpr.t3) / [printexpr.t](../packages/tads-runner/tads3/test/data/printexpr.t)
+- [prop_perf.t3](../assets/testers/tads/prop_perf.t3) / [prop_perf.t](../packages/tads-runner/tads3/test/data/prop_perf.t)
+- [propaddr.t3](../assets/testers/tads/propaddr.t3) / [propaddr.t](../packages/tads-runner/tads3/test/data/propaddr.t)
+- [propdecl.t3](../assets/testers/tads/propdecl.t3) / [propdecl.t](../packages/tads-runner/tads3/test/data/propdecl.t)
+- [propdef.t3](../assets/testers/tads/propdef.t3) / [propdef.t](../packages/tads-runner/tads3/test/data/propdef.t)
+- [propexpr.t3](../assets/testers/tads/propexpr.t3) / [propexpr.t](../packages/tads-runner/tads3/test/data/propexpr.t)
+- [propptr.t3](../assets/testers/tads/propptr.t3) / [propptr.t](../packages/tads-runner/tads3/test/data/propptr.t)
+- [propset.t3](../assets/testers/tads/propset.t3) / [propset.t](../packages/tads-runner/tads3/test/data/propset.t)
+- [rand-mer.t3](../assets/testers/tads/rand-mer.t3) / [rand-mer.t](../packages/tads-runner/tads3/test/data/rand-mer.t)
+- [rand2.t3](../assets/testers/tads/rand2.t3) / [rand2.t](../packages/tads-runner/tads3/test/data/rand2.t)
+- [rand3.t3](../assets/testers/tads/rand3.t3) / [rand3.t](../packages/tads-runner/tads3/test/data/rand3.t)
+- [randPhone.t3](../assets/testers/tads/randPhone.t3) / [randPhone.t](../packages/tads-runner/tads3/test/data/randPhone.t)
+- [rand_perf.t3](../assets/testers/tads/rand_perf.t3) / [rand_perf.t](../packages/tads-runner/tads3/test/data/rand_perf.t)
+- [rand_perf_arr.t3](../assets/testers/tads/rand_perf_arr.t3) / [rand_perf_arr.t](../packages/tads-runner/tads3/test/data/rand_perf_arr.t)
+- [randpct.t3](../assets/testers/tads/randpct.t3) / [randpct.t](../packages/tads-runner/tads3/test/data/randpct.t)
+- [randstr.t3](../assets/testers/tads/randstr.t3) / [randstr.t](../packages/tads-runner/tads3/test/data/randstr.t)
+- [randvec.t3](../assets/testers/tads/randvec.t3) / [randvec.t](../packages/tads-runner/tads3/test/data/randvec.t)
+- [regex.t3](../assets/testers/tads/regex.t3) / [regex.t](../packages/tads-runner/tads3/test/data/regex.t)
+- [replaced_in_anonfn.t3](../assets/testers/tads/replaced_in_anonfn.t3) / [replaced_in_anonfn.t](../packages/tads-runner/tads3/test/data/replaced_in_anonfn.t)
+- [res.t3](../assets/testers/tads/res.t3) / [res.t](../packages/tads-runner/tads3/test/data/res.t)
+- [resfile.t3](../assets/testers/tads/resfile.t3) / [resfile.t](../packages/tads-runner/tads3/test/data/resfile.t)
+- [rexassert.t3](../assets/testers/tads/rexassert.t3) / [rexassert.t](../packages/tads-runner/tads3/test/data/rexassert.t)
+- [rexreplace.t3](../assets/testers/tads/rexreplace.t3) / [rexreplace.t](../packages/tads-runner/tads3/test/data/rexreplace.t)
+- [rootdirs.t3](../assets/testers/tads/rootdirs.t3) / [rootdirs.t](../packages/tads-runner/tads3/test/data/rootdirs.t)
+- [rterr.t3](../assets/testers/tads/rterr.t3) / [rterr.t](../packages/tads-runner/tads3/test/data/rterr.t)
+- [save.t3](../assets/testers/tads/save.t3) / [save.t](../packages/tads-runner/tads3/test/data/save.t)
+- [sendhttpreq.t3](../assets/testers/tads/sendhttpreq.t3) / [sendhttpreq.t](../packages/tads-runner/tads3/test/data/sendhttpreq.t)
+- [setmethod.t3](../assets/testers/tads/setmethod.t3) / [setmethod.t](../packages/tads-runner/tads3/test/data/setmethod.t)
+- [setsc.t3](../assets/testers/tads/setsc.t3) / [setsc.t](../packages/tads-runner/tads3/test/data/setsc.t)
+- [shr.t3](../assets/testers/tads/shr.t3) / [shr.t](../packages/tads-runner/tads3/test/data/shr.t)
+- [shuffle.t3](../assets/testers/tads/shuffle.t3) / [shuffle.t](../packages/tads-runner/tads3/test/data/shuffle.t)
+- [shuffle2.t3](../assets/testers/tads/shuffle2.t3) / [shuffle2.t](../packages/tads-runner/tads3/test/data/shuffle2.t)
+- [shuffle3.t3](../assets/testers/tads/shuffle3.t3) / [shuffle3.t](../packages/tads-runner/tads3/test/data/shuffle3.t)
+- [shuffle4.t3](../assets/testers/tads/shuffle4.t3) / [shuffle4.t](../packages/tads-runner/tads3/test/data/shuffle4.t)
+- [sortrand.t3](../assets/testers/tads/sortrand.t3) / [sortrand.t](../packages/tads-runner/tads3/test/data/sortrand.t)
+- [sound-fade.t3](../assets/testers/tads/sound-fade.t3) / [sound-fade.t](../packages/tads-runner/tads3/test/data/sound-fade.t)
+- [spec2html.t3](../assets/testers/tads/spec2html.t3) / [spec2html.t](../packages/tads-runner/tads3/test/data/spec2html.t)
+- [spec2text.t3](../assets/testers/tads/spec2text.t3) / [spec2text.t](../packages/tads-runner/tads3/test/data/spec2text.t)
+- [split.t3](../assets/testers/tads/split.t3) / [split.t](../packages/tads-runner/tads3/test/data/split.t)
+- [sprintf.t3](../assets/testers/tads/sprintf.t3) / [sprintf.t](../packages/tads-runner/tads3/test/data/sprintf.t)
+- [stack.t3](../assets/testers/tads/stack.t3) / [stack.t](../packages/tads-runner/tads3/test/data/stack.t)
+- [stathtml.t3](../assets/testers/tads/stathtml.t3) / [stathtml.t](../packages/tads-runner/tads3/test/data/stathtml.t)
+- [static.t3](../assets/testers/tads/static.t3) / [static.t](../packages/tads-runner/tads3/test/data/static.t)
+- [strbuf.t3](../assets/testers/tads/strbuf.t3) / [strbuf.t](../packages/tads-runner/tads3/test/data/strbuf.t)
+- [strcmp3.t3](../assets/testers/tads/strcmp3.t3) / [strcmp3.t](../packages/tads-runner/tads3/test/data/strcmp3.t)
+- [strcomp.t3](../assets/testers/tads/strcomp.t3) / [strcomp.t](../packages/tads-runner/tads3/test/data/strcomp.t)
+- [strcomp2.t3](../assets/testers/tads/strcomp2.t3) / [strcomp2.t](../packages/tads-runner/tads3/test/data/strcomp2.t)
+- [strcomp3.t3](../assets/testers/tads/strcomp3.t3) / [strcomp3.t](../packages/tads-runner/tads3/test/data/strcomp3.t)
+- [strtpl.t3](../assets/testers/tads/strtpl.t3) / [strtpl.t](../packages/tads-runner/tads3/test/data/strtpl.t)
+- [switch_warn.t3](../assets/testers/tads/switch_warn.t3) / [switch_warn.t](../packages/tads-runner/tads3/test/data/switch_warn.t)
+- [symtab.t3](../assets/testers/tads/symtab.t3) / [symtab.t](../packages/tads-runner/tads3/test/data/symtab.t)
+- [tabs.t3](../assets/testers/tads/tabs.t3) / [tabs.t](../packages/tads-runner/tads3/test/data/tabs.t)
+- [tadsobj_inst.t3](../assets/testers/tads/tadsobj_inst.t3) / [tadsobj_inst.t](../packages/tads-runner/tads3/test/data/tadsobj_inst.t)
+- [targprop.t3](../assets/testers/tads/targprop.t3) / [targprop.t](../packages/tads-runner/tads3/test/data/targprop.t)
+- [tempfile.t3](../assets/testers/tads/tempfile.t3) / [tempfile.t](../packages/tads-runner/tads3/test/data/tempfile.t)
+- [template.t3](../assets/testers/tads/template.t3) / [template.t](../packages/tads-runner/tads3/test/data/template.t)
+- [tertiary.t3](../assets/testers/tads/tertiary.t3) / [tertiary.t](../packages/tads-runner/tads3/test/data/tertiary.t)
+- [test_exc.t3](../assets/testers/tads/test_exc.t3) / [test_exc.t](../packages/tads-runner/tads3/test/data/test_exc.t)
+- [test_func.t3](../assets/testers/tads/test_func.t3) / [test_func.t](../packages/tads-runner/tads3/test/data/test_func.t)
+- [test_quest.t3](../assets/testers/tads/test_quest.t3) / [test_quest.t](../packages/tads-runner/tads3/test/data/test_quest.t)
+- [testaddr1.t3](../assets/testers/tads/testaddr1.t3) / [testaddr1.t](../packages/tads-runner/tads3/test/data/testaddr1.t)
+- [testaddr2.t3](../assets/testers/tads/testaddr2.t3) / [testaddr2.t](../packages/tads-runner/tads3/test/data/testaddr2.t)
+- [testaddr3.t3](../assets/testers/tads/testaddr3.t3) / [testaddr3.t](../packages/tads-runner/tads3/test/data/testaddr3.t)
+- [testaddr4.t3](../assets/testers/tads/testaddr4.t3) / [testaddr4.t](../packages/tads-runner/tads3/test/data/testaddr4.t)
+- [testov.t3](../assets/testers/tads/testov.t3) / [testov.t](../packages/tads-runner/tads3/test/data/testov.t)
+- [tilford-stringof-list2.t3](../assets/testers/tads/tilford-stringof-list2.t3) / [tilford-stringof-list2.t](../packages/tads-runner/tads3/test/data/tilford-stringof-list2.t)
+- [timeout.t3](../assets/testers/tads/timeout.t3) / [timeout.t](../packages/tads-runner/tads3/test/data/timeout.t)
+- [timezone.t3](../assets/testers/tads/timezone.t3) / [timezone.t](../packages/tads-runner/tads3/test/data/timezone.t)
+- [title.t3](../assets/testers/tads/title.t3) / [title.t](../packages/tads-runner/tads3/test/data/title.t)
+- [titlecase.t3](../assets/testers/tads/titlecase.t3) / [titlecase.t](../packages/tads-runner/tads3/test/data/titlecase.t)
+- [tostring.t3](../assets/testers/tads/tostring.t3) / [tostring.t](../packages/tads-runner/tads3/test/data/tostring.t)
+- [tpl.t3](../assets/testers/tads/tpl.t3) / [tpl.t](../packages/tads-runner/tads3/test/data/tpl.t)
+- [tplx1.t3](../assets/testers/tads/tplex1.t3) / [tplx1.t](../packages/tads-runner/tads3/test/data/tplex1.t)
+- [triplequote.t3](../assets/testers/tads/triplequote.t3) / [triplequote.t](../packages/tads-runner/tads3/test/data/triplequote.t)
+- [ucs2_src.t3](../assets/testers/tads/ucs2_src.t3) / [ucs2_src.t](../packages/tads-runner/tads3/test/data/ucs2_src.t)
+- [undef.t3](../assets/testers/tads/undef.t3) / [undef.t](../packages/tads-runner/tads3/test/data/undef.t)
+- [undef2.t3](../assets/testers/tads/undef2.t3) / [undef2.t](../packages/tads-runner/tads3/test/data/undef2.t)
+- [unhandled_exc.t3](../assets/testers/tads/unhandled_exc.t3) / [unhandled_exc.t](../packages/tads-runner/tads3/test/data/unhandled_exc.t)
+- [unicode.t3](../assets/testers/tads/unicode.t3) / [unicode.t](../packages/tads-runner/tads3/test/data/unicode.t)
+- [unicode_file.t3](../assets/testers/tads/unicode_file.t3) / [unicode_file.t](../packages/tads-runner/tads3/test/data/unicode_file.t)
+- [unpackt3.t3](../assets/testers/tads/unpackt3.t3) / [unpackt3.t](../packages/tads-runner/tads3/test/data/unpackt3.t)
+- [urlencode.t3](../assets/testers/tads/urlencode.t3) / [urlencode.t](../packages/tads-runner/tads3/test/data/urlencode.t)
+- [utf-16be.t3](../assets/testers/tads/utf-16be.t3) / [utf-16be.t](../packages/tads-runner/tads3/test/data/utf-16be.t)
+- [utf-16le.t3](../assets/testers/tads/utf-16le.t3) / [utf-16le.t](../packages/tads-runner/tads3/test/data/utf-16le.t)
+- [utf-8.t3](../assets/testers/tads/utf-8.t3) / [utf-8.t](../packages/tads-runner/tads3/test/data/utf-8.t)
+- [varmac.t3](../assets/testers/tads/varmac.t3) / [varmac.t](../packages/tads-runner/tads3/test/data/varmac.t)
+- [vec_bug.t3](../assets/testers/tads/vec_bug.t3) / [vec_bug.t](../packages/tads-runner/tads3/test/data/vec_bug.t)
+- [vec_each.t3](../assets/testers/tads/vec_each.t3) / [vec_each.t](../packages/tads-runner/tads3/test/data/vec_each.t)
+- [vec_pre.t3](../assets/testers/tads/vec_pre.t3) / [vec_pre.t](../packages/tads-runner/tads3/test/data/vec_pre.t)
+- [vecmod.t3](../assets/testers/tads/vecmod.t3) / [vecmod.t](../packages/tads-runner/tads3/test/data/vecmod.t)
+- [vector.t3](../assets/testers/tads/vector.t3) / [vector.t](../packages/tads-runner/tads3/test/data/vector.t)
+- [vector2.t3](../assets/testers/tads/vector2.t3) / [vector2.t](../packages/tads-runner/tads3/test/data/vector2.t)
+- [vector3.t3](../assets/testers/tads/vector3.t3) / [vector3.t](../packages/tads-runner/tads3/test/data/vector3.t)
+- [wordpre.t3](../assets/testers/tads/wordpre.t3) / [wordpre.t](../packages/tads-runner/tads3/test/data/wordpre.t)
+- [words.t3](../assets/testers/tads/words.t3) / [words.t](../packages/tads-runner/tads3/test/data/words.t)

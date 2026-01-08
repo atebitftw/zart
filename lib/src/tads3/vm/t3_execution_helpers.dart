@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
@@ -98,14 +99,9 @@ mixin T3ExecutionHelpers {
       }
 
       T3PropertyLookupResult? constructResult;
-      constructResult = execObjectTable.lookupProperty(
-        newObjId,
-        constructPropId,
-      );
+      constructResult = execObjectTable.lookupProperty(newObjId, constructPropId);
 
-      if (constructResult != null &&
-          (constructResult.value.isCodeOffset ||
-              constructResult.value.isFuncPtr)) {
+      if (constructResult != null && (constructResult.value.isCodeOffset || constructResult.value.isFuncPtr)) {
         // Push constructor arguments back to stack (args[1] to args[n])
         // To push them such that Arg 2 is at TOS, we push them in reverse: args[n], ..., args[1]
         for (var i = args.length - 1; i >= 1; i--) {
@@ -139,10 +135,7 @@ mixin T3ExecutionHelpers {
         if (args[i].isList && !args[i].isObject) {
           // This is a pool-based list - extract elements to a new list object
           final elements = execValueHelpers.getListValues(args[i]);
-          final listObjId = execObjectTable.createDynamicObject(
-            'list',
-            elements,
-          );
+          final listObjId = execObjectTable.createDynamicObject('list', elements);
           args[i] = T3Value.fromObject(listObjId);
         }
       }
@@ -257,8 +250,7 @@ mixin T3ExecutionHelpers {
                 return ep + handlerOfs;
               }
 
-              if (exceptionObjId != null &&
-                  checkIsInstanceOf(exceptionObjId, exceptionClass)) {
+              if (exceptionObjId != null && checkIsInstanceOf(exceptionObjId, exceptionClass)) {
                 // Found catch.
                 return ep + handlerOfs;
               }
@@ -383,12 +375,7 @@ mixin T3ExecutionHelpers {
   // ==================== Property Evaluation ====================
 
   /// Evaluates a property on a target object.
-  void execEvalProperty(
-    T3Value target,
-    int propId, {
-    int? argc,
-    int? namedArgTableAddr,
-  }) {
+  void execEvalProperty(T3Value target, int propId, {int? argc, int? namedArgTableAddr}) {
     // print('EVALPROP: target=$target propId=$propId (0x${propId.toRadixString(16)})');
     switch (target.type) {
       case T3DataType.obj:
@@ -399,8 +386,7 @@ mixin T3ExecutionHelpers {
             if (obj.metaclass == 'list') {
               handleListIntrinsic(-1, target, argc, propId: propId);
               return;
-            } else if (obj.metaclass == 'vector' ||
-                obj.metaclass == 'anon-func-ptr') {
+            } else if (obj.metaclass == 'vector' || obj.metaclass == 'anon-func-ptr') {
               handleVectorIntrinsic(-1, target, argc, propId: propId);
               return;
             } else if (obj.metaclass == 'iterator') {
@@ -418,19 +404,11 @@ mixin T3ExecutionHelpers {
               'DEBUG execEvalProperty: property NOT FOUND on object objId=${target.value}, metaclass=${obj.metaclass}, propId=$propId');
           */
           if (propUndefId != null && propUndefId != propId) {
-            final undefResult = execObjectTable.lookupProperty(
-              target.value,
-              propUndefId,
-            );
+            final undefResult = execObjectTable.lookupProperty(target.value, propUndefId);
             if (undefResult != null) {
               final actualArgCount = argc ?? 0;
               execStack.insertAt(actualArgCount, T3Value.fromProp(propId));
-              execEvalProperty(
-                target,
-                propUndefId,
-                argc: actualArgCount + 1,
-                namedArgTableAddr: namedArgTableAddr,
-              );
+              execEvalProperty(target, propUndefId, argc: actualArgCount + 1, namedArgTableAddr: namedArgTableAddr);
               return;
             }
           }
@@ -463,9 +441,7 @@ mixin T3ExecutionHelpers {
 
           default:
             if (argc != null && argc > 0) {
-              throw T3Exception(
-                'Arguments not allowed for data property of type ${propVal.type}',
-              );
+              throw T3Exception('Arguments not allowed for data property of type ${propVal.type}');
             }
             execRegisters.r0 = propVal;
             break;
@@ -473,9 +449,7 @@ mixin T3ExecutionHelpers {
         break;
 
       case T3DataType.nil:
-        throw T3Exception(
-          'Nil dereference: attempted to get property $propId of nil',
-        );
+        throw T3Exception('Nil dereference: attempted to get property $propId of nil');
 
       case T3DataType.sstring:
       case T3DataType.dstring:
@@ -492,12 +466,7 @@ mixin T3ExecutionHelpers {
   }
 
   /// Handles property access on intrinsic types (string, list).
-  void handleIntrinsic(
-    int? metaclassIdx,
-    T3Value target,
-    int propId,
-    int? argc,
-  ) {
+  void handleIntrinsic(int? metaclassIdx, T3Value target, int propId, int? argc) {
     if (metaclassIdx == null || execMetaclasses == null) {
       // Try handling common props like length even without metaclass info
       if (propId == 2) {
@@ -544,9 +513,7 @@ mixin T3ExecutionHelpers {
       return;
     }
 
-    final placeholderName = target.type == T3DataType.sstring
-        ? '*ConstStrObj'
-        : '*ConstLstObj';
+    final placeholderName = target.type == T3DataType.sstring ? '*ConstStrObj' : '*ConstLstObj';
     final placeholder = execSymbols[placeholderName];
     if (placeholder != null && placeholder.type == T3DataType.obj) {
       execEvalProperty(placeholder, propId, argc: argc);
@@ -557,12 +524,7 @@ mixin T3ExecutionHelpers {
     execRegisters.r0 = T3Value.nil();
   }
 
-  void handleStringIntrinsic(
-    int funcIdx,
-    T3Value target,
-    int? argc, {
-    int? propId,
-  }) {
+  void handleStringIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
     // Get the string content
     String str;
     if (execDynamicStrings.containsKey(target.value)) {
@@ -573,8 +535,7 @@ mixin T3ExecutionHelpers {
 
     // Helper to get string from T3Value (arg)
     String? getString(T3Value val) {
-      if (execDynamicStrings.containsKey(val.value))
-        return execDynamicStrings[val.value];
+      if (execDynamicStrings.containsKey(val.value)) return execDynamicStrings[val.value];
       if (val.isString) return execConstantPool!.readString(val.value);
       return null;
     }
@@ -690,18 +651,12 @@ mixin T3ExecutionHelpers {
 
       case 4: // find [5]
         // find(substring, index?)
-        final subVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
-        final idxVal = (argc != null && argc >= 2)
-            ? execStack.pop()
-            : T3Value.nil();
+        final subVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final idxVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 2) execStack.discard(argc - 2);
 
         final sub = getString(subVal);
-        final startIdx = (idxVal.type == T3DataType.int_)
-            ? idxVal.value - 1
-            : 0; // 1-based index
+        final startIdx = (idxVal.type == T3DataType.int_) ? idxVal.value - 1 : 0; // 1-based index
 
         if (sub == null) {
           execRegisters.r0 = T3Value.nil(); // Invalid arg
@@ -719,10 +674,7 @@ mixin T3ExecutionHelpers {
       case 5: // toUnicode [6]
         if (argc != null && argc > 0) execStack.discard(argc);
         final runes = str.runes.toList();
-        final listId = execObjectTable.createDynamicObject(
-          'list',
-          runes.map((r) => T3Value.fromInt(r)).toList(),
-        );
+        final listId = execObjectTable.createDynamicObject('list', runes.map((r) => T3Value.fromInt(r)).toList());
         execRegisters.r0 = T3Value.fromList(listId);
         return;
 
@@ -740,9 +692,7 @@ mixin T3ExecutionHelpers {
         return;
 
       case 7: // startsWith [8]
-        final matchVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final matchVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
 
         final match = getString(matchVal);
@@ -754,9 +704,7 @@ mixin T3ExecutionHelpers {
         return;
 
       case 8: // endsWith [9]
-        final matchVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final matchVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
 
         final match = getString(matchVal);
@@ -774,22 +722,15 @@ mixin T3ExecutionHelpers {
         // Convert string to bytes using UTF-8 (ignoring charset arg for MVP)
         final bytes = utf8.encode(str);
 
-        final ba = T3ByteArray(
-          objectId: execObjectTable.allocateObjectId(),
-          data: Uint8List.fromList(bytes),
-        );
+        final ba = T3ByteArray(objectId: execObjectTable.allocateObjectId(), data: Uint8List.fromList(bytes));
         execObjectTable.registerObject(ba);
         execRegisters.r0 = T3Value.fromObject(ba.objectId);
         return;
 
       case 10: // replace [11]
         // replace(old, new, flags?, index?, limit?)
-        final oldVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
-        final newVal = (argc != null && argc >= 2)
-            ? execStack.pop()
-            : T3Value.nil();
+        final oldVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final newVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
         final _ = (argc != null && argc >= 3) ? execStack.pop() : T3Value.nil();
         // we ignore index/limit for now
         if (argc != null && argc > 3) execStack.discard(argc - 3);
@@ -803,23 +744,15 @@ mixin T3ExecutionHelpers {
           execDynamicStrings[repOffset] = rep;
           execRegisters.r0 = T3Value.fromString(repOffset);
         } else {
-          execRegisters.r0 = T3Value.fromString(
-            target.value,
-          ); // Return original if invalid
+          execRegisters.r0 = T3Value.fromString(target.value); // Return original if invalid
         }
         return;
 
       case 11: // splice [12]
         // splice(idx, len, insert?)
-        final idxVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.fromInt(1);
-        final lenVal = (argc != null && argc >= 2)
-            ? execStack.pop()
-            : T3Value.fromInt(0);
-        final insVal = (argc != null && argc >= 3)
-            ? execStack.pop()
-            : T3Value.nil();
+        final idxVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.fromInt(1);
+        final lenVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.fromInt(0);
+        final insVal = (argc != null && argc >= 3) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 3) execStack.discard(argc - 3);
 
         final start = (idxVal.type == T3DataType.int_) ? idxVal.value - 1 : 0;
@@ -850,12 +783,8 @@ mixin T3ExecutionHelpers {
 
       case 12: // split [13]
         // split(delim?, limit?)
-        final delimVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
-        final limitVal = (argc != null && argc >= 2)
-            ? execStack.pop()
-            : T3Value.nil();
+        final delimVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final limitVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 2) execStack.discard(argc - 2);
 
         final delim = getString(delimVal);
@@ -867,9 +796,7 @@ mixin T3ExecutionHelpers {
           parts = str.split(delim);
         }
 
-        if (limitVal.type == T3DataType.int_ &&
-            limitVal.value > 0 &&
-            limitVal.value < parts.length) {
+        if (limitVal.type == T3DataType.int_ && limitVal.value > 0 && limitVal.value < parts.length) {
           parts = parts.sublist(0, limitVal.value);
         }
 
@@ -878,10 +805,7 @@ mixin T3ExecutionHelpers {
           execDynamicStrings[off] = s;
           return T3Value.fromString(off);
         }).toList();
-        final splitListId = execObjectTable.createDynamicObject(
-          'list',
-          listIds,
-        );
+        final splitListId = execObjectTable.createDynamicObject('list', listIds);
         execRegisters.r0 = T3Value.fromList(splitListId);
         return;
 
@@ -936,10 +860,7 @@ mixin T3ExecutionHelpers {
 
       case 21: // toTitleCase [22]
         if (argc != null && argc > 0) execStack.discard(argc);
-        final title = str.replaceAllMapped(
-          RegExp(r'\b\w'),
-          (match) => match.group(0)!.toUpperCase(),
-        );
+        final title = str.replaceAllMapped(RegExp(r'\b\w'), (match) => match.group(0)!.toUpperCase());
         final tOffset = execNextDynamicStringOffset++;
         execDynamicStrings[tOffset] = title;
         execRegisters.r0 = T3Value.fromString(tOffset);
@@ -954,9 +875,7 @@ mixin T3ExecutionHelpers {
         return;
 
       case 23: // compareTo [24]
-        final otherVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final otherVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         final other = getString(otherVal);
         if (other != null) {
@@ -967,15 +886,11 @@ mixin T3ExecutionHelpers {
         return;
 
       case 24: // compareIgnoreCase [25]
-        final other2Val = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final other2Val = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         final other2 = getString(other2Val);
         if (other2 != null) {
-          execRegisters.r0 = T3Value.fromInt(
-            str.toLowerCase().compareTo(other2.toLowerCase()),
-          );
+          execRegisters.r0 = T3Value.fromInt(str.toLowerCase().compareTo(other2.toLowerCase()));
         } else {
           execRegisters.r0 = T3Value.nil();
         }
@@ -983,18 +898,12 @@ mixin T3ExecutionHelpers {
 
       case 25: // findLast [26]
         // findLast(sub, index?)
-        final subVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
-        final idxVal = (argc != null && argc >= 2)
-            ? execStack.pop()
-            : T3Value.nil();
+        final subVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final idxVal = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 2) execStack.discard(argc - 2);
 
         final sub = getString(subVal);
-        final idx = (idxVal.type == T3DataType.int_)
-            ? idxVal.value - 1
-            : str.length - 1;
+        final idx = (idxVal.type == T3DataType.int_) ? idxVal.value - 1 : str.length - 1;
 
         if (sub != null) {
           int start = idx;
@@ -1012,9 +921,7 @@ mixin T3ExecutionHelpers {
 
       case 26: // findAll [27]
         // findAll(regex) -> return list of match strings
-        final reVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final reVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         final reStr = getString(reVal);
         if (reStr != null) {
@@ -1033,12 +940,8 @@ mixin T3ExecutionHelpers {
 
       case 27: // match [28]
         // match(regex, index?) -> match info
-        final re2Val = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
-        final id2Val = (argc != null && argc >= 2)
-            ? execStack.pop()
-            : T3Value.nil();
+        final re2Val = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final id2Val = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 2) execStack.discard(argc - 2);
 
         final re2Str = getString(re2Val);
@@ -1073,12 +976,7 @@ mixin T3ExecutionHelpers {
     execRegisters.r0 = T3Value.nil();
   }
 
-  void handleListIntrinsic(
-    int funcIdx,
-    T3Value target,
-    int? argc, {
-    int? propId,
-  }) {
+  void handleListIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
     // Check Collection metaclass for createIterator if not found in List
     if (funcIdx == -1 && propId != null) {
       final collectionMeta = execMetaclasses?.byName('collection');
@@ -1149,11 +1047,7 @@ mixin T3ExecutionHelpers {
       }
 
       final iterId = execObjectTable.allocateObjectId();
-      final iterator = T3IteratorObject(
-        objectId: iterId,
-        collection: target,
-        elements: elements,
-      );
+      final iterator = T3IteratorObject(objectId: iterId, collection: target, elements: elements);
       execObjectTable.registerObject(iterator);
       execRegisters.r0 = T3Value.fromObject(iterId);
     } else {
@@ -1165,12 +1059,7 @@ mixin T3ExecutionHelpers {
     }
   }
 
-  void handleVectorIntrinsic(
-    int funcIdx,
-    T3Value target,
-    int? argc, {
-    int? propId,
-  }) {
+  void handleVectorIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
     final obj = execObjectTable.lookup(target.value);
     // print('DEBUG handleVectorIntrinsic: funcIdx=$funcIdx, propId=$propId, target=$target, argc=$argc, objHash=${obj.hashCode}');
     if (obj is! T3VectorObject) {
@@ -1243,9 +1132,7 @@ mixin T3ExecutionHelpers {
     // funcIdx 6 = applyAll: apply callback to each element, return self
     if (funcIdx == 6) {
       // print('DEBUG Vector applyAll starting. Size=${obj.elements.length} objHash=${obj.hashCode}');
-      final callback = (argc != null && argc >= 1)
-          ? execStack.pop()
-          : T3Value.nil();
+      final callback = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
       if (argc != null && argc > 1) execStack.discard(argc - 1);
 
       // Apply callback to each element, store result back
@@ -1259,9 +1146,7 @@ mixin T3ExecutionHelpers {
 
     // funcIdx 12 = forEachAssoc(func): calls (index, val)
     if (funcIdx == 12) {
-      final callback = (argc != null && argc >= 1)
-          ? execStack.pop()
-          : T3Value.nil();
+      final callback = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
       if (argc != null && argc > 1) execStack.discard(argc - 1);
 
       for (var i = 0; i < obj.elements.length; i++) {
@@ -1276,12 +1161,7 @@ mixin T3ExecutionHelpers {
     execRegisters.r0 = T3Value.nil();
   }
 
-  void handleIteratorIntrinsic(
-    int funcIdx,
-    T3Value target,
-    int? argc, {
-    int? propId,
-  }) {
+  void handleIteratorIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
     final obj = execObjectTable.lookup(target.value);
     if (obj is! T3IteratorObject) {
       if (argc != null && argc > 0) execStack.discard(argc);
@@ -1308,9 +1188,7 @@ mixin T3ExecutionHelpers {
         // getNext - advances iterator and returns the value
         if (argc != null && argc > 0) execStack.discard(argc);
         if (!obj.isNextAvailable()) {
-          throw T3Exception(
-            'Iterator out of range: getNext called on exhausted iterator',
-          );
+          throw T3Exception('Iterator out of range: getNext called on exhausted iterator');
         }
         execRegisters.r0 = obj.getNext();
         return;
@@ -1348,12 +1226,7 @@ mixin T3ExecutionHelpers {
     return null;
   }
 
-  void handleLookupTableIntrinsic(
-    int funcIdx,
-    T3Value target,
-    int? argc, {
-    int? propId,
-  }) {
+  void handleLookupTableIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
     final obj = execObjectTable.lookup(target.value);
     if (obj is! T3LookupTable) {
       if (argc != null && argc > 0) execStack.discard(argc);
@@ -1388,17 +1261,13 @@ mixin T3ExecutionHelpers {
     // Method dispatch
     switch (funcIdx) {
       case 1: // isKeyPresent(key)
-        final key = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final key = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         execRegisters.r0 = T3Value.fromBool(obj.isKeyPresent(key));
         return;
 
       case 2: // removeElement(key)
-        final key = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final key = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         obj.remove(key);
         execRegisters.r0 = T3Value.nil();
@@ -1430,55 +1299,39 @@ mixin T3ExecutionHelpers {
 
       case 7: // keysToList()
         if (argc != null && argc > 0) execStack.discard(argc);
-        final keysListId = execObjectTable.createDynamicObject(
-          'list',
-          obj.keys,
-        );
+        final keysListId = execObjectTable.createDynamicObject('list', obj.keys);
         execRegisters.r0 = T3Value.fromList(keysListId);
         return;
 
       case 8: // valsToList()
         if (argc != null && argc > 0) execStack.discard(argc);
-        final valsListId = execObjectTable.createDynamicObject(
-          'list',
-          obj.values,
-        );
+        final valsListId = execObjectTable.createDynamicObject('list', obj.values);
         execRegisters.r0 = T3Value.fromList(valsListId);
         return;
 
       case 9: // this[key]
-        final key = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final key = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         execRegisters.r0 = obj.get(key);
         return;
 
       case 10: // this[key] = val
-        final val = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
-        final key = (argc != null && argc >= 2)
-            ? execStack.pop()
-            : T3Value.nil();
+        final val = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
+        final key = (argc != null && argc >= 2) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 2) execStack.discard(argc - 2);
         obj.set(key, val);
         execRegisters.r0 = val;
         return;
 
       case 11: // setDefaultValue(val)
-        final defVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final defVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         obj.defaultValue = defVal;
         execRegisters.r0 = T3Value.nil();
         return;
 
       case 12: // forEachAssoc(func)
-        final func = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final func = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         obj.forEach((key, val) {
           execCallback(func, [key, val]);
@@ -1492,9 +1345,7 @@ mixin T3ExecutionHelpers {
         return;
 
       case 14: // nthKey(n)
-        final keyIdx = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final keyIdx = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         if (keyIdx.isInt) {
           execRegisters.r0 = obj.nthKey(keyIdx.value);
@@ -1504,9 +1355,7 @@ mixin T3ExecutionHelpers {
         return;
 
       case 15: // nthVal(n)
-        final valIdx = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final valIdx = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
         if (argc != null && argc > 1) execStack.discard(argc - 1);
         if (valIdx.isInt) {
           execRegisters.r0 = obj.nthVal(valIdx.value);
@@ -1533,11 +1382,7 @@ mixin T3ExecutionHelpers {
     if (!defObj.isObject) {
       final selfObj = execObjectTable.lookup(self.value);
       if (selfObj is T3TadsObject && selfObj.superclasses.isNotEmpty) {
-        execEvalProperty(
-          T3Value.fromObject(selfObj.superclasses.first),
-          propId,
-          argc: argc,
-        );
+        execEvalProperty(T3Value.fromObject(selfObj.superclasses.first), propId, argc: argc);
       } else {
         if (argc > 0) execStack.discard(argc);
         execRegisters.r0 = T3Value.nil();
@@ -1545,11 +1390,7 @@ mixin T3ExecutionHelpers {
     } else {
       final defObjInst = execObjectTable.lookup(defObj.value);
       if (defObjInst is T3TadsObject && defObjInst.superclasses.isNotEmpty) {
-        execEvalProperty(
-          T3Value.fromObject(defObjInst.superclasses.first),
-          propId,
-          argc: argc,
-        );
+        execEvalProperty(T3Value.fromObject(defObjInst.superclasses.first), propId, argc: argc);
       } else {
         if (argc > 0) execStack.discard(argc);
         execRegisters.r0 = T3Value.nil();
@@ -1643,20 +1484,13 @@ mixin T3ExecutionHelpers {
         break;
       }
 
-      final tagContent = text
-          .substring(tagStart + 1, tagEnd)
-          .trim()
-          .toLowerCase();
+      final tagContent = text.substring(tagStart + 1, tagEnd).trim().toLowerCase();
       final isEndTag = tagContent.startsWith('/');
-      final tagName = isEndTag
-          ? tagContent.substring(1).trim()
-          : tagContent.split(RegExp(r'\s+'))[0];
+      final tagName = isEndTag ? tagContent.substring(1).trim() : tagContent.split(RegExp(r'\s+'))[0];
 
       if (tagName == 'aboutbox' || tagName == 'title') {
         if (isEndTag) {
-          execOutputIgnoreDepth = (execOutputIgnoreDepth > 0)
-              ? execOutputIgnoreDepth - 1
-              : 0;
+          execOutputIgnoreDepth = (execOutputIgnoreDepth > 0) ? execOutputIgnoreDepth - 1 : 0;
         } else {
           execOutputIgnoreDepth++;
         }
@@ -1676,7 +1510,7 @@ mixin T3ExecutionHelpers {
   void printRaw(String text) {
     if (text.isEmpty) return;
     // ignore: avoid_print
-    print(text);
+    stdout.write(text);
   }
 
   /// Gets the string representation of a value.
@@ -1694,7 +1528,7 @@ mixin T3ExecutionHelpers {
           text = execConstantPool?.readString(offset) ?? '';
         }
       }
-      return text.replaceAll('\v', '\n'); // Map \b (0x0B/VT) to \n
+      return text.replaceAll('\v', '\n').replaceAll('\b', '\n'); // Map \b (BS) and \v (VT) to \n
     } else if (val.isObject) {
       final obj = execObjectTable.lookup(val.value);
       if (obj is T3StringObject) {
@@ -1748,12 +1582,7 @@ mixin T3ExecutionHelpers {
   // ==================== TadsObject Intrinsics ====================
 
   /// Handles intrinsic method calls for TadsObject metaclass.
-  void handleTadsObjectIntrinsic(
-    int funcIdx,
-    T3Value target,
-    int? argc, {
-    int? propId,
-  }) {
+  void handleTadsObjectIntrinsic(int funcIdx, T3Value target, int? argc, {int? propId}) {
     // TadsObject intrinsics (vmtobj.cpp)
     // 1: createInstance
     // 2: createClone
@@ -1779,12 +1608,7 @@ mixin T3ExecutionHelpers {
         }
 
         // Flag: 0 (not transient)
-        final newObj = T3TadsObject(
-          objectId: newId,
-          superclasses: superclasses,
-          loadImageProperties: [],
-          flags: 0,
-        );
+        final newObj = T3TadsObject(objectId: newId, superclasses: superclasses, loadImageProperties: [], flags: 0);
         execObjectTable.registerObject(newObj);
         final newObjVal = T3Value.fromObject(newId);
 
@@ -1935,14 +1759,12 @@ mixin T3ExecutionHelpers {
               // We need a loop similar to runSynchronousTask but sharing checking.
               while (execStack.fp > enteredFp) {
                 final res = executeInstruction();
-                if (res == T3ExecutionResult.quit ||
-                    res == T3ExecutionResult.error) {
+                if (res == T3ExecutionResult.quit || res == T3ExecutionResult.error) {
                   throw T3Exception('Error/Quit in createInstance constructor');
                 }
               }
               // Restored.
-              execRegisters.r0 =
-                  savedR0; // Restore our return value (the object)
+              execRegisters.r0 = savedR0; // Restore our return value (the object)
             } else {
               // Property evaluated to a value (not method), R0 set to that value.
               // Ignore it, restore object.
@@ -2006,8 +1828,7 @@ mixin T3ExecutionHelpers {
 
         // 2. Call constructClone(original)
         final constructCloneProp = getSymbolPropertyId('constructClone');
-        if (constructCloneProp != null &&
-            execObjectTable.lookupProperty(newId, constructCloneProp) != null) {
+        if (constructCloneProp != null && execObjectTable.lookupProperty(newId, constructCloneProp) != null) {
           execStack.push(target); // Push original as arg
           execEvalProperty(newObjVal, constructCloneProp, argc: 1);
           // See logic in createInstance about recursive execution.
@@ -2035,8 +1856,7 @@ mixin T3ExecutionHelpers {
         final newObjVal3 = T3Value.fromObject(newId3);
 
         final constructProp3 = getSymbolPropertyId('construct');
-        if (constructProp3 != null &&
-            execObjectTable.lookupProperty(newId3, constructProp3) != null) {
+        if (constructProp3 != null && execObjectTable.lookupProperty(newId3, constructProp3) != null) {
           execEvalProperty(newObjVal3, constructProp3, argc: argc ?? 0);
         } else {
           if (argc != null && argc > 0) execStack.discard(argc);
@@ -2046,31 +1866,19 @@ mixin T3ExecutionHelpers {
         return;
 
       case 4: // createInstanceOf [4]
-        final clsVal = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final clsVal = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
 
         final newId4 = execObjectTable.allocateObjectId();
         final supers4 = <int>[];
         if (clsVal.isObject) supers4.add(clsVal.value);
 
-        final newObj4 = T3TadsObject(
-          objectId: newId4,
-          superclasses: supers4,
-          loadImageProperties: [],
-          flags: 0,
-        );
+        final newObj4 = T3TadsObject(objectId: newId4, superclasses: supers4, loadImageProperties: [], flags: 0);
         execObjectTable.registerObject(newObj4);
         final newObjVal4 = T3Value.fromObject(newId4);
 
         final constructProp4 = getSymbolPropertyId('construct');
-        if (constructProp4 != null &&
-            execObjectTable.lookupProperty(newId4, constructProp4) != null) {
-          execEvalProperty(
-            newObjVal4,
-            constructProp4,
-            argc: (argc != null && argc > 0) ? argc - 1 : 0,
-          );
+        if (constructProp4 != null && execObjectTable.lookupProperty(newId4, constructProp4) != null) {
+          execEvalProperty(newObjVal4, constructProp4, argc: (argc != null && argc > 0) ? argc - 1 : 0);
         } else {
           if (argc != null && argc > 1) execStack.discard(argc - 1);
         }
@@ -2079,9 +1887,7 @@ mixin T3ExecutionHelpers {
         return;
 
       case 5: // createTransientInstanceOf [5]
-        final clsVal5 = (argc != null && argc >= 1)
-            ? execStack.pop()
-            : T3Value.nil();
+        final clsVal5 = (argc != null && argc >= 1) ? execStack.pop() : T3Value.nil();
 
         final newId5 = execObjectTable.allocateObjectId();
         final supers5 = <int>[];
@@ -2098,13 +1904,8 @@ mixin T3ExecutionHelpers {
         final newObjVal5 = T3Value.fromObject(newId5);
 
         final constructProp5 = getSymbolPropertyId('construct');
-        if (constructProp5 != null &&
-            execObjectTable.lookupProperty(newId5, constructProp5) != null) {
-          execEvalProperty(
-            newObjVal5,
-            constructProp5,
-            argc: (argc != null && argc > 0) ? argc - 1 : 0,
-          );
+        if (constructProp5 != null && execObjectTable.lookupProperty(newId5, constructProp5) != null) {
+          execEvalProperty(newObjVal5, constructProp5, argc: (argc != null && argc > 0) ? argc - 1 : 0);
         } else {
           if (argc != null && argc > 1) execStack.discard(argc - 1);
         }
@@ -2150,23 +1951,15 @@ mixin T3ExecutionHelpers {
             // Try to read 'errno' property (common in RuntimeError)
             final errnoProp = getSymbolPropertyId('errno');
             if (errnoProp != null) {
-              final errnoVal = execObjectTable.lookupProperty(
-                excObj.value,
-                errnoProp,
-              );
+              final errnoVal = execObjectTable.lookupProperty(excObj.value, errnoProp);
               if (errnoVal != null && errnoVal.value.isInt) {
-                printRaw(
-                  'errno: ${errnoVal.value.value} (${_runtimeErrorToString(errnoVal.value.value)})\n',
-                );
+                printRaw('errno: ${errnoVal.value.value} (${_runtimeErrorToString(errnoVal.value.value)})\n');
               }
             }
             // Try to read 'exceptionMessage' property
             final msgProp = getSymbolPropertyId('exceptionMessage');
             if (msgProp != null) {
-              final msgVal = execObjectTable.lookupProperty(
-                excObj.value,
-                msgProp,
-              );
+              final msgVal = execObjectTable.lookupProperty(excObj.value, msgProp);
               if (msgVal != null && msgVal.value.isStringLike) {
                 printRaw('message: ${getStringValue(msgVal.value)}\n');
               }

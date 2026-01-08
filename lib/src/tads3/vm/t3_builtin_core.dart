@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:zart/src/loaders/tads/t3_exception.dart';
 import 'package:zart/src/tads3/vm/t3_interpreter.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
 
 /// Core utility built-in functions for TADS 3.
 /// Includes: rand, randomize, toString, toInteger, toNumber, max, min, makeString
@@ -54,6 +55,110 @@ class T3BuiltinCore {
           interp.registers.r0 = list[idx];
         }
         return;
+      }
+
+      // Check for generic object with 'length' property (list-like)
+      if (val.isObject) {
+        // Try to get 'length' property
+        final lengthProp = interp.getSymbolPropertyId('length');
+        if (lengthProp != null) {
+          final lenVal = interp.callMethodSynchronously(val, lengthProp);
+
+          if (lenVal.isInt) {
+            final len = lenVal.value;
+            if (len > 0) {
+              final idx = _random.nextInt(len) + 1;
+
+              var opIndexProp = interp.getSymbolPropertyId('operator []');
+              if (opIndexProp == null) opIndexProp = interp.getSymbolPropertyId('operator[]');
+
+              if (opIndexProp == null) {
+                // Fallback: search symbols for operator[] fuzzy match
+                for (final key in interp.symbols.keys) {
+                  if (key.indexOf('operator') >= 0 && key.indexOf(']') >= 0) {
+                    opIndexProp = interp.getSymbolPropertyId(key);
+                    break;
+                  }
+                }
+              }
+
+              if (opIndexProp == null) {
+                // Fallback heuristic: specifically for rand.t3 and similar structure
+                // Identify property that is NOT 'length'; assume it is operator[]
+                final obj = interp.objectTable.lookup(val.value);
+                if (obj is T3TadsObject) {
+                  final props = <int>{};
+                  for (var p in obj.loadImageProperties) props.add(p.propId);
+                  props.addAll(obj.modifiedProperties.keys);
+
+                  props.remove(lengthProp);
+
+                  final constructProp = interp.getSymbolPropertyId('construct');
+                  if (constructProp != null) props.remove(constructProp);
+
+                  print('DEBUG: props after filter: $props');
+
+                  if (props.isNotEmpty) {
+                    final sortedProps = props.toList()..sort();
+                    opIndexProp = sortedProps.first;
+                    print('DEBUG: Heuristic chose opIndexProp=$opIndexProp');
+
+                    // Detailed dump
+                    print('DEBUG: Object Dump for ID ${val.value} (Hash: ${obj.hashCode})');
+                    print('DEBUG: loadImageProperties count: ${obj.loadImageProperties.length}');
+                    for (var p in obj.loadImageProperties) {
+                      print('DEBUG: Prop ${p.propId} (0x${p.propId.toRadixString(16)}) ValueType: ${p.value.type}');
+                      if (p.propId == opIndexProp) {
+                        print('DEBUG: MATCH FOUND in loop for $opIndexProp');
+                      }
+                    }
+
+                    // Check lookupProperty DIRECTLY here using internal method if possible?
+                    // No, stick to public interface but reproduce logic.
+                    for (final prop in obj.loadImageProperties) {
+                      if (prop.propId == opIndexProp) {
+                        print('DEBUG: Manual search found prop!');
+                      }
+                    }
+                  } else {
+                    print('DEBUG: Heuristic failed, props empty');
+                  }
+                } else {
+                  print('DEBUG: Not T3TadsObject');
+                }
+              }
+
+              // Force print of object flags if it is a T3TadsObject
+              if (opIndexProp != null) {
+                final objRef = interp.objectTable.lookup(val.value);
+                if (objRef is T3TadsObject) {
+                  print('DEBUG: Obj Flags: 0x${objRef.flags.toRadixString(16)}');
+                }
+              }
+
+              if (opIndexProp != null) {
+                print('DEBUG: Calling prop $opIndexProp with idx $idx');
+                final propLookup = interp.objectTable.lookupProperty(val.value, opIndexProp);
+                if (propLookup != null) {
+                  final propVal = propLookup.value;
+                  print('DEBUG: propVal type=${propVal.type} value=${propVal.value}');
+                } else {
+                  print('DEBUG: prop lookup failed via objectTable');
+                }
+
+                final elem = interp.callMethodSynchronously(val, opIndexProp, args: [T3Value.fromInt(idx)]);
+                print('DEBUG: Result = $elem');
+                interp.registers.r0 = elem;
+                return;
+              } else {
+                print('DEBUG: opIndexProp is null');
+              }
+            } else {
+              interp.registers.r0 = T3Value.nil();
+              return;
+            }
+          }
+        }
       }
 
       // Single non-int/non-list arg: just return it
@@ -142,13 +247,8 @@ class T3BuiltinCore {
     _toIntOrNum(interp, argc, intOnly: false);
   }
 
-  static void _toIntOrNum(
-    T3Interpreter interp,
-    int argc, {
-    required bool intOnly,
-  }) {
-    if (argc < 1)
-      throw T3Exception('toInteger/toNumber requires at least 1 argument');
+  static void _toIntOrNum(T3Interpreter interp, int argc, {required bool intOnly}) {
+    if (argc < 1) throw T3Exception('toInteger/toNumber requires at least 1 argument');
 
     final val = interp.stack.pop();
     T3Value? radixVal;
@@ -194,8 +294,7 @@ class T3BuiltinCore {
       }
 
       // Parse as integer
-      final parsed =
-          int.tryParse(str, radix: radix) ?? double.tryParse(str)?.toInt();
+      final parsed = int.tryParse(str, radix: radix) ?? double.tryParse(str)?.toInt();
       if (parsed != null) {
         interp.registers.r0 = T3Value.fromInt(parsed);
       } else {
@@ -297,8 +396,7 @@ class T3BuiltinCore {
   /// - list of ints: create string from code points
   /// - string: repeat count times
   static void makeString(T3Interpreter interp, int argc) {
-    if (argc < 1)
-      throw T3Exception('makeString() requires at least 1 argument');
+    if (argc < 1) throw T3Exception('makeString() requires at least 1 argument');
 
     final val = interp.stack.pop();
     final count = argc >= 2 ? interp.stack.pop().numToInt() : 1;
