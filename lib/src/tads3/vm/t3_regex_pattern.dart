@@ -23,7 +23,8 @@ class T3RegexPattern extends T3Object {
   /// Cached pattern string literal.
   String? _cachedPatternString;
 
-  T3RegexPattern(int objectId, this.source) : super(objectId: objectId, metaclass: 'regex-pattern');
+  T3RegexPattern(int objectId, this.source)
+    : super(objectId: objectId, metaclass: 'regex-pattern');
 
   /// Creates a [T3RegexPattern] with a new ID.
   ///
@@ -36,7 +37,9 @@ class T3RegexPattern extends T3Object {
   /// Creates a [T3RegexPattern] from saved data.
   factory T3RegexPattern.fromData(int objectId, Uint8List data) {
     if (data.length < 5) {
-      throw FormatException('Invalid data for RegexPattern: length ${data.length}');
+      throw FormatException(
+        'Invalid data for RegexPattern: length ${data.length}',
+      );
     }
     // Read the source T3Value (5 bytes)
     final val = T3Value.fromPortable(data, 0);

@@ -233,8 +233,16 @@ void main() {
         original.toPortable(data, 0);
         final restored = T3Value.fromPortable(data, 0);
 
-        expect(restored.type, original.type, reason: 'Type mismatch for $original');
-        expect(restored.value, original.value, reason: 'Value mismatch for $original');
+        expect(
+          restored.type,
+          original.type,
+          reason: 'Type mismatch for $original',
+        );
+        expect(
+          restored.value,
+          original.value,
+          reason: 'Value mismatch for $original',
+        );
       }
     });
 

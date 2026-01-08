@@ -327,7 +327,10 @@ void main() {
 
   group('T3ListObject', () {
     test('can create with elements', () {
-      final list = T3ListObject(objectId: 100, elements: [T3Value.fromInt(1), T3Value.fromInt(2)]);
+      final list = T3ListObject(
+        objectId: 100,
+        elements: [T3Value.fromInt(1), T3Value.fromInt(2)],
+      );
       expect(list.elements.length, 2);
     });
 

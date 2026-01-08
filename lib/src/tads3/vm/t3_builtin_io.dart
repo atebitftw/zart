@@ -28,7 +28,10 @@ class T3BuiltinIO {
     if (argc > 0) interp.stack.discard(argc);
     // Stub: return EOF event
     // list[0] = event type (1=Key, 2=Str, 3=Timeout, 4=EOF)
-    final listOffset = interp.addDynamicList([T3Value.fromInt(4), T3Value.nil()]);
+    final listOffset = interp.addDynamicList([
+      T3Value.fromInt(4),
+      T3Value.nil(),
+    ]);
     interp.registers.r0 = T3Value.fromList(listOffset);
   }
 
@@ -133,7 +136,9 @@ class T3BuiltinIO {
 
     // 1=SysInfoVersion, 25=SysInfoOsName, etc.
     if (selector.value == 1) {
-      interp.registers.r0 = T3Value.fromString(interp.addDynamicString('3.1.0'));
+      interp.registers.r0 = T3Value.fromString(
+        interp.addDynamicString('3.1.0'),
+      );
     } else {
       interp.registers.r0 = T3Value.nil();
     }

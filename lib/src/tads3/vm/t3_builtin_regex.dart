@@ -7,7 +7,11 @@ import 'package:zart/src/tads3/vm/t3_value.dart';
 /// Includes: re_match, re_search, re_group, re_replace
 class T3BuiltinRegex {
   /// Helper to get RegExp from string or RegexPattern object.
-  static RegExp _getRegExp(T3Interpreter interp, T3Value patVal, {bool caseSensitive = true}) {
+  static RegExp _getRegExp(
+    T3Interpreter interp,
+    T3Value patVal, {
+    bool caseSensitive = true,
+  }) {
     if (patVal.isObject) {
       final obj = interp.objectTable.lookup(patVal.value);
       if (obj is T3RegexPattern) {
@@ -74,7 +78,9 @@ class T3BuiltinRegex {
         interp.registers.r0 = T3Value.nil();
       }
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
+      throw T3Exception(
+        'Invalid regex pattern: ${_getPatternStr(interp, patVal)}',
+      );
     }
   }
 
@@ -113,7 +119,11 @@ class T3BuiltinRegex {
         final matchStr = match.group(0) ?? '';
 
         final strOffset = interp.addDynamicString(matchStr);
-        final list = [T3Value.fromInt(matchStart), T3Value.fromInt(matchLen), T3Value.fromString(strOffset)];
+        final list = [
+          T3Value.fromInt(matchStart),
+          T3Value.fromInt(matchLen),
+          T3Value.fromString(strOffset),
+        ];
 
         final offset = interp.addDynamicList(list);
         interp.registers.r0 = T3Value.fromList(offset);
@@ -123,7 +133,9 @@ class T3BuiltinRegex {
         interp.registers.r0 = T3Value.nil();
       }
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
+      throw T3Exception(
+        'Invalid regex pattern: ${_getPatternStr(interp, patVal)}',
+      );
     }
   }
 
@@ -143,7 +155,9 @@ class T3BuiltinRegex {
 
     // If startIdx is -1 (default), start from the end of the string.
     // TADS indices are 1-based.
-    int idx = startIdx == -1 ? str.length : (startIdx < 0 ? str.length + startIdx + 1 : startIdx);
+    int idx = startIdx == -1
+        ? str.length
+        : (startIdx < 0 ? str.length + startIdx + 1 : startIdx);
     if (idx < 0) idx = 0;
     if (idx > str.length) idx = str.length;
 
@@ -176,7 +190,11 @@ class T3BuiltinRegex {
         final matchStr = lastMatch.group(0) ?? '';
 
         final strOffset = interp.addDynamicString(matchStr);
-        final list = [T3Value.fromInt(matchStart), T3Value.fromInt(matchLen), T3Value.fromString(strOffset)];
+        final list = [
+          T3Value.fromInt(matchStart),
+          T3Value.fromInt(matchLen),
+          T3Value.fromString(strOffset),
+        ];
 
         final offset = interp.addDynamicList(list);
         interp.registers.r0 = T3Value.fromList(offset);
@@ -186,7 +204,9 @@ class T3BuiltinRegex {
         interp.registers.r0 = T3Value.nil();
       }
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
+      throw T3Exception(
+        'Invalid regex pattern: ${_getPatternStr(interp, patVal)}',
+      );
     }
   }
 
@@ -232,7 +252,11 @@ class T3BuiltinRegex {
     int groupLen = groupStr.length;
 
     final strOffset = interp.addDynamicString(groupStr);
-    final list = [T3Value.fromInt(groupStart), T3Value.fromInt(groupLen), T3Value.fromString(strOffset)];
+    final list = [
+      T3Value.fromInt(groupStart),
+      T3Value.fromInt(groupLen),
+      T3Value.fromString(strOffset),
+    ];
 
     final offset = interp.addDynamicList(list);
     interp.registers.r0 = T3Value.fromList(offset);
@@ -304,7 +328,9 @@ class T3BuiltinRegex {
       final offset = interp.addDynamicString(result);
       interp.registers.r0 = T3Value.fromString(offset);
     } catch (e) {
-      throw T3Exception('Invalid regex pattern: ${_getPatternStr(interp, patVal)}');
+      throw T3Exception(
+        'Invalid regex pattern: ${_getPatternStr(interp, patVal)}',
+      );
     }
   }
 }

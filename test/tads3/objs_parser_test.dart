@@ -222,7 +222,12 @@ void main() {
   group('T3ObjectTable', () {
     test('registers and lookups objects', () {
       final table = T3ObjectTable();
-      final obj = T3TadsObject(objectId: 1, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 1,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       table.register(obj);
 
@@ -234,18 +239,46 @@ void main() {
 
     test('throws on duplicate object ID', () {
       final table = T3ObjectTable();
-      table.register(T3TadsObject(objectId: 1, superclasses: [], loadImageProperties: [], flags: 0));
+      table.register(
+        T3TadsObject(
+          objectId: 1,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: 0,
+        ),
+      );
 
       expect(
-        () => table.register(T3TadsObject(objectId: 1, superclasses: [], loadImageProperties: [], flags: 0)),
+        () => table.register(
+          T3TadsObject(
+            objectId: 1,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        ),
         throwsStateError,
       );
     });
 
     test('groups objects by metaclass', () {
       final table = T3ObjectTable();
-      table.register(T3TadsObject(objectId: 1, superclasses: [], loadImageProperties: [], flags: 0));
-      table.register(T3TadsObject(objectId: 2, superclasses: [], loadImageProperties: [], flags: 0));
+      table.register(
+        T3TadsObject(
+          objectId: 1,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: 0,
+        ),
+      );
+      table.register(
+        T3TadsObject(
+          objectId: 2,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: 0,
+        ),
+      );
       table.register(T3StringObject(objectId: 3, text: 'hello'));
 
       final counts = table.countByMetaclass;
@@ -284,7 +317,12 @@ void main() {
       table.register(parent);
 
       // Child object inheriting from parent
-      final child = T3TadsObject(objectId: 2, superclasses: [1], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 2,
+        superclasses: [1],
+        loadImageProperties: [],
+        flags: 0,
+      );
       table.register(child);
 
       final result = table.lookupProperty(2, 100);
@@ -339,7 +377,12 @@ void main() {
       );
       table.register(parent2);
 
-      final child = T3TadsObject(objectId: 3, superclasses: [1, 2], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 3,
+        superclasses: [1, 2],
+        loadImageProperties: [],
+        flags: 0,
+      );
       table.register(child);
 
       // Property from first parent
@@ -357,7 +400,12 @@ void main() {
 
     test('lookupProperty returns null for undefined property', () {
       final table = T3ObjectTable();
-      final obj = T3TadsObject(objectId: 1, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 1,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
       table.register(obj);
 
       final result = table.lookupProperty(1, 999);
@@ -422,7 +470,9 @@ void main() {
       // Get MCLD for metaclass names
       final mcldBlock = image.findBlock(T3Block.typeMetaclassDep);
       expect(mcldBlock, isNotNull);
-      final metaclasses = T3MetaclassDepList.parse(image.getBlockData(mcldBlock!));
+      final metaclasses = T3MetaclassDepList.parse(
+        image.getBlockData(mcldBlock!),
+      );
 
       print('\nMetaclasses in AllHope.t3:');
       for (final dep in metaclasses.dependencies) {
@@ -440,9 +490,12 @@ void main() {
         final data = image.getBlockData(block);
         final parsed = T3ObjsBlock.parse(data);
 
-        final metaclassName = metaclasses.byIndex(parsed.metaclassIndex)?.name ?? 'unknown-${parsed.metaclassIndex}';
+        final metaclassName =
+            metaclasses.byIndex(parsed.metaclassIndex)?.name ??
+            'unknown-${parsed.metaclassIndex}';
 
-        objectsByMetaclass[metaclassName] = (objectsByMetaclass[metaclassName] ?? 0) + parsed.objectCount;
+        objectsByMetaclass[metaclassName] =
+            (objectsByMetaclass[metaclassName] ?? 0) + parsed.objectCount;
         totalObjects += parsed.objectCount;
       }
 

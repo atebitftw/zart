@@ -146,7 +146,12 @@ void main() {
 
     test('should accept properly aligned boundaries', () {
       // Spec: All boundaries must be 256-byte aligned
-      final validData = createTestHeader(ramStart: 0x100, extStart: 0x200, endMem: 0x300, stackSize: 0x100);
+      final validData = createTestHeader(
+        ramStart: 0x100,
+        extStart: 0x200,
+        endMem: 0x300,
+        stackSize: 0x100,
+      );
       expect(() => GlulxMemoryMap(validData), returnsNormally);
     });
   });
@@ -683,7 +688,9 @@ void main() {
     late Uint8List storyData;
 
     setUp(() {
-      storyData = GlulxTestUtils.loadTestGame('assets/games/glulx/monkey.gblorb');
+      storyData = GlulxTestUtils.loadTestGame(
+        'assets/games/glulx/monkey.gblorb',
+      );
     });
 
     test('should initialize and read header correctly from real game', () {

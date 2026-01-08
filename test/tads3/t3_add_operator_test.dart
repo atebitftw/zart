@@ -61,7 +61,10 @@ void main() {
     test('string + list concatenation', () {
       final s1 = interp.addDynamicString('list: ');
       final v1 = T3Value.fromString(s1);
-      final listId = interp.addDynamicList([T3Value.fromInt(1), T3Value.fromInt(2)]);
+      final listId = interp.addDynamicList([
+        T3Value.fromInt(1),
+        T3Value.fromInt(2),
+      ]);
       final v2 = T3Value.fromList(listId);
 
       interp.t3Add(v1, v2);

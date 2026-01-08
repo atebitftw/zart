@@ -11,11 +11,23 @@ void main() {
       final h = OpcodeTestHarness();
 
       // Create an object with a property that performs a side effect
-      final objId = h.interpreter.objectTable.createDynamicObject('tads-object', [], isTransient: false);
+      final objId = h.interpreter.objectTable.createDynamicObject(
+        'tads-object',
+        [],
+        isTransient: false,
+      );
 
       // Create a marker object to store the result
-      final markerObjId = h.interpreter.objectTable.createDynamicObject('tads-object', [], isTransient: false);
-      h.interpreter.setPropertyValue(T3Value.fromObject(markerObjId), 200, T3Value.fromInt(0));
+      final markerObjId = h.interpreter.objectTable.createDynamicObject(
+        'tads-object',
+        [],
+        isTransient: false,
+      );
+      h.interpreter.setPropertyValue(
+        T3Value.fromObject(markerObjId),
+        200,
+        T3Value.fromInt(0),
+      );
 
       // Add a function for prop 100 on objId
       final funcOfs = h.currentOffset;
@@ -30,7 +42,11 @@ void main() {
       h.emitUint16(200);
       h.emit(T3Opcodes.RETNIL);
 
-      h.interpreter.setPropertyValue(T3Value.fromObject(objId), 100, T3Value.fromCodeOffset(funcOfs));
+      h.interpreter.setPropertyValue(
+        T3Value.fromObject(objId),
+        100,
+        T3Value.fromCodeOffset(funcOfs),
+      );
 
       h.build();
 
@@ -39,7 +55,9 @@ void main() {
         h.interpreter.evalProperty(T3Value.fromObject(objId), 100);
       });
 
-      final val = h.interpreter.objectTable.lookupProperty(markerObjId, 200)?.value;
+      final val = h.interpreter.objectTable
+          .lookupProperty(markerObjId, 200)
+          ?.value;
       expect(val?.value, 123);
     });
   });

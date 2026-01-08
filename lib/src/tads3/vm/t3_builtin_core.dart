@@ -142,8 +142,13 @@ class T3BuiltinCore {
     _toIntOrNum(interp, argc, intOnly: false);
   }
 
-  static void _toIntOrNum(T3Interpreter interp, int argc, {required bool intOnly}) {
-    if (argc < 1) throw T3Exception('toInteger/toNumber requires at least 1 argument');
+  static void _toIntOrNum(
+    T3Interpreter interp,
+    int argc, {
+    required bool intOnly,
+  }) {
+    if (argc < 1)
+      throw T3Exception('toInteger/toNumber requires at least 1 argument');
 
     final val = interp.stack.pop();
     T3Value? radixVal;
@@ -189,7 +194,8 @@ class T3BuiltinCore {
       }
 
       // Parse as integer
-      final parsed = int.tryParse(str, radix: radix) ?? double.tryParse(str)?.toInt();
+      final parsed =
+          int.tryParse(str, radix: radix) ?? double.tryParse(str)?.toInt();
       if (parsed != null) {
         interp.registers.r0 = T3Value.fromInt(parsed);
       } else {
@@ -291,7 +297,8 @@ class T3BuiltinCore {
   /// - list of ints: create string from code points
   /// - string: repeat count times
   static void makeString(T3Interpreter interp, int argc) {
-    if (argc < 1) throw T3Exception('makeString() requires at least 1 argument');
+    if (argc < 1)
+      throw T3Exception('makeString() requires at least 1 argument');
 
     final val = interp.stack.pop();
     final count = argc >= 2 ? interp.stack.pop().numToInt() : 1;

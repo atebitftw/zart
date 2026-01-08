@@ -90,7 +90,8 @@ class T3Value {
   // ==================== Factory Constructors ====================
 
   /// Creates an inline string value.
-  factory T3Value.fromInlineString(Uint8List bytes) => T3Value(T3DataType.sstring, -1, bytes);
+  factory T3Value.fromInlineString(Uint8List bytes) =>
+      T3Value(T3DataType.sstring, -1, bytes);
 
   /// Creates a nil value.
   factory T3Value.nil() => T3Value(T3DataType.nil, 0);
@@ -111,19 +112,24 @@ class T3Value {
   factory T3Value.fromProp(int propId) => T3Value(T3DataType.prop, propId);
 
   /// Creates a constant string value.
-  factory T3Value.fromString(int poolOffset) => T3Value(T3DataType.sstring, poolOffset);
+  factory T3Value.fromString(int poolOffset) =>
+      T3Value(T3DataType.sstring, poolOffset);
 
   /// Creates a self-printing string value.
-  factory T3Value.fromDString(int poolOffset) => T3Value(T3DataType.dstring, poolOffset);
+  factory T3Value.fromDString(int poolOffset) =>
+      T3Value(T3DataType.dstring, poolOffset);
 
   /// Creates a constant list value.
-  factory T3Value.fromList(int poolOffset) => T3Value(T3DataType.list, poolOffset);
+  factory T3Value.fromList(int poolOffset) =>
+      T3Value(T3DataType.list, poolOffset);
 
   /// Creates a code offset value.
-  factory T3Value.fromCodeOffset(int offset) => T3Value(T3DataType.codeofs, offset);
+  factory T3Value.fromCodeOffset(int offset) =>
+      T3Value(T3DataType.codeofs, offset);
 
   /// Creates a function pointer value.
-  factory T3Value.fromFuncPtr(int offset) => T3Value(T3DataType.funcptr, offset);
+  factory T3Value.fromFuncPtr(int offset) =>
+      T3Value(T3DataType.funcptr, offset);
 
   /// Creates an enumeration constant value.
   factory T3Value.fromEnum(int enumVal) => T3Value(T3DataType.enum_, enumVal);
@@ -167,13 +173,15 @@ class T3Value {
 
   /// Returns true if this value represents a logical true.
   /// In T3, nil and integer 0 are false, everything else is true.
-  bool get isLogicalTrue => type != T3DataType.nil && !(type == T3DataType.int_ && value == 0);
+  bool get isLogicalTrue =>
+      type != T3DataType.nil && !(type == T3DataType.int_ && value == 0);
 
   /// Returns true if this value is numeric (currently just integer).
   bool get isNumeric => type == T3DataType.int_;
 
   /// Returns true if this value can be used as a string.
-  bool get isStringLike => type == T3DataType.sstring || type == T3DataType.dstring;
+  bool get isStringLike =>
+      type == T3DataType.sstring || type == T3DataType.dstring;
 
   // ==================== Value Extraction ====================
 

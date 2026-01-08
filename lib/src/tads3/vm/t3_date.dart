@@ -19,11 +19,23 @@ class T3Date extends T3Object {
   factory T3Date.create(int objectId, {bool isTransient = false}) {
     // Placeholder 8 bytes or similar.
     // Spec says nothing, but usually a timestamp structure.
-    return T3Date(objectId: objectId, data: Uint8List(8), isTransient: isTransient);
+    return T3Date(
+      objectId: objectId,
+      data: Uint8List(8),
+      isTransient: isTransient,
+    );
   }
 
-  factory T3Date.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
-    return T3Date(objectId: objectId, data: Uint8List.fromList(data), isTransient: isTransient);
+  factory T3Date.fromData(
+    int objectId,
+    Uint8List data, {
+    bool isTransient = false,
+  }) {
+    return T3Date(
+      objectId: objectId,
+      data: Uint8List.fromList(data),
+      isTransient: isTransient,
+    );
   }
 
   @override
@@ -42,7 +54,10 @@ class T3Date extends T3Object {
   }
 
   @override
-  Map<String, dynamic> get debugInfo => {'objectId': objectId, 'metaclass': metaclass};
+  Map<String, dynamic> get debugInfo => {
+    'objectId': objectId,
+    'metaclass': metaclass,
+  };
 }
 
 /// TimeZone object.
@@ -51,17 +66,32 @@ class T3Date extends T3Object {
 class T3TimeZone extends T3Object {
   final Uint8List _data;
 
-  T3TimeZone({required super.objectId, required Uint8List data, super.isTransient})
-    : _data = data,
-      super(metaclass: 'timezone');
+  T3TimeZone({
+    required super.objectId,
+    required Uint8List data,
+    super.isTransient,
+  }) : _data = data,
+       super(metaclass: 'timezone');
 
   factory T3TimeZone.create(int objectId, {bool isTransient = false}) {
     // Placeholder data
-    return T3TimeZone(objectId: objectId, data: Uint8List(8), isTransient: isTransient);
+    return T3TimeZone(
+      objectId: objectId,
+      data: Uint8List(8),
+      isTransient: isTransient,
+    );
   }
 
-  factory T3TimeZone.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
-    return T3TimeZone(objectId: objectId, data: Uint8List.fromList(data), isTransient: isTransient);
+  factory T3TimeZone.fromData(
+    int objectId,
+    Uint8List data, {
+    bool isTransient = false,
+  }) {
+    return T3TimeZone(
+      objectId: objectId,
+      data: Uint8List.fromList(data),
+      isTransient: isTransient,
+    );
   }
 
   @override
@@ -80,5 +110,8 @@ class T3TimeZone extends T3Object {
   }
 
   @override
-  Map<String, dynamic> get debugInfo => {'objectId': objectId, 'metaclass': metaclass};
+  Map<String, dynamic> get debugInfo => {
+    'objectId': objectId,
+    'metaclass': metaclass,
+  };
 }

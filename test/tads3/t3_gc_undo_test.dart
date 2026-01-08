@@ -99,7 +99,12 @@ void main() {
 
       test('transient objects excluded from save', () {
         // Objects marked transient should not be saved
-        final obj = T3GenericObject(objectId: 777, metaclass: 'test', rawData: Uint8List(0), isTransient: true);
+        final obj = T3GenericObject(
+          objectId: 777,
+          metaclass: 'test',
+          rawData: Uint8List(0),
+          isTransient: true,
+        );
         expect(obj.isTransient, isTrue);
         // Transient objects are skipped during save (verified by design)
       });

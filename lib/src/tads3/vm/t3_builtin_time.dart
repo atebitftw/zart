@@ -47,8 +47,14 @@ class T3BuiltinTime {
       case 3:
         // Return parser date/time list [year, day-of-year, ms-from-midnight]
         final now = DateTime.now();
-        final msFromMidnight = (now.hour * 3600 + now.minute * 60 + now.second) * 1000 + now.millisecond;
-        final list = [T3Value.fromInt(now.year), T3Value.fromInt(_dayOfYear(now)), T3Value.fromInt(msFromMidnight)];
+        final msFromMidnight =
+            (now.hour * 3600 + now.minute * 60 + now.second) * 1000 +
+            now.millisecond;
+        final list = [
+          T3Value.fromInt(now.year),
+          T3Value.fromInt(_dayOfYear(now)),
+          T3Value.fromInt(msFromMidnight),
+        ];
         final offset = interp.addDynamicList(list);
         interp.registers.r0 = T3Value.fromList(offset);
         break;

@@ -27,7 +27,9 @@ void main() async {
         offset += 2;
 
         final nameLen = blockData[offset++];
-        final identifier = String.fromCharCodes(blockData.sublist(offset, offset + nameLen));
+        final identifier = String.fromCharCodes(
+          blockData.sublist(offset, offset + nameLen),
+        );
         offset += nameLen;
 
         final propCount = blockView.getUint16(offset, Endian.little);
@@ -35,7 +37,9 @@ void main() async {
         final propEntrySize = blockView.getUint16(offset, Endian.little);
         offset += 2;
 
-        print('  [$i] $identifier: $propCount properties (entry size $propEntrySize)');
+        print(
+          '  [$i] $identifier: $propCount properties (entry size $propEntrySize)',
+        );
         for (var j = 0; j < propCount; j++) {
           final propId = blockView.getUint16(offset, Endian.little);
           offset += propEntrySize;

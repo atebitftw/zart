@@ -19,7 +19,9 @@ void main(List<String> args) async {
 
   // Manually trace first few instructions
   final codePool = interp.codePool!;
-  var ip = args.length > 1 ? int.parse(args[1]) : interp.entrypoint!.codeOffset + 10;
+  var ip = args.length > 1
+      ? int.parse(args[1])
+      : interp.entrypoint!.codeOffset + 10;
   var count = args.length > 2 ? int.parse(args[2]) : 100;
 
   print('Tracing from IP 0x${ip.toRadixString(16)}:');

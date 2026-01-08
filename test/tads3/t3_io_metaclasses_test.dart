@@ -155,7 +155,12 @@ void main() {
       test('Grammar matching', () {
         // Basic connectivity check, detailed tests are in t3_grammar_test.dart
         final gram = T3GrammarProduction.create(200);
-        final alt = T3GrammarAlt(score: 10, badness: 0, processorObjId: 5, tokens: []);
+        final alt = T3GrammarAlt(
+          score: 10,
+          badness: 0,
+          processorObjId: 5,
+          tokens: [],
+        );
         gram.addAlt(alt);
         expect(gram.alternatives.length, 1);
       });
@@ -202,9 +207,17 @@ void main() {
       test('Iterator traversal', () {
         // Create an iterator over a static list [1, 2, 3]
         final collection = T3Value.fromInt(12345); // Dummy collection ID
-        final elements = [T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)];
+        final elements = [
+          T3Value.fromInt(1),
+          T3Value.fromInt(2),
+          T3Value.fromInt(3),
+        ];
 
-        final iter = T3IteratorObject(objectId: 3, collection: collection, elements: elements);
+        final iter = T3IteratorObject(
+          objectId: 3,
+          collection: collection,
+          elements: elements,
+        );
 
         expect(iter.isNextAvailable(), isTrue);
         expect(iter.getNext().value, 1);

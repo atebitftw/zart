@@ -66,7 +66,8 @@ class T3ObjectTable {
   Iterable<int> get allIds => _objects.keys;
 
   /// Returns objects of a specific metaclass.
-  Iterable<T3Object> byMetaclass(String metaclass) => _objects.values.where((obj) => obj.metaclass == metaclass);
+  Iterable<T3Object> byMetaclass(String metaclass) =>
+      _objects.values.where((obj) => obj.metaclass == metaclass);
 
   /// Returns count of objects by metaclass.
   Map<String, int> get countByMetaclass {
@@ -131,30 +132,60 @@ class T3ObjectTable {
     final metaclassName = metaclass?.name ?? 'unknown-${block.metaclassIndex}';
 
     for (final staticObj in block.objects) {
-      final obj = _createObject(staticObj.objectId, metaclassName, staticObj.data, isTransient: staticObj.isTransient);
+      final obj = _createObject(
+        staticObj.objectId,
+        metaclassName,
+        staticObj.data,
+        isTransient: staticObj.isTransient,
+      );
       register(obj);
     }
   }
 
   /// Creates a T3Object from raw data based on metaclass name.
-  T3Object _createObject(int objectId, String metaclassName, Uint8List data, {bool isTransient = false}) {
+  T3Object _createObject(
+    int objectId,
+    String metaclassName,
+    Uint8List data, {
+    bool isTransient = false,
+  }) {
     switch (metaclassName) {
       case 'tads-object':
         return T3TadsObject.fromData(objectId, data, isTransient: isTransient);
       case 'string':
-        return T3StringObject.fromData(objectId, data, isTransient: isTransient);
+        return T3StringObject.fromData(
+          objectId,
+          data,
+          isTransient: isTransient,
+        );
       case 'list':
         return T3ListObject.fromData(objectId, data, isTransient: isTransient);
       case 'vector':
-        return T3VectorObject.fromData(objectId, data, isTransient: isTransient);
+        return T3VectorObject.fromData(
+          objectId,
+          data,
+          isTransient: isTransient,
+        );
       case 'anon-func-ptr':
-        return T3AnonFnObject.fromData(objectId, data, isTransient: isTransient);
+        return T3AnonFnObject.fromData(
+          objectId,
+          data,
+          isTransient: isTransient,
+        );
       case 'iterator':
-        return T3IteratorObject.fromData(objectId, data, isTransient: isTransient);
+        return T3IteratorObject.fromData(
+          objectId,
+          data,
+          isTransient: isTransient,
+        );
       case 'lookup-table':
         return T3LookupTable.fromData(objectId, data, isTransient: isTransient);
       case 'string-buffer':
-        return T3StringBuffer.fromData(objectId, data, isTransient: isTransient);
+        return T3StringBuffer.fromData(
+          objectId,
+          data,
+          isTransient: isTransient,
+        );
       case 'bignumber':
         return T3BigNumber.fromData(objectId, data, isTransient: isTransient);
       case 'date':
@@ -171,7 +202,12 @@ class T3ObjectTable {
         return T3File.fromData(objectId, data, isTransient: isTransient);
       default:
         // Unknown metaclass - store as generic object
-        return T3GenericObject(objectId: objectId, metaclass: metaclassName, rawData: data, isTransient: isTransient);
+        return T3GenericObject(
+          objectId: objectId,
+          metaclass: metaclassName,
+          rawData: data,
+          isTransient: isTransient,
+        );
     }
   }
 
@@ -232,7 +268,11 @@ class T3ObjectTable {
         break;
       case 'list':
         // Create a list from the constructor arguments
-        obj = T3ListObject(objectId: objId, elements: args, isTransient: isTransient);
+        obj = T3ListObject(
+          objectId: objId,
+          elements: args,
+          isTransient: isTransient,
+        );
         break;
       case 'vector':
         // Create a vector from the constructor arguments
@@ -252,7 +292,9 @@ class T3ObjectTable {
           // - Vector(sourceList): args = [sourceList]
           // - Vector(capacity, sourceList): args = [capacity, sourceList]
 
-          if (args.length >= 2 && args[0].type == T3DataType.int_ && args[1].type == T3DataType.int_) {
+          if (args.length >= 2 &&
+              args[0].type == T3DataType.int_ &&
+              args[1].type == T3DataType.int_) {
             // Vector(capacity, fillCount) - fill with nil elements
             // args[0] = capacity (first param), args[1] = fillCount (second param)
             allocatedSize = args[0].value;
@@ -261,7 +303,9 @@ class T3ObjectTable {
               elements.add(T3Value.nil());
             }
             if (allocatedSize < fillCount) allocatedSize = fillCount;
-          } else if (args.length >= 2 && args[0].type == T3DataType.int_ && (args[1].isList || args[1].isObject)) {
+          } else if (args.length >= 2 &&
+              args[0].type == T3DataType.int_ &&
+              (args[1].isList || args[1].isObject)) {
             // Vector(capacity, sourceList)
             // args[0] = capacity, args[1] = sourceList
             allocatedSize = args[0].value;
@@ -275,7 +319,8 @@ class T3ObjectTable {
                 elements = sourceObj.elements.map((e) => e.copy()).toList();
               }
             }
-            if (allocatedSize < elements.length) allocatedSize = elements.length;
+            if (allocatedSize < elements.length)
+              allocatedSize = elements.length;
           } else if (args[0].type == T3DataType.int_) {
             // Vector(capacity) - capacity only, no elements
             allocatedSize = args[0].value;
@@ -304,7 +349,12 @@ class T3ObjectTable {
         break;
       case 'anon-func-ptr':
         // Create an anonymous function object (inherits from Vector)
-        obj = T3AnonFnObject(objectId: objId, elements: args, allocatedSize: args.length, isTransient: isTransient);
+        obj = T3AnonFnObject(
+          objectId: objId,
+          elements: args,
+          allocatedSize: args.length,
+          isTransient: isTransient,
+        );
         break;
       case 'lookup-table':
       case 'lookuptable': // Handle both standard and potentially alternate forms if needed, but 'lookuptable' is the image spec form.
@@ -312,7 +362,11 @@ class T3ObjectTable {
         if (args.isNotEmpty && args[0].isInt) {
           bucketCount = args[0].value;
         }
-        obj = T3LookupTable(objectId: objId, bucketCount: bucketCount, isTransient: isTransient);
+        obj = T3LookupTable(
+          objectId: objId,
+          bucketCount: bucketCount,
+          isTransient: isTransient,
+        );
         break;
       case 'string-buffer':
       case 'stringbuffer':
@@ -326,7 +380,12 @@ class T3ObjectTable {
         } else if (args.isNotEmpty && args[0].isInt) {
           alloc = args[0].value;
         }
-        obj = T3StringBuffer(objectId: objId, allocatedSize: alloc, increment: incr, isTransient: isTransient);
+        obj = T3StringBuffer(
+          objectId: objId,
+          allocatedSize: alloc,
+          increment: incr,
+          isTransient: isTransient,
+        );
         break;
       case 'bignumber':
         // new BigNumber(val) or new BigNumber(str) or new BigNumber()
@@ -359,7 +418,12 @@ class T3ObjectTable {
         // Collection is passed as first argument, remaining args are the snapshot elements
         final collection = args.isNotEmpty ? args[0] : T3Value.nil();
         final elements = args.length > 1 ? args.sublist(1) : <T3Value>[];
-        obj = T3IteratorObject(objectId: objId, collection: collection, elements: elements, isTransient: isTransient);
+        obj = T3IteratorObject(
+          objectId: objId,
+          collection: collection,
+          elements: elements,
+          isTransient: isTransient,
+        );
         break;
       default:
         // Unknown metaclass - create as generic object

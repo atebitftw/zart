@@ -19,7 +19,12 @@ void main() {
     /// Spec: model.htm lines 715-716:
     /// "An object is referenced by its ID, which is a 32-bit value."
     test('objects are registered by ID', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       table.register(obj);
 
@@ -37,8 +42,18 @@ void main() {
 
     /// Spec: Each object ID must be unique per the object table structure.
     test('duplicate registration throws error', () {
-      final obj1 = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
-      final obj2 = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj1 = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
+      final obj2 = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       table.register(obj1);
       expect(() => table.register(obj2), throwsA(isA<StateError>()));
@@ -47,7 +62,14 @@ void main() {
     /// Spec: Object table must support efficient enumeration.
     test('count and enumeration work correctly', () {
       for (var i = 0; i < 5; i++) {
-        table.register(T3TadsObject(objectId: i, superclasses: [], loadImageProperties: [], flags: 0));
+        table.register(
+          T3TadsObject(
+            objectId: i,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        );
       }
 
       expect(table.count, 5);
@@ -101,7 +123,12 @@ void main() {
         loadImageProperties: [T3ObjectProperty(20, T3Value.fromInt(222))],
         flags: T3TadsObject.flagIsClass,
       );
-      final child = T3TadsObject(objectId: 3, superclasses: [2], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 3,
+        superclasses: [2],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       table.register(grandparent);
       table.register(parent);
@@ -150,7 +177,12 @@ void main() {
 
     /// Spec: Undefined properties should return null.
     test('property lookup returns null for undefined property', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
       table.register(obj);
 
       final result = table.lookupProperty(100, 999);
@@ -185,7 +217,9 @@ void main() {
       final parentId = table.createDynamicObject('tads-object', []);
 
       // Create child with parent as superclass
-      final childId = table.createDynamicObject('tads-object', [T3Value.fromObject(parentId)]);
+      final childId = table.createDynamicObject('tads-object', [
+        T3Value.fromObject(parentId),
+      ]);
 
       final child = table.lookup(childId);
       expect(child, isA<T3TadsObject>());
@@ -235,7 +269,12 @@ void main() {
     /// deleted by the garbage collector; the object must release any
     /// resources, such as its extension memory."
     test('remove returns removed object', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
       table.register(obj);
 
       final removed = table.remove(100);
@@ -251,7 +290,14 @@ void main() {
     /// Spec: clear removes all objects for restart scenarios.
     test('clear removes all objects', () {
       for (var i = 0; i < 5; i++) {
-        table.register(T3TadsObject(objectId: i, superclasses: [], loadImageProperties: [], flags: 0));
+        table.register(
+          T3TadsObject(
+            objectId: i,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        );
       }
 
       table.clear();
@@ -271,9 +317,23 @@ void main() {
     /// "A specific implementation of the generic object interface is
     /// called a 'metaclass.' Each generic object has a metaclass."
     test('byMetaclass returns objects of specific type', () {
-      table.register(T3TadsObject(objectId: 1, superclasses: [], loadImageProperties: [], flags: 0));
+      table.register(
+        T3TadsObject(
+          objectId: 1,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: 0,
+        ),
+      );
       table.register(T3ListObject(objectId: 2, elements: []));
-      table.register(T3TadsObject(objectId: 3, superclasses: [], loadImageProperties: [], flags: 0));
+      table.register(
+        T3TadsObject(
+          objectId: 3,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: 0,
+        ),
+      );
 
       final tadsObjects = table.byMetaclass('tads-object').toList();
       expect(tadsObjects.length, 2);
@@ -284,8 +344,22 @@ void main() {
 
     /// Spec: countByMetaclass provides object distribution summary.
     test('countByMetaclass returns accurate counts', () {
-      table.register(T3TadsObject(objectId: 1, superclasses: [], loadImageProperties: [], flags: 0));
-      table.register(T3TadsObject(objectId: 2, superclasses: [], loadImageProperties: [], flags: 0));
+      table.register(
+        T3TadsObject(
+          objectId: 1,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: 0,
+        ),
+      );
+      table.register(
+        T3TadsObject(
+          objectId: 2,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: 0,
+        ),
+      );
       table.register(T3ListObject(objectId: 3, elements: []));
 
       final counts = table.countByMetaclass;
@@ -300,7 +374,12 @@ void main() {
     /// (giving the primitive type and data value), and sets the given
     /// property of the object to the given value."
     test('setProperty adds or updates property', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       obj.setProperty(10, T3Value.fromInt(42));
       expect(obj.getProperty(10)?.value, 42);
@@ -313,7 +392,12 @@ void main() {
     /// "Get a property value... returns the value of the given property
     /// and whether the property exists in the object or not."
     test('getProperty returns null for undefined property', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       expect(obj.getProperty(999), isNull);
     });

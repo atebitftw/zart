@@ -27,7 +27,9 @@ void main(List<String> args) async {
     await interp.run();
     print('Execution finished.');
   } catch (e, stack) {
-    print('Execution stopped at IP 0x${interp.registers.ip.toRadixString(16)}: $e');
+    print(
+      'Execution stopped at IP 0x${interp.registers.ip.toRadixString(16)}: $e',
+    );
     print('Registers: ${interp.debugInfo()}');
     print(stack);
   }

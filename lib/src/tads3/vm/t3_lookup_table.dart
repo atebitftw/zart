@@ -45,8 +45,11 @@ class T3LookupTable extends T3Object {
   /// Default value for missing keys.
   T3Value defaultValue = T3Value.nil();
 
-  T3LookupTable({required super.objectId, required this.bucketCount, super.isTransient})
-    : super(metaclass: 'lookuptable');
+  T3LookupTable({
+    required super.objectId,
+    required this.bucketCount,
+    super.isTransient,
+  }) : super(metaclass: 'lookuptable');
 
   /// Gets the number of entries.
   int get entryCount => _data.length;
@@ -130,12 +133,20 @@ class T3LookupTable extends T3Object {
   }
 
   /// Parses a LookupTable object from image file data.
-  factory T3LookupTable.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
+  factory T3LookupTable.fromData(
+    int objectId,
+    Uint8List data, {
+    bool isTransient = false,
+  }) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     final bucketCount = view.getUint16(0, Endian.little);
     final valueCount = view.getUint16(2, Endian.little);
 
-    final table = T3LookupTable(objectId: objectId, bucketCount: bucketCount, isTransient: isTransient);
+    final table = T3LookupTable(
+      objectId: objectId,
+      bucketCount: bucketCount,
+      isTransient: isTransient,
+    );
 
     var offset = 4;
     for (var i = 0; i < valueCount; i++) {
@@ -163,8 +174,13 @@ class T3LookupTable extends T3Object {
   @override
   Uint8List save() {
     final builder = BytesBuilder();
-    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, bucketCount, Endian.little));
-    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, entryCount, Endian.little));
+    builder.add(
+      Uint8List(2)
+        ..buffer.asByteData().setUint16(0, bucketCount, Endian.little),
+    );
+    builder.add(
+      Uint8List(2)..buffer.asByteData().setUint16(0, entryCount, Endian.little),
+    );
 
     forEach((key, value) {
       final keyBuf = Uint8List(5);

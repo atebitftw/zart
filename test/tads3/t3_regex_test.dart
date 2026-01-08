@@ -63,7 +63,8 @@ class MockInterpreter implements T3Interpreter {
 
   @override
   String getStringValue(T3Value val) {
-    if (val.isString) return constantPool.readString(val.value); // Fix: use readString
+    if (val.isString)
+      return constantPool.readString(val.value); // Fix: use readString
     if (val.isObject) {
       // If tests use string objects, we'd need to mock looking them up.
       // For now tests assume constant pool strings.
@@ -167,7 +168,10 @@ void main() {
 
       // Implementation returns a list. Our mock addDynamicList returns dummy 2000.
       expect(interp.r0.value, 2000); // List ID
-      expect(interp.lastRegexMatch!.group(0), 'bar'); // lastRegexMatch is Match?
+      expect(
+        interp.lastRegexMatch!.group(0),
+        'bar',
+      ); // lastRegexMatch is Match?
       // Match doesn't have 'start' property directly exposed if strict type Match? but RegExpMatch does.
       // We can cast or use noSuchMethod dynamic dispatch for test... or explicit cast.
       // But lastRegexMatch is Match? which has 'start'. Yes it does.

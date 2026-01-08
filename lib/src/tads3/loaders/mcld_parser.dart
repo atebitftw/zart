@@ -33,7 +33,8 @@ class T3MetaclassDep {
   });
 
   @override
-  String toString() => 'T3MetaclassDep($index: $identifier, props: $propertyCount)';
+  String toString() =>
+      'T3MetaclassDep($index: $identifier, props: $propertyCount)';
 }
 
 /// Parsed MCLD (metaclass dependency) block.

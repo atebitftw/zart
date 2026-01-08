@@ -477,7 +477,11 @@ void main() {
       );
 
       for (var i = 0; i < 5; i++) {
-        expect(stack.getLocal(i).isNil, isTrue, reason: 'Local $i should be nil per spec');
+        expect(
+          stack.getLocal(i).isNil,
+          isTrue,
+          reason: 'Local $i should be nil per spec',
+        );
       }
     });
   });

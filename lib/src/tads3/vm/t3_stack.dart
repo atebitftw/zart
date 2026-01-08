@@ -235,7 +235,8 @@ class T3Stack {
   void setDefiningObject(T3Value value) => setAtFrame(fpOfsDefObj, value);
 
   /// Sets the target property for the current frame.
-  void setTargetProp(int propId) => setAtFrame(fpOfsTargetProp, T3Value.fromProp(propId));
+  void setTargetProp(int propId) =>
+      setAtFrame(fpOfsTargetProp, T3Value.fromProp(propId));
 
   /// Pushes the current frame reference (FP-5) to the stack.
   void pushFrameReference() => push(getFromFrame(fpOfsFrameRef));
@@ -273,7 +274,9 @@ class T3Stack {
     push(self); // FP-7: self
     push(invokee); // FP-6: invokee
     push(context ?? T3Value.nil()); // FP-5: frame reference
-    push(T3Value.fromInt(pushResult ? 0x0100 : 0)); // FP-4: rcdesc with push-result flag
+    push(
+      T3Value.fromInt(pushResult ? 0x0100 : 0),
+    ); // FP-4: rcdesc with push-result flag
     push(T3Value.fromCodeOffset(returnAddr)); // FP-3: return address
     push(T3Value.fromCodeOffset(entryPtr)); // FP-2: enclosing entry pointer
     push(T3Value.fromInt(argCount)); // FP-1: argument count
@@ -299,7 +302,14 @@ class T3Stack {
   }
 
   /// Returns the (returnAddr, oldFp, entryPtr, namedArgTableAddr, pushResult) for continuing execution.
-  (int returnAddr, int oldFp, int entryPtr, int namedArgTableAddr, bool pushResult) popFrame() {
+  (
+    int returnAddr,
+    int oldFp,
+    int entryPtr,
+    int namedArgTableAddr,
+    bool pushResult,
+  )
+  popFrame() {
     // Get return info from frame header
     final returnAddr = getFromFrame(fpOfsReturnAddr).value;
     final entryPtr = getFromFrame(fpOfsEntryPtr).value;

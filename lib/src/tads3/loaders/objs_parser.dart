@@ -17,7 +17,12 @@ class T3StaticObject {
   /// The raw metaclass-specific data for this object.
   final Uint8List data;
 
-  T3StaticObject({required this.objectId, required this.metaclassIndex, required this.isTransient, required this.data});
+  T3StaticObject({
+    required this.objectId,
+    required this.metaclassIndex,
+    required this.isTransient,
+    required this.data,
+  });
 
   @override
   String toString() =>
@@ -111,7 +116,12 @@ class T3ObjsBlock {
       offset += dataSize;
 
       objects.add(
-        T3StaticObject(objectId: objectId, metaclassIndex: metaclassIndex, isTransient: isTransient, data: objData),
+        T3StaticObject(
+          objectId: objectId,
+          metaclassIndex: metaclassIndex,
+          isTransient: isTransient,
+          data: objData,
+        ),
       );
     }
 

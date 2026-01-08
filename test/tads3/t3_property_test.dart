@@ -51,7 +51,12 @@ void main() {
     /// Spec: model.htm lines 576-578:
     /// "...and returns... whether the property exists in the object or not."
     test('getProperty returns null for nonexistent property', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
       interp.objectTable.register(obj);
 
       final result = interp.objectTable.lookupProperty(100, 999);
@@ -80,7 +85,10 @@ void main() {
       expect(interp.objectTable.lookupProperty(100, 3)!.value.value, 123);
       expect(interp.objectTable.lookupProperty(100, 4)!.value.isObject, isTrue);
       expect(interp.objectTable.lookupProperty(100, 5)!.value.isString, isTrue);
-      expect(interp.objectTable.lookupProperty(100, 6)!.value.isFuncPtr, isTrue);
+      expect(
+        interp.objectTable.lookupProperty(100, 6)!.value.isFuncPtr,
+        isTrue,
+      );
     });
   });
 
@@ -90,7 +98,12 @@ void main() {
     /// the primitive type and data value), and sets the given property of
     /// the object to the given value."
     test('setProperty adds new property', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       obj.setProperty(10, T3Value.fromInt(42));
 
@@ -130,7 +143,12 @@ void main() {
         loadImageProperties: [T3ObjectProperty(10, T3Value.fromInt(42))],
         flags: T3TadsObject.flagIsClass,
       );
-      final child = T3TadsObject(objectId: 100, superclasses: [50], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 100,
+        superclasses: [50],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       interp.objectTable.register(parent);
       interp.objectTable.register(child);
@@ -148,7 +166,12 @@ void main() {
         loadImageProperties: [T3ObjectProperty(10, T3Value.fromInt(42))],
         flags: T3TadsObject.flagIsClass,
       );
-      final child = T3TadsObject(objectId: 100, superclasses: [50], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 100,
+        superclasses: [50],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       interp.objectTable.register(parent);
       interp.objectTable.register(child);
@@ -198,7 +221,12 @@ void main() {
         loadImageProperties: [],
         flags: T3TadsObject.flagIsClass,
       );
-      final child = T3TadsObject(objectId: 3, superclasses: [2], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 3,
+        superclasses: [2],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       interp.objectTable.register(grandparent);
       interp.objectTable.register(parent);
@@ -248,7 +276,10 @@ void main() {
     /// of other objects (strings and lists, for example, are never
     /// subclasses)."
     test('ListObject has elements property', () {
-      final list = T3ListObject(objectId: 100, elements: [T3Value.fromInt(1), T3Value.fromInt(2)]);
+      final list = T3ListObject(
+        objectId: 100,
+        elements: [T3Value.fromInt(1), T3Value.fromInt(2)],
+      );
 
       expect(list.elements.length, 2);
       expect(list.elements[0].value, 1);

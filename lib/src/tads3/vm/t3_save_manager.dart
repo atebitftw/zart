@@ -92,10 +92,16 @@ class T3SaveManager {
     final dataSize = totalData.length - dataStart;
 
     // Fill in size and CRC in the header
-    final finalView = ByteData.view(totalData.buffer, totalData.offsetInBytes, totalData.length);
+    final finalView = ByteData.view(
+      totalData.buffer,
+      totalData.offsetInBytes,
+      totalData.length,
+    );
     finalView.setUint32(17, dataSize, Endian.little);
 
-    final crcData = totalData.sublist(17 + 8); // CRC is over everything after size/checksum (8 bytes)
+    final crcData = totalData.sublist(
+      17 + 8,
+    ); // CRC is over everything after size/checksum (8 bytes)
     final crc = calculateCrc32(crcData);
     finalView.setUint32(17 + 4, crc, Endian.little);
 
@@ -107,7 +113,10 @@ class T3SaveManager {
     final mcData = BytesBuilder();
     final metaclasses = vm.metaclasses.dependencies as List<dynamic>;
 
-    mcData.add(Uint8List(2)..buffer.asByteData().setUint16(0, metaclasses.length, Endian.little));
+    mcData.add(
+      Uint8List(2)
+        ..buffer.asByteData().setUint16(0, metaclasses.length, Endian.little),
+    );
 
     for (final dep in metaclasses) {
       final nameBytes = dep.identifier.codeUnits;
@@ -116,30 +125,51 @@ class T3SaveManager {
     }
 
     final mcBytes = mcData.toBytes();
-    b.add(Uint8List(4)..buffer.asByteData().setUint32(0, mcBytes.length, Endian.little));
+    b.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, mcBytes.length, Endian.little),
+    );
     b.add(mcBytes);
   }
 
   static void _saveObjects(dynamic vm, BytesBuilder b) {
     b.add('OBJS'.codeUnits);
     final objData = BytesBuilder();
-    final allObjects = (vm.objectTable.all as Iterable<dynamic>).where((o) => !o.isTransient).toList();
+    final allObjects = (vm.objectTable.all as Iterable<dynamic>)
+        .where((o) => !o.isTransient)
+        .toList();
 
-    objData.add(Uint8List(4)..buffer.asByteData().setUint32(0, allObjects.length, Endian.little));
+    objData.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, allObjects.length, Endian.little),
+    );
 
     for (final obj in allObjects) {
       final mcIdx = vm.metaclasses.indexOf(obj.metaclass);
       final saved = obj.save() as Uint8List;
 
-      objData.add(Uint8List(4)..buffer.asByteData().setUint32(0, obj.objectId, Endian.little));
-      objData.add(Uint8List(4)..buffer.asByteData().setUint32(0, 0, Endian.little)); // flags
-      objData.add(Uint8List(2)..buffer.asByteData().setUint16(0, mcIdx, Endian.little));
-      objData.add(Uint8List(2)..buffer.asByteData().setUint16(0, saved.length, Endian.little));
+      objData.add(
+        Uint8List(4)
+          ..buffer.asByteData().setUint32(0, obj.objectId, Endian.little),
+      );
+      objData.add(
+        Uint8List(4)..buffer.asByteData().setUint32(0, 0, Endian.little),
+      ); // flags
+      objData.add(
+        Uint8List(2)..buffer.asByteData().setUint16(0, mcIdx, Endian.little),
+      );
+      objData.add(
+        Uint8List(2)
+          ..buffer.asByteData().setUint16(0, saved.length, Endian.little),
+      );
       objData.add(saved);
     }
 
     final objBytes = objData.toBytes();
-    b.add(Uint8List(4)..buffer.asByteData().setUint32(0, objBytes.length, Endian.little));
+    b.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, objBytes.length, Endian.little),
+    );
     b.add(objBytes);
   }
 
@@ -148,7 +178,10 @@ class T3SaveManager {
     final symData = BytesBuilder();
     final symbols = vm.symbols as Map<String, dynamic>;
 
-    symData.add(Uint8List(4)..buffer.asByteData().setUint32(0, symbols.length, Endian.little));
+    symData.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, symbols.length, Endian.little),
+    );
 
     for (final entry in symbols.entries) {
       final valBuf = Uint8List(5);
@@ -161,7 +194,10 @@ class T3SaveManager {
     }
 
     final symBytes = symData.toBytes();
-    b.add(Uint8List(4)..buffer.asByteData().setUint32(0, symBytes.length, Endian.little));
+    b.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, symBytes.length, Endian.little),
+    );
     b.add(symBytes);
   }
 
@@ -169,24 +205,41 @@ class T3SaveManager {
     // 1. REGS block
     b.add('REGS'.codeUnits);
     final regsData = BytesBuilder();
-    regsData.add(Uint8List(4)..buffer.asByteData().setUint32(0, vm.registers.ip, Endian.little));
-    regsData.add(Uint8List(4)..buffer.asByteData().setUint32(0, vm.registers.ep, Endian.little));
-    regsData.add(Uint8List(4)..buffer.asByteData().setUint32(0, vm.stack.sp, Endian.little));
-    regsData.add(Uint8List(4)..buffer.asByteData().setUint32(0, vm.stack.fp, Endian.little));
+    regsData.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, vm.registers.ip, Endian.little),
+    );
+    regsData.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, vm.registers.ep, Endian.little),
+    );
+    regsData.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, vm.stack.sp, Endian.little),
+    );
+    regsData.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, vm.stack.fp, Endian.little),
+    );
 
     final r0Buf = Uint8List(5);
     vm.registers.r0.toPortable(r0Buf, 0);
     regsData.add(r0Buf);
 
     final regsBytes = regsData.toBytes();
-    b.add(Uint8List(4)..buffer.asByteData().setUint32(0, regsBytes.length, Endian.little));
+    b.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, regsBytes.length, Endian.little),
+    );
     b.add(regsBytes);
 
     // 2. STAK block
     b.add('STAK'.codeUnits);
     final stakData = BytesBuilder();
     final depth = vm.stack.sp;
-    stakData.add(Uint8List(4)..buffer.asByteData().setUint32(0, depth, Endian.little));
+    stakData.add(
+      Uint8List(4)..buffer.asByteData().setUint32(0, depth, Endian.little),
+    );
 
     for (var i = 0; i < depth; i++) {
       final valBuf = Uint8List(5);
@@ -195,7 +248,10 @@ class T3SaveManager {
     }
 
     final stakBytes = stakData.toBytes();
-    b.add(Uint8List(4)..buffer.asByteData().setUint32(0, stakBytes.length, Endian.little));
+    b.add(
+      Uint8List(4)
+        ..buffer.asByteData().setUint32(0, stakBytes.length, Endian.little),
+    );
     b.add(stakBytes);
   }
 
@@ -213,7 +269,9 @@ class T3SaveManager {
     final actualCrc = calculateCrc32(crcData);
     if (actualCrc != expectedCrc) {
       // For now, just log it, don't throw yet to allow testing incomplete saves
-      print('Warning: Save file CRC mismatch (expected: $expectedCrc, actual: $actualCrc)');
+      print(
+        'Warning: Save file CRC mismatch (expected: $expectedCrc, actual: $actualCrc)',
+      );
     }
 
     var offset = 17 + 8;
@@ -319,7 +377,8 @@ class T3SaveManager {
   static void _loadStack(dynamic vm, Uint8List data) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     final depth = view.getUint32(0, Endian.little);
-    vm.stack.sp = depth; // Actually redundant if restored from REGS, but needed for subsequent parsing logic if any
+    vm.stack.sp =
+        depth; // Actually redundant if restored from REGS, but needed for subsequent parsing logic if any
 
     var offset = 4;
     for (var i = 0; i < depth; i++) {

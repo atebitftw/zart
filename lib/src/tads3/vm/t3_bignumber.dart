@@ -21,17 +21,37 @@ class T3BigNumber extends T3Object {
   final Uint8List _data;
 
   // Parsed fields
-  int get availablePrecision => ByteData.view(_data.buffer, _data.offsetInBytes).getUint16(0, Endian.little);
-  int get actualPrecision => ByteData.view(_data.buffer, _data.offsetInBytes).getUint16(2, Endian.little);
-  int get exponent => ByteData.view(_data.buffer, _data.offsetInBytes).getInt16(4, Endian.little);
-  int get flags => ByteData.view(_data.buffer, _data.offsetInBytes).getUint16(6, Endian.little);
+  int get availablePrecision => ByteData.view(
+    _data.buffer,
+    _data.offsetInBytes,
+  ).getUint16(0, Endian.little);
+  int get actualPrecision => ByteData.view(
+    _data.buffer,
+    _data.offsetInBytes,
+  ).getUint16(2, Endian.little);
+  int get exponent => ByteData.view(
+    _data.buffer,
+    _data.offsetInBytes,
+  ).getInt16(4, Endian.little);
+  int get flags => ByteData.view(
+    _data.buffer,
+    _data.offsetInBytes,
+  ).getUint16(6, Endian.little);
 
-  T3BigNumber({required super.objectId, required Uint8List data, super.isTransient})
-    : _data = data,
-      super(metaclass: 'bignumber');
+  T3BigNumber({
+    required super.objectId,
+    required Uint8List data,
+    super.isTransient,
+  }) : _data = data,
+       super(metaclass: 'bignumber');
 
   /// Creates a new BigNumber from minimal parameters.
-  factory T3BigNumber.create(int objectId, {int precision = 16, int exponent = 0, bool isTransient = false}) {
+  factory T3BigNumber.create(
+    int objectId, {
+    int precision = 16,
+    int exponent = 0,
+    bool isTransient = false,
+  }) {
     // Basic header: 8 bytes
     final data = Uint8List(8);
     final view = ByteData.view(data.buffer);
@@ -40,12 +60,24 @@ class T3BigNumber extends T3Object {
     view.setInt16(4, exponent, Endian.little);
     view.setUint16(6, 0, Endian.little); // Flags
 
-    return T3BigNumber(objectId: objectId, data: data, isTransient: isTransient);
+    return T3BigNumber(
+      objectId: objectId,
+      data: data,
+      isTransient: isTransient,
+    );
   }
 
-  factory T3BigNumber.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
+  factory T3BigNumber.fromData(
+    int objectId,
+    Uint8List data, {
+    bool isTransient = false,
+  }) {
     // Copy data to ensure immutability if needed, or just wrap
-    return T3BigNumber(objectId: objectId, data: Uint8List.fromList(data), isTransient: isTransient);
+    return T3BigNumber(
+      objectId: objectId,
+      data: Uint8List.fromList(data),
+      isTransient: isTransient,
+    );
   }
 
   @override
@@ -74,5 +106,6 @@ class T3BigNumber extends T3Object {
   };
 
   @override
-  String toString() => 'T3BigNumber(#$objectId, prec: $availablePrecision, exp: $exponent)';
+  String toString() =>
+      'T3BigNumber(#$objectId, prec: $availablePrecision, exp: $exponent)';
 }

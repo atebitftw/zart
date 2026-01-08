@@ -55,7 +55,12 @@ class T3Block {
   final int dataOffset;
 
   /// Creates a T3Block with the given properties.
-  T3Block({required this.type, required this.dataSize, required this.flags, required this.dataOffset});
+  T3Block({
+    required this.type,
+    required this.dataSize,
+    required this.flags,
+    required this.dataOffset,
+  });
 
   /// Returns true if this block is mandatory (must be understood by the interpreter).
   bool get isMandatory => (flags & flagMandatory) != 0;
@@ -83,7 +88,12 @@ class T3Block {
     // Read flags (little-endian 16-bit)
     final flags = view.getUint16(flagsOffset, Endian.little);
 
-    return T3Block(type: type, dataSize: size, flags: flags, dataOffset: fileOffset + headerSize);
+    return T3Block(
+      type: type,
+      dataSize: size,
+      flags: flags,
+      dataOffset: fileOffset + headerSize,
+    );
   }
 
   @override

@@ -18,7 +18,8 @@ enum T3GrammarMatchType {
   final int id;
   const T3GrammarMatchType(this.id);
 
-  static T3GrammarMatchType fromId(int id) => values.firstWhere((e) => e.id == id, orElse: () => undef);
+  static T3GrammarMatchType fromId(int id) =>
+      values.firstWhere((e) => e.id == id, orElse: () => undef);
 }
 
 /// Token in a grammar rule alternative.
@@ -47,7 +48,12 @@ class T3GrammarAlt {
   final int processorObjId;
   final List<T3GrammarToken> tokens;
 
-  T3GrammarAlt({required this.score, required this.badness, required this.processorObjId, required this.tokens});
+  T3GrammarAlt({
+    required this.score,
+    required this.badness,
+    required this.processorObjId,
+    required this.tokens,
+  });
 }
 
 /// TADS 3 GrammarProduction Metaclass.
@@ -58,7 +64,8 @@ class T3GrammarProduction extends T3Object {
   /// List of alternatives for this production.
   final List<T3GrammarAlt> alternatives = [];
 
-  T3GrammarProduction({required super.objectId, super.isTransient = false}) : super(metaclass: metaclassName);
+  T3GrammarProduction({required super.objectId, super.isTransient = false})
+    : super(metaclass: metaclassName);
 
   /// Creates a new grammar production.
   static T3GrammarProduction create(int objectId) {
@@ -157,10 +164,19 @@ class T3GrammarProduction extends T3Object {
             // No extra data
             break;
         }
-        tokens.add(T3GrammarToken(propId: propId, matchType: type, extra: extra));
+        tokens.add(
+          T3GrammarToken(propId: propId, matchType: type, extra: extra),
+        );
       }
 
-      prod.addAlt(T3GrammarAlt(score: score, badness: badness, processorObjId: procId, tokens: tokens));
+      prod.addAlt(
+        T3GrammarAlt(
+          score: score,
+          badness: badness,
+          processorObjId: procId,
+          tokens: tokens,
+        ),
+      );
     }
 
     return prod;
@@ -241,9 +257,15 @@ class T3GrammarProduction extends T3Object {
 
   @override
   void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
-    throw UnsupportedError('GrammarProduction objects are immutable (via setProperty). Use intrinsic methods.');
+    throw UnsupportedError(
+      'GrammarProduction objects are immutable (via setProperty). Use intrinsic methods.',
+    );
   }
 
   @override
-  Map<String, dynamic> get debugInfo => {'objectId': objectId, 'metaclass': metaclass, 'altCount': alternatives.length};
+  Map<String, dynamic> get debugInfo => {
+    'objectId': objectId,
+    'metaclass': metaclass,
+    'altCount': alternatives.length,
+  };
 }

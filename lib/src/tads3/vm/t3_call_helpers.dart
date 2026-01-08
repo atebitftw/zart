@@ -32,7 +32,12 @@ mixin T3CallHelpers {
     int? namedArgTableAddr,
     T3Value? context,
   });
-  void evalProperty(T3Value target, int propId, {int? argc, int? namedArgTableAddr});
+  void evalProperty(
+    T3Value target,
+    int propId, {
+    int? argc,
+    int? namedArgTableAddr,
+  });
   void callBuiltin(int setIdx, int funcIdx, int argc);
 
   // ==================== Call Opcode Helpers ====================
@@ -58,10 +63,19 @@ mixin T3CallHelpers {
       // Handle anon-func-ptr objects
       final codeOfs = getCallableOffset(funcPtr.value);
       if (codeOfs != null) {
-        callFunction(codeOfs, argc, self: funcPtr, invokee: funcPtr, context: funcPtr, namedArgTableAddr: namedArgs);
+        callFunction(
+          codeOfs,
+          argc,
+          self: funcPtr,
+          invokee: funcPtr,
+          context: funcPtr,
+          namedArgTableAddr: namedArgs,
+        );
       } else {
         final obj = callObjectTable.lookup(funcPtr.value);
-        final elementsStr = (obj is T3VectorObject) ? obj.elements.toString() : 'N/A';
+        final elementsStr = (obj is T3VectorObject)
+            ? obj.elements.toString()
+            : 'N/A';
         throw T3Exception(
           'PTRCALL: object ${funcPtr.value} is not callable '
           '(metaclass: ${obj?.metaclass}, '
@@ -70,7 +84,9 @@ mixin T3CallHelpers {
         );
       }
     } else {
-      throw T3Exception('PTRCALL requires function pointer, got ${funcPtr.type}');
+      throw T3Exception(
+        'PTRCALL requires function pointer, got ${funcPtr.type}',
+      );
     }
   }
 
@@ -124,7 +140,12 @@ mixin T3CallHelpers {
 
     final namedArgs = pendingNamedArgTableAddr;
     clearPendingNamedArgTable();
-    evalProperty(callRegisters.r0, propId, argc: argc, namedArgTableAddr: namedArgs);
+    evalProperty(
+      callRegisters.r0,
+      propId,
+      argc: argc,
+      namedArgTableAddr: namedArgs,
+    );
   }
 
   /// Handles BUILTIN_A/B/C/D opcodes - calls builtin from specified set.

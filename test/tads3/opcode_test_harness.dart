@@ -104,7 +104,12 @@ class OpcodeTestHarness {
   final List<T3ExceptionRecord> _exceptions = [];
 
   /// Adds an exception handler to the current method.
-  void addExceptionHandler(int startAddr, int endAddr, int handlerAddr, int exceptionClass) {
+  void addExceptionHandler(
+    int startAddr,
+    int endAddr,
+    int handlerAddr,
+    int exceptionClass,
+  ) {
     _exceptions.add(
       T3ExceptionRecord(
         startAddr: startAddr,
@@ -152,15 +157,29 @@ class OpcodeTestHarness {
     final bytecodeBytes = _bytecode.toBytes();
 
     // Create code pool and load bytecode
-    final pool = T3CodePool(poolId: 1, pageCount: 1, pageSize: bytecodeBytes.length + 1024);
-    pool.loadPage(0, Uint8List.fromList([...bytecodeBytes, ...List.filled(1024, 0)]));
+    final pool = T3CodePool(
+      poolId: 1,
+      pageCount: 1,
+      pageSize: bytecodeBytes.length + 1024,
+    );
+    pool.loadPage(
+      0,
+      Uint8List.fromList([...bytecodeBytes, ...List.filled(1024, 0)]),
+    );
     interpreter.codePool = pool;
 
     // Create constant pool if we have constant data
     final constBytes = _constantData.toBytes();
     if (constBytes.isNotEmpty) {
-      final constantPool = T3ConstantPool(poolId: 2, pageCount: 1, pageSize: constBytes.length + 1024);
-      constantPool.loadPage(0, Uint8List.fromList([...constBytes, ...List.filled(1024, 0)]));
+      final constantPool = T3ConstantPool(
+        poolId: 2,
+        pageCount: 1,
+        pageSize: constBytes.length + 1024,
+      );
+      constantPool.loadPage(
+        0,
+        Uint8List.fromList([...constBytes, ...List.filled(1024, 0)]),
+      );
       interpreter.constantPool = constantPool;
     }
 
@@ -250,7 +269,8 @@ class OpcodeTestHarness {
   void run({int maxInstructions = 1000}) {
     for (var i = 0; i < maxInstructions; i++) {
       final result = step();
-      if (result == T3ExecutionResult.quit || result == T3ExecutionResult.error) {
+      if (result == T3ExecutionResult.quit ||
+          result == T3ExecutionResult.error) {
         return;
       }
     }
@@ -398,7 +418,11 @@ class OpcodeTestHarness {
 
   /// Creates a dynamic iterator object.
   int createIteratorObject(int objectId, List<T3Value> elements) {
-    final obj = T3IteratorObject(objectId: objectId, collection: T3Value.nil(), elements: elements);
+    final obj = T3IteratorObject(
+      objectId: objectId,
+      collection: T3Value.nil(),
+      elements: elements,
+    );
     interpreter.objectTable.register(obj);
     return objectId;
   }
@@ -434,7 +458,15 @@ class OpcodeTestHarness {
   void registerMetaclasses(List<String> names) {
     final deps = <T3MetaclassDep>[];
     for (var i = 0; i < names.length; i++) {
-      deps.add(T3MetaclassDep(identifier: names[i], index: i, name: names[i], propertyCount: 0, propertyIds: []));
+      deps.add(
+        T3MetaclassDep(
+          identifier: names[i],
+          index: i,
+          name: names[i],
+          propertyCount: 0,
+          propertyIds: [],
+        ),
+      );
     }
     interpreter.metaclasses = T3MetaclassDepList(deps);
   }
@@ -467,7 +499,8 @@ class OpcodeTestHarness {
   }) {
     // 10-byte standard header
     return [
-      argCount & 0xFF | (isVarargs != 0 ? 0x80 : 0), // argc (minArgs + varargs flag)
+      argCount & 0xFF |
+          (isVarargs != 0 ? 0x80 : 0), // argc (minArgs + varargs flag)
       0x00, // optionalArgc
       localCount & 0xFF, // stack_size (locals)
       localCount >> 8,

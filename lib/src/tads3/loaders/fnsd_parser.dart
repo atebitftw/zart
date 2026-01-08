@@ -17,7 +17,12 @@ class T3FunctionSetDep {
   /// The version number, or null if not specified.
   final int? version;
 
-  T3FunctionSetDep({required this.identifier, required this.index, required this.name, this.version});
+  T3FunctionSetDep({
+    required this.identifier,
+    required this.index,
+    required this.name,
+    this.version,
+  });
 
   @override
   String toString() => 'T3FunctionSetDep($index: $identifier)';
@@ -72,7 +77,14 @@ class T3FunctionSetDepList {
         version = null;
       }
 
-      deps.add(T3FunctionSetDep(identifier: identifier, index: i, name: name, version: version));
+      deps.add(
+        T3FunctionSetDep(
+          identifier: identifier,
+          index: i,
+          name: name,
+          version: version,
+        ),
+      );
     }
 
     return T3FunctionSetDepList(deps);

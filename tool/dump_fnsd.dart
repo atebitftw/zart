@@ -19,7 +19,9 @@ void main() async {
       int off = 2;
       for (int i = 0; i < count; i++) {
         final nameLen = blockData[off];
-        final name = String.fromCharCodes(blockData.sublist(off + 1, off + 1 + nameLen));
+        final name = String.fromCharCodes(
+          blockData.sublist(off + 1, off + 1 + nameLen),
+        );
         off += 1 + nameLen;
         print('  $i: $name');
       }

@@ -35,7 +35,9 @@ void main(List<String> args) async {
       final pageIdx = blockView.getUint32(2, Endian.little);
       final xorMask = blockData[6];
       if (poolId == 1) {
-        print('Found CPPG for Code Pool: pageIdx=$pageIdx, size=${size - 7}, xorMask=$xorMask');
+        print(
+          'Found CPPG for Code Pool: pageIdx=$pageIdx, size=${size - 7}, xorMask=$xorMask',
+        );
         var pageData = blockData.sublist(7);
         if (xorMask != 0) {
           pageData = Uint8List.fromList([for (var b in pageData) b ^ xorMask]);
@@ -59,14 +61,18 @@ void main(List<String> args) async {
   }
 
   final targetStr = args[0];
-  final targetOffset = targetStr.startsWith('0x') ? int.parse(targetStr.substring(2), radix: 16) : int.parse(targetStr);
+  final targetOffset = targetStr.startsWith('0x')
+      ? int.parse(targetStr.substring(2), radix: 16)
+      : int.parse(targetStr);
 
   final range = args.length > 1 ? int.parse(args[1]) : 32;
 
   final pageIdx = targetOffset ~/ codePoolPageSize;
   final pageOff = targetOffset % codePoolPageSize;
 
-  print('Targeting offset 0x${targetOffset.toRadixString(16)} -> Page $pageIdx, Offset 0x${pageOff.toRadixString(16)}');
+  print(
+    'Targeting offset 0x${targetOffset.toRadixString(16)} -> Page $pageIdx, Offset 0x${pageOff.toRadixString(16)}',
+  );
 
   final page = codePages[pageIdx];
   if (page == null) {

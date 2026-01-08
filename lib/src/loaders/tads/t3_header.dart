@@ -73,13 +73,17 @@ class T3Header {
   int get version => _view.getUint16(versionOffset, Endian.little);
 
   /// The reserved bytes (32 bytes, should be zero).
-  Uint8List get reservedBytes => _data.sublist(reservedOffset, reservedOffset + reservedLength);
+  Uint8List get reservedBytes =>
+      _data.sublist(reservedOffset, reservedOffset + reservedLength);
 
   /// The compilation timestamp as an ASCII string.
   ///
   /// Format: "Day Mon DD HH:MM:SS YYYY" (e.g., "Sat Feb 25 09:24:39 2006").
   String get timestamp {
-    final bytes = _data.sublist(timestampOffset, timestampOffset + timestampLength);
+    final bytes = _data.sublist(
+      timestampOffset,
+      timestampOffset + timestampLength,
+    );
     // Find null terminator if present
     var end = bytes.indexOf(0);
     if (end == -1) end = timestampLength;

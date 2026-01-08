@@ -81,7 +81,9 @@ class T3Image {
   /// Returns the block data for a given block.
   Uint8List getBlockData(T3Block block) {
     if (block.dataOffset + block.dataSize > _data.length) {
-      throw T3Exception('Block data extends beyond file: offset=${block.dataOffset}, size=${block.dataSize}');
+      throw T3Exception(
+        'Block data extends beyond file: offset=${block.dataOffset}, size=${block.dataSize}',
+      );
     }
     return _data.sublist(block.dataOffset, block.dataOffset + block.dataSize);
   }
@@ -106,5 +108,6 @@ class T3Image {
   int get blockCount => blocks.length;
 
   @override
-  String toString() => 'T3Image(version: ${header.version}, timestamp: "${header.timestamp}", blocks: $blockCount)';
+  String toString() =>
+      'T3Image(version: ${header.version}, timestamp: "${header.timestamp}", blocks: $blockCount)';
 }

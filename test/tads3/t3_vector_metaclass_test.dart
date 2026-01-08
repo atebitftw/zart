@@ -331,7 +331,11 @@ void main() {
     });
 
     test('is mutable', () {
-      final vector = T3VectorObject(objectId: 100, elements: [T3Value.fromInt(1)], allocatedSize: 10);
+      final vector = T3VectorObject(
+        objectId: 100,
+        elements: [T3Value.fromInt(1)],
+        allocatedSize: 10,
+      );
       vector.elements.add(T3Value.fromInt(2));
       expect(vector.elements.length, 2);
     });

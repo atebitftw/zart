@@ -26,8 +26,11 @@ class T3ConstantPool {
   final List<Uint8List?> _pages;
 
   /// Creates a constant pool with the specified structure.
-  T3ConstantPool({required this.poolId, required this.pageCount, required this.pageSize})
-    : _pages = List<Uint8List?>.filled(pageCount, null);
+  T3ConstantPool({
+    required this.poolId,
+    required this.pageCount,
+    required this.pageSize,
+  }) : _pages = List<Uint8List?>.filled(pageCount, null);
 
   /// Loads a page from CPPG block data.
   void loadPage(int pageIndex, Uint8List data) {
@@ -88,7 +91,10 @@ class T3ConstantPool {
     if (page == null) {
       throw StateError('Page $pageIndex not loaded');
     }
-    return page[pageOffset] | (page[pageOffset + 1] << 8) | (page[pageOffset + 2] << 16) | (page[pageOffset + 3] << 24);
+    return page[pageOffset] |
+        (page[pageOffset + 1] << 8) |
+        (page[pageOffset + 2] << 16) |
+        (page[pageOffset + 3] << 24);
   }
 
   /// Reads a 32-bit signed integer (little-endian) at the given offset.
@@ -151,5 +157,6 @@ class T3ConstantPool {
   // ==================== Utility ====================
 
   @override
-  String toString() => 'T3ConstantPool(id: $poolId, pages: $pageCount, pageSize: $pageSize)';
+  String toString() =>
+      'T3ConstantPool(id: $poolId, pages: $pageCount, pageSize: $pageSize)';
 }

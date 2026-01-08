@@ -51,30 +51,40 @@ void main(List<String> args) async {
   print('');
 
   // Read function header at entrypoint
-  print('Function header at entrypoint (offset 0x${entryOffset.toRadixString(16)}):');
+  print(
+    'Function header at entrypoint (offset 0x${entryOffset.toRadixString(16)}):',
+  );
   final headerBytes = codePool.readBytes(entryOffset, 10);
   for (int i = 0; i < 10; i++) {
-    print('  +$i: 0x${headerBytes[i].toRadixString(16).padLeft(2, '0')} (${headerBytes[i]})');
+    print(
+      '  +$i: 0x${headerBytes[i].toRadixString(16).padLeft(2, '0')} (${headerBytes[i]})',
+    );
   }
   print('');
 
   // Parse header
   print('Parsed header:');
   print('  argc: ${headerBytes[0]} (0x${headerBytes[0].toRadixString(16)})');
-  print('  optionalArgc: ${headerBytes[1]} (0x${headerBytes[1].toRadixString(16)})');
+  print(
+    '  optionalArgc: ${headerBytes[1]} (0x${headerBytes[1].toRadixString(16)})',
+  );
   final localCount = headerBytes[2] | (headerBytes[3] << 8);
   print('  localCount: $localCount (0x${localCount.toRadixString(16)})');
   final stackDepth = headerBytes[4] | (headerBytes[5] << 8);
   print('  stackDepth: $stackDepth (0x${stackDepth.toRadixString(16)})');
   final exceptionTableOffset = headerBytes[6] | (headerBytes[7] << 8);
-  print('  exceptionTableOffset: $exceptionTableOffset (0x${exceptionTableOffset.toRadixString(16)})');
+  print(
+    '  exceptionTableOffset: $exceptionTableOffset (0x${exceptionTableOffset.toRadixString(16)})',
+  );
   final debugOffset = headerBytes[8] | (headerBytes[9] << 8);
   print('  debugOffset: $debugOffset (0x${debugOffset.toRadixString(16)})');
   print('');
 
   // Show first bytecode instruction
   final firstInstructionOffset = entryOffset + 10;
-  print('First instruction at offset 0x${firstInstructionOffset.toRadixString(16)}:');
+  print(
+    'First instruction at offset 0x${firstInstructionOffset.toRadixString(16)}:',
+  );
   for (int i = 0; i < 16; i++) {
     final offset = firstInstructionOffset + i;
     final byte = codePool.readByte(offset);
@@ -120,9 +130,12 @@ void main(List<String> args) async {
           final offset = codePool.readUint32(ip + 1);
           extra = ' offset=$offset';
           len = 5;
-        } else if (opcodeName == 'JMP' || opcodeName == 'JT' || opcodeName == 'JF') {
+        } else if (opcodeName == 'JMP' ||
+            opcodeName == 'JT' ||
+            opcodeName == 'JF') {
           final offset = codePool.readInt16(ip + 1);
-          extra = ' target=${(ip + offset + 3).toRadixString(16)}'; // relative to next instruction
+          extra =
+              ' target=${(ip + offset + 3).toRadixString(16)}'; // relative to next instruction
           len = 3;
         }
       } catch (e) {

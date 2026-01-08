@@ -6,41 +6,47 @@ import 'opcode_test_harness.dart';
 
 void main() {
   group('T3 List Expansion and Parameter Collection', () {
-    test('PUSHPARLST creates empty list when no excess args (fixedCount == actualArgc)', () {
-      final h = OpcodeTestHarness();
-      // Setup frame with 0 arguments
-      h.addArgs([]);
+    test(
+      'PUSHPARLST creates empty list when no excess args (fixedCount == actualArgc)',
+      () {
+        final h = OpcodeTestHarness();
+        // Setup frame with 0 arguments
+        h.addArgs([]);
 
-      h.emit(T3Opcodes.PUSHPARLST);
-      h.emitByte(0); // fixed parameters count
+        h.emit(T3Opcodes.PUSHPARLST);
+        h.emitByte(0); // fixed parameters count
 
-      h.build(argCount: 0);
-      h.step();
+        h.build(argCount: 0);
+        h.step();
 
-      // Should satisfy: proper list object, empty elements
-      final result = h.peek();
-      expect(result.isList, isTrue);
+        // Should satisfy: proper list object, empty elements
+        final result = h.peek();
+        expect(result.isList, isTrue);
 
-      final elements = h.getListValues(result);
-      expect(elements, isEmpty);
-    });
+        final elements = h.getListValues(result);
+        expect(elements, isEmpty);
+      },
+    );
 
-    test('PUSHPARLST creates empty list when fixedCount == actualArgc (non-zero args)', () {
-      final h = OpcodeTestHarness();
-      // Setup frame with 2 arguments
-      h.addArgs([T3Value.fromInt(1), T3Value.fromInt(2)]);
+    test(
+      'PUSHPARLST creates empty list when fixedCount == actualArgc (non-zero args)',
+      () {
+        final h = OpcodeTestHarness();
+        // Setup frame with 2 arguments
+        h.addArgs([T3Value.fromInt(1), T3Value.fromInt(2)]);
 
-      h.emit(T3Opcodes.PUSHPARLST);
-      h.emitByte(2); // fixed parameters count = 2
+        h.emit(T3Opcodes.PUSHPARLST);
+        h.emitByte(2); // fixed parameters count = 2
 
-      h.build(argCount: 2);
-      h.step();
+        h.build(argCount: 2);
+        h.step();
 
-      final result = h.peek();
-      expect(result.isList, isTrue);
-      final elements = h.getListValues(result);
-      expect(elements, isEmpty);
-    });
+        final result = h.peek();
+        expect(result.isList, isTrue);
+        final elements = h.getListValues(result);
+        expect(elements, isEmpty);
+      },
+    );
 
     test('PUSHPARLST collects excess args into list', () {
       final h = OpcodeTestHarness();

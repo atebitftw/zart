@@ -38,7 +38,9 @@ import 'package:zart/src/tads3/vm/t3_save_manager.dart';
 /// interpreter.load(gameData);
 /// await interpreter.run();
 /// ```
-class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers implements TUndoContext {
+class T3Interpreter
+    with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers
+    implements TUndoContext {
   // ==================== VM State ====================
 
   int? _pendingNamedArgTableAddr;
@@ -60,7 +62,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
   @override
   int get helperNextDynamicStringOffset => _nextDynamicStringOffset;
   @override
-  set helperNextDynamicStringOffset(int value) => _nextDynamicStringOffset = value;
+  set helperNextDynamicStringOffset(int value) =>
+      _nextDynamicStringOffset = value;
 
   @override
   T3UndoManager get helperUndoManager => undoManager;
@@ -104,10 +107,20 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     context: context,
   );
   @override
-  void evalProperty(T3Value target, int propId, {int? argc, int? namedArgTableAddr}) =>
-      execEvalProperty(target, propId, argc: argc, namedArgTableAddr: namedArgTableAddr);
+  void evalProperty(
+    T3Value target,
+    int propId, {
+    int? argc,
+    int? namedArgTableAddr,
+  }) => execEvalProperty(
+    target,
+    propId,
+    argc: argc,
+    namedArgTableAddr: namedArgTableAddr,
+  );
   @override
-  void callBuiltin(int setIdx, int funcIdx, int argc) => execCallBuiltin(setIdx, funcIdx, argc);
+  void callBuiltin(int setIdx, int funcIdx, int argc) =>
+      execCallBuiltin(setIdx, funcIdx, argc);
 
   // Mixin accessors for T3ExecutionHelpers
   @override
@@ -137,7 +150,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
   @override
   int get execNextDynamicStringOffset => _nextDynamicStringOffset;
   @override
-  set execNextDynamicStringOffset(int value) => _nextDynamicStringOffset = value;
+  set execNextDynamicStringOffset(int value) =>
+      _nextDynamicStringOffset = value;
   @override
   int get execNextDynamicListOffset => _nextDynamicListOffset;
   @override
@@ -228,7 +242,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
   /// Dynamic lists created at runtime (from varargs, etc.)
   /// Maps offset to list of T3Values
   final Map<int, List<T3Value>> _dynamicLists = {};
-  int _nextDynamicListOffset = 0x90000000; // Start at high offset to avoid conflicts
+  int _nextDynamicListOffset =
+      0x90000000; // Start at high offset to avoid conflicts
 
   /// The loaded image.
   T3Image? _image;
@@ -269,7 +284,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     // Get the callable offset
     int? codeOffset;
     T3Value? context;
-    if (callback.type == T3DataType.funcptr || callback.type == T3DataType.codeofs) {
+    if (callback.type == T3DataType.funcptr ||
+        callback.type == T3DataType.codeofs) {
       codeOffset = callback.value;
     } else if (callback.type == T3DataType.obj) {
       codeOffset = getCallableOffset(callback.value);
@@ -281,7 +297,13 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     }
 
     // Call the function
-    execCallFunction(codeOffset, args.length, self: callback, invokee: callback, context: context);
+    execCallFunction(
+      codeOffset,
+      args.length,
+      self: callback,
+      invokee: callback,
+      context: context,
+    );
 
     // Run nested execution loop until we return to original frame
     while (_stack.fp != originalFp) {
@@ -400,10 +422,18 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
       if (poolId == 2) {
         // Constant pool (strings/lists)
-        _constantPool = T3ConstantPool(poolId: poolId, pageCount: pageCount, pageSize: pageSize);
+        _constantPool = T3ConstantPool(
+          poolId: poolId,
+          pageCount: pageCount,
+          pageSize: pageSize,
+        );
       } else if (poolId == 1) {
         // Code pool
-        _codePool = T3CodePool(poolId: poolId, pageCount: pageCount, pageSize: pageSize);
+        _codePool = T3CodePool(
+          poolId: poolId,
+          pageCount: pageCount,
+          pageSize: pageSize,
+        );
       }
     }
 
@@ -422,7 +452,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
       // Apply XOR mask if non-zero
       if (xorMask != 0) {
-        pageData = Uint8List.fromList([for (var byte in pageData) byte ^ xorMask]);
+        pageData = Uint8List.fromList([
+          for (var byte in pageData) byte ^ xorMask,
+        ]);
       }
 
       if (poolId == 2 && _constantPool != null) {
@@ -743,8 +775,11 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
           if (listVal.isNil) {
             // Expansion of nil is empty - push nothing, count remains same
           } else {
-            final obj = listVal.isObject ? _objectTable!.lookup(listVal.value) : null;
-            final isListLike = listVal.isList || obj is T3VectorObject || obj is T3ListObject;
+            final obj = listVal.isObject
+                ? _objectTable!.lookup(listVal.value)
+                : null;
+            final isListLike =
+                listVal.isList || obj is T3VectorObject || obj is T3ListObject;
 
             if (isListLike) {
               List<T3Value> elements;
@@ -1026,7 +1061,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
         return T3ExecutionResult.continue_;
 
       // Local variable modification opcodes
-      case T3Opcodes.ADDILCL1: // add immediate 1-byte int to local (UBYTE index)
+      case T3Opcodes
+          .ADDILCL1: // add immediate 1-byte int to local (UBYTE index)
         {
           final localNum = _codePool!.readByte(_registers.ip++);
           final addVal = _codePool!.readInt8(_registers.ip++);
@@ -1041,7 +1077,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
         }
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.ADDILCL4: // add immediate 4-byte int to local (UINT2 index)
+      case T3Opcodes
+          .ADDILCL4: // add immediate 4-byte int to local (UINT2 index)
         {
           final localNum = _codePool!.readUint16(_registers.ip);
           _registers.ip += 2;
@@ -1066,7 +1103,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
           if (localVal.isInt && addVal.isInt) {
             // Fast path for integers
-            _stack.setLocal(localNum, T3Value.fromInt(localVal.value + addVal.value));
+            _stack.setLocal(
+              localNum,
+              T3Value.fromInt(localVal.value + addVal.value),
+            );
           } else {
             // Use t3Add for objects (Vectors, lists, strings, etc.)
             // t3Add pushes result to stack
@@ -1077,7 +1117,8 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
         }
         return T3ExecutionResult.continue_;
 
-      case T3Opcodes.SUBFROMLCL: // subtract stack value from local (UINT2 index)
+      case T3Opcodes
+          .SUBFROMLCL: // subtract stack value from local (UINT2 index)
         // Reference VM vmrun.cpp:3117-3153 - handles integers inline,
         // otherwise tries compute_diff (our t3Sub) or operator overload
         {
@@ -1088,7 +1129,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
           if (localVal.isInt && subVal.isInt) {
             // Fast path for integers
-            _stack.setLocal(localNum, T3Value.fromInt(localVal.value - subVal.value));
+            _stack.setLocal(
+              localNum,
+              T3Value.fromInt(localVal.value - subVal.value),
+            );
           } else {
             // Use t3Sub for objects (Vectors, etc.) or mixed types
             // t3Sub pushes result to stack
@@ -1197,7 +1241,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
           bool matched = false;
           for (var i = 0; i < numCases; i++) {
             // Read 5-byte data holder for the case value
-            final caseValue = T3Value.fromPortable(_codePool!.readBytes(_registers.ip, 5), 0);
+            final caseValue = T3Value.fromPortable(
+              _codePool!.readBytes(_registers.ip, 5),
+              0,
+            );
             _registers.ip += 5;
 
             // Read 2-byte signed offset
@@ -1405,7 +1452,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
           _registers.ip += 2;
           final returnVal = _stack.getLocal(localIdx);
           if (!returnVal.isInt) {
-            throw T3Exception('LRET: return address local $localIdx is not an integer');
+            throw T3Exception(
+              'LRET: return address local $localIdx is not an integer',
+            );
           }
           _registers.ip = _registers.ep + returnVal.value;
         }
@@ -2015,13 +2064,16 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
               // Note: T3AnonFnObject element 0 is funcPtr, so context starts at 1
               // T3ListObject context starts at 0
               final isAnon = obj is T3AnonFnObject;
-              final listElements = (isAnon) ? (obj as T3VectorObject).elements : (obj as T3ListObject).elements;
+              final listElements = (isAnon)
+                  ? (obj as T3VectorObject).elements
+                  : (obj as T3ListObject).elements;
               final offset = isAnon ? 1 : 0;
 
               if (listElements.length >= offset + 4) {
                 _stack.setMethodContext(
                   self: listElements[offset + 0],
-                  targetProp: listElements[offset + 1].value, // Prop is stored as value
+                  targetProp:
+                      listElements[offset + 1].value, // Prop is stored as value
                   targetObj: listElements[offset + 2],
                   definingObj: listElements[offset + 3],
                 );
@@ -2050,7 +2102,11 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
           final definingObj = _stack.getDefiningObject();
 
           final elements = [self, targetProp, targetObj, definingObj];
-          final newObjId = _objectTable!.createDynamicObject('list', elements, isTransient: false);
+          final newObjId = _objectTable!.createDynamicObject(
+            'list',
+            elements,
+            isTransient: false,
+          );
           final ctxVal = T3Value.fromObject(newObjId);
 
           _stack.setFrameReference(ctxVal);
@@ -2166,7 +2222,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
         {
           final exceptionObj = _stack.pop();
           if (!exceptionObj.isObject && !exceptionObj.isNil) {
-            throw T3Exception('THROW: expected object on stack or nil, got ${exceptionObj.type}');
+            throw T3Exception(
+              'THROW: expected object on stack or nil, got ${exceptionObj.type}',
+            );
           }
 
           final exceptionId = exceptionObj.isObject ? exceptionObj.value : null;
@@ -2179,7 +2237,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
             _registers.ip = handlerAddr;
           } else {
             // No handler found - terminate with unhandled exception
-            final msg = exceptionId != null ? 'object #$exceptionId' : 'unknown (nil)';
+            final msg = exceptionId != null
+                ? 'object #$exceptionId'
+                : 'unknown (nil)';
 
             // Debugging: Dump info about the exception object
             if (exceptionObj.isObject) {
@@ -2190,7 +2250,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
               // Use helper methods from T3ExecutionHelpers mixin
               final errnoProp = getSymbolPropertyId('errno');
               if (errnoProp != null) {
-                final errnoVal = execObjectTable.lookupProperty(exceptionObj.value, errnoProp);
+                final errnoVal = execObjectTable.lookupProperty(
+                  exceptionObj.value,
+                  errnoProp,
+                );
                 if (errnoVal != null && errnoVal.value.isInt) {
                   printRaw('errno: ${errnoVal.value.value}\n');
                 }
@@ -2198,7 +2261,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
               final msgProp = getSymbolPropertyId('exceptionMessage');
               if (msgProp != null) {
-                final msgVal = execObjectTable.lookupProperty(exceptionObj.value, msgProp);
+                final msgVal = execObjectTable.lookupProperty(
+                  exceptionObj.value,
+                  msgProp,
+                );
                 if (msgVal != null && msgVal.value.isStringLike) {
                   printRaw('message: ${getStringValue(msgVal.value)}\n');
                 }

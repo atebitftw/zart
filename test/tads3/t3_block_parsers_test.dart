@@ -16,17 +16,27 @@ import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 ///   - UINT2: property count
 ///   - UINT2: property entry size
 ///   - UINT2 × N: property IDs
-List<int> buildMcldEntry(String name, List<int> propIds, {int propEntrySize = 2}) {
+List<int> buildMcldEntry(
+  String name,
+  List<int> propIds, {
+  int propEntrySize = 2,
+}) {
   final nameBytes = name.codeUnits;
   // entry size = 2 (entry size) + 1 (name len) + name.length + 2 (prop count) + 2 (prop entry size) + propIds.length * propEntrySize
-  final entrySize = 2 + 1 + nameBytes.length + 2 + 2 + propIds.length * propEntrySize;
+  final entrySize =
+      2 + 1 + nameBytes.length + 2 + 2 + propIds.length * propEntrySize;
   return [
     entrySize & 0xFF, (entrySize >> 8) & 0xFF, // entry size (UINT2)
     nameBytes.length, // name length (UBYTE)
     ...nameBytes, // name
-    propIds.length & 0xFF, (propIds.length >> 8) & 0xFF, // property count (UINT2)
-    propEntrySize & 0xFF, (propEntrySize >> 8) & 0xFF, // property entry size (UINT2)
-    for (final propId in propIds) ...[propId & 0xFF, (propId >> 8) & 0xFF], // property IDs
+    propIds.length & 0xFF,
+    (propIds.length >> 8) & 0xFF, // property count (UINT2)
+    propEntrySize & 0xFF,
+    (propEntrySize >> 8) & 0xFF, // property entry size (UINT2)
+    for (final propId in propIds) ...[
+      propId & 0xFF,
+      (propId >> 8) & 0xFF,
+    ], // property IDs
   ];
 }
 

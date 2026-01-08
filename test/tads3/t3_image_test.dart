@@ -10,7 +10,10 @@ void main() {
   group('T3Header', () {
     test('signature constants are correct', () {
       expect(T3Header.expectedSignature.length, equals(11));
-      expect(String.fromCharCodes(T3Header.expectedSignature.sublist(0, 8)), equals('T3-image'));
+      expect(
+        String.fromCharCodes(T3Header.expectedSignature.sublist(0, 8)),
+        equals('T3-image'),
+      );
       expect(T3Header.expectedSignature[8], equals(0x0D)); // \r
       expect(T3Header.expectedSignature[9], equals(0x0A)); // \n
       expect(T3Header.expectedSignature[10], equals(0x1A)); // ^Z
@@ -94,7 +97,10 @@ void main() {
     late Uint8List gameData;
 
     setUpAll(() {
-      final paths = ['assets/games/tads/AllHope.t3', '../../assets/games/tads/AllHope.t3'];
+      final paths = [
+        'assets/games/tads/AllHope.t3',
+        '../../assets/games/tads/AllHope.t3',
+      ];
       for (final path in paths) {
         if (File(path).existsSync()) {
           gameData = File(path).readAsBytesSync();
@@ -122,7 +128,9 @@ void main() {
 
       print('T3 Blocks (${image.blockCount} total):');
       for (final block in image.blocks.take(20)) {
-        print('  ${block.type}: size=${block.dataSize}, mandatory=${block.isMandatory}');
+        print(
+          '  ${block.type}: size=${block.dataSize}, mandatory=${block.isMandatory}',
+        );
       }
       if (image.blockCount > 20) {
         print('  ... (${image.blockCount - 20} more blocks)');

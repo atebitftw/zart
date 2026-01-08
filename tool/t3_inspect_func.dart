@@ -22,7 +22,9 @@ void main(List<String> args) async {
   print('Bytes at offset:');
   for (int i = 0; i < 32; i++) {
     final byte = interp.codePool!.readByte(offset + i);
-    print('  +$i (0x${(offset + i).toRadixString(16)}): 0x${byte.toRadixString(16).padLeft(2, '0')} ($byte)');
+    print(
+      '  +$i (0x${(offset + i).toRadixString(16)}): 0x${byte.toRadixString(16).padLeft(2, '0')} ($byte)',
+    );
   }
   print('');
 
@@ -31,7 +33,9 @@ void main(List<String> args) async {
   final headerBytes = interp.codePool!.readBytes(offset, 10);
   final header = T3FunctionHeader.parse(headerBytes);
   print('  argc: ${header.argc} (0x${header.argc.toRadixString(16)})');
-  print('  optionalArgc: ${header.optionalArgc} (0x${header.optionalArgc.toRadixString(16)})');
+  print(
+    '  optionalArgc: ${header.optionalArgc} (0x${header.optionalArgc.toRadixString(16)})',
+  );
   print('  minArgs: ${header.minArgs}');
   print('  maxArgs: ${header.maxArgs}');
   print('  isVarargs: ${header.isVarargs}');

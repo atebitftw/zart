@@ -35,19 +35,29 @@ void main() {
     test('File open/read/write cycle', () {
       // Use a temp file for actual I/O testing
       final tempDir = Directory.systemTemp;
-      final tempFile = File('${tempDir.path}/t3_file_test_${DateTime.now().millisecondsSinceEpoch}.txt');
+      final tempFile = File(
+        '${tempDir.path}/t3_file_test_${DateTime.now().millisecondsSinceEpoch}.txt',
+      );
 
       try {
         // Create and write
         final writeFile = T3File.create(102);
-        writeFile.open(tempFile.path, T3File.VMOBJFILE_MODE_RAW, T3File.VMOBJFILE_ACCESS_WRITE);
+        writeFile.open(
+          tempFile.path,
+          T3File.VMOBJFILE_MODE_RAW,
+          T3File.VMOBJFILE_ACCESS_WRITE,
+        );
         expect(writeFile.isOpen, isTrue);
         writeFile.close();
         expect(writeFile.isOpen, isFalse);
 
         // Read
         final readFile = T3File.create(103);
-        readFile.open(tempFile.path, T3File.VMOBJFILE_MODE_RAW, T3File.VMOBJFILE_ACCESS_READ);
+        readFile.open(
+          tempFile.path,
+          T3File.VMOBJFILE_MODE_RAW,
+          T3File.VMOBJFILE_ACCESS_READ,
+        );
         expect(readFile.isOpen, isTrue);
         readFile.close();
         expect(readFile.isOpen, isFalse);

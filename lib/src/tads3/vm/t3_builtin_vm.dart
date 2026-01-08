@@ -29,10 +29,13 @@ class T3BuiltinVm {
     const setSayNoFunc = 1;
     const setSayNoMethod = 2;
 
-    if (val.type == T3DataType.prop || (val.type == T3DataType.int_ && val.value == setSayNoMethod)) {
+    if (val.type == T3DataType.prop ||
+        (val.type == T3DataType.int_ && val.value == setSayNoMethod)) {
       // Return old prop
       final oldProp = interp.sayMethod;
-      interp.registers.r0 = oldProp != 0 ? T3Value.fromProp(oldProp) : T3Value.fromInt(setSayNoMethod);
+      interp.registers.r0 = oldProp != 0
+          ? T3Value.fromProp(oldProp)
+          : T3Value.fromInt(setSayNoMethod);
 
       // Set new prop
       if (val.type == T3DataType.int_) {
@@ -43,7 +46,9 @@ class T3BuiltinVm {
     } else {
       // Return old func
       final oldFunc = interp.sayFunc;
-      interp.registers.r0 = !oldFunc.isNil ? oldFunc : T3Value.fromInt(setSayNoFunc);
+      interp.registers.r0 = !oldFunc.isNil
+          ? oldFunc
+          : T3Value.fromInt(setSayNoFunc);
 
       // Set new func
       if (val.type == T3DataType.int_ && val.value == setSayNoFunc) {
@@ -92,7 +97,8 @@ class T3BuiltinVm {
   /// Mode 2: break into debugger (no-op)
   /// Mode 3: write to debug log
   static void debugTrace(T3Interpreter interp, int argc) {
-    if (argc < 1) throw T3Exception('debug_trace() requires at least 1 argument');
+    if (argc < 1)
+      throw T3Exception('debug_trace() requires at least 1 argument');
 
     final mode = interp.stack.pop().numToInt();
     if (argc > 1) interp.stack.discard(argc - 1);
@@ -168,7 +174,14 @@ class T3BuiltinVm {
       final targetObj = interp.stack.getValueAt(fp, T3Stack.fpOfsTargetObj);
       final argCount = interp.stack.getValueAt(fp, T3Stack.fpOfsArgCount);
 
-      final frameInfo = [invokee, self, definingObj, propId, targetObj, argCount];
+      final frameInfo = [
+        invokee,
+        self,
+        definingObj,
+        propId,
+        targetObj,
+        argCount,
+      ];
 
       final frameInfoId = interp.addDynamicList(frameInfo);
       frames.add(T3Value.fromList(frameInfoId));
@@ -188,7 +201,9 @@ class T3BuiltinVm {
     if (argc > 1) interp.stack.discard(argc - 1);
 
     final name = interp.getStringValue(nameVal);
-    final tableAddr = interp.stack.getFromFrame(T3Stack.fpOfsNamedArgs).numToInt();
+    final tableAddr = interp.stack
+        .getFromFrame(T3Stack.fpOfsNamedArgs)
+        .numToInt();
 
     if (tableAddr == 0 || tableAddr == -1 || interp.codePool == null) {
       interp.registers.r0 = T3Value.nil();
@@ -225,7 +240,9 @@ class T3BuiltinVm {
   static void getNamedArgList(T3Interpreter interp, int argc) {
     if (argc > 0) interp.stack.discard(argc);
 
-    final tableAddr = interp.stack.getFromFrame(T3Stack.fpOfsNamedArgs).numToInt();
+    final tableAddr = interp.stack
+        .getFromFrame(T3Stack.fpOfsNamedArgs)
+        .numToInt();
     if (tableAddr == 0 || tableAddr == -1 || interp.codePool == null) {
       final listId = interp.addDynamicList([]);
       interp.registers.r0 = T3Value.fromList(listId);

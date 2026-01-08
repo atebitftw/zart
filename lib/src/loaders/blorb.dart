@@ -57,7 +57,9 @@ class Blorb {
           IFF.read4Byte(stream); // number (unused)
           var start = IFF.read4Byte(stream);
 
-          if (usage == Chunk.exec && start < fileBytes.length && start + 8 <= fileBytes.length) {
+          if (usage == Chunk.exec &&
+              start < fileBytes.length &&
+              start + 8 <= fileBytes.length) {
             // Check for ZCOD (Z-machine)
             if (_matchesChunk(fileBytes, start, Chunk.zcod)) {
               final data = _extractChunkData(fileBytes, start);
@@ -98,7 +100,11 @@ class Blorb {
     if (offset + 8 > bytes.length) return null;
 
     // Read chunk size (big-endian)
-    int len = (bytes[offset + 4] << 24) | (bytes[offset + 5] << 16) | (bytes[offset + 6] << 8) | bytes[offset + 7];
+    int len =
+        (bytes[offset + 4] << 24) |
+        (bytes[offset + 5] << 16) |
+        (bytes[offset + 6] << 8) |
+        bytes[offset + 7];
 
     if (offset + 8 + len <= bytes.length) {
       return Uint8List.fromList(bytes.sublist(offset + 8, offset + 8 + len));

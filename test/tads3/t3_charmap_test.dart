@@ -29,7 +29,13 @@ void main() {
       test('local to Unicode mapping', () {
         // Local charset bytes -> Unicode codepoints
         // In Dart, we use UTF-8 as the "local" charset since it's universal
-        final localBytes = [0x48, 0x65, 0x6C, 0x6C, 0x6F]; // "Hello" in ASCII/UTF-8
+        final localBytes = [
+          0x48,
+          0x65,
+          0x6C,
+          0x6C,
+          0x6F,
+        ]; // "Hello" in ASCII/UTF-8
         final unicode = utf8.decode(localBytes);
         expect(unicode, 'Hello');
       });

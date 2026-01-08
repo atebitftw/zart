@@ -89,7 +89,11 @@ void main() {
 
       vm.symbols['foo'] = T3Value.fromInt(99);
 
-      final obj = T3GenericObject(objectId: 123, metaclass: 'tads-object', rawData: Uint8List.fromList([1, 2, 3]));
+      final obj = T3GenericObject(
+        objectId: 123,
+        metaclass: 'tads-object',
+        rawData: Uint8List.fromList([1, 2, 3]),
+      );
       vm.objectTable.register(obj);
 
       // Save
@@ -173,7 +177,11 @@ class MockObjectTable {
 
   void restoreObject(int objectId, String metaclassName, Uint8List data) {
     // For testing, we just create a generic object with the data
-    _objects[objectId] = T3GenericObject(objectId: objectId, metaclass: metaclassName, rawData: data);
+    _objects[objectId] = T3GenericObject(
+      objectId: objectId,
+      metaclass: metaclassName,
+      rawData: data,
+    );
   }
 }
 

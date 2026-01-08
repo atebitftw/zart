@@ -22,7 +22,10 @@ class T3Utf8 {
       } else if ((b & 0xF0) == 0xE0) {
         // Three byte character (0x800-0xFFFF)
         if (i + 2 >= bytes.length) break;
-        final c = ((b & 0x0F) << 12) | ((bytes[i + 1] & 0x3F) << 6) | (bytes[i + 2] & 0x3F);
+        final c =
+            ((b & 0x0F) << 12) |
+            ((bytes[i + 1] & 0x3F) << 6) |
+            (bytes[i + 2] & 0x3F);
         codeUnits.add(c);
         i += 3;
       } else {

@@ -728,5 +728,6 @@ abstract class T3Opcodes {
   };
 
   /// Gets the name of an opcode for debugging.
-  static String getName(int opcode) => names[opcode] ?? 'UNKNOWN(0x${opcode.toRadixString(16).padLeft(2, '0')})';
+  static String getName(int opcode) =>
+      names[opcode] ?? 'UNKNOWN(0x${opcode.toRadixString(16).padLeft(2, '0')})';
 }

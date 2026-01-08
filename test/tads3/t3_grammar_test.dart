@@ -12,7 +12,12 @@ void main() {
 
     test('addAlt and clearAlts', () {
       final gram = T3GrammarProduction.create(10);
-      final alt1 = T3GrammarAlt(score: 100, badness: 5, processorObjId: 99, tokens: []);
+      final alt1 = T3GrammarAlt(
+        score: 100,
+        badness: 5,
+        processorObjId: 99,
+        tokens: [],
+      );
       gram.addAlt(alt1);
       expect(gram.alternatives.length, 1);
       expect(gram.alternatives[0].score, 100);
@@ -26,14 +31,23 @@ void main() {
 
       // Alt 1: Literal and Prod tokens
       final tokens1 = [
-        T3GrammarToken(propId: 1, matchType: T3GrammarMatchType.literal, extra: 'test'),
+        T3GrammarToken(
+          propId: 1,
+          matchType: T3GrammarMatchType.literal,
+          extra: 'test',
+        ),
         T3GrammarToken(
           propId: 2,
           matchType: T3GrammarMatchType.prod,
           extra: 50, // production ID
         ),
       ];
-      final alt1 = T3GrammarAlt(score: 10, badness: 2, processorObjId: 30, tokens: tokens1);
+      final alt1 = T3GrammarAlt(
+        score: 10,
+        badness: 2,
+        processorObjId: 30,
+        tokens: tokens1,
+      );
       gram.addAlt(alt1);
 
       // Alt 2: Speech, TokType, NSpeech
@@ -54,7 +68,12 @@ void main() {
           extra: [300, 301], // prop IDs
         ),
       ];
-      final alt2 = T3GrammarAlt(score: 20, badness: 0, processorObjId: 40, tokens: tokens2);
+      final alt2 = T3GrammarAlt(
+        score: 20,
+        badness: 0,
+        processorObjId: 40,
+        tokens: tokens2,
+      );
       gram.addAlt(alt2);
 
       final data = gram.save();

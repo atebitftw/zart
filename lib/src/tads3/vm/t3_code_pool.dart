@@ -21,8 +21,11 @@ class T3CodePool {
   final List<Uint8List?> _pages;
 
   /// Creates a code pool with the specified structure.
-  T3CodePool({required this.poolId, required this.pageCount, required this.pageSize})
-    : _pages = List<Uint8List?>.filled(pageCount, null);
+  T3CodePool({
+    required this.poolId,
+    required this.pageCount,
+    required this.pageSize,
+  }) : _pages = List<Uint8List?>.filled(pageCount, null);
 
   /// Total size of the pool in bytes.
   int get totalSize => pageCount * pageSize;
@@ -58,10 +61,14 @@ class T3CodePool {
     final (pageIndex, pageOffset) = _resolveOffset(offset);
     final page = _pages[pageIndex];
     if (page == null) {
-      throw StateError('Code page $pageIndex not loaded (offset: 0x${offset.toRadixString(16)})');
+      throw StateError(
+        'Code page $pageIndex not loaded (offset: 0x${offset.toRadixString(16)})',
+      );
     }
     if (pageOffset >= page.length) {
-      throw RangeError('Code offset 0x${offset.toRadixString(16)} past end of page');
+      throw RangeError(
+        'Code offset 0x${offset.toRadixString(16)} past end of page',
+      );
     }
     return page[pageOffset];
   }
@@ -155,7 +162,9 @@ class T3CodePool {
     final exceptionTableOffset = view.getUint16(6, Endian.little);
 
     // Debug record offset at offset 8
-    final debugRecordOffset = headerSize > 8 ? view.getUint16(8, Endian.little) : 0;
+    final debugRecordOffset = headerSize > 8
+        ? view.getUint16(8, Endian.little)
+        : 0;
 
     return MethodHeader(
       minArgs: minArgs,
@@ -181,7 +190,8 @@ class T3CodePool {
   // ==================== Utility ====================
 
   @override
-  String toString() => 'T3CodePool(id: $poolId, pages: $pageCount, pageSize: $pageSize)';
+  String toString() =>
+      'T3CodePool(id: $poolId, pages: $pageCount, pageSize: $pageSize)';
 }
 
 /// Parsed method header.

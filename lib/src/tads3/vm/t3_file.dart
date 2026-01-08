@@ -128,7 +128,11 @@ class T3File extends T3Object {
     return data.buffer.asUint8List();
   }
 
-  factory T3File.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
+  factory T3File.fromData(
+    int objectId,
+    Uint8List data, {
+    bool isTransient = false,
+  }) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     var offset = 0;
 

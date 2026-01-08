@@ -44,7 +44,12 @@ void main() {
     group('createClone [2]', () {
       test('creates shallow copy and calls constructClone', () {
         // Setup original
-        final original = T3TadsObject(objectId: 50, superclasses: [10], loadImageProperties: [], flags: 0);
+        final original = T3TadsObject(
+          objectId: 50,
+          superclasses: [10],
+          loadImageProperties: [],
+          flags: 0,
+        );
         interp.objectTable.register(original);
 
         final target = T3Value.fromObject(50);
@@ -137,7 +142,12 @@ void main() {
 
   group('T3TadsObject direct tests', () {
     test('object creation with ID and superclasses', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [50, 60], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [50, 60],
+        loadImageProperties: [],
+        flags: 0,
+      );
       expect(obj.objectId, 100);
       expect(obj.superclasses, [50, 60]);
     });
@@ -146,7 +156,10 @@ void main() {
       final obj = T3TadsObject(
         objectId: 100,
         superclasses: [],
-        loadImageProperties: [T3ObjectProperty(10, T3Value.fromInt(42)), T3ObjectProperty(20, T3Value.fromString(500))],
+        loadImageProperties: [
+          T3ObjectProperty(10, T3Value.fromInt(42)),
+          T3ObjectProperty(20, T3Value.fromString(500)),
+        ],
         flags: 0,
       );
       expect(obj.getProperty(10)?.value, 42);
@@ -164,12 +177,22 @@ void main() {
     });
 
     test('non-class instance', () {
-      final instance = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final instance = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
       expect(instance.isClass, isFalse);
     });
 
     test('setProperty adds new property', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
       obj.setProperty(10, T3Value.fromInt(999));
       expect(obj.getProperty(10)?.value, 999);
     });
@@ -201,7 +224,12 @@ void main() {
         loadImageProperties: [T3ObjectProperty(10, T3Value.fromInt(42))],
         flags: T3TadsObject.flagIsClass,
       );
-      final child = T3TadsObject(objectId: 100, superclasses: [50], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 100,
+        superclasses: [50],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       interp.objectTable.register(parent);
       interp.objectTable.register(child);
@@ -248,7 +276,12 @@ void main() {
         loadImageProperties: [],
         flags: T3TadsObject.flagIsClass,
       );
-      final child = T3TadsObject(objectId: 3, superclasses: [2], loadImageProperties: [], flags: 0);
+      final child = T3TadsObject(
+        objectId: 3,
+        superclasses: [2],
+        loadImageProperties: [],
+        flags: 0,
+      );
 
       interp.objectTable.register(grandparent);
       interp.objectTable.register(parent);
@@ -261,7 +294,12 @@ void main() {
 
     /// Spec: Property not found returns null.
     test('missing property returns null', () {
-      final obj = T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0);
+      final obj = T3TadsObject(
+        objectId: 100,
+        superclasses: [],
+        loadImageProperties: [],
+        flags: 0,
+      );
       interp.objectTable.register(obj);
 
       expect(interp.objectTable.lookupProperty(100, 999), isNull);

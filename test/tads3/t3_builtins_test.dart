@@ -60,7 +60,11 @@ void main() {
         for (final (val, expectedCode) in testCases) {
           interp.stack.push(val);
           T3BuiltinRegistry.getFunction('tads-gen', 0)!(interp, 1);
-          expect(interp.registers.r0.value, expectedCode, reason: 'Type ${val.type} should return code $expectedCode');
+          expect(
+            interp.registers.r0.value,
+            expectedCode,
+            reason: 'Type ${val.type} should return code $expectedCode',
+          );
         }
       });
     });
@@ -118,20 +122,41 @@ void main() {
     /// Spec: Returns the first object in memory matching optional filter.
     group('firstobj [2]', () {
       test('returns first matching object', () {
-        interp.objectTable.register(T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0));
+        interp.objectTable.register(
+          T3TadsObject(
+            objectId: 100,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        );
         T3BuiltinRegistry.getFunction('tads-gen', 2)!(interp, 0);
         expect(interp.registers.r0.isObject, isTrue);
       });
 
       test('filters by metaclass string', () {
-        interp.objectTable.register(T3TadsObject(objectId: 101, superclasses: [], loadImageProperties: [], flags: 0));
+        interp.objectTable.register(
+          T3TadsObject(
+            objectId: 101,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        );
 
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('tads-object')));
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('tads-object')),
+        );
         T3BuiltinRegistry.getFunction('tads-gen', 2)!(interp, 1);
         expect(interp.registers.r0.isObject, isTrue);
-        expect(interp.objectTable.lookup(interp.registers.r0.value)!.metaclass, 'tads-object');
+        expect(
+          interp.objectTable.lookup(interp.registers.r0.value)!.metaclass,
+          'tads-object',
+        );
 
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('vector')));
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('vector')),
+        );
         T3BuiltinRegistry.getFunction('tads-gen', 2)!(interp, 1);
         expect(interp.registers.r0.isNil, isTrue);
       });
@@ -142,8 +167,22 @@ void main() {
     /// Spec: Returns the next object after given object.
     group('nextobj [3]', () {
       test('returns next matching object or nil', () {
-        interp.objectTable.register(T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0));
-        interp.objectTable.register(T3TadsObject(objectId: 102, superclasses: [], loadImageProperties: [], flags: 0));
+        interp.objectTable.register(
+          T3TadsObject(
+            objectId: 100,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        );
+        interp.objectTable.register(
+          T3TadsObject(
+            objectId: 102,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        );
 
         interp.stack.push(T3Value.fromObject(100));
         T3BuiltinRegistry.getFunction('tads-gen', 3)!(interp, 1);
@@ -155,12 +194,24 @@ void main() {
       });
 
       test('filters next object by metaclass', () {
-        interp.objectTable.register(T3TadsObject(objectId: 100, superclasses: [], loadImageProperties: [], flags: 0));
+        interp.objectTable.register(
+          T3TadsObject(
+            objectId: 100,
+            superclasses: [],
+            loadImageProperties: [],
+            flags: 0,
+          ),
+        );
         // Note: we don't have a vector class easily available here, but we can test nil vs match
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('tads-object')));
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('tads-object')),
+        );
         interp.stack.push(T3Value.fromObject(100));
         T3BuiltinRegistry.getFunction('tads-gen', 3)!(interp, 2);
-        expect(interp.registers.r0.type, anyOf(equals(T3DataType.obj), equals(T3DataType.nil)));
+        expect(
+          interp.registers.r0.type,
+          anyOf(equals(T3DataType.obj), equals(T3DataType.nil)),
+        );
       });
     });
 
@@ -206,7 +257,10 @@ void main() {
 
       test('selects from list', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 5)!;
-        final listId = interp.addDynamicList([T3Value.fromInt(1), T3Value.fromInt(2)]);
+        final listId = interp.addDynamicList([
+          T3Value.fromInt(1),
+          T3Value.fromInt(2),
+        ]);
         interp.stack.push(T3Value.fromList(listId));
         func(interp, 1);
         expect(interp.registers.r0.value, anyOf(1, 2));
@@ -270,7 +324,9 @@ void main() {
       test('converts string with radix (decimal)', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 7)!;
         interp.stack.push(T3Value.fromInt(16)); // radix (Arg 2)
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('10'))); // val (Arg 1)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('10')),
+        ); // val (Arg 1)
         func(interp, 2);
         expect(interp.registers.r0.value, 16);
       });
@@ -278,7 +334,9 @@ void main() {
       test('converts string with radix (hex)', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 7)!;
         interp.stack.push(T3Value.fromInt(16)); // radix (Arg 2)
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('FF'))); // val (Arg 1)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('FF')),
+        ); // val (Arg 1)
         func(interp, 2);
         expect(interp.registers.r0.value, 255);
       });
@@ -342,16 +400,24 @@ void main() {
     group('re_match [9]', () {
       test('matches pattern at start', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 9)!;
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('abcdef'))); // str (Arg 2)
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('abc'))); // pattern (Arg 1)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('abcdef')),
+        ); // str (Arg 2)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('abc')),
+        ); // pattern (Arg 1)
         func(interp, 2);
         expect(interp.registers.r0.value, 3); // Returns length of match
       });
 
       test('returns nil on no match', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 9)!;
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('abcdef'))); // str (Arg 2)
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('xyz'))); // pattern (Arg 1)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('abcdef')),
+        ); // str (Arg 2)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('xyz')),
+        ); // pattern (Arg 1)
         func(interp, 2);
         expect(interp.registers.r0.isNil, isTrue);
       });
@@ -359,8 +425,12 @@ void main() {
       test('handles negative start index', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 9)!;
         interp.stack.push(T3Value.fromInt(-3)); // index (last 3 chars: 'def')
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('abcdef'))); // str
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('def'))); // pattern
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('abcdef')),
+        ); // str
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('def')),
+        ); // pattern
         func(interp, 3);
         expect(interp.registers.r0.value, 3);
       });
@@ -368,7 +438,9 @@ void main() {
       test('throws for invalid regex pattern', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 9)!;
         interp.stack.push(T3Value.fromString(interp.addDynamicString('abc')));
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('[unclosed-bracket')));
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('[unclosed-bracket')),
+        );
         expect(() => func(interp, 2), throwsA(isA<T3Exception>()));
       });
     });
@@ -379,8 +451,12 @@ void main() {
     group('re_search [10]', () {
       test('searches pattern in string', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 10)!;
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('abcdef'))); // str (Arg 2)
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('def'))); // pattern (Arg 1)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('abcdef')),
+        ); // str (Arg 2)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('def')),
+        ); // pattern (Arg 1)
         func(interp, 2);
         expect(interp.registers.r0.type, T3DataType.list);
         final list = interp.getListElements(interp.registers.r0);
@@ -398,8 +474,12 @@ void main() {
         final groupFunc = T3BuiltinRegistry.getFunction('tads-gen', 11)!;
 
         // 1. Perform match with groups
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('hello world'))); // str
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('(hello) (world)'))); // pat
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('hello world')),
+        ); // str
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('(hello) (world)')),
+        ); // pat
         matchFunc(interp, 2);
 
         // 2. Get group 1
@@ -432,17 +512,29 @@ void main() {
       test('replaces group references', () {
         final replFunc = T3BuiltinRegistry.getFunction('tads-gen', 12)!;
 
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('world hello'))); // replacement
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('hello world'))); // string
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('(.*) (.*)'))); // pattern
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('world hello')),
+        ); // replacement
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('hello world')),
+        ); // string
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('(.*) (.*)')),
+        ); // pattern
         replFunc(interp, 3);
 
         expect(interp.registers.r0.isStringLike, isTrue);
         // Note: TADS uses %1, %2 for groups. Our implementation translates them.
         // Let's test with %n
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('%2 %1'))); // replacement
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('hello world'))); // string
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('(.*) (.*)'))); // pattern
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('%2 %1')),
+        ); // replacement
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('hello world')),
+        ); // string
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('(.*) (.*)')),
+        ); // pattern
         replFunc(interp, 3);
         expect(interp.getStringValue(interp.registers.r0), 'world hello');
       });
@@ -450,9 +542,15 @@ void main() {
       test('handles literal percent in replacement', () {
         final replFunc = T3BuiltinRegistry.getFunction('tads-gen', 12)!;
 
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('%%100'))); // replacement
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('hello'))); // string
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('h.*o'))); // pattern
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('%%100')),
+        ); // replacement
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('hello')),
+        ); // string
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('h.*o')),
+        ); // pattern
         replFunc(interp, 3);
         expect(interp.getStringValue(interp.registers.r0), '%100');
       });
@@ -461,9 +559,15 @@ void main() {
         final replFunc = T3BuiltinRegistry.getFunction('tads-gen', 12)!;
 
         interp.stack.push(T3Value.fromInt(1)); // ReplaceAll flag
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('X'))); // replacement
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('abc abc'))); // string
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('abc'))); // pattern
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('X')),
+        ); // replacement
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('abc abc')),
+        ); // string
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('abc')),
+        ); // pattern
         replFunc(interp, 4);
 
         expect(interp.getStringValue(interp.registers.r0), 'X X');
@@ -479,21 +583,39 @@ void main() {
         final undoFunc = T3BuiltinRegistry.getFunction('tads-gen', 14)!;
 
         // 1. Create a dynamic TADS object
-        final objId = interp.objectTable.createDynamicObject('tads-object', [], isTransient: false);
+        final objId = interp.objectTable.createDynamicObject(
+          'tads-object',
+          [],
+          isTransient: false,
+        );
         final propId = 1234;
-        interp.setPropertyValue(T3Value.fromObject(objId), propId, T3Value.fromInt(10));
+        interp.setPropertyValue(
+          T3Value.fromObject(objId),
+          propId,
+          T3Value.fromInt(10),
+        );
 
         // 2. Create savepoint
         savepointFunc(interp, 0);
 
         // 3. Modify property
-        interp.setPropertyValue(T3Value.fromObject(objId), propId, T3Value.fromInt(20));
-        expect(interp.objectTable.lookupProperty(objId, propId)!.value.value, 20);
+        interp.setPropertyValue(
+          T3Value.fromObject(objId),
+          propId,
+          T3Value.fromInt(20),
+        );
+        expect(
+          interp.objectTable.lookupProperty(objId, propId)!.value.value,
+          20,
+        );
 
         // 4. Undo
         undoFunc(interp, 0);
         expect(interp.registers.r0.isTrue, isTrue); // Undo should return true
-        expect(interp.objectTable.lookupProperty(objId, propId)!.value.value, 10);
+        expect(
+          interp.objectTable.lookupProperty(objId, propId)!.value.value,
+          10,
+        );
       });
 
       test('undoes dynamic object creation', () {
@@ -518,22 +640,44 @@ void main() {
         final savepointFunc = T3BuiltinRegistry.getFunction('tads-gen', 13)!;
         final undoFunc = T3BuiltinRegistry.getFunction('tads-gen', 14)!;
 
-        final objId = interp.objectTable.createDynamicObject('tads-object', [], isTransient: false);
+        final objId = interp.objectTable.createDynamicObject(
+          'tads-object',
+          [],
+          isTransient: false,
+        );
         final propId = 1234;
 
-        interp.setPropertyValue(T3Value.fromObject(objId), propId, T3Value.fromInt(1));
+        interp.setPropertyValue(
+          T3Value.fromObject(objId),
+          propId,
+          T3Value.fromInt(1),
+        );
         savepointFunc(interp, 0);
 
-        interp.setPropertyValue(T3Value.fromObject(objId), propId, T3Value.fromInt(2));
+        interp.setPropertyValue(
+          T3Value.fromObject(objId),
+          propId,
+          T3Value.fromInt(2),
+        );
         savepointFunc(interp, 0);
 
-        interp.setPropertyValue(T3Value.fromObject(objId), propId, T3Value.fromInt(3));
+        interp.setPropertyValue(
+          T3Value.fromObject(objId),
+          propId,
+          T3Value.fromInt(3),
+        );
 
         undoFunc(interp, 0); // Undo 3 back to 2
-        expect(interp.objectTable.lookupProperty(objId, propId)!.value.value, 2);
+        expect(
+          interp.objectTable.lookupProperty(objId, propId)!.value.value,
+          2,
+        );
 
         undoFunc(interp, 0); // Undo 2 back to 1
-        expect(interp.objectTable.lookupProperty(objId, propId)!.value.value, 1);
+        expect(
+          interp.objectTable.lookupProperty(objId, propId)!.value.value,
+          1,
+        );
       });
     });
 
@@ -613,7 +757,10 @@ void main() {
 
       test('creates string from list of codes', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 20)!;
-        final listId = interp.addDynamicList([T3Value.fromInt(72), T3Value.fromInt(105)]); // 'Hi'
+        final listId = interp.addDynamicList([
+          T3Value.fromInt(72),
+          T3Value.fromInt(105),
+        ]); // 'Hi'
         interp.stack.push(T3Value.fromList(listId));
         func(interp, 1);
         final s = interp.dynamicStrings[interp.registers.r0.value];
@@ -636,7 +783,9 @@ void main() {
     group('get_func_params [21]', () {
       test('returns parameters (dummy)', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 21)!;
-        interp.stack.push(T3Value.fromFuncPtr(0x1000)); // Arg 1 (actual func ptr)
+        interp.stack.push(
+          T3Value.fromFuncPtr(0x1000),
+        ); // Arg 1 (actual func ptr)
         func(interp, 1);
         expect(interp.registers.r0.type, T3DataType.list);
       });
@@ -655,9 +804,14 @@ void main() {
 
       test('converts number string', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 23)!;
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('456.78')));
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('456.78')),
+        );
         func(interp, 1);
-        expect(interp.registers.r0.value, 456); // toNumber for now just parses int
+        expect(
+          interp.registers.r0.value,
+          456,
+        ); // toNumber for now just parses int
       });
     });
 
@@ -668,7 +822,9 @@ void main() {
       test('formats simple string', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 24)!;
         interp.stack.push(T3Value.fromInt(123)); // Arg 2
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('val=%d'))); // Arg 1
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('val=%d')),
+        ); // Arg 1
         func(interp, 2);
         final result = interp.dynamicStrings[interp.registers.r0.value];
         expect(result, 'val=123');
@@ -677,7 +833,9 @@ void main() {
       test('formats with padding and hex', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 24)!;
         interp.stack.push(T3Value.fromInt(255));
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('hex=%04X')));
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('hex=%04X')),
+        );
         func(interp, 2);
         final result = interp.dynamicStrings[interp.registers.r0.value];
         expect(result, 'hex=00FF');
@@ -732,8 +890,12 @@ void main() {
     group('concat [28]', () {
       test('concatenates strings', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 28)!;
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('world'))); // Arg 2
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('hello '))); // Arg 1
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('world')),
+        ); // Arg 2
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('hello ')),
+        ); // Arg 1
         func(interp, 2);
         final result = interp.dynamicStrings[interp.registers.r0.value];
         expect(result, 'hello world');
@@ -744,8 +906,12 @@ void main() {
     group('reSearchBack [29]', () {
       test('searches backwards', () {
         final func = T3BuiltinRegistry.getFunction('tads-gen', 29)!;
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('aba'))); // Arg 2 (str)
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('a'))); // Arg 1 (pattern)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('aba')),
+        ); // Arg 2 (str)
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('a')),
+        ); // Arg 1 (pattern)
         func(interp, 2);
         final listId = interp.registers.r0.value;
         final list = interp.getListElements(T3Value.fromList(listId));
@@ -975,7 +1141,9 @@ void main() {
     group('setLogFile [1]', () {
       test('executes without error', () {
         final func = T3BuiltinRegistry.getFunction('tads-io', 1)!;
-        interp.stack.push(T3Value.fromString(interp.addDynamicString('log.txt')));
+        interp.stack.push(
+          T3Value.fromString(interp.addDynamicString('log.txt')),
+        );
         func(interp, 1);
         expect(interp.registers.r0.isNil, isTrue);
       });

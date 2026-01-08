@@ -13,15 +13,18 @@ void main() {
     /// opcode.htm:390-581 - Operator overloading mechanism.
     group('overloadable operators', () {
       /// Binary addition operator (+)
-      test('operator + affects ADD, INC, INCLCL, ADDILCL1, ADDILCL4, ADDTOLCL', () {
-        // Import symbol: 'operator +'
-        expect(T3Opcodes.ADD, 0x22);
-        expect(T3Opcodes.INC, 0x2E);
-        expect(T3Opcodes.INCLCL, 0xD0);
-        expect(T3Opcodes.ADDILCL1, 0xD2);
-        expect(T3Opcodes.ADDILCL4, 0xD3);
-        expect(T3Opcodes.ADDTOLCL, 0xD4);
-      });
+      test(
+        'operator + affects ADD, INC, INCLCL, ADDILCL1, ADDILCL4, ADDTOLCL',
+        () {
+          // Import symbol: 'operator +'
+          expect(T3Opcodes.ADD, 0x22);
+          expect(T3Opcodes.INC, 0x2E);
+          expect(T3Opcodes.INCLCL, 0xD0);
+          expect(T3Opcodes.ADDILCL1, 0xD2);
+          expect(T3Opcodes.ADDILCL4, 0xD3);
+          expect(T3Opcodes.ADDTOLCL, 0xD4);
+        },
+      );
 
       /// Binary subtraction operator (-)
       test('operator - affects SUB, DEC, DECLCL, SUBFROMLCL', () {
@@ -171,7 +174,11 @@ void main() {
         h.interpreter.addGlobalSymbol('operator +', T3Value.fromProp(100));
 
         // 2. Create object
-        final objId = h.interpreter.objectTable.createDynamicObject('tads-object', [], isTransient: false);
+        final objId = h.interpreter.objectTable.createDynamicObject(
+          'tads-object',
+          [],
+          isTransient: false,
+        );
 
         // 3. Main test code: result = obj + 10
         h.emit(T3Opcodes.PUSHOBJ);
@@ -195,7 +202,11 @@ void main() {
         h.emit(T3Opcodes.RETVAL);
 
         // 4. Update the object's property to point to the correct offset
-        h.interpreter.setPropertyValue(T3Value.fromObject(objId), 100, T3Value.fromCodeOffset(funcOfs));
+        h.interpreter.setPropertyValue(
+          T3Value.fromObject(objId),
+          100,
+          T3Value.fromCodeOffset(funcOfs),
+        );
 
         h.build();
 
@@ -221,7 +232,10 @@ void main() {
       test('must define length property', () {
         // List-like objects must define a 'length' property
         // Verify T3ListObject has length
-        final list = T3ListObject(objectId: 999, elements: [T3Value.fromInt(1), T3Value.fromInt(2)]);
+        final list = T3ListObject(
+          objectId: 999,
+          elements: [T3Value.fromInt(1), T3Value.fromInt(2)],
+        );
         expect(list.length, 2);
       });
 
@@ -231,7 +245,11 @@ void main() {
         expect(emptyList.length, greaterThanOrEqualTo(0));
         final fullList = T3ListObject(
           objectId: 887,
-          elements: [T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)],
+          elements: [
+            T3Value.fromInt(1),
+            T3Value.fromInt(2),
+            T3Value.fromInt(3),
+          ],
         );
         expect(fullList.length, 3);
       });

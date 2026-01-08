@@ -27,7 +27,8 @@ class T3Dictionary extends T3Object {
   /// Keys are stored in UTF-8 string format.
   final Map<String, List<T3DictEntry>> _entries = {};
 
-  T3Dictionary({required super.objectId, super.isTransient = false}) : super(metaclass: metaclassName);
+  T3Dictionary({required super.objectId, super.isTransient = false})
+    : super(metaclass: metaclassName);
 
   /// Creates a new dictionary.
   static T3Dictionary create(int objectId) {
@@ -187,7 +188,9 @@ class T3Dictionary extends T3Object {
 
   @override
   void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
-    throw UnsupportedError('Dictionary objects are immutable (via setProperty). Use intrinsic methods.');
+    throw UnsupportedError(
+      'Dictionary objects are immutable (via setProperty). Use intrinsic methods.',
+    );
   }
 
   @override

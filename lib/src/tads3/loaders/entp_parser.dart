@@ -64,8 +64,12 @@ class T3Entrypoint {
     final debugLocalHeaderSize = view.getUint16(12, Endian.little);
 
     // These may not be present in older files
-    final debugRecordsVersion = data.length >= 16 ? view.getUint16(14, Endian.little) : 0;
-    final debugFrameHeaderSize = data.length >= 18 ? view.getUint16(16, Endian.little) : 4;
+    final debugRecordsVersion = data.length >= 16
+        ? view.getUint16(14, Endian.little)
+        : 0;
+    final debugFrameHeaderSize = data.length >= 18
+        ? view.getUint16(16, Endian.little)
+        : 4;
 
     return T3Entrypoint(
       codeOffset: codeOffset,

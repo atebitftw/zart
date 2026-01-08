@@ -211,7 +211,10 @@ void main() {
     test('PTRCALLPROP = 0x62', () => expect(T3Opcodes.PTRCALLPROP, 0x62));
     test('GETPROPSELF = 0x63', () => expect(T3Opcodes.GETPROPSELF, 0x63));
     test('CALLPROPSELF = 0x64', () => expect(T3Opcodes.CALLPROPSELF, 0x64));
-    test('PTRCALLPROPSELF = 0x65', () => expect(T3Opcodes.PTRCALLPROPSELF, 0x65));
+    test(
+      'PTRCALLPROPSELF = 0x65',
+      () => expect(T3Opcodes.PTRCALLPROPSELF, 0x65),
+    );
     test('OBJGETPROP = 0x66', () => expect(T3Opcodes.OBJGETPROP, 0x66));
     test('OBJCALLPROP = 0x67', () => expect(T3Opcodes.OBJCALLPROP, 0x67));
     test('GETPROPDATA = 0x68', () => expect(T3Opcodes.GETPROPDATA, 0x68));

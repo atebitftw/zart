@@ -17,7 +17,11 @@ class T3SiniBlock {
       throw FormatException('SINI block too short');
     }
 
-    final byteData = ByteData.view(data.buffer, data.offsetInBytes, data.length);
+    final byteData = ByteData.view(
+      data.buffer,
+      data.offsetInBytes,
+      data.length,
+    );
     final count = byteData.getUint32(0, Endian.little);
     final initializers = <(int, int)>[];
 

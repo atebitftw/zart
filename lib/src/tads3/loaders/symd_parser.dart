@@ -17,7 +17,11 @@ class T3SymdBlock {
       throw FormatException('SYMD block too short');
     }
 
-    final byteData = ByteData.view(data.buffer, data.offsetInBytes, data.length);
+    final byteData = ByteData.view(
+      data.buffer,
+      data.offsetInBytes,
+      data.length,
+    );
     final count = byteData.getUint16(0, Endian.little);
     final symbols = <String, T3Value>{};
 

@@ -44,7 +44,10 @@ void main() {
       test('converts to uppercase', () {
         final target = makeStr('Hello World');
         interp.handleStringIntrinsic(2, target, 0);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], 'HELLO WORLD');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          'HELLO WORLD',
+        );
       });
     });
 
@@ -52,7 +55,10 @@ void main() {
       test('converts to lowercase', () {
         final target = makeStr('Hello World');
         interp.handleStringIntrinsic(3, target, 0);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello world');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          'hello world',
+        );
       });
     });
 
@@ -79,7 +85,10 @@ void main() {
       test('escapes HTML characters', () {
         final target = makeStr('A < B');
         interp.handleStringIntrinsic(6, target, 0);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], 'A &lt; B');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          'A &lt; B',
+        );
       });
     });
 
@@ -122,7 +131,10 @@ void main() {
         interp.stack.push(newStr);
         interp.stack.push(oldStr);
         interp.handleStringIntrinsic(10, target, 3);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], 'baz-bar-baz');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          'baz-bar-baz',
+        );
       });
     });
 
@@ -168,7 +180,10 @@ void main() {
       test('encodes URL component', () {
         final target = makeStr('hello world');
         interp.handleStringIntrinsic(15, target, 0);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello%20world');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          'hello%20world',
+        );
       });
     });
 
@@ -176,7 +191,10 @@ void main() {
       test('decodes URL component', () {
         final target = makeStr('hello%20world');
         interp.handleStringIntrinsic(16, target, 0);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], 'hello world');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          'hello world',
+        );
       });
     });
 
@@ -195,7 +213,10 @@ void main() {
       test('computes hash', () {
         final target = makeStr('hello');
         interp.handleStringIntrinsic(18, target, 0);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], '5d41402abc4b2a76b9719d911017c592');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          '5d41402abc4b2a76b9719d911017c592',
+        );
       });
     });
 
@@ -219,7 +240,10 @@ void main() {
       test('capitalizes words', () {
         final target = makeStr('hello world');
         interp.handleStringIntrinsic(21, target, 0);
-        expect(interp.execDynamicStrings[interp.registers.r0.value], 'Hello World');
+        expect(
+          interp.execDynamicStrings[interp.registers.r0.value],
+          'Hello World',
+        );
       });
     });
 
