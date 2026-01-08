@@ -1,7 +1,9 @@
 import 'dart:typed_data';
-
 import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 import 'package:zart/src/tads3/loaders/objs_parser.dart';
+import 'package:zart/src/tads3/vm/t3_bignumber.dart';
+import 'package:zart/src/tads3/vm/t3_date.dart';
+import 'package:zart/src/tads3/vm/t3_lookup_table.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_undo.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
@@ -143,6 +145,18 @@ class T3ObjectTable {
         return T3VectorObject.fromData(objectId, data, isTransient: isTransient);
       case 'anon-func-ptr':
         return T3AnonFnObject.fromData(objectId, data, isTransient: isTransient);
+      case 'iterator':
+        return T3IteratorObject.fromData(objectId, data, isTransient: isTransient);
+      case 'lookup-table':
+        return T3LookupTable.fromData(objectId, data, isTransient: isTransient);
+      case 'string-buffer':
+        return T3StringBuffer.fromData(objectId, data, isTransient: isTransient);
+      case 'bignumber':
+        return T3BigNumber.fromData(objectId, data, isTransient: isTransient);
+      case 'date':
+        return T3Date.fromData(objectId, data, isTransient: isTransient);
+      case 'timezone':
+        return T3TimeZone.fromData(objectId, data, isTransient: isTransient);
       default:
         // Unknown metaclass - store as generic object
         return T3GenericObject(objectId: objectId, metaclass: metaclassName, rawData: data, isTransient: isTransient);
@@ -160,6 +174,15 @@ class T3ObjectTable {
   /// Registers a pre-created object in the table.
   void registerObject(T3Object obj) {
     _objects[obj.objectId] = obj;
+  }
+
+  /// Restores an object from saved data.
+  ///
+  /// This creates the object using _createObject and registers it,
+  /// overwriting any existing object with the same ID.
+  void restoreObject(int objectId, String metaclassName, Uint8List data) {
+    final obj = _createObject(objectId, metaclassName, data);
+    _objects[objectId] = obj;
   }
 
   /// Creates a new dynamic object at runtime.
@@ -270,6 +293,40 @@ class T3ObjectTable {
       case 'anon-func-ptr':
         // Create an anonymous function object (inherits from Vector)
         obj = T3AnonFnObject(objectId: objId, elements: args, allocatedSize: args.length, isTransient: isTransient);
+        break;
+      case 'lookup-table':
+      case 'lookuptable': // Handle both standard and potentially alternate forms if needed, but 'lookuptable' is the image spec form.
+        int bucketCount = 32;
+        if (args.isNotEmpty && args[0].isInt) {
+          bucketCount = args[0].value;
+        }
+        obj = T3LookupTable(objectId: objId, bucketCount: bucketCount, isTransient: isTransient);
+        break;
+      case 'string-buffer':
+      case 'stringbuffer':
+        int alloc = 256;
+        int incr = 256;
+        // args[0] is stack top (last arg), args[1] is second to last (first arg)...
+        // StringBuffer(alloc, incr) -> push alloc, push incr. args=[incr, alloc]
+        if (args.length >= 2 && args[0].isInt && args[1].isInt) {
+          incr = args[0].value;
+          alloc = args[1].value;
+        } else if (args.isNotEmpty && args[0].isInt) {
+          alloc = args[0].value;
+        }
+        obj = T3StringBuffer(objectId: objId, allocatedSize: alloc, increment: incr, isTransient: isTransient);
+        break;
+      case 'bignumber':
+        // new BigNumber(val) or new BigNumber(str) or new BigNumber()
+        // We'll create a default one for now as we don't fully parse args yet.
+        // TODO: Parse constructor args to set initial value/precision
+        obj = T3BigNumber.create(objId, isTransient: isTransient);
+        break;
+      case 'date':
+        obj = T3Date.create(objId, isTransient: isTransient);
+        break;
+      case 'timezone':
+        obj = T3TimeZone.create(objId, isTransient: isTransient);
         break;
       case 'iterator':
         // Collection is passed as first argument, remaining args are the snapshot elements

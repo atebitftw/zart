@@ -82,7 +82,12 @@ class OpcodeTestHarness {
   }
 
   /// Emits a single opcode byte.
-  void emit(int opcode) {
+  void emit(int opcode, {int? offset}) {
+    if (offset != null) {
+      while (_bytecode.length < offset) {
+        _bytecode.addByte(T3Opcodes.NOP);
+      }
+    }
     _bytecode.addByte(opcode);
   }
 
@@ -177,7 +182,7 @@ class OpcodeTestHarness {
       );
     }
 
-    // Push arguments before the frame (T3 calling convention)
+    // Push arguments before the frame (T3 calling convention: Right-to-Left)
     final actualArgs = _args.isNotEmpty ? _args : [];
     final actualArgCount = argCount > 0 ? argCount : actualArgs.length;
 
@@ -439,12 +444,17 @@ class OpcodeTestHarness {
   /// Adds a function to the code pool at a specific offset.
   /// Returns the offset where the function starts.
   /// The function should be complete bytecode including method header.
-  int addFunction(List<int> bytecode) {
-    final offset = _bytecode.length;
+  int addFunction(List<int> bytecode, {int? offset}) {
+    if (offset != null) {
+      while (_bytecode.length < offset) {
+        _bytecode.addByte(T3Opcodes.NOP);
+      }
+    }
+    final actualOffset = _bytecode.length;
     for (final b in bytecode) {
       _bytecode.addByte(b);
     }
-    return offset;
+    return actualOffset;
   }
 
   /// Creates a simple method header for a function.

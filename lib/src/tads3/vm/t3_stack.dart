@@ -40,6 +40,9 @@ class T3Stack {
   /// Frame pointer - index of current activation frame base.
   int _fp = 0;
 
+  /// Returns the internal stack storage (for save/restore).
+  List<T3Value> get values => _stack;
+
   /// Creates a new T3 stack with the specified max depth.
   T3Stack({int maxDepth = 65536, int reserveDepth = 256})
     : _maxDepth = maxDepth,
@@ -181,9 +184,9 @@ class T3Stack {
   /// Gets an argument by index.
   /// Arg 0 is at FP-11, Arg 1 at FP-12, etc. (per reference VM).
   T3Value getArg(int index) {
-    // Arg 0 is the last argument pushed (Top of args).
-    // Layout: [Arg N-1] ... [Arg 1] [Arg 0] [Header(11 elements)] [FP]
-    // Arg 0 is at FP - 11 - 1 = FP - 12 (fpOfsArg1)
+    // Arg 0 is the first argument (pushed last, closest to FP).
+    // Arg 0 is at FP + fpOfsArg1 (FP - 12).
+    // Arg i is at FP + fpOfsArg1 - index.
     return _stack[_fp + fpOfsArg1 - index];
   }
 
@@ -260,6 +263,7 @@ class T3Stack {
     required T3Value invokee,
     int? namedArgTableAddr,
     T3Value? context,
+    bool pushResult = false,
   }) {
     // Push frame header in reverse order (first pushed ends up at lowest offset)
     push(T3Value.fromInt(namedArgTableAddr ?? 0)); // FP-11: named arg table ptr
@@ -269,7 +273,7 @@ class T3Stack {
     push(self); // FP-7: self
     push(invokee); // FP-6: invokee
     push(context ?? T3Value.nil()); // FP-5: frame reference
-    push(T3Value.nil()); // FP-4: recursive call descriptor (nil initially)
+    push(T3Value.fromInt(pushResult ? 0x0100 : 0)); // FP-4: rcdesc with push-result flag
     push(T3Value.fromCodeOffset(returnAddr)); // FP-3: return address
     push(T3Value.fromCodeOffset(entryPtr)); // FP-2: enclosing entry pointer
     push(T3Value.fromInt(argCount)); // FP-1: argument count
@@ -294,12 +298,14 @@ class T3Stack {
     return _fp;
   }
 
-  /// Returns the (returnAddr, oldFp, entryPtr, namedArgTableAddr) for continuing execution.
-  (int returnAddr, int oldFp, int entryPtr, int namedArgTableAddr) popFrame() {
+  /// Returns the (returnAddr, oldFp, entryPtr, namedArgTableAddr, pushResult) for continuing execution.
+  (int returnAddr, int oldFp, int entryPtr, int namedArgTableAddr, bool pushResult) popFrame() {
     // Get return info from frame header
     final returnAddr = getFromFrame(fpOfsReturnAddr).value;
     final entryPtr = getFromFrame(fpOfsEntryPtr).value;
     final namedArgTableAddr = getFromFrame(fpOfsNamedArgs).value;
+    final rcDesc = getFromFrame(fpOfsRcDesc).value;
+    final pushResult = (rcDesc & 0x0100) != 0;
     final oldFp = getFromFrame(0).value; // FP contains old FP
     final argCount = getArgCount();
 
@@ -310,7 +316,7 @@ class T3Stack {
     // Restore old FP
     _fp = oldFp;
 
-    return (returnAddr, oldFp, entryPtr, namedArgTableAddr);
+    return (returnAddr, oldFp, entryPtr, namedArgTableAddr, pushResult);
   }
 
   /// Gets the named argument table address for the current frame.

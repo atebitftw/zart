@@ -1293,9 +1293,14 @@ void main() {
     // Note: These require a frame with arguments, which our base harness doesn't have.
     // For now we skip these or test with a modified harness.
     test('GETARGN0 gets argument 0', () {
-      // This would need argument setup in the harness
-      expect(true, isTrue);
-    }, skip: 'Requires argument setup in harness');
+      final h = OpcodeTestHarness();
+      h.addArgs([T3Value.fromInt(123)]);
+      h.emit(T3Opcodes.GETARGN0);
+      h.emit(T3Opcodes.RETVAL);
+      h.build();
+      h.runUntilReturn();
+      expect(h.r0.value, 123);
+    });
   });
 
   group('PUSHSELF opcode', () {
@@ -2407,31 +2412,26 @@ void main() {
   group('Iterator opcodes (require collection setup)', () {
     test('ITERNEXT advances iterator', () {
       final h = OpcodeTestHarness();
+      final iterObjId = h.allocateObjectId();
+      h.createIteratorObject(iterObjId, [T3Value.fromInt(10), T3Value.fromInt(20)]);
 
-      final iterId = h.allocateObjectId();
-      h.createIteratorObject(iterId, [T3Value.fromInt(10), T3Value.fromInt(20)]);
-
+      // Bytecode to set local 0 to the iterator and then loop
       h.emit(T3Opcodes.PUSHOBJ);
-      h.emitUint32(iterId);
+      h.emitUint32(iterObjId);
       h.emit(T3Opcodes.SETLCL1);
-      h.emitByte(0);
+      h.emitByte(0); // local 0
 
       final loopStart = h.bytecodeLength;
-      h.emit(T3Opcodes.ITERNEXT);
-      h.emitUint16(0); // local 0 has iterator
-      h.emitInt16(10); // jump offset (to loop end)
-
-      // Inside loop
-      h.emit(T3Opcodes.SAYVAL);
-      h.emit(T3Opcodes.JMP);
-      h.emitInt16(loopStart - h.bytecodeLength); // loop back
-
-      while (h.bytecodeLength < loopStart + 10) h.emit(T3Opcodes.NOP);
+      h.emit(T3Opcodes.ITERNEXT); // 7
+      h.emitUint16(0); // 8, 9 (local 0)
+      h.emitInt16(6); // 10, 11 (jump to offset 16)
+      h.emit(T3Opcodes.SAYVAL); // 12
+      h.emit(T3Opcodes.JMP); // 13
+      h.emitInt16(-7); // 14, 15 (jump to 7)
+      h.emit(T3Opcodes.RETNIL); // 16
 
       h.build();
-      h.runSteps(2); // PUSHOBJ, SETLCL
-      h.run();
-
+      h.runUntilReturn();
       expect(h.output.toString(), '1020');
     });
   });
@@ -2459,41 +2459,79 @@ void main() {
   group('Exception handling finally blocks', () {
     test('finally block executes via class 0', () {
       final h = OpcodeTestHarness();
-      final finallyOfs = 50;
+      final funcOffset = 20;
 
-      // Handler for class 0 (finally) at offset 50
-      h.addExceptionHandler(0, 0, finallyOfs, 0);
+      // CALL the block
+      h.emit(T3Opcodes.CALL);
+      h.emitByte(0);
+      h.emitUint32(funcOffset);
 
-      // Bytecode: PUSHOBJ, THROW
+      while (h.bytecodeLength < funcOffset) h.emit(T3Opcodes.NOP);
+
+      // Function code at funcOffset (20)
+      // Header: argc=0, locals=0, exceptionTableOffset=20 (at 40)
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0, exceptionTableOffset: 20));
+
+      final startProtectOfs = h.bytecodeLength - funcOffset;
       final exObj = h.allocateObjectId();
       h.createObject(id: exObj);
       h.emit(T3Opcodes.PUSHOBJ);
       h.emitUint32(exObj);
       h.emit(T3Opcodes.THROW);
+      final endProtectOfs = h.bytecodeLength - funcOffset + 1; // +1 to include ip after THROW
 
-      while (h.bytecodeLength < finallyOfs) h.emit(T3Opcodes.NOP);
+      h.emit(T3Opcodes.RETNIL); // Fallback
+
+      final handlerOfs = h.bytecodeLength - funcOffset;
       h.emit(T3Opcodes.PUSHINT8);
       h.emitByte(55);
+      h.emit(T3Opcodes.RETVAL); // Return to caller
+
+      // Pad to exception table at 40 (20 + 20)
+      while (h.bytecodeLength < funcOffset + 20) {
+        h.emitByte(0);
+      }
+
+      // Manual exception table
+      h.emitUint16(1); // 1 entry
+      h.emitUint16(startProtectOfs);
+      h.emitUint16(endProtectOfs);
+      h.emitUint32(0); // finally (class 0)
+      h.emitUint16(handlerOfs);
 
       h.build();
-      h.step(); // PUSHOBJ
-      h.step(); // THROW
 
-      expect(h.interpreter.registers.ip, finallyOfs);
-      h.step(); // PUSHINT8
-      expect(h.pop().value, 55);
-      expect(h.pop().value, exObj);
+      // Execute until return.
+      // Instructions: 1. CALL, 2. PUSHOBJ, 3. THROW -> jump to 55, 4. PUSHINT8 55, 5. RETVAL
+      h.runSteps(5);
+
+      expect(h.r0.value, 55);
+      // In a real 'finally', THROW would be resumed, but this test just checks execution reached the block.
     });
   });
 
   group('Output opcodes (require I/O setup)', () {
     test('SAY outputs string', () {
-      expect(true, isTrue);
-    }, skip: 'Requires I/O provider setup');
+      final h = OpcodeTestHarness();
+      final strOfs = h.addString('Hello world');
+      h.emit(T3Opcodes.SAY);
+      h.emitUint32(strOfs);
+      h.emit(T3Opcodes.RETNIL);
+      h.build();
+      h.runUntilReturn();
+      expect(h.output.toString(), 'Hello world');
+    });
 
     test('SAYVAL outputs value', () {
-      expect(true, isTrue);
-    }, skip: 'Requires I/O provider setup');
+      final h = OpcodeTestHarness();
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(42);
+      h.emit(T3Opcodes.SAYVAL);
+      h.emit(T3Opcodes.RETNIL);
+      h.build();
+      h.runUntilReturn();
+      expect(h.output.toString(), '42');
+    });
   });
 
   group('SETIND opcode with mutable Vector', () {
@@ -2545,11 +2583,5 @@ void main() {
       final vec = h.lookupObject(vecId) as T3VectorObject;
       expect(vec.elements[0].value, 77); // index 1 (1-based) = array[0]
     });
-  });
-
-  group('PUSHPARLST opcode', () {
-    test('PUSHPARLST pushes varargs parameter list', () {
-      expect(true, isTrue);
-    }, skip: 'Requires varargs frame setup');
   });
 }

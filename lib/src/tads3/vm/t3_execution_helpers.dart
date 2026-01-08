@@ -266,7 +266,7 @@ mixin T3ExecutionHelpers {
       // If we are at top level script?
 
       try {
-        final (returnAddr, oldFp, entryPtr, _) = execStack.popFrame();
+        final (returnAddr, oldFp, entryPtr, _, _) = execStack.popFrame();
         execRegisters.ip = returnAddr;
         execRegisters.ep = entryPtr;
 
@@ -310,6 +310,7 @@ mixin T3ExecutionHelpers {
     T3Value? invokee,
     int? namedArgTableAddr,
     T3Value? context,
+    bool pushResult = false,
   }) {
     // print('CALL: codeOffset=0x${codeOffset.toRadixString(16)} argc=$argc');
     final methodHeader = execCodePool!.readByte(codeOffset);
@@ -347,6 +348,7 @@ mixin T3ExecutionHelpers {
       invokee: invokee ?? targetObj ?? T3Value.nil(),
       namedArgTableAddr: namedArgTableAddr,
       context: context,
+      pushResult: pushResult,
     );
 
     execRegisters.ip = codeOffset + methodHeaderSize;
@@ -357,9 +359,13 @@ mixin T3ExecutionHelpers {
   T3ExecutionResult doReturn() {
     if (execStack.fp == 0) return T3ExecutionResult.quit;
 
-    final (returnAddr, oldFp, entryPtr, _) = execStack.popFrame();
+    final (returnAddr, oldFp, entryPtr, _, pushResult) = execStack.popFrame();
     execRegisters.ip = returnAddr;
     execRegisters.ep = entryPtr;
+
+    if (pushResult) {
+      execStack.push(execRegisters.r0.copy());
+    }
 
     if (oldFp == 0) return T3ExecutionResult.quit;
     return T3ExecutionResult.continue_;
@@ -1160,6 +1166,11 @@ mixin T3ExecutionHelpers {
         // getCurKey - returns current index (1-based)
         if (argc != null && argc > 0) execStack.discard(argc);
         execRegisters.r0 = obj.getCurKey();
+        return;
+      case 5:
+        // getCurVal - returns current value
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = obj.getCurVal();
         return;
     }
 
@@ -1970,8 +1981,6 @@ mixin T3ExecutionHelpers {
 
   /// Generic ADD operation (Integer, String, List, Object).
   void t3Add(T3Value v1, T3Value v2) {
-    // printRaw('DEBUG: t3Add v1=${v1.type}:${v1.value} v2=${v2.type}:${v2.value}\n');
-
     if (v1.isInt && v2.isInt) {
       execStack.push(T3Value.fromInt(v1.value + v2.value));
       return;
@@ -2301,6 +2310,7 @@ mixin T3ExecutionHelpers {
         targetObj: obj,
         definingObj: T3Value.fromObject(result.definingObjectId),
         propId: propId,
+        pushResult: true,
       );
       // Result will be in R0 when function returns, but we need it on stack for expression evaluation.
       // Since callFunction sets up a new frame, we rely on the return handler to push R0 back?

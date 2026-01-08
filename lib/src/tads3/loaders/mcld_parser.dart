@@ -141,6 +141,14 @@ class T3MetaclassDepList {
     return null;
   }
 
+  /// Gets the index of a metaclass by name.
+  int indexOf(String name) {
+    for (var i = 0; i < dependencies.length; i++) {
+      if (dependencies[i].name == name) return i;
+    }
+    return -1;
+  }
+
   /// Number of metaclass dependencies.
   int get length => dependencies.length;
 

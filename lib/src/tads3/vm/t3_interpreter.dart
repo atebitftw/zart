@@ -25,6 +25,7 @@ import 'package:zart/src/tads3/vm/t3_value_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_call_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_result.dart';
+import 'package:zart/src/tads3/vm/t3_save_manager.dart';
 
 /// TADS3 VM interpreter.
 ///
@@ -297,6 +298,16 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
   /// Get the property ID used for specialized SAY handling.
   int get sayMethod => _sayMethod;
+
+  /// Saves the game state to a byte array.
+  Uint8List saveGame() {
+    return T3SaveManager.save(this);
+  }
+
+  /// Loads the game state from a byte array.
+  void loadGame(Uint8List data) {
+    T3SaveManager.load(this, data);
+  }
 
   /// Set the function or object used for specialized SAY handling.
   set sayFunc(T3Value val) => _sayFunc = val;

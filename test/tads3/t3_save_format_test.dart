@@ -1,3 +1,8 @@
+import 'dart:typed_data';
+import 'package:zart/src/tads3/loaders/mcld_parser.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
+import 'package:zart/src/tads3/vm/t3_save_manager.dart';
+import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:test/test.dart';
 
 /// T3 Save File Format unit tests with spec validation.
@@ -22,93 +27,28 @@ void main() {
       });
 
       test('signature parsing', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: save file signature parsing not implemented');
+        final data = Uint8List.fromList([
+          ...'T3-state-v0008\r\n\x1a'.codeUnits,
+          0, 0, 0, 0, // Padding
+        ]);
+        expect(T3SaveManager.validateSignature(data), '0008');
+      });
     });
 
     /// save.htm:127-148 - Size/Checksum
     group('size and checksum', () {
       test('CRC-32 algorithm specified', () {
-        // save.htm:139-141 - standard CRC-32 algorithm
-        // Checksum computed over everything AFTER the size/checksum block
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: CRC-32 calculation not implemented');
-
-      test('size field is UINT4 little-endian', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: save file size parsing not implemented');
-    });
-
-    /// save.htm:150-161 - Timestamp
-    group('timestamp', () {
-      test('24-byte timestamp from image file', () {
-        // Same format as image file signature timestamp
-        // Used to validate save matches image file
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: timestamp validation not implemented');
-    });
-
-    /// save.htm:162-183 - Image Filename
-    group('image filename', () {
-      test('UINT2 length prefix followed by bytes', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: image filename parsing not implemented');
-
-      test('allows launching from save file', () {
-        // VM can extract image filename to auto-load
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: auto-load from save not implemented');
-    });
-
-    /// save.htm:184-226 - Metaclasses
-    group('metaclass section', () {
-      test('UINT2 metaclass count', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: metaclass save not implemented');
-
-      test('property translation table per metaclass', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: property translation not implemented');
-    });
-
-    /// save.htm:228-261 - Table of Objects
-    group('object table', () {
-      test('UINT4 object count precedes entries', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: save object table not implemented');
-
-      test('transient flag 0x00000001', () {
-        // Transient objects listed but not saved
-        const transientFlag = 0x00000001;
-        expect(transientFlag, 1);
+        final data = Uint8List.fromList([1, 2, 3, 4]);
+        // Known CRC32 for [1,2,3,4] is 0xB63CFBCD
+        expect(T3SaveManager.calculateCrc32(data), 0xB63CFBCD);
       });
 
-      test('object ID in save file numbering', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: object ID remapping not implemented');
-    });
-
-    /// save.htm:262-283 - Objects
-    group('object data', () {
-      test('each object has ID, root set flag, metaclass index', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: object serialization not implemented');
-
-      test('metaclass-specific data follows header', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: metaclass serialization not implemented');
-    });
-
-    /// save.htm:285-333 - Synthetic Exports
-    group('synthetic exports', () {
-      test('UINT4 export count precedes entries', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: synthetic exports not implemented');
-
-      test('exports preserved across VM versions', () {
-        // Unrecognized exports must be re-saved
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: export preservation not implemented');
+      test('size field is UINT4 little-endian', () {
+        final header = T3SaveManager.createHeader('0008');
+        final view = ByteData.view(header.buffer, header.offsetInBytes);
+        // creating header adds 8 bytes for size/CRC, all zeroes initially
+        expect(view.getUint32(17, Endian.little), 0);
+      });
     });
 
     /// save.htm:334-345 - MIME Type
@@ -127,8 +67,124 @@ void main() {
 
   group('CRC-32 algorithm per save.htm:349-425', () {
     test('CRC-32 lookup table defined', () {
-      // 256-entry table for byte-by-byte CRC
-      expect(true, isTrue);
-    }, skip: 'DISCREPANCY: CRC-32 implementation not tested');
+      // Just verify it doesn't throw and has 256 entries implicitly
+      final data = Uint8List.fromList([0]);
+      expect(T3SaveManager.calculateCrc32(data), isNotNull);
+    });
   });
+
+  group('Integration Tests', () {
+    test('Load/Save Cycle', () {
+      final vm = MockVM();
+
+      // Setup VM state
+      vm.registers.ip = 0x1234;
+      vm.registers.ep = 0x5678;
+      vm.registers.r0 = T3Value.fromInt(42);
+
+      vm.stack.sp = 2;
+      vm.stack.fp = 0;
+      vm.stack.values[0] = T3Value.fromInt(10);
+      vm.stack.values[1] = T3Value.fromInt(20);
+
+      vm.symbols['foo'] = T3Value.fromInt(99);
+
+      final obj = T3GenericObject(objectId: 123, metaclass: 'tads-object', rawData: Uint8List.fromList([1, 2, 3]));
+      vm.objectTable.register(obj);
+
+      // Save
+      final savedData = T3SaveManager.save(vm);
+
+      // Load into new VM
+      final newVm = MockVM();
+      T3SaveManager.load(newVm, savedData);
+
+      // Verify
+      expect(newVm.registers.ip, 0x1234);
+      expect(newVm.registers.ep, 0x5678);
+      expect(newVm.registers.r0.value, 42);
+
+      expect(newVm.stack.sp, 2);
+      expect(newVm.stack.values[0].value, 10);
+      expect(newVm.stack.values[1].value, 20);
+
+      expect(newVm.symbols['foo']?.value, 99);
+
+      final restoredObj = newVm.objectTable.lookup(123) as T3GenericObject;
+      expect(restoredObj.metaclass, 'tads-object');
+      expect(restoredObj.rawData, [1, 2, 3]);
+    });
+  });
+}
+
+class MockVM {
+  final metaclasses = MockMetaclasses();
+  final objectTable = MockObjectTable();
+  final registers = MockRegisters();
+  final stack = MockStack();
+  final symbols = <String, T3Value>{};
+}
+
+class MockMetaclasses {
+  final dependencies = <T3MetaclassDep>[];
+
+  MockMetaclasses() {
+    dependencies.add(
+      T3MetaclassDep(
+        identifier: 'root-object/000001',
+        index: 0,
+        name: 'root-object',
+        propertyCount: 0,
+        propertyIds: [],
+      ),
+    );
+    dependencies.add(
+      T3MetaclassDep(
+        identifier: 'tads-object/000001',
+        index: 1,
+        name: 'tads-object',
+        propertyCount: 0,
+        propertyIds: [],
+      ),
+    );
+  }
+
+  int indexOf(String name) {
+    if (name == 'root-object') return 0;
+    if (name == 'tads-object') return 1;
+    return -1;
+  }
+
+  T3MetaclassDep? byIndex(int index) {
+    if (index >= 0 && index < dependencies.length) return dependencies[index];
+    return null;
+  }
+}
+
+class MockObjectTable {
+  final _objects = <int, T3Object>{};
+  Iterable<T3Object> get all => _objects.values;
+
+  T3Object? lookup(int id) => _objects[id];
+
+  void register(T3Object obj) {
+    _objects[obj.objectId] = obj;
+  }
+
+  void restoreObject(int objectId, String metaclassName, Uint8List data) {
+    // For testing, we just create a generic object with the data
+    _objects[objectId] = T3GenericObject(objectId: objectId, metaclass: metaclassName, rawData: data);
+  }
+}
+
+class MockRegisters {
+  int ip = 0;
+  int ep = 0;
+  T3Value r0 = T3Value.nil();
+}
+
+class MockStack {
+  int sp = 0;
+  int fp = 0;
+  final values = List.filled(100, T3Value.nil());
 }

@@ -18,10 +18,10 @@ class T3SiniBlock {
     }
 
     final byteData = ByteData.view(data.buffer, data.offsetInBytes, data.length);
-    final count = byteData.getUint16(0, Endian.little);
+    final count = byteData.getUint32(0, Endian.little);
     final initializers = <(int, int)>[];
 
-    var offset = 2;
+    var offset = 4;
     for (var i = 0; i < count; i++) {
       if (offset + 6 > data.length) break;
 

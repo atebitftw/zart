@@ -1,5 +1,7 @@
-import 'package:test/test.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
+import 'package:zart/src/tads3/vm/t3_value.dart';
+import 'opcode_test_harness.dart';
+import 'package:test/test.dart';
 
 /// T3 Operator Overloading unit tests with spec validation.
 ///
@@ -136,13 +138,47 @@ void main() {
 
     /// opcode.htm:559-580 - Implementation via GETPROP.
     group('operator method invocation', () {
-      test('call operator property with remaining operands', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: operator invocation not tested');
+      test('call operator property on objects', () {
+        final h = OpcodeTestHarness();
 
-      test('return value is operator result', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: operator return value not tested');
+        // 1. Setup symbol 'operator +' mapping to prop 100
+        h.interpreter.addGlobalSymbol('operator +', T3Value.fromProp(100));
+
+        // 2. Create object
+        final objId = h.interpreter.objectTable.createDynamicObject('tads-object', [], isTransient: false);
+
+        // 3. Main test code: result = obj + 10
+        h.emit(T3Opcodes.PUSHOBJ);
+        h.emitUint32(objId);
+        h.emit(T3Opcodes.PUSHINT8);
+        h.emitByte(10);
+        h.emit(T3Opcodes.ADD);
+        h.emit(T3Opcodes.RETVAL);
+
+        // 3. Add function for the operator elsewhere
+        final funcOfs = h.currentOffset;
+
+        // Header: 1 arg, 0 locals, no varargs
+        h.addFunction([0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+        // Implementation of operator+(val): return val + 42
+        h.emit(T3Opcodes.GETARGN0, offset: funcOfs + 10);
+        h.emit(T3Opcodes.PUSHINT8);
+        h.emitByte(42);
+        h.emit(T3Opcodes.ADD);
+        h.emit(T3Opcodes.RETVAL);
+
+        // 4. Update the object's property to point to the correct offset
+        h.interpreter.setPropertyValue(T3Value.fromObject(objId), 100, T3Value.fromCodeOffset(funcOfs));
+
+        h.build();
+
+        // Since ADD is overloaded, it will perform a SUB-CALL.
+        // runUntilReturn should continue through the sub-call and return only when the main frame returns.
+        h.runUntilReturn();
+
+        expect(h.r0.value, 52);
+      });
     });
   });
 

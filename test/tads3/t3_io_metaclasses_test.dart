@@ -2,6 +2,11 @@ import 'package:test/test.dart';
 import 'package:zart/src/tads3/vm/t3_interpreter.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
+import 'package:zart/src/tads3/vm/t3_bignumber.dart';
+import 'package:zart/src/tads3/vm/t3_date.dart';
+import 'package:zart/src/tads3/vm/t3_lookup_table.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
+import 'dart:typed_data';
 
 /// T3 I/O and Display unit tests with spec validation.
 ///
@@ -141,43 +146,136 @@ void main() {
     /// LookupTable metaclass.
     group('LookupTable', () {
       test('LookupTable key-value storage', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: LookupTable metaclass not tested');
-    });
+        final table = T3LookupTable(objectId: 1, bucketCount: 32);
+        final key1 = T3Value.fromInt(123);
+        final val1 = T3Value.fromString(1);
+        final key2 = T3Value.fromString(2);
+        final val2 = T3Value.fromInt(456);
 
-    /// BigNumber metaclass.
-    group('BigNumber', () {
-      test('BigNumber arbitrary precision', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: BigNumber metaclass not tested');
+        // Test set/get
+        table.set(key1, val1);
+        table.set(key2, val2);
+
+        expect(table.entryCount, 2);
+        expect(table.isKeyPresent(key1), isTrue);
+        expect(table.isKeyPresent(key2), isTrue);
+        expect(table.isKeyPresent(T3Value.fromInt(999)), isFalse);
+
+        expect(table.get(key1).value, 1);
+        expect(table.get(key2).value, 456);
+
+        // Test save/restore
+        final data = table.save();
+        final restored = T3LookupTable.fromData(1, data);
+
+        expect(restored.entryCount, 2);
+        expect(restored.isKeyPresent(key1), isTrue);
+        expect(restored.get(key1).value, 1);
+
+        // Test remove
+        table.remove(key1);
+        expect(table.entryCount, 1);
+        expect(table.isKeyPresent(key1), isFalse);
+      });
     });
 
     /// Iterator metaclass.
     group('Iterator', () {
       test('Iterator traversal', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: Iterator metaclass not tested');
+        // Create an iterator over a static list [1, 2, 3]
+        final collection = T3Value.fromInt(12345); // Dummy collection ID
+        final elements = [T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)];
+
+        final iter = T3IteratorObject(objectId: 3, collection: collection, elements: elements);
+
+        expect(iter.isNextAvailable(), isTrue);
+        expect(iter.getNext().value, 1);
+        expect(iter.getCurVal().value, 1);
+        expect(iter.getCurKey().value, 1);
+
+        expect(iter.getNext().value, 2);
+        expect(iter.getCurVal().value, 2);
+
+        expect(iter.getNext().value, 3);
+        expect(iter.isNextAvailable(), isFalse);
+        expect(iter.getNext().isNil, isTrue);
+
+        // Save/Restore
+        final data = iter.save();
+        final restored = T3IteratorObject.fromData(3, data);
+
+        expect(restored.elements.length, 3);
+        expect(restored.elements[0].value, 1);
+        expect(restored.isNextAvailable(), isFalse);
+
+        restored.reset();
+        expect(restored.isNextAvailable(), isTrue);
+        expect(restored.getNext().value, 1);
+      });
     });
 
     /// StringBuffer metaclass.
     group('StringBuffer', () {
       test('StringBuffer mutable strings', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: StringBuffer metaclass not tested');
+        final buf = T3StringBuffer(objectId: 2, initialText: 'Hello');
+        expect(buf.content, 'Hello');
+        expect(buf.length, 5);
+
+        buf.append(' World');
+        expect(buf.content, 'Hello World');
+        expect(buf.length, 11);
+
+        // Test save/restore
+        final data = buf.save();
+        final restored = T3StringBuffer.fromData(2, data);
+
+        // Check restored content
+        expect(restored.content, 'Hello World');
+        expect(restored.length, 11);
+        expect(restored.allocatedSize, buf.allocatedSize);
+      });
+    });
+
+    /// BigNumber metaclass.
+    group('BigNumber', () {
+      test('BigNumber creation and save/restore', () {
+        // Create a BigNumber manually via .create helper
+        final bn = T3BigNumber.create(4, precision: 32, exponent: 5);
+        expect(bn.availablePrecision, 32);
+        expect(bn.exponent, 5);
+
+        // Save
+        final data = bn.save();
+
+        // Restore
+        final restored = T3BigNumber.fromData(4, data);
+        expect(restored.availablePrecision, 32);
+        expect(restored.exponent, 5);
+      });
     });
 
     /// Date metaclass.
     group('Date', () {
-      test('Date manipulation', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: Date metaclass not tested');
+      test('Date creation and save/restore', () {
+        final date = T3Date.create(5);
+        // Save
+        final data = date.save();
+        // Restore
+        final restored = T3Date.fromData(5, data);
+        expect(restored.metaclass, 'date');
+      });
     });
 
     /// TimeZone metaclass.
     group('TimeZone', () {
-      test('TimeZone handling', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: TimeZone metaclass not tested');
+      test('TimeZone creation and save/restore', () {
+        final tz = T3TimeZone.create(6);
+        // Save
+        final data = tz.save();
+        // Restore
+        final restored = T3TimeZone.fromData(6, data);
+        expect(restored.metaclass, 'timezone');
+      });
     });
   });
 }

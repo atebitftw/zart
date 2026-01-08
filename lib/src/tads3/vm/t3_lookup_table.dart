@@ -159,4 +159,23 @@ class T3LookupTable extends T3Object {
 
   @override
   String toString() => 'T3LookupTable(#$objectId, $entryCount entries)';
+
+  @override
+  Uint8List save() {
+    final builder = BytesBuilder();
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, bucketCount, Endian.little));
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, entryCount, Endian.little));
+
+    forEach((key, value) {
+      final keyBuf = Uint8List(5);
+      key.toPortable(keyBuf, 0);
+      builder.add(keyBuf);
+
+      final valBuf = Uint8List(5);
+      value.toPortable(valBuf, 0);
+      builder.add(valBuf);
+    });
+
+    return builder.toBytes();
+  }
 }

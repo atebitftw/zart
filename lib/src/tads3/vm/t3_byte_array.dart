@@ -39,4 +39,12 @@ class T3ByteArray extends T3Object {
 
   @override
   String toString() => 'T3ByteArray(#$objectId, ${data.length} bytes)';
+
+  @override
+  Uint8List save() {
+    final builder = BytesBuilder();
+    builder.add(Uint8List(4)..buffer.asByteData().setUint32(0, data.length, Endian.little));
+    builder.add(data);
+    return builder.toBytes();
+  }
 }
