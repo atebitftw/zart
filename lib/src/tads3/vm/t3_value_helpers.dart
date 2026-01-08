@@ -38,9 +38,7 @@ mixin T3ValueHelpers {
         final list = helperDynamicLists[container.value]!;
         // TADS uses 1-based indexing
         if (index < 1 || index > list.length) {
-          throw T3Exception(
-            'List index out of range: $index (length: ${list.length})',
-          );
+          throw T3Exception('List index out of range: $index (length: ${list.length})');
         }
         return list[index - 1].copy();
       }
@@ -48,9 +46,7 @@ mixin T3ValueHelpers {
       final list = helperConstantPool!.readList(container.value);
       // TADS uses 1-based indexing
       if (index < 1 || index > list.length) {
-        throw T3Exception(
-          'List index out of range: $index (length: ${list.length})',
-        );
+        throw T3Exception('List index out of range: $index (length: ${list.length})');
       }
       return list[index - 1];
     } else if (container.isStringLike) {
@@ -63,9 +59,7 @@ mixin T3ValueHelpers {
       }
       // TADS uses 1-based indexing
       if (index < 1 || index > str.length) {
-        throw T3Exception(
-          'String index out of range: $index (length: ${str.length})',
-        );
+        throw T3Exception('String index out of range: $index (length: ${str.length})');
       }
       final char = str[index - 1];
       // Store as dynamic string and return
@@ -77,17 +71,13 @@ mixin T3ValueHelpers {
       final obj = helperObjectTable.lookup(container.value);
       if (obj is T3ListObject) {
         if (index < 1 || index > obj.elements.length) {
-          throw T3Exception(
-            'List index out of range: $index (length: ${obj.elements.length})',
-          );
+          throw T3Exception('List index out of range: $index (length: ${obj.elements.length})');
         }
         return obj.elements[index - 1].copy();
       }
       if (obj is T3VectorObject) {
         if (index < 1 || index > obj.elements.length) {
-          throw T3Exception(
-            'Vector index out of range: $index (length: ${obj.elements.length})',
-          );
+          throw T3Exception('Vector index out of range: $index (length: ${obj.elements.length})');
         }
         return obj.elements[index - 1].copy();
       }
@@ -106,9 +96,7 @@ mixin T3ValueHelpers {
         if (index >= 1 && index <= list.length) {
           list[index - 1] = value; // 1-based indexing
         } else {
-          throw T3Exception(
-            'SETIND: list index $index out of bounds (1..${list.length})',
-          );
+          throw T3Exception('SETIND: list index $index out of bounds (1..${list.length})');
         }
       } else {
         // Constant pool list - need to copy to dynamic list first
@@ -118,9 +106,7 @@ mixin T3ValueHelpers {
           newList[index - 1] = value;
           helperDynamicLists[container.value] = newList;
         } else {
-          throw T3Exception(
-            'SETIND: list index $index out of bounds (1..${originalList.length})',
-          );
+          throw T3Exception('SETIND: list index $index out of bounds (1..${originalList.length})');
         }
       }
     } else if (container.isObject) {
@@ -142,21 +128,10 @@ mixin T3ValueHelpers {
         if (index >= 1 && index <= obj.elements.length) {
           obj.elements[index - 1] = value;
         } else {
-          throw T3Exception(
-            'SETIND: list index $index out of bounds (1..${obj.elements.length})',
-          );
+          throw T3Exception('SETIND: list index $index out of bounds (1..${obj.elements.length})');
         }
-      } else if (obj is T3VectorObject) {
-        if (helperUndoManager.isActive) {
-          helperUndoManager.addRecord(
-            T3UndoVectorRecord(container.value, index, obj.elements[index]),
-          );
-        }
-        obj.elements[index] = value;
       } else {
-        throw T3Exception(
-          'SETIND: cannot set index on object type ${obj?.metaclass}',
-        );
+        throw T3Exception('SETIND: cannot set index on object type ${obj?.metaclass}');
       }
     } else {
       throw T3Exception('SETIND: cannot set index on ${container.type}');
@@ -171,9 +146,7 @@ mixin T3ValueHelpers {
 
     final obj = helperObjectTable.lookup(target.value);
     if (obj == null) {
-      throw T3Exception(
-        'Attempted to set property $propId on non-existent object ${target.value}',
-      );
+      throw T3Exception('Attempted to set property $propId on non-existent object ${target.value}');
     }
 
     obj.setProperty(propId, value, undoManager: helperUndoManager);
@@ -283,9 +256,7 @@ mixin T3ValueHelpers {
       }
       return ''; // Unknown dynamic string
     } else if (strVal.type == T3DataType.list) {
-      // Use list to string conversion if needed? Or error?
-      // For now return empty or meaningful representation?
-      return '[List]';
+      return valueToString(strVal);
     }
     return '';
   }

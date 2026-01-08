@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:zart/src/tads3/vm/t3_interpreter.dart';
+import 'package:zart/src/loaders/tads/t3_exception.dart';
 
 void main(List<String> args) async {
   if (args.isEmpty) {
@@ -21,16 +22,22 @@ void main(List<String> args) async {
   }
 
   print('Entrypoint: ${interp.entrypoint}');
+
+  // Debug output for metaclasses is now in _loadMetaclasses in t3_interpreter.dart
+  print('Object table count: ${interp.objectTable.count}');
+  // interp.objectTable.dump();
+
   print('Starting execution...');
   try {
+    interp.traceExecution = false;
     interp.maxInstructions = 50000; // Limit execution for safety in debug tool
     await interp.run();
     print('Execution finished.');
   } catch (e, stack) {
-    print(
-      'Execution stopped at IP 0x${interp.registers.ip.toRadixString(16)}: $e',
-    );
-    print('Registers: ${interp.debugInfo()}');
-    print(stack);
+    print('Execution stopped at IP 0x${interp.registers.ip.toRadixString(16)}: $e');
+    // print('Registers: ${interp.debugInfo()}');
+    if (e is! T3Exception) {
+      print(stack);
+    }
   }
 }

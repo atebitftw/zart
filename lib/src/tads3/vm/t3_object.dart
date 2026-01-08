@@ -17,11 +17,7 @@ abstract class T3Object {
   /// Whether this is a transient object (not saved in saved games).
   final bool isTransient;
 
-  T3Object({
-    required this.objectId,
-    required this.metaclass,
-    this.isTransient = false,
-  });
+  T3Object({required this.objectId, required this.metaclass, this.isTransient = false});
 
   /// Gets a property value by property ID.
   ///
@@ -140,34 +136,21 @@ class T3TadsObject extends T3Object {
     allProps.addAll(modifiedProperties);
 
     // Header: flags(2), superclasses(2), properties(2)
-    builder.add(
-      Uint8List(6)..buffer.asByteData().setUint16(0, flags, Endian.little),
-    );
+    builder.add(Uint8List(6)..buffer.asByteData().setUint16(0, flags, Endian.little));
     // Note: superclasses are already at offset 2 in builder.
     // We'll fix them up after.
 
-    builder.add(
-      Uint8List(2)
-        ..buffer.asByteData().setUint16(2, superclasses.length, Endian.little),
-    );
-    builder.add(
-      Uint8List(2)
-        ..buffer.asByteData().setUint16(4, allProps.length, Endian.little),
-    );
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(2, superclasses.length, Endian.little));
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(4, allProps.length, Endian.little));
 
     // Superclasses
     for (final scId in superclasses) {
-      builder.add(
-        Uint8List(4)..buffer.asByteData().setUint32(0, scId, Endian.little),
-      );
+      builder.add(Uint8List(4)..buffer.asByteData().setUint32(0, scId, Endian.little));
     }
 
     // Properties
     for (final entry in allProps.entries) {
-      builder.add(
-        Uint8List(2)
-          ..buffer.asByteData().setUint16(0, entry.key, Endian.little),
-      );
+      builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, entry.key, Endian.little));
       final valBuf = Uint8List(5);
       entry.value.toPortable(valBuf, 0);
       builder.add(valBuf);
@@ -179,11 +162,7 @@ class T3TadsObject extends T3Object {
   /// Parses a TADS object from image file data.
   ///
   /// The [data] should be the metaclass-specific data from the OBJS block.
-  factory T3TadsObject.fromData(
-    int objectId,
-    Uint8List data, {
-    bool isTransient = false,
-  }) {
+  factory T3TadsObject.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
 
     // Read header
@@ -249,11 +228,7 @@ class T3StringObject extends T3Object {
   /// The string content.
   final String text;
 
-  T3StringObject({
-    required super.objectId,
-    required this.text,
-    super.isTransient,
-  }) : super(metaclass: 'string');
+  T3StringObject({required super.objectId, required this.text, super.isTransient}) : super(metaclass: 'string');
 
   @override
   T3Value? getProperty(int propId) {
@@ -267,21 +242,13 @@ class T3StringObject extends T3Object {
   }
 
   /// Parses a string object from image file data.
-  factory T3StringObject.fromData(
-    int objectId,
-    Uint8List data, {
-    bool isTransient = false,
-  }) {
+  factory T3StringObject.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     final length = view.getUint16(0, Endian.little);
     final textBytes = data.sublist(2, 2 + length);
     final text = String.fromCharCodes(textBytes);
 
-    return T3StringObject(
-      objectId: objectId,
-      text: text,
-      isTransient: isTransient,
-    );
+    return T3StringObject(objectId: objectId, text: text, isTransient: isTransient);
   }
 
   @override
@@ -293,17 +260,13 @@ class T3StringObject extends T3Object {
   };
 
   @override
-  String toString() =>
-      'T3StringObject(#$objectId, "${text.length > 20 ? '${text.substring(0, 20)}...' : text}")';
+  String toString() => 'T3StringObject(#$objectId, "${text.length > 20 ? '${text.substring(0, 20)}...' : text}")';
 
   @override
   Uint8List save() {
     final bytes = Uint8List.fromList(text.codeUnits);
     final builder = BytesBuilder();
-    builder.add(
-      Uint8List(2)
-        ..buffer.asByteData().setUint16(0, bytes.length, Endian.little),
-    );
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, bytes.length, Endian.little));
     builder.add(bytes);
     return builder.toBytes();
   }
@@ -321,11 +284,7 @@ class T3ListObject extends T3Object {
   /// The list elements.
   final List<T3Value> elements;
 
-  T3ListObject({
-    required super.objectId,
-    required this.elements,
-    super.isTransient,
-  }) : super(metaclass: 'list');
+  T3ListObject({required super.objectId, required this.elements, super.isTransient}) : super(metaclass: 'list');
 
   /// Number of elements.
   int get length => elements.length;
@@ -360,10 +319,7 @@ class T3ListObject extends T3Object {
   @override
   Uint8List save() {
     final builder = BytesBuilder();
-    builder.add(
-      Uint8List(2)
-        ..buffer.asByteData().setUint16(0, elements.length, Endian.little),
-    );
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, elements.length, Endian.little));
     for (final val in elements) {
       final buf = Uint8List(5);
       val.toPortable(buf, 0);
@@ -378,11 +334,7 @@ class T3ListObject extends T3Object {
   }
 
   /// Parses a list object from image file data.
-  factory T3ListObject.fromData(
-    int objectId,
-    Uint8List data, {
-    bool isTransient = false,
-  }) {
+  factory T3ListObject.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     final count = view.getUint16(0, Endian.little);
 
@@ -393,19 +345,11 @@ class T3ListObject extends T3Object {
       offset += T3Value.portableSize;
     }
 
-    return T3ListObject(
-      objectId: objectId,
-      elements: elements,
-      isTransient: isTransient,
-    );
+    return T3ListObject(objectId: objectId, elements: elements, isTransient: isTransient);
   }
 
   @override
-  Map<String, dynamic> get debugInfo => {
-    'objectId': objectId,
-    'metaclass': metaclass,
-    'length': length,
-  };
+  Map<String, dynamic> get debugInfo => {'objectId': objectId, 'metaclass': metaclass, 'length': length};
 
   @override
   String toString() => 'T3ListObject(#$objectId, $length elements)';
@@ -429,12 +373,8 @@ class T3VectorObject extends T3Object {
   /// Internal iterator index (1-based) for when Vector is used as an iterator.
   int iteratorIndex = 0;
 
-  T3VectorObject({
-    required super.objectId,
-    required this.elements,
-    required this.allocatedSize,
-    super.isTransient,
-  }) : super(metaclass: 'vector');
+  T3VectorObject({required super.objectId, required this.elements, required this.allocatedSize, super.isTransient})
+    : super(metaclass: 'vector');
 
   /// Number of elements.
   int get length => elements.length;
@@ -452,11 +392,7 @@ class T3VectorObject extends T3Object {
   }
 
   /// Parses a vector object from image file data.
-  factory T3VectorObject.fromData(
-    int objectId,
-    Uint8List data, {
-    bool isTransient = false,
-  }) {
+  factory T3VectorObject.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     // Note: allocated count comes FIRST, then element count (per reference VM)
     final allocated = view.getUint16(0, Endian.little);
@@ -469,12 +405,7 @@ class T3VectorObject extends T3Object {
       offset += T3Value.portableSize;
     }
 
-    return T3VectorObject(
-      objectId: objectId,
-      elements: elements,
-      allocatedSize: allocated,
-      isTransient: isTransient,
-    );
+    return T3VectorObject(objectId: objectId, elements: elements, allocatedSize: allocated, isTransient: isTransient);
   }
 
   @override
@@ -486,19 +417,13 @@ class T3VectorObject extends T3Object {
   };
 
   @override
-  String toString() =>
-      'T3VectorObject(#$objectId, $length elements, alloc: $allocatedSize)';
+  String toString() => 'T3VectorObject(#$objectId, $length elements, alloc: $allocatedSize)';
 
   @override
   Uint8List save() {
     final builder = BytesBuilder();
-    builder.add(
-      Uint8List(2)
-        ..buffer.asByteData().setUint16(0, allocatedSize, Endian.little),
-    );
-    builder.add(
-      Uint8List(2)..buffer.asByteData().setUint16(0, length, Endian.little),
-    );
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, allocatedSize, Endian.little));
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, length, Endian.little));
     for (final val in elements) {
       final buf = Uint8List(5);
       val.toPortable(buf, 0);
@@ -513,27 +438,15 @@ class T3VectorObject extends T3Object {
 /// Inherits from Vector. Element 0 is usually the method pointer (CodeOffset).
 /// Elements 1..N are the closure environment.
 class T3AnonFnObject extends T3VectorObject {
-  T3AnonFnObject({
-    required super.objectId,
-    required super.elements,
-    required super.allocatedSize,
-    super.isTransient,
-  }) : super();
+  T3AnonFnObject({required super.objectId, required super.elements, required super.allocatedSize, super.isTransient})
+    : super();
 
   @override
   String get metaclass => 'anon-func-ptr';
 
   /// Parses an anonymous function object from image file data.
-  factory T3AnonFnObject.fromData(
-    int objectId,
-    Uint8List data, {
-    bool isTransient = false,
-  }) {
-    final vector = T3VectorObject.fromData(
-      objectId,
-      data,
-      isTransient: isTransient,
-    );
+  factory T3AnonFnObject.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
+    final vector = T3VectorObject.fromData(objectId, data, isTransient: isTransient);
     return T3AnonFnObject(
       objectId: objectId,
       elements: vector.elements,
@@ -594,7 +507,9 @@ class T3IteratorObject extends T3Object {
   T3Value getNext() {
     final elems = elements;
     if (_index < elems.length) {
-      return elems[_index++];
+      final val = elems[_index++];
+
+      return val;
     }
     return T3Value.nil();
   }
@@ -622,14 +537,9 @@ class T3IteratorObject extends T3Object {
   };
 
   @override
-  String toString() =>
-      'T3IteratorObject(#$objectId, collection: $collection, index: $_index)';
+  String toString() => 'T3IteratorObject(#$objectId, collection: $collection, index: $_index)';
 
-  factory T3IteratorObject.fromData(
-    int objectId,
-    Uint8List data, {
-    bool isTransient = false,
-  }) {
+  factory T3IteratorObject.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     var offset = 0;
 
@@ -675,9 +585,7 @@ class T3IteratorObject extends T3Object {
     builder.add(colBuf);
 
     // Index
-    builder.add(
-      Uint8List(4)..buffer.asByteData().setUint32(0, _index, Endian.little),
-    );
+    builder.add(Uint8List(4)..buffer.asByteData().setUint32(0, _index, Endian.little));
 
     // Has static elements
     final hasStatic = _staticElements != null;
@@ -685,14 +593,7 @@ class T3IteratorObject extends T3Object {
 
     if (hasStatic) {
       // Count
-      builder.add(
-        Uint8List(4)
-          ..buffer.asByteData().setUint32(
-            0,
-            _staticElements.length,
-            Endian.little,
-          ),
-      );
+      builder.add(Uint8List(4)..buffer.asByteData().setUint32(0, _staticElements.length, Endian.little));
       // Elements
       for (final el in _staticElements) {
         final elBuf = Uint8List(5);
@@ -712,12 +613,7 @@ class T3GenericObject extends T3Object {
   /// The raw metaclass-specific data.
   final Uint8List rawData;
 
-  T3GenericObject({
-    required super.objectId,
-    required super.metaclass,
-    required this.rawData,
-    super.isTransient,
-  });
+  T3GenericObject({required super.objectId, required super.metaclass, required this.rawData, super.isTransient});
 
   @override
   T3Value? getProperty(int propId) {
@@ -727,21 +623,14 @@ class T3GenericObject extends T3Object {
 
   @override
   void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
-    throw UnsupportedError(
-      'Cannot set properties on unknown metaclass: $metaclass',
-    );
+    throw UnsupportedError('Cannot set properties on unknown metaclass: $metaclass');
   }
 
   @override
-  Map<String, dynamic> get debugInfo => {
-    'objectId': objectId,
-    'metaclass': metaclass,
-    'dataSize': rawData.length,
-  };
+  Map<String, dynamic> get debugInfo => {'objectId': objectId, 'metaclass': metaclass, 'dataSize': rawData.length};
 
   @override
-  String toString() =>
-      'T3GenericObject(#$objectId, $metaclass, ${rawData.length} bytes)';
+  String toString() => 'T3GenericObject(#$objectId, $metaclass, ${rawData.length} bytes)';
 
   @override
   Uint8List save() => rawData;
@@ -783,16 +672,10 @@ class T3StringBuffer extends T3Object {
 
   @override
   void setProperty(int propId, T3Value value, {T3UndoManager? undoManager}) {
-    throw UnsupportedError(
-      'StringBuffer properties are read-only via setProperty',
-    );
+    throw UnsupportedError('StringBuffer properties are read-only via setProperty');
   }
 
-  factory T3StringBuffer.fromData(
-    int objectId,
-    Uint8List data, {
-    bool isTransient = false,
-  }) {
+  factory T3StringBuffer.fromData(int objectId, Uint8List data, {bool isTransient = false}) {
     final view = ByteData.view(data.buffer, data.offsetInBytes);
     final length = view.getUint32(0, Endian.little);
     final alloc = view.getUint32(4, Endian.little);
@@ -803,9 +686,7 @@ class T3StringBuffer extends T3Object {
     // Assuming 1 byte per char for now as per simple encoding, but T3 uses UTF8.
     // The data format from `save` writes bytes, so we read bytes.
     // Spec says 'utf8'.
-    final str = String.fromCharCodes(
-      strBytes,
-    ); // Simple decoding, enhance if full UTF8 needed
+    final str = String.fromCharCodes(strBytes); // Simple decoding, enhance if full UTF8 needed
 
     return T3StringBuffer(
       objectId: objectId,
@@ -822,19 +703,11 @@ class T3StringBuffer extends T3Object {
     final bytes = Uint8List.fromList(content.codeUnits);
 
     // Length (UINT4)
-    builder.add(
-      Uint8List(4)
-        ..buffer.asByteData().setUint32(0, bytes.length, Endian.little),
-    );
+    builder.add(Uint8List(4)..buffer.asByteData().setUint32(0, bytes.length, Endian.little));
     // Alloc (UINT4)
-    builder.add(
-      Uint8List(4)
-        ..buffer.asByteData().setUint32(0, allocatedSize, Endian.little),
-    );
+    builder.add(Uint8List(4)..buffer.asByteData().setUint32(0, allocatedSize, Endian.little));
     // Increment (UINT2)
-    builder.add(
-      Uint8List(2)..buffer.asByteData().setUint16(0, increment, Endian.little),
-    );
+    builder.add(Uint8List(2)..buffer.asByteData().setUint16(0, increment, Endian.little));
     // Data
     builder.add(bytes);
 

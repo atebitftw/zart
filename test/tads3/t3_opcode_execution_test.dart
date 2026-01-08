@@ -656,11 +656,7 @@ void main() {
       final h = OpcodeTestHarness();
 
       // Add a list to the constant pool: [10, 20, 30]
-      final listOffset = h.addList([
-        T3Value.fromInt(10),
-        T3Value.fromInt(20),
-        T3Value.fromInt(30),
-      ]);
+      final listOffset = h.addList([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30)]);
 
       // Bytecode: push list ref, store to local 0, then use IDXLCL1INT8
       // Push the list constant
@@ -895,11 +891,7 @@ void main() {
   group('String opcodes', () {
     test('PUSHLST pushes list reference', () {
       final h = OpcodeTestHarness();
-      final listOffset = h.addList([
-        T3Value.fromInt(1),
-        T3Value.fromInt(2),
-        T3Value.fromInt(3),
-      ]);
+      final listOffset = h.addList([T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)]);
 
       h.emit(T3Opcodes.PUSHLST);
       h.emitUint32(listOffset);
@@ -1022,11 +1014,7 @@ void main() {
   group('INDEX opcode with constant list', () {
     test('INDEX retrieves element from constant list', () {
       final h = OpcodeTestHarness();
-      final listOffset = h.addList([
-        T3Value.fromInt(100),
-        T3Value.fromInt(200),
-        T3Value.fromInt(300),
-      ]);
+      final listOffset = h.addList([T3Value.fromInt(100), T3Value.fromInt(200), T3Value.fromInt(300)]);
 
       // Push list reference
       h.emit(T3Opcodes.PUSHLST);
@@ -1371,11 +1359,7 @@ void main() {
   group('IDXINT8 opcode', () {
     test('IDXINT8 indexes value on stack with immediate index', () {
       final h = OpcodeTestHarness();
-      final listOffset = h.addList([
-        T3Value.fromInt(100),
-        T3Value.fromInt(200),
-        T3Value.fromInt(300),
-      ]);
+      final listOffset = h.addList([T3Value.fromInt(100), T3Value.fromInt(200), T3Value.fromInt(300)]);
 
       h.emit(T3Opcodes.PUSHLST);
       h.emitUint32(listOffset);
@@ -1574,11 +1558,7 @@ void main() {
   group('GETARG opcodes with harness args', () {
     test('GETARG1 gets argument by 1-byte index', () {
       final h = OpcodeTestHarness();
-      h.addArgs([
-        T3Value.fromInt(100),
-        T3Value.fromInt(200),
-        T3Value.fromInt(300),
-      ]);
+      h.addArgs([T3Value.fromInt(100), T3Value.fromInt(200), T3Value.fromInt(300)]);
       h.emit(T3Opcodes.GETARG1);
       h.emitByte(1); // Get arg 1 (second argument)
       h.build();
@@ -1630,12 +1610,7 @@ void main() {
 
     test('GETARGN3 gets argument 3', () {
       final h = OpcodeTestHarness();
-      h.addArgs([
-        T3Value.fromInt(10),
-        T3Value.fromInt(20),
-        T3Value.fromInt(30),
-        T3Value.fromInt(40),
-      ]);
+      h.addArgs([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30), T3Value.fromInt(40)]);
       h.emit(T3Opcodes.GETARGN3);
       h.build();
       h.step();
@@ -1838,9 +1813,7 @@ void main() {
       final h = OpcodeTestHarness();
       // Create an object with a property
       const propId = 100;
-      final objId = h.createObject(
-        properties: [T3ObjectProperty(propId, T3Value.fromInt(42))],
-      );
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(42))]);
 
       // Push object, then GETPROP
       h.emit(T3Opcodes.PUSHOBJ);
@@ -1876,9 +1849,7 @@ void main() {
     test('GETPROPSELF gets property from self', () {
       final h = OpcodeTestHarness();
       const propId = 300;
-      final objId = h.createObject(
-        properties: [T3ObjectProperty(propId, T3Value.fromInt(77))],
-      );
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(77))]);
       h.setSelf(T3Value.fromObject(objId));
 
       h.emit(T3Opcodes.GETPROPSELF);
@@ -1909,9 +1880,7 @@ void main() {
     test('OBJGETPROP gets property from immediate object ID', () {
       final h = OpcodeTestHarness();
       const propId = 500;
-      final objId = h.createObject(
-        properties: [T3ObjectProperty(propId, T3Value.fromInt(55))],
-      );
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(55))]);
 
       h.emit(T3Opcodes.OBJGETPROP);
       h.emitUint32(objId);
@@ -1942,9 +1911,7 @@ void main() {
     test('GETPROPLCL1 gets property from local variable object', () {
       final h = OpcodeTestHarness();
       const propId = 700;
-      final objId = h.createObject(
-        properties: [T3ObjectProperty(propId, T3Value.fromInt(33))],
-      );
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(33))]);
 
       // Push object to local 0, then GETPROPLCL1
       h.emit(T3Opcodes.PUSHOBJ);
@@ -1967,10 +1934,10 @@ void main() {
       // Register list metaclass at index 0
       h.registerMetaclasses(['list']);
 
-      // NEW1: metaclass_idx, argc
+      // NEW1: argc, metaclass_idx (per reference VM vmrun.cpp)
       h.emit(T3Opcodes.NEW1);
-      h.emitByte(0); // metaclass index 0 = list
       h.emitByte(0); // argc = 0
+      h.emitByte(0); // metaclass index 0 = list
       h.build();
       h.step();
 
@@ -1988,10 +1955,10 @@ void main() {
       // Push size argument
       h.emit(T3Opcodes.PUSHINT8);
       h.emitInt8(5);
-      // NEW1: metaclass_idx, argc
+      // NEW1: argc, metaclass_idx (per reference VM vmrun.cpp)
       h.emit(T3Opcodes.NEW1);
-      h.emitByte(0); // metaclass index 0 = vector
       h.emitByte(1); // argc = 1
+      h.emitByte(0); // metaclass index 0 = vector
       h.build();
       h.runSteps(2);
 
@@ -2006,9 +1973,10 @@ void main() {
       final h = OpcodeTestHarness();
       h.registerMetaclasses(['list']);
 
+      // NEW2: argc, metaclass_idx (per reference VM vmrun.cpp)
       h.emit(T3Opcodes.NEW2);
-      h.emitUint16(0); // metaclass index
-      h.emitByte(0); // argc
+      h.emitByte(0); // argc = 0
+      h.emitUint16(0); // metaclass index 0 = list
       h.build();
       h.step();
 
@@ -2019,9 +1987,10 @@ void main() {
       final h = OpcodeTestHarness();
       h.registerMetaclasses(['list']);
 
+      // TRNEW1: argc, metaclass_idx (per reference VM vmrun.cpp)
       h.emit(T3Opcodes.TRNEW1);
-      h.emitByte(0);
-      h.emitByte(0);
+      h.emitByte(0); // argc = 0
+      h.emitByte(0); // metaclass index 0 = list
       h.build();
       h.step();
 
@@ -2055,9 +2024,7 @@ void main() {
 
       // Function code at offset 20:
       // Method header: argc=0, locals=0
-      h.addFunction(
-        OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0),
-      );
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
       // Function body: PUSHINT8 42, RETVAL
       h.emit(T3Opcodes.PUSHINT8);
       h.emitInt8(42);
@@ -2087,9 +2054,7 @@ void main() {
       }
 
       // Function code at offset 20:
-      h.addFunction(
-        OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0),
-      );
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
       h.emit(T3Opcodes.PUSHINT8);
       h.emitInt8(99);
       h.emit(T3Opcodes.RETVAL);
@@ -2124,9 +2089,7 @@ void main() {
       }
 
       // Function code at offset 30:
-      h.addFunction(
-        OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0),
-      );
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
       h.emit(T3Opcodes.PUSH_1);
       h.emit(T3Opcodes.PUSHINT8);
       h.emitInt8(5);
@@ -2158,21 +2121,12 @@ void main() {
 
       // Function code at offset 20:
       // Header: argc=0, locals=0, exceptionTableOffset=20 (at 40)
-      h.addFunction(
-        OpcodeTestHarness.createMethodHeader(
-          argCount: 0,
-          localCount: 0,
-          exceptionTableOffset: 20,
-        ),
-      );
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0, exceptionTableOffset: 20));
 
       final startProtectOfs = h.bytecodeLength - funcOffset;
       h.emit(T3Opcodes.PUSHNIL);
       h.emit(T3Opcodes.THROW);
-      final endProtectOfs =
-          h.bytecodeLength -
-          funcOffset +
-          1; // +1 to ensure IP after THROW is included
+      final endProtectOfs = h.bytecodeLength - funcOffset + 1; // +1 to ensure IP after THROW is included
 
       h.emit(T3Opcodes.RETNIL); // Skipped
 
@@ -2222,11 +2176,7 @@ void main() {
 
       // Function code at 20:
       h.addFunction(
-        OpcodeTestHarness.createMethodHeader(
-          argCount: 0,
-          localCount: 0,
-          exceptionTableOffset: 25,
-        ),
+        OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0, exceptionTableOffset: 25),
       ); // Slightly more padding
 
       final startProtectOfs = h.bytecodeLength - funcOffset;
@@ -2399,11 +2349,7 @@ void main() {
       // Superclass has the property (method returning 77)
       final methodOffset = 50;
       h.createObject(id: baseClsId, flags: 1); // class
-      h.setObjectProperty(
-        baseClsId,
-        propId,
-        T3Value.fromCodeOffset(methodOffset),
-      );
+      h.setObjectProperty(baseClsId, propId, T3Value.fromCodeOffset(methodOffset));
 
       h.createObject(id: subClsId, superclasses: [baseClsId]);
 
@@ -2419,9 +2365,7 @@ void main() {
 
       // Pad to methodOffset and add method
       while (h.bytecodeLength < methodOffset) h.emit(T3Opcodes.NOP);
-      h.addFunction(
-        OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0),
-      );
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
       h.emit(T3Opcodes.PUSHINT8);
       h.emitByte(77);
       h.emit(T3Opcodes.RETVAL);
@@ -2441,11 +2385,7 @@ void main() {
       final methodOffset = 60;
 
       h.createObject(id: otherObjId);
-      h.setObjectProperty(
-        otherObjId,
-        propId,
-        T3Value.fromCodeOffset(methodOffset),
-      );
+      h.setObjectProperty(otherObjId, propId, T3Value.fromCodeOffset(methodOffset));
 
       // Push object to delegate to
       h.emit(T3Opcodes.PUSHOBJ);
@@ -2457,9 +2397,7 @@ void main() {
 
       // Method at offset 60
       while (h.bytecodeLength < methodOffset) h.emit(T3Opcodes.NOP);
-      h.addFunction(
-        OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0),
-      );
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
       h.emit(T3Opcodes.PUSHINT8);
       h.emitByte(88);
       h.emit(T3Opcodes.RETVAL);
@@ -2477,10 +2415,7 @@ void main() {
     test('ITERNEXT advances iterator', () {
       final h = OpcodeTestHarness();
       final iterObjId = h.allocateObjectId();
-      h.createIteratorObject(iterObjId, [
-        T3Value.fromInt(10),
-        T3Value.fromInt(20),
-      ]);
+      h.createIteratorObject(iterObjId, [T3Value.fromInt(10), T3Value.fromInt(20)]);
 
       // Bytecode to set local 0 to the iterator and then loop
       h.emit(T3Opcodes.PUSHOBJ);
@@ -2506,11 +2441,7 @@ void main() {
   group('PUSHPARLST opcode', () {
     test('PUSHPARLST pushes varargs parameter list', () {
       final h = OpcodeTestHarness();
-      h.addArgs([
-        T3Value.fromInt(10),
-        T3Value.fromInt(20),
-        T3Value.fromInt(30),
-      ]);
+      h.addArgs([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30)]);
 
       h.emit(T3Opcodes.PUSHPARLST);
       h.emitByte(1); // 1 fixed arg, 2 varargs
@@ -2541,13 +2472,7 @@ void main() {
 
       // Function code at funcOffset (20)
       // Header: argc=0, locals=0, exceptionTableOffset=20 (at 40)
-      h.addFunction(
-        OpcodeTestHarness.createMethodHeader(
-          argCount: 0,
-          localCount: 0,
-          exceptionTableOffset: 20,
-        ),
-      );
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0, exceptionTableOffset: 20));
 
       final startProtectOfs = h.bytecodeLength - funcOffset;
       final exObj = h.allocateObjectId();
@@ -2555,8 +2480,7 @@ void main() {
       h.emit(T3Opcodes.PUSHOBJ);
       h.emitUint32(exObj);
       h.emit(T3Opcodes.THROW);
-      final endProtectOfs =
-          h.bytecodeLength - funcOffset + 1; // +1 to include ip after THROW
+      final endProtectOfs = h.bytecodeLength - funcOffset + 1; // +1 to include ip after THROW
 
       h.emit(T3Opcodes.RETNIL); // Fallback
 
@@ -2616,11 +2540,7 @@ void main() {
     test('SETIND sets indexed value on vector', () {
       final h = OpcodeTestHarness();
       // Create a Vector with values [10, 20, 30]
-      final vecId = h.createVectorObject([
-        T3Value.fromInt(10),
-        T3Value.fromInt(20),
-        T3Value.fromInt(30),
-      ]);
+      final vecId = h.createVectorObject([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30)]);
 
       // Pop order: index, container, value
       // Push order: value, container, index
@@ -2642,10 +2562,7 @@ void main() {
     test('SETINDLCL1I8 sets indexed value in local vector', () {
       final h = OpcodeTestHarness();
       // Create a Vector and store in local 0
-      final vecId = h.createVectorObject([
-        T3Value.fromInt(100),
-        T3Value.fromInt(200),
-      ]);
+      final vecId = h.createVectorObject([T3Value.fromInt(100), T3Value.fromInt(200)]);
 
       h.emit(T3Opcodes.PUSHOBJ);
       h.emitUint32(vecId);

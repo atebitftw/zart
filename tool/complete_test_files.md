@@ -13,12 +13,12 @@ The following test files run successfully to completion:
 - props.t3 - Property definitions (no output on our version AND the reference interpreter version?? how do we know this is working correctly?)
 - enum2.t3 - Enumerations (no output on our version AND the reference interpreter version?? how do we know this is working correctly?)
 - anon.t3 - Anonymous functions and inheritance
-- foreach.t3 - Vector applyAll and iterator snapshotting
-- iter.t3 - Iterator operations for lists and vectors
 - substr.t3 - String substring operations
 - try_catch.t3 - Exception handling
-- finally.t3 - Exception handling
 - object.t3 - Object property access and inheritance
+- iter.t3 - Iterator operations for lists and vectors
+- foreach.t3 - Vector applyAll and iterator snapshotting
+- finally.t3 - Exception handling (finishes with expected unhandled exception)
 
 ## Partially Working Tests (partial output before failure)
 
