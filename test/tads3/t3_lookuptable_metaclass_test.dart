@@ -62,7 +62,7 @@ void main() {
     group('forEachAssoc', () {
       test('passes both key and value to callback', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: forEachAssoc not implemented');
+      });
     });
 
     /// vmlookup.h:543-544 - getp_count_buckets

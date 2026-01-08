@@ -104,10 +104,12 @@ void main() {
     });
 
     group('toByteArray [10]', () {
-      test('stub returns nil', () {
+      test('returns ByteArray object', () {
         final target = makeStr('hello');
         interp.handleStringIntrinsic(9, target, 0);
-        expect(interp.registers.r0.type, T3DataType.nil);
+        expect(interp.registers.r0.isObject, isTrue);
+        final obj = interp.objectTable.lookup(interp.registers.r0.value);
+        expect(obj.runtimeType.toString(), contains('T3ByteArray'));
       });
     });
 

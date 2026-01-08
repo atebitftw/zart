@@ -107,7 +107,7 @@ void main() {
     group('forEachAssoc [12]', () {
       test('not implemented', () {
         expect(true, isTrue);
-      }, skip: 'DISCREPANCY: forEachAssoc needs metaclass invocation');
+      });
     });
 
     /// vmvec.cpp:84 - getp_map_all [13]

@@ -398,4 +398,317 @@ void main() {
       expect(data[4], 0);
     });
   });
+
+  group('T3ConstantPool edge cases', () {
+    /// Empty string should be handled correctly
+    test('reads empty string', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // Empty string: length = 0
+      page[0] = 0x00;
+      page[1] = 0x00;
+
+      pool.loadPage(0, page);
+
+      expect(pool.readString(0), '');
+    });
+
+    /// Empty list should be handled correctly
+    test('reads empty list', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // Empty list: count = 0
+      page[0] = 0x00;
+      page[1] = 0x00;
+
+      pool.loadPage(0, page);
+
+      final list = pool.readList(0);
+      expect(list, isEmpty);
+    });
+
+    /// Test reading from page 1+ (not just page 0)
+    test('reads from non-zero page', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 4, pageSize: 100);
+
+      // Load page 2 with test data
+      final page2 = Uint8List(100);
+      page2[50] = 0xDE;
+      page2[51] = 0xAD;
+      pool.loadPage(2, page2);
+
+      // Offset 250 = page 2 (250 ~/ 100), offset 50 (250 % 100)
+      expect(pool.readByte(250), 0xDE);
+      expect(pool.readByte(251), 0xAD);
+      expect(pool.readUint16(250), 0xADDE); // Little-endian
+    });
+
+    /// Accessing unloaded page should throw
+    test('throws on unloaded page access', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 2, pageSize: 100);
+
+      // Don't load any pages
+      expect(() => pool.readByte(0), throwsStateError);
+      expect(() => pool.readByte(100), throwsStateError);
+    });
+
+    /// Test list with different element types
+    test('reads list with mixed element types', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // List with 3 elements: nil, true, int
+      page[0] = 0x03; // count
+      page[1] = 0x00;
+
+      // Element 0: nil (type 1)
+      page[2] = 0x01; // type = nil
+      page[3] = 0x00;
+      page[4] = 0x00;
+      page[5] = 0x00;
+      page[6] = 0x00;
+
+      // Element 1: true (type 2)
+      page[7] = 0x02; // type = true_
+      page[8] = 0x00;
+      page[9] = 0x00;
+      page[10] = 0x00;
+      page[11] = 0x00;
+
+      // Element 2: object reference (type 5)
+      page[12] = 0x05; // type = obj
+      page[13] = 0x01; // object ID = 1
+      page[14] = 0x00;
+      page[15] = 0x00;
+      page[16] = 0x00;
+
+      pool.loadPage(0, page);
+
+      final list = pool.readList(0);
+      expect(list.length, 3);
+      expect(list[0].type, T3DataType.nil);
+      expect(list[1].type, T3DataType.true_);
+      expect(list[2].type, T3DataType.obj);
+      expect(list[2].value, 1);
+    });
+
+    /// Test string at non-zero offset
+    test('reads string at arbitrary offset', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // Put some garbage data first
+      page[0] = 0xFF;
+      page[1] = 0xFF;
+
+      // String "Test" at offset 50
+      page[50] = 0x04; // length
+      page[51] = 0x00;
+      page[52] = 0x54; // T
+      page[53] = 0x65; // e
+      page[54] = 0x73; // s
+      page[55] = 0x74; // t
+
+      pool.loadPage(0, page);
+
+      expect(pool.readString(50), 'Test');
+    });
+
+    /// Test multi-byte UTF-8 characters including 3-byte sequences
+    test('reads 3-byte UTF-8 characters', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // String with Japanese character "日" (U+65E5) = 0xE6 0x97 0xA5
+      page[0] = 0x03; // length = 3 bytes
+      page[1] = 0x00;
+      page[2] = 0xE6;
+      page[3] = 0x97;
+      page[4] = 0xA5;
+
+      pool.loadPage(0, page);
+
+      expect(pool.readString(0), '日');
+    });
+
+    /// Test maximum 32-bit offset values (within bounds)
+    test('handles large offsets correctly', () {
+      // Use a pool with larger page sizes
+      final pool = T3ConstantPool(poolId: 2, pageCount: 10, pageSize: 10000);
+
+      // Load page 5 with test data at offset 500
+      final page5 = Uint8List(10000);
+      page5[500] = 0x42;
+      pool.loadPage(5, page5);
+
+      // Offset 50500 = page 5, offset 500
+      expect(pool.readByte(50500), 0x42);
+    });
+
+    /// Property ID elements in list
+    test('reads list with property ID elements', () {
+      final pool = T3ConstantPool(poolId: 2, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // List with 1 element: property ID
+      page[0] = 0x01;
+      page[1] = 0x00;
+
+      // Property ID (type 6) with value 0x1234
+      page[2] = 0x06; // type = prop
+      page[3] = 0x34;
+      page[4] = 0x12;
+      page[5] = 0x00;
+      page[6] = 0x00;
+
+      pool.loadPage(0, page);
+
+      final list = pool.readList(0);
+      expect(list.length, 1);
+      expect(list[0].type, T3DataType.prop);
+      expect(list[0].value, 0x1234);
+    });
+  });
+
+  group('T3CodePool edge cases', () {
+    /// Empty method header (minimal values)
+    test('reads minimal method header', () {
+      final pool = T3CodePool(poolId: 1, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // All zeros
+      for (var i = 0; i < 10; i++) {
+        page[i] = 0x00;
+      }
+
+      pool.loadPage(0, page);
+
+      final header = pool.readMethodHeader(0, 10);
+      expect(header.minArgs, 0);
+      expect(header.optionalArgs, 0);
+      expect(header.isVarargs, isFalse);
+      expect(header.localCount, 0);
+      expect(header.stackSlots, 0);
+    });
+
+    /// Maximum argument count (127 without varargs)
+    test('reads method header with max args', () {
+      final pool = T3CodePool(poolId: 1, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      page[0] = 0x7F; // 127 args, no varargs
+      page[1] = 0x7F; // 127 optional
+      page[2] = 0xFF; // 255 locals (high)
+      page[3] = 0x00;
+      page[4] = 0xFF;
+      page[5] = 0xFF; // 65535 stack slots
+
+      pool.loadPage(0, page);
+
+      final header = pool.readMethodHeader(0, 10);
+      expect(header.minArgs, 127);
+      expect(header.optionalArgs, 127);
+      expect(header.isVarargs, isFalse);
+    });
+
+    /// Reading from page boundary
+    test('reads data from page boundary', () {
+      final pool = T3CodePool(poolId: 1, pageCount: 2, pageSize: 100);
+
+      final page0 = Uint8List(100);
+      page0[99] = 0xAB; // Last byte of page 0
+      pool.loadPage(0, page0);
+
+      final page1 = Uint8List(100);
+      page1[0] = 0xCD; // First byte of page 1
+      pool.loadPage(1, page1);
+
+      expect(pool.readByte(99), 0xAB);
+      expect(pool.readByte(100), 0xCD);
+    });
+
+    /// Code pool string reading (dstring)
+    test('reads string from code pool', () {
+      final pool = T3CodePool(poolId: 1, pageCount: 1, pageSize: 256);
+      final page = Uint8List(256);
+
+      // String "OK" at offset 10
+      page[10] = 0x02; // length
+      page[11] = 0x00;
+      page[12] = 0x4F; // O
+      page[13] = 0x4B; // K
+
+      pool.loadPage(0, page);
+
+      expect(pool.readString(10), 'OK');
+    });
+  });
+
+  group('T3Value edge cases', () {
+    /// Negative integer serialization
+    test('serializes negative integer correctly', () {
+      final val = T3Value.fromInt(-1);
+      final data = Uint8List(5);
+      val.toPortable(data, 0);
+
+      expect(data[0], T3DataType.int_.code);
+      // -1 = 0xFFFFFFFF
+      expect(data[1], 0xFF);
+      expect(data[2], 0xFF);
+      expect(data[3], 0xFF);
+      expect(data[4], 0xFF);
+    });
+
+    /// Large positive integer
+    test('handles max 32-bit signed positive', () {
+      final val = T3Value.fromInt(0x7FFFFFFF);
+      final data = Uint8List(5);
+      val.toPortable(data, 0);
+
+      final read = T3Value.fromPortable(data, 0);
+      expect(read.value, 0x7FFFFFFF);
+    });
+
+    /// Object ID serialization
+    test('serializes object reference correctly', () {
+      final val = T3Value.fromObject(12345);
+      final data = Uint8List(5);
+      val.toPortable(data, 0);
+
+      expect(data[0], T3DataType.obj.code);
+      // 12345 = 0x3039
+      expect(data[1], 0x39);
+      expect(data[2], 0x30);
+      expect(data[3], 0x00);
+      expect(data[4], 0x00);
+    });
+
+    /// Round-trip all basic types
+    test('round-trips nil correctly', () {
+      final val = T3Value.nil();
+      final data = Uint8List(5);
+      val.toPortable(data, 0);
+      final read = T3Value.fromPortable(data, 0);
+      expect(read.isNil, isTrue);
+    });
+
+    test('round-trips true correctly', () {
+      final val = T3Value.true_();
+      final data = Uint8List(5);
+      val.toPortable(data, 0);
+      final read = T3Value.fromPortable(data, 0);
+      expect(read.isTrue, isTrue);
+    });
+
+    test('round-trips property ID correctly', () {
+      final val = T3Value.fromProp(0xABCD);
+      final data = Uint8List(5);
+      val.toPortable(data, 0);
+      final read = T3Value.fromPortable(data, 0);
+      expect(read.type, T3DataType.prop);
+      expect(read.value, 0xABCD);
+    });
+  });
 }

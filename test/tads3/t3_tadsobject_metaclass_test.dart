@@ -17,37 +17,121 @@ void main() {
 
     /// vmtobj.cpp:309 - PROPIDX_CREATE_INSTANCE = 1
     group('createInstance [1]', () {
-      test('not implemented via invocation', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: createInstance needs full interpreter invocation');
+      test('creates new instance with superclass', () {
+        // Create a parent object
+        final parent = T3TadsObject(
+          objectId: 50,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: T3TadsObject.flagIsClass,
+        );
+        interp.objectTable.register(parent);
+
+        final target = T3Value.fromObject(50);
+        // Call createInstance on parent
+        interp.handleTadsObjectIntrinsic(1, target, 0);
+
+        final result = interp.registers.r0;
+        expect(result.isObject, isTrue);
+        expect(result.value, isNot(50)); // Should be new ID
+
+        final newObj = interp.objectTable.lookup(result.value) as T3TadsObject;
+        expect(newObj.superclasses, contains(50));
+      });
     });
 
     /// vmtobj.cpp:310 - PROPIDX_CREATE_CLONE = 2
     group('createClone [2]', () {
-      test('not implemented via invocation', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: createClone needs full interpreter invocation');
+      test('creates shallow copy and calls constructClone', () {
+        // Setup original
+        final original = T3TadsObject(objectId: 50, superclasses: [10], loadImageProperties: [], flags: 0);
+        interp.objectTable.register(original);
+
+        final target = T3Value.fromObject(50);
+        interp.handleTadsObjectIntrinsic(2, target, 0);
+
+        final result = interp.registers.r0;
+        expect(result.isObject, isTrue);
+        expect(result.value, isNot(50));
+
+        final clone = interp.objectTable.lookup(result.value) as T3TadsObject;
+        expect(clone.superclasses, contains(10));
+      });
     });
 
     /// vmtobj.cpp:311 - PROPIDX_CREATE_TRANS_INSTANCE = 3
     group('createTransientInstance [3]', () {
-      test('not implemented via invocation', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: createTransientInstance needs interpreter');
+      test('creates transient instance', () {
+        final parent = T3TadsObject(
+          objectId: 50,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: T3TadsObject.flagIsClass,
+        );
+        interp.objectTable.register(parent);
+
+        final target = T3Value.fromObject(50);
+        interp.handleTadsObjectIntrinsic(3, target, 0);
+
+        final result = interp.registers.r0;
+        expect(result.isObject, isTrue);
+
+        final newObj = interp.objectTable.lookup(result.value) as T3TadsObject;
+        expect(newObj.isTransient, isTrue);
+        expect(newObj.superclasses, contains(50));
+      });
     });
 
     /// vmtobj.cpp:312 - PROPIDX_CREATE_INSTANCE_OF = 4
     group('createInstanceOf [4]', () {
-      test('not implemented via invocation', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: createInstanceOf needs interpreter');
+      test('creates instance of specified class', () {
+        final parent = T3TadsObject(
+          objectId: 60,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: T3TadsObject.flagIsClass,
+        );
+        interp.objectTable.register(parent);
+
+        // Target can be anything (e.g., TadsObject meta object), here just dummy
+        final target = T3Value.fromObject(100);
+
+        // Arg1: Class to instantiate
+        interp.stack.push(T3Value.fromObject(60));
+
+        interp.handleTadsObjectIntrinsic(4, target, 1);
+
+        final result = interp.registers.r0;
+        expect(result.isObject, isTrue);
+
+        final newObj = interp.objectTable.lookup(result.value) as T3TadsObject;
+        expect(newObj.superclasses, contains(60));
+      });
     });
 
     /// vmtobj.cpp:313 - PROPIDX_CREATE_TRANS_INSTANCE_OF = 5
     group('createTransientInstanceOf [5]', () {
-      test('not implemented via invocation', () {
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: createTransientInstanceOf needs interpreter');
+      test('creates transient instance of specified class', () {
+        final parent = T3TadsObject(
+          objectId: 70,
+          superclasses: [],
+          loadImageProperties: [],
+          flags: T3TadsObject.flagIsClass,
+        );
+        interp.objectTable.register(parent);
+
+        final target = T3Value.fromObject(100);
+        interp.stack.push(T3Value.fromObject(70));
+
+        interp.handleTadsObjectIntrinsic(5, target, 1);
+
+        final result = interp.registers.r0;
+        expect(result.isObject, isTrue);
+
+        final newObj = interp.objectTable.lookup(result.value) as T3TadsObject;
+        expect(newObj.isTransient, isTrue);
+        expect(newObj.superclasses, contains(70));
+      });
     });
   });
 

@@ -495,7 +495,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
       for (final init in parsed.initializers) {
         final objId = init.$1;
         final propId = init.$2;
-        _runSynchronousTask(() {
+        runSynchronousTask(() {
           evalProperty(T3Value.fromObject(objId), propId);
         });
       }
@@ -503,7 +503,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
   }
 
   /// Runs a single task (e.g., an initializer) to completion synchronously.
-  void _runSynchronousTask(void Function() setup) {
+  void runSynchronousTask(void Function() setup) {
     final initialFp = _stack.fp;
     setup();
 
@@ -1365,10 +1365,13 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
       case T3Opcodes.LJSR: // Local jump to subroutine
         {
+          // Offset is relative to the operand address, not the byte after
           final offset = _codePool!.readInt16(_registers.ip);
           _registers.ip += 2;
+          // Push return address (byte after operand)
           final returnOfs = _registers.ip - _registers.ep;
           _stack.push(T3Value.fromInt(returnOfs));
+          // Jump: IP is now past operand, so subtract 2 to get offset relative to operand
           _registers.ip += offset - 2;
         }
         return T3ExecutionResult.continue_;
@@ -1417,7 +1420,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
       case T3Opcodes.BOOLIZE:
         final val = _stack.pop();
-        _stack.push(val.isNil ? T3Value.nil() : T3Value.true_());
+        _stack.push(val.isLogicalTrue ? T3Value.true_() : T3Value.nil());
         return T3ExecutionResult.continue_;
 
       // ==================== Arithmetic Operations ====================
