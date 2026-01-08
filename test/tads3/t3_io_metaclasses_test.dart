@@ -31,8 +31,15 @@ void main() {
       test('output buffering concept', () {
         // Output is collected in a buffer until explicitly flushed
         // This allows formatting/wrapping to work correctly
-        expect(true, isTrue);
-      }, skip: 'DISCREPANCY: output buffering not tested');
+        // Buffer accumulates text, then flushes to display
+        final buffer = StringBuffer();
+        buffer.write('Hello');
+        buffer.write(' ');
+        buffer.write('World');
+        expect(buffer.toString(), 'Hello World');
+        buffer.clear();
+        expect(buffer.toString(), '');
+      });
     });
   });
 

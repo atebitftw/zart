@@ -1475,14 +1475,19 @@ mixin T3ExecutionHelpers {
   /// Gets the string representation of a value.
   String getStringValue(T3Value val) {
     if (val.isStringLike) {
+      String text;
       if (val.data is Uint8List) {
-        return T3Utf8.decode(val.data as Uint8List);
+        text = T3Utf8.decode(val.data as Uint8List);
+      } else {
+        final offset = val.value;
+        final dynamicStr = execDynamicStrings[offset];
+        if (dynamicStr != null) {
+          text = dynamicStr;
+        } else {
+          text = execConstantPool?.readString(offset) ?? '';
+        }
       }
-      final offset = val.value;
-      final dynamicStr = execDynamicStrings[offset];
-      if (dynamicStr != null) return dynamicStr;
-
-      return execConstantPool?.readString(offset) ?? '';
+      return text.replaceAll('\v', '\n'); // Map \b (0x0B/VT) to \n
     } else if (val.isObject) {
       final obj = execObjectTable.lookup(val.value);
       if (obj is T3StringObject) {
@@ -1986,7 +1991,7 @@ mixin T3ExecutionHelpers {
       return;
     }
 
-    if (v1.isStringLike && v2.isStringLike) {
+    if (v1.isStringLike || v2.isStringLike) {
       final s1 = getStringValue(v1);
       final s2 = getStringValue(v2);
       final offset = _createDynamicString(s1 + s2);

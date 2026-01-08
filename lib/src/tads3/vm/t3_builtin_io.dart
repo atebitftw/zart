@@ -139,14 +139,83 @@ class T3BuiltinIO {
     }
   }
 
+  static void clearScreen(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void inputDialog(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.fromInt(1); // Default to button 1
+  }
+
+  static void inputFile(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void timeDelay(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void resExists(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void inputLineCancel(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void bannerClear(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void bannerGoTo(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void bannerSetTextColor(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void bannerSetScreenColor(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void bannerGetInfo(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void logConsoleCreate(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void logConsoleClose(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void logConsoleSay(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
+  static void logInputEvent(T3Interpreter interp, int argc) {
+    if (argc > 0) interp.stack.discard(argc);
+    interp.registers.r0 = T3Value.nil();
+  }
+
   static void getLocalCharSet(T3Interpreter interp, int argc) {
     if (argc > 0) interp.stack.discard(argc);
-    // Use tads-object as fallback for charset since we don't have 'charset' metaclass implemented yet
-    // Or simpler: return nil for now as charset usually requires object creation
-    // But test expects it.
-    // Let's try to create a dynamic object of type 'tads-object' (or 'string' if that works?)
-    // This is getting complicated without Metaclass registration.
-    // For now, return nil to avoid crashing with unknown metaclass
     interp.registers.r0 = T3Value.nil();
   }
 }

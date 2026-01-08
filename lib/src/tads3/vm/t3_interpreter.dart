@@ -598,7 +598,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
     final opcode = _codePool!.readByte(_registers.ip++);
     // Uncomment for full trace:
-    // print('TRACE: 0x${opcode.toRadixString(16).toUpperCase()} at 0x${(_registers.ip - 1).toRadixString(16)} stack=${_stack.depth}');
+    // print(
+    //   'TRACE: 0x${opcode.toRadixString(16).toUpperCase()} at 0x${(_registers.ip - 1).toRadixString(16)} stack=${_stack.depth}',
+    // );
     // if (_stack.depth > 0) print(_stack.dumpTop(5));
 
     return _executeOpcode(opcode);
@@ -709,20 +711,18 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
           final fixedCount = _codePool!.readByte(_registers.ip++);
           final actualArgc = _stack.getArgCount();
 
-          if (actualArgc <= fixedCount) {
-            _stack.push(T3Value.nil());
-          } else {
+          final elements = <T3Value>[];
+          if (actualArgc > fixedCount) {
             final varArgc = actualArgc - fixedCount;
-            final elements = <T3Value>[];
             for (var i = 0; i < varArgc; i++) {
               // Arguments are relative to the current frame's base pointer
               elements.add(_stack.getArg(fixedCount + i).copy());
             }
-
-            final offset = _nextDynamicListOffset++;
-            _dynamicLists[offset] = elements;
-            _stack.push(T3Value.fromList(offset));
           }
+
+          final offset = _nextDynamicListOffset++;
+          _dynamicLists[offset] = elements;
+          _stack.push(T3Value.fromList(offset));
         }
         return T3ExecutionResult.continue_;
 
@@ -739,34 +739,39 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
           }
 
           var currentCount = countVal.value;
-          final obj = listVal.isObject ? _objectTable!.lookup(listVal.value) : null;
-          final isListLike = listVal.isList || obj is T3VectorObject || obj is T3ListObject;
 
-          if (isListLike) {
-            List<T3Value> elements;
-            if (listVal.isList) {
-              if (_dynamicLists.containsKey(listVal.value)) {
-                elements = _dynamicLists[listVal.value]!;
-              } else {
-                elements = _constantPool!.readList(listVal.value);
-              }
-            } else if (obj is T3VectorObject) {
-              elements = obj.elements;
-            } else if (obj is T3ListObject) {
-              elements = obj.elements;
-            } else {
-              elements = [];
-            }
-
-            // Push elements in reverse order so first is at top (as Arg0)
-            for (var i = elements.length - 1; i >= 0; i--) {
-              _stack.push(elements[i]);
-            }
-            currentCount += elements.length;
+          if (listVal.isNil) {
+            // Expansion of nil is empty - push nothing, count remains same
           } else {
-            // Not a list, push it as a single argument
-            _stack.push(listVal);
-            currentCount++;
+            final obj = listVal.isObject ? _objectTable!.lookup(listVal.value) : null;
+            final isListLike = listVal.isList || obj is T3VectorObject || obj is T3ListObject;
+
+            if (isListLike) {
+              List<T3Value> elements;
+              if (listVal.isList) {
+                if (_dynamicLists.containsKey(listVal.value)) {
+                  elements = _dynamicLists[listVal.value]!;
+                } else {
+                  elements = _constantPool!.readList(listVal.value);
+                }
+              } else if (obj is T3VectorObject) {
+                elements = obj.elements;
+              } else if (obj is T3ListObject) {
+                elements = obj.elements;
+              } else {
+                elements = [];
+              }
+
+              // Push elements in reverse order so first is at top (as Arg0)
+              for (var i = elements.length - 1; i >= 0; i--) {
+                _stack.push(elements[i]);
+              }
+              currentCount += elements.length;
+            } else {
+              // Not a list, push it as a single argument
+              _stack.push(listVal);
+              currentCount++;
+            }
           }
 
           // Push updated count

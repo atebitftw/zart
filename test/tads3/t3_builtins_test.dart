@@ -960,37 +960,31 @@ void main() {
         invokee: T3Value.nil(),
       );
     });
-    // Index 0: inputLine()
-    group('inputLine [0]', () {
-      test('reads line', () {
-        // Skips because it blocks on stdin
-      }, skip: 'Blocks on stdin');
-    });
 
-    // Index 4: tadsSay(val)
-    group('tadsSay [4]', () {
+    // Index 0: tadsSay(val)
+    group('tadsSay [0]', () {
       test('executes without error', () {
-        final func = T3BuiltinRegistry.getFunction('tads-io', 4)!;
+        final func = T3BuiltinRegistry.getFunction('tads-io', 0)!;
         interp.stack.push(T3Value.fromString(interp.addDynamicString('hello')));
         func(interp, 1);
         expect(interp.registers.r0.isNil, isTrue);
       });
     });
 
-    // Index 14: setLogFile(filename, flags?)
-    group('setLogFile [14]', () {
+    // Index 1: setLogFile(filename, flags?)
+    group('setLogFile [1]', () {
       test('executes without error', () {
-        final func = T3BuiltinRegistry.getFunction('tads-io', 14)!;
+        final func = T3BuiltinRegistry.getFunction('tads-io', 1)!;
         interp.stack.push(T3Value.fromString(interp.addDynamicString('log.txt')));
         func(interp, 1);
         expect(interp.registers.r0.isNil, isTrue);
       });
     });
 
-    // Index 6: morePrompt()
-    group('morePrompt [6]', () {
+    // Index 3: morePrompt()
+    group('morePrompt [3]', () {
       test('function exists', () {
-        final func = T3BuiltinRegistry.getFunction('tads-io', 6);
+        final func = T3BuiltinRegistry.getFunction('tads-io', 3);
         expect(func, isNotNull);
       });
     });
