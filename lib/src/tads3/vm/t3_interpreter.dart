@@ -121,8 +121,10 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
   T3ObjectTable get execObjectTable => _objectTable;
   @override
   T3Entrypoint? get execEntrypoint => _entrypoint;
+  set entrypoint(T3Entrypoint? value) => _entrypoint = value;
   @override
   T3MetaclassDepList? get execMetaclasses => _metaclasses;
+  set metaclasses(T3MetaclassDepList value) => _metaclasses = value;
   @override
   T3FunctionSetDepList? get execFunctionSets => _functionSets;
   @override
@@ -229,6 +231,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
 
   /// The loaded image.
   T3Image? _image;
+
+  /// Whether to trace opcode execution.
+  bool traceExecution = false;
 
   /// SAY instruction handler (property ID).
   int _sayMethod = 0; // VM_INVALID_PROP in reference is 0
@@ -591,7 +596,9 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
   /// Executes the given opcode.
   T3ExecutionResult _executeOpcode(int opcode) {
     // Debug tracing
-    printRaw('IP:${(_registers.ip - 1).toRadixString(16)} Op:${opcode.toRadixString(16)}\n');
+    // if (traceExecution) {
+    //   printRaw('IP:${(_registers.ip - 1).toRadixString(16)} Op:${opcode.toRadixString(16)}\n');
+    // }
 
     switch (opcode) {
       // ==================== Push Operations ====================
@@ -2237,11 +2244,18 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     }
   }
 
+  /// Callback for captured output.
+  void Function(String text)? onPrint;
+
   /// Raw print to console - bridge for mixins.
   void printRaw(String text) {
     if (text.isEmpty) return;
-    // ignore: avoid_print
-    stdout.write(text);
+    if (onPrint != null) {
+      onPrint!(text);
+    } else {
+      // ignore: avoid_print
+      stdout.write(text);
+    }
   }
 
   /// Gets info for debugging.

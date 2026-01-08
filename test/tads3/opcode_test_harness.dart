@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:zart/src/tads3/loaders/entp_parser.dart';
+import 'package:zart/src/tads3/loaders/mcld_parser.dart';
 import 'package:zart/src/tads3/vm/t3_interpreter.dart';
 import 'package:zart/src/tads3/vm/t3_code_pool.dart';
 import 'package:zart/src/tads3/vm/t3_constant_pool.dart';
@@ -33,7 +35,11 @@ class OpcodeTestHarness {
 
   OpcodeTestHarness() {
     interpreter = T3Interpreter();
+    interpreter.onPrint = (text) => output.write(text);
   }
+
+  /// Current bytecode length (for calculating offsets).
+  int get bytecodeLength => _bytecode.length;
 
   // ==================== Constant Pool Helpers ====================
 
@@ -90,6 +96,20 @@ class OpcodeTestHarness {
     _bytecode.addByte(value & 0xFF);
   }
 
+  final List<T3ExceptionRecord> _exceptions = [];
+
+  /// Adds an exception handler to the current method.
+  void addExceptionHandler(int startAddr, int endAddr, int handlerAddr, int exceptionClass) {
+    _exceptions.add(
+      T3ExceptionRecord(
+        startAddr: startAddr,
+        endAddr: endAddr,
+        handlerAddr: handlerAddr,
+        exceptionClass: exceptionClass,
+      ),
+    );
+  }
+
   /// Emits an unsigned 16-bit value (little-endian).
   void emitUint16(int value) {
     _bytecode.addByte(value & 0xFF);
@@ -122,14 +142,14 @@ class OpcodeTestHarness {
   /// Gets current bytecode offset (for calculating jumps).
   int get currentOffset => _bytecode.length;
 
-  /// Loads the bytecode into the interpreter and prepares for execution.
-  void build() {
-    final bytes = Uint8List.fromList(_bytecode.toBytes());
+  /// Builds the interpreter state and loads the bytecode.
+  void build({int localCount = 16, int argCount = 0}) {
+    final bytecodeBytes = _bytecode.toBytes();
 
-    // Create a single-page code pool with the bytecode
-    final codePool = T3CodePool(poolId: 1, pageCount: 1, pageSize: bytes.length + 1024);
-    codePool.loadPage(0, Uint8List.fromList([...bytes, ...List.filled(1024, 0)]));
-    interpreter.codePool = codePool;
+    // Create code pool and load bytecode
+    final pool = T3CodePool(poolId: 1, pageCount: 1, pageSize: bytecodeBytes.length + 1024);
+    pool.loadPage(0, Uint8List.fromList([...bytecodeBytes, ...List.filled(1024, 0)]));
+    interpreter.codePool = pool;
 
     // Create constant pool if we have constant data
     final constBytes = _constantData.toBytes();
@@ -143,18 +163,34 @@ class OpcodeTestHarness {
     interpreter.registers.ip = _entryPoint;
     interpreter.registers.ep = _entryPoint;
 
-    // Push arguments onto the stack BEFORE the frame (per T3 calling convention)
-    // Arg 0 is the last pushed (closest to frame header), so push in reverse order
-    for (var i = _args.length - 1; i >= 0; i--) {
-      interpreter.stack.push(_args[i]);
+    // Ensure we have an entrypoint with standard header sizes
+    if (interpreter.execEntrypoint == null) {
+      interpreter.entrypoint = T3Entrypoint(
+        codeOffset: _entryPoint,
+        methodHeaderSize: 10,
+        exceptionEntrySize: 6,
+        debugLineEntrySize: 0,
+        debugTableHeaderSize: 0,
+        debugLocalHeaderSize: 0,
+        debugRecordsVersion: 1,
+        debugFrameHeaderSize: 10,
+      );
     }
 
-    // Push a base frame so we have locals available
+    // Push arguments before the frame (T3 calling convention)
+    final actualArgs = _args.isNotEmpty ? _args : [];
+    final actualArgCount = argCount > 0 ? argCount : actualArgs.length;
+
+    for (final arg in actualArgs.reversed) {
+      interpreter.stack.push(arg);
+    }
+
+    // Set up a base frame for execution
     interpreter.stack.pushFrame(
-      argCount: _argCount,
-      localCount: 16,
+      argCount: actualArgCount,
+      localCount: localCount,
       returnAddr: 0,
-      entryPtr: 0,
+      entryPtr: _entryPoint,
       self: _self,
       targetObj: _targetObj,
       definingObj: _definingObj,
@@ -164,7 +200,6 @@ class OpcodeTestHarness {
   }
 
   // Frame configuration
-  int _argCount = 0;
   T3Value _self = T3Value.nil();
   T3Value _targetObj = T3Value.nil();
   T3Value _definingObj = T3Value.nil();
@@ -172,9 +207,8 @@ class OpcodeTestHarness {
   List<T3Value> _args = [];
 
   /// Sets up arguments for the frame.
-  void setArgs(List<T3Value> args) {
+  void addArgs(List<T3Value> args) {
     _args = args;
-    _argCount = args.length;
   }
 
   /// Sets self for the frame.
@@ -187,9 +221,24 @@ class OpcodeTestHarness {
     _targetProp = prop;
   }
 
+  /// Sets defining object for the frame.
+  void setDefiningObject(T3Value obj) {
+    _definingObj = obj;
+  }
+
   /// Executes a single instruction.
   T3ExecutionResult step() {
     return interpreter.executeInstruction();
+  }
+
+  /// Executes instructions until the current frame returns.
+  void runUntilReturn() {
+    final originalFp = interpreter.stack.fp;
+    for (var i = 0; i < 1000; i++) {
+      step();
+      if (interpreter.stack.fp < originalFp) return;
+    }
+    throw StateError('Exceeded max instructions (1000) in runUntilReturn');
   }
 
   /// Executes instructions until quit or error.
@@ -305,17 +354,30 @@ class OpcodeTestHarness {
 
   // ==================== Object/Metaclass Infrastructure ====================
 
+  /// Captured output buffer.
+  final StringBuffer output = StringBuffer();
+
+  /// Creates a new test harness.
+  int allocateObjectId() => interpreter.objectTable.allocateObjectId();
+
   /// Creates a TadsObject with the given properties using the real object table.
   /// Returns the object ID.
-  int createObject({List<T3ObjectProperty>? properties, int? superclass, int flags = 0}) {
+  int createObject({
+    int? id,
+    List<T3ObjectProperty>? properties,
+    List<int>? superclasses,
+    int? superclass,
+    int flags = 0,
+  }) {
+    final objectId = id ?? interpreter.objectTable.allocateObjectId();
     final obj = T3TadsObject(
-      objectId: interpreter.objectTable.allocateObjectId(),
-      superclasses: superclass != null ? [superclass] : [],
+      objectId: objectId,
+      superclasses: superclasses ?? (superclass != null ? [superclass] : []),
       loadImageProperties: properties ?? [],
       flags: flags,
     );
     interpreter.objectTable.register(obj);
-    return obj.objectId;
+    return objectId;
   }
 
   /// Creates a dynamic list object using the interpreter's object table.
@@ -327,6 +389,18 @@ class OpcodeTestHarness {
   /// Creates a dynamic vector object.
   int createVectorObject(List<T3Value> elements) {
     return interpreter.objectTable.createDynamicObject('vector', elements);
+  }
+
+  /// Creates a dynamic iterator object.
+  int createIteratorObject(int objectId, List<T3Value> elements) {
+    final obj = T3IteratorObject(objectId: objectId, collection: T3Value.nil(), elements: elements);
+    interpreter.objectTable.register(obj);
+    return objectId;
+  }
+
+  /// Gets list values for a T3Value.
+  List<T3Value> getListValues(T3Value listVal) {
+    return interpreter.getListValues(listVal);
   }
 
   /// Looks up an object by ID.
@@ -347,4 +421,67 @@ class OpcodeTestHarness {
       obj.setProperty(propId, value);
     }
   }
+
+  // ==================== Metaclass Infrastructure ====================
+
+  /// Registers metaclasses for object creation tests.
+  /// Call before build() to set up metaclass dependencies.
+  void registerMetaclasses(List<String> names) {
+    final deps = <T3MetaclassDep>[];
+    for (var i = 0; i < names.length; i++) {
+      deps.add(T3MetaclassDep(identifier: names[i], index: i, name: names[i], propertyCount: 0, propertyIds: []));
+    }
+    interpreter.metaclasses = T3MetaclassDepList(deps);
+  }
+
+  // ==================== Function Code Setup ====================
+
+  /// Adds a function to the code pool at a specific offset.
+  /// Returns the offset where the function starts.
+  /// The function should be complete bytecode including method header.
+  int addFunction(List<int> bytecode) {
+    final offset = _bytecode.length;
+    for (final b in bytecode) {
+      _bytecode.addByte(b);
+    }
+    return offset;
+  }
+
+  /// Creates a simple method header for a function.
+  /// Returns the header bytes.
+  static List<int> createMethodHeader({
+    required int argCount,
+    required int localCount,
+    int isVarargs = 0,
+    int exceptionTableOffset = 0,
+  }) {
+    // 10-byte standard header
+    return [
+      argCount & 0xFF | (isVarargs != 0 ? 0x80 : 0), // argc (minArgs + varargs flag)
+      0x00, // optionalArgc
+      localCount & 0xFF, // stack_size (locals)
+      localCount >> 8,
+      0x00, // method_flags
+      0x00,
+      exceptionTableOffset & 0xFF,
+      (exceptionTableOffset >> 8) & 0xFF,
+      0x00, // debug_records_offset
+      0x00,
+    ];
+  }
+}
+
+/// Helper class to track exception handlers in the test harness.
+class T3ExceptionRecord {
+  final int startAddr;
+  final int endAddr;
+  final int handlerAddr;
+  final int exceptionClass;
+
+  T3ExceptionRecord({
+    required this.startAddr,
+    required this.endAddr,
+    required this.handlerAddr,
+    required this.exceptionClass,
+  });
 }

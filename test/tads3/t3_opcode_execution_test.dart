@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_opcodes.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 
@@ -1552,7 +1553,7 @@ void main() {
   group('GETARG opcodes with harness args', () {
     test('GETARG1 gets argument by 1-byte index', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(100), T3Value.fromInt(200), T3Value.fromInt(300)]);
+      h.addArgs([T3Value.fromInt(100), T3Value.fromInt(200), T3Value.fromInt(300)]);
       h.emit(T3Opcodes.GETARG1);
       h.emitByte(1); // Get arg 1 (second argument)
       h.build();
@@ -1563,7 +1564,7 @@ void main() {
 
     test('GETARG2 gets argument by 2-byte index', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(111), T3Value.fromInt(222)]);
+      h.addArgs([T3Value.fromInt(111), T3Value.fromInt(222)]);
       h.emit(T3Opcodes.GETARG2);
       h.emitUint16(0);
       h.build();
@@ -1574,7 +1575,7 @@ void main() {
 
     test('GETARGN0 gets argument 0', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(999)]);
+      h.addArgs([T3Value.fromInt(999)]);
       h.emit(T3Opcodes.GETARGN0);
       h.build();
       h.step();
@@ -1584,7 +1585,7 @@ void main() {
 
     test('GETARGN1 gets argument 1', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(10), T3Value.fromInt(20)]);
+      h.addArgs([T3Value.fromInt(10), T3Value.fromInt(20)]);
       h.emit(T3Opcodes.GETARGN1);
       h.build();
       h.step();
@@ -1594,7 +1595,7 @@ void main() {
 
     test('GETARGN2 gets argument 2', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)]);
+      h.addArgs([T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)]);
       h.emit(T3Opcodes.GETARGN2);
       h.build();
       h.step();
@@ -1604,7 +1605,7 @@ void main() {
 
     test('GETARGN3 gets argument 3', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30), T3Value.fromInt(40)]);
+      h.addArgs([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30), T3Value.fromInt(40)]);
       h.emit(T3Opcodes.GETARGN3);
       h.build();
       h.step();
@@ -1614,7 +1615,7 @@ void main() {
 
     test('GETARGC gets argument count', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)]);
+      h.addArgs([T3Value.fromInt(1), T3Value.fromInt(2), T3Value.fromInt(3)]);
       h.emit(T3Opcodes.GETARGC);
       h.build();
       h.step();
@@ -1626,7 +1627,7 @@ void main() {
   group('SETARG opcodes', () {
     test('SETARG1 sets argument by 1-byte index', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(100), T3Value.fromInt(200)]);
+      h.addArgs([T3Value.fromInt(100), T3Value.fromInt(200)]);
       h.emit(T3Opcodes.PUSHINT8);
       h.emitInt8(999);
       h.emit(T3Opcodes.SETARG1);
@@ -1641,7 +1642,7 @@ void main() {
 
     test('SETARG2 sets argument by 2-byte index', () {
       final h = OpcodeTestHarness();
-      h.setArgs([T3Value.fromInt(100)]);
+      h.addArgs([T3Value.fromInt(100)]);
       h.emit(T3Opcodes.PUSHINT8);
       h.emitInt8(888);
       h.emit(T3Opcodes.SETARG2);
@@ -1801,107 +1802,688 @@ void main() {
     });
   });
 
-  // Opcodes that require object/method infrastructure - mark as skipped with explanation
-  group('Property access opcodes (require object infrastructure)', () {
+  // Opcodes that require object/method infrastructure - now using real interpreter infrastructure
+  group('Property access opcodes', () {
     test('GETPROP gets property from object', () {
-      expect(true, isTrue);
-    }, skip: 'Requires object store with properties');
+      final h = OpcodeTestHarness();
+      // Create an object with a property
+      const propId = 100;
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(42))]);
 
-    test('CALLPROP calls property method', () {
-      expect(true, isTrue);
-    }, skip: 'Requires object store with methods');
+      // Push object, then GETPROP
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(objId);
+      h.emit(T3Opcodes.GETPROP);
+      h.emitUint16(propId);
+      h.build();
+      h.runSteps(2);
+
+      expect(h.r0.value, 42);
+    });
 
     test('SETPROP sets property on object', () {
-      expect(true, isTrue);
-    }, skip: 'Requires object store with properties');
+      final h = OpcodeTestHarness();
+      const propId = 200;
+      final objId = h.createObject();
+
+      // Push value, push object, then SETPROP
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(99);
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(objId);
+      h.emit(T3Opcodes.SETPROP);
+      h.emitUint16(propId);
+      h.build();
+      h.runSteps(3);
+
+      // Verify property was set
+      final propValue = h.getObjectProperty(objId, propId);
+      expect(propValue?.value, 99);
+    });
+
+    test('GETPROPSELF gets property from self', () {
+      final h = OpcodeTestHarness();
+      const propId = 300;
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(77))]);
+      h.setSelf(T3Value.fromObject(objId));
+
+      h.emit(T3Opcodes.GETPROPSELF);
+      h.emitUint16(propId);
+      h.build();
+      h.step();
+
+      expect(h.r0.value, 77);
+    });
+
+    test('SETPROPSELF sets property on self', () {
+      final h = OpcodeTestHarness();
+      const propId = 400;
+      final objId = h.createObject();
+      h.setSelf(T3Value.fromObject(objId));
+
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(88);
+      h.emit(T3Opcodes.SETPROPSELF);
+      h.emitUint16(propId);
+      h.build();
+      h.runSteps(2);
+
+      final propValue = h.getObjectProperty(objId, propId);
+      expect(propValue?.value, 88);
+    });
+
+    test('OBJGETPROP gets property from immediate object ID', () {
+      final h = OpcodeTestHarness();
+      const propId = 500;
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(55))]);
+
+      h.emit(T3Opcodes.OBJGETPROP);
+      h.emitUint32(objId);
+      h.emitUint16(propId);
+      h.build();
+      h.step();
+
+      expect(h.r0.value, 55);
+    });
+
+    test('OBJSETPROP sets property on immediate object ID', () {
+      final h = OpcodeTestHarness();
+      const propId = 600;
+      final objId = h.createObject();
+
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(66);
+      h.emit(T3Opcodes.OBJSETPROP);
+      h.emitUint32(objId);
+      h.emitUint16(propId);
+      h.build();
+      h.runSteps(2);
+
+      final propValue = h.getObjectProperty(objId, propId);
+      expect(propValue?.value, 66);
+    });
+
+    test('GETPROPLCL1 gets property from local variable object', () {
+      final h = OpcodeTestHarness();
+      const propId = 700;
+      final objId = h.createObject(properties: [T3ObjectProperty(propId, T3Value.fromInt(33))]);
+
+      // Push object to local 0, then GETPROPLCL1
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(objId);
+      h.emit(T3Opcodes.SETLCL1);
+      h.emitByte(0);
+      h.emit(T3Opcodes.GETPROPLCL1);
+      h.emitByte(0);
+      h.emitUint16(propId);
+      h.build();
+      h.runSteps(3);
+
+      expect(h.r0.value, 33);
+    });
   });
 
-  group('Object creation opcodes (require metaclass infrastructure)', () {
-    test('NEW1 creates object instance', () {
-      expect(true, isTrue);
-    }, skip: 'Requires metaclass registration');
+  group('Object creation opcodes', () {
+    test('NEW1 creates list object', () {
+      final h = OpcodeTestHarness();
+      // Register list metaclass at index 0
+      h.registerMetaclasses(['list']);
 
-    test('NEW2 creates object with 2-byte metaclass', () {
-      expect(true, isTrue);
-    }, skip: 'Requires metaclass registration');
+      // NEW1: metaclass_idx, argc
+      h.emit(T3Opcodes.NEW1);
+      h.emitByte(0); // metaclass index 0 = list
+      h.emitByte(0); // argc = 0
+      h.build();
+      h.step();
 
-    test('TRNEW1 creates transient object', () {
-      expect(true, isTrue);
-    }, skip: 'Requires metaclass registration');
+      // R0 should contain the new list object
+      expect(h.r0.type, T3DataType.obj);
+      final obj = h.lookupObject(h.r0.value);
+      expect(obj, isNotNull);
+      expect(obj!.metaclass, 'list');
+    });
+
+    test('NEW1 creates vector with constructor arg', () {
+      final h = OpcodeTestHarness();
+      h.registerMetaclasses(['vector']);
+
+      // Push size argument
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(5);
+      // NEW1: metaclass_idx, argc
+      h.emit(T3Opcodes.NEW1);
+      h.emitByte(0); // metaclass index 0 = vector
+      h.emitByte(1); // argc = 1
+      h.build();
+      h.runSteps(2);
+
+      // Just verify we got a vector object back
+      expect(h.r0.type, T3DataType.obj);
+      final obj = h.lookupObject(h.r0.value);
+      expect(obj, isNotNull);
+      expect(obj!.metaclass, 'vector');
+    });
+
+    test('NEW2 creates object with 2-byte metaclass index', () {
+      final h = OpcodeTestHarness();
+      h.registerMetaclasses(['list']);
+
+      h.emit(T3Opcodes.NEW2);
+      h.emitUint16(0); // metaclass index
+      h.emitByte(0); // argc
+      h.build();
+      h.step();
+
+      expect(h.r0.type, T3DataType.obj);
+    });
+
+    test('TRNEW1 creates transient list', () {
+      final h = OpcodeTestHarness();
+      h.registerMetaclasses(['list']);
+
+      h.emit(T3Opcodes.TRNEW1);
+      h.emitByte(0);
+      h.emitByte(0);
+      h.build();
+      h.step();
+
+      expect(h.r0.type, T3DataType.obj);
+      final obj = h.lookupObject(h.r0.value);
+      expect(obj, isNotNull);
+      expect(obj!.isTransient, isTrue);
+    });
   });
 
-  group('Function call opcodes (require code setup)', () {
-    test('CALL calls function at offset', () {
-      expect(true, isTrue);
-    }, skip: 'Requires function code in pool');
+  group('Function call opcodes', () {
+    // Note: CALL requires a complete method header and bytecode.
+    // For simple testing, we test that CALL attempts to jump correctly.
+    test('CALL sets up call and executes function', () {
+      final h = OpcodeTestHarness();
 
-    test('PTRCALL calls function through pointer', () {
-      expect(true, isTrue);
-    }, skip: 'Requires function code in pool');
+      // Create a simple function that pushes 42 and returns
+      // Function at offset 20 (after main code):
+      // Method header (10 bytes) + PUSHINT8 42 + RETVAL
+      final funcOffset = 20;
+
+      // Main code: CALL with 0 args
+      h.emit(T3Opcodes.CALL);
+      h.emitByte(0); // argc
+      h.emitUint32(funcOffset);
+
+      // Pad to offset 20 using bytecodeLength (ip is 0 during building)
+      while (h.bytecodeLength < funcOffset) {
+        h.emit(T3Opcodes.NOP);
+      }
+
+      // Function code at offset 20:
+      // Method header: argc=0, locals=0
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
+      // Function body: PUSHINT8 42, RETVAL
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(42);
+      h.emit(T3Opcodes.RETVAL);
+
+      h.build();
+
+      // Execute: 1. CALL, 2. PUSHINT8, 3. RETVAL
+      h.runSteps(3);
+
+      expect(h.r0.value, 42);
+    });
+
+    test('PTRCALL calls function pointer on stack', () {
+      final h = OpcodeTestHarness();
+      final funcOffset = 20;
+
+      // Main code: PUSHFNPTR, then PTRCALL
+      h.emit(T3Opcodes.PUSHFNPTR);
+      h.emitUint32(funcOffset);
+      h.emit(T3Opcodes.PTRCALL);
+      h.emitByte(0); // argc
+
+      // Pad to offset 20
+      while (h.bytecodeLength < funcOffset) {
+        h.emit(T3Opcodes.NOP);
+      }
+
+      // Function code at offset 20:
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(99);
+      h.emit(T3Opcodes.RETVAL);
+
+      h.build();
+
+      // Execute: 1. PUSHFNPTR, 2. PTRCALL, 3. PUSHINT8, 4. RETVAL
+      h.runSteps(4);
+
+      expect(h.r0.value, 99);
+    });
+
+    test('CALLPROP calls method on object', () {
+      final h = OpcodeTestHarness();
+      final funcOffset = 30; // Further ahead to avoid conflicts
+      final propId = 1234;
+
+      // Create an object and set its property to a function pointer
+      final objId = h.createObject();
+      h.setObjectProperty(objId, propId, T3Value.fromFuncPtr(funcOffset));
+
+      // Main code: PUSHOBJ, then CALLPROP
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(objId);
+      h.emit(T3Opcodes.CALLPROP);
+      h.emitByte(0); // argc
+      h.emitUint16(propId);
+
+      // Pad to offset 30
+      while (h.bytecodeLength < funcOffset) {
+        h.emit(T3Opcodes.NOP);
+      }
+
+      // Function code at offset 30:
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
+      h.emit(T3Opcodes.PUSH_1);
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(5);
+      h.emit(T3Opcodes.ADD);
+      h.emit(T3Opcodes.RETVAL);
+
+      h.build();
+
+      // Execute: 1. PUSHOBJ, 2. CALLPROP, 3. PUSH_1, 4. PUSHINT8, 5. ADD, 6. RETVAL
+      h.runSteps(6);
+
+      expect(h.r0.value, 6);
+    });
   });
 
   group('Exception handling opcodes (require handler setup)', () {
-    test('THROW throws exception', () {
-      expect(true, isTrue);
-    }, skip: 'Requires exception handler table');
+    test('THROW jumps to handler', () {
+      final h = OpcodeTestHarness();
+      final funcOffset = 20;
+
+      // Main code: CALL
+      h.emit(T3Opcodes.CALL);
+      h.emitByte(0);
+      h.emitUint32(funcOffset);
+
+      while (h.bytecodeLength < funcOffset) {
+        h.emit(T3Opcodes.NOP);
+      }
+
+      // Function code at offset 20:
+      // Header: argc=0, locals=0, exceptionTableOffset=20 (at 40)
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0, exceptionTableOffset: 20));
+
+      final startProtectOfs = h.bytecodeLength - funcOffset;
+      h.emit(T3Opcodes.PUSHNIL);
+      h.emit(T3Opcodes.THROW);
+      final endProtectOfs = h.bytecodeLength - funcOffset + 1; // +1 to ensure IP after THROW is included
+
+      h.emit(T3Opcodes.RETNIL); // Skipped
+
+      final handlerOfs = h.bytecodeLength - funcOffset;
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(77);
+      h.emit(T3Opcodes.RETVAL);
+
+      // Pad to exception table at 40
+      while (h.bytecodeLength < funcOffset + 20) {
+        h.emitByte(0);
+      }
+
+      h.emitUint16(1); // 1 entry
+      h.emitUint16(startProtectOfs);
+      h.emitUint16(endProtectOfs);
+      h.emitUint32(0); // catch-all
+      h.emitUint16(handlerOfs);
+
+      h.build();
+
+      // Execute: 1. CALL, 2. PUSHNIL, 3. THROW, 4. PUSHINT8, 5. RETVAL
+      h.runSteps(5);
+
+      expect(h.r0.value, 77);
+    });
+
+    test('THROW caught by specific class', () {
+      final h = OpcodeTestHarness();
+      final funcOffset = 20;
+
+      // Main code: CALL
+      h.emit(T3Opcodes.CALL);
+      h.emitByte(0);
+      h.emitUint32(funcOffset);
+
+      while (h.bytecodeLength < funcOffset) {
+        h.emit(T3Opcodes.NOP);
+      }
+
+      // Create classes/objects
+      final exceptionClassId = h.allocateObjectId();
+      h.createObject(id: exceptionClassId, flags: 1); // A class
+
+      final exceptionObjId = h.allocateObjectId();
+      h.createObject(id: exceptionObjId, superclasses: [exceptionClassId]);
+
+      // Function code at 20:
+      h.addFunction(
+        OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0, exceptionTableOffset: 25),
+      ); // Slightly more padding
+
+      final startProtectOfs = h.bytecodeLength - funcOffset;
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(exceptionObjId);
+      h.emit(T3Opcodes.THROW);
+      final endProtectOfs = h.bytecodeLength - funcOffset + 1;
+
+      h.emit(T3Opcodes.RETNIL);
+
+      final handlerOfs = h.bytecodeLength - funcOffset;
+      h.emit(T3Opcodes.RETTRUE); // Catch block returns true
+
+      // Pad to exception table at funcOffset + 25 = 45
+      while (h.bytecodeLength < funcOffset + 25) {
+        h.emitByte(0);
+      }
+
+      h.emitUint16(1);
+      h.emitUint16(startProtectOfs);
+      h.emitUint16(endProtectOfs);
+      h.emitUint32(exceptionClassId);
+      h.emitUint16(handlerOfs);
+
+      h.build();
+
+      // Execute: 1. CALL, 2. PUSHOBJ, 3. THROW, 4. RETTRUE
+      h.runSteps(4);
+      expect(h.r0.isTrue, isTrue);
+    });
   });
 
   group('Builtin function opcodes (require BIF registration)', () {
-    test('BUILTIN_A calls builtin from set 0', () {
-      expect(true, isTrue);
-    }, skip: 'Requires BIF function set registration');
+    test('BUILTIN_A calls tads-gen.datatype', () {
+      final h = OpcodeTestHarness();
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(42);
+      h.emit(T3Opcodes.BUILTIN_A); // Set 0
+      h.emitByte(1); // argc (read first)
+      h.emitByte(0); // Function 0: datatype (read second)
+      h.build();
+      h.runSteps(2); // PUSHINT8, BUILTIN_A
+      expect(h.r0.value, T3DataType.int_.code);
+    });
 
-    test('BUILTIN1 calls builtin with 1-byte index', () {
-      expect(true, isTrue);
-    }, skip: 'Requires BIF function set registration');
+    test('BUILTIN1 calls tads-gen.getarg', () {
+      final h = OpcodeTestHarness();
+      h.addArgs([T3Value.fromInt(99)]);
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(1); // Arg 1
+      h.emit(T3Opcodes.BUILTIN1);
+      h.emitByte(1); // argc
+      h.emitByte(1); // Function 1: getarg
+      h.emitByte(0); // Set 0: tads-gen
+      h.build();
+      h.runSteps(2); // PUSHINT8, BUILTIN1
+      expect(h.r0.value, 99);
+    });
+  });
+
+  group('I/O opcodes', () {
+    test('SAYVAL prints value', () {
+      final h = OpcodeTestHarness();
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(42);
+      h.emit(T3Opcodes.SAYVAL);
+      h.build();
+      h.runSteps(2);
+      expect(h.output.toString(), '42');
+    });
+
+    test('SAY prints string from constant pool', () {
+      final h = OpcodeTestHarness();
+      final strOffset = h.addString('Hello T3!');
+      h.emit(T3Opcodes.SAY);
+      h.emitUint32(strOffset);
+
+      h.build();
+      h.runSteps(1); // Just the SAY opcode
+      expect(h.output.toString(), 'Hello T3!');
+    });
   });
 
   group('SWITCH opcode (requires jump table)', () {
     test('SWITCH jumps through case table', () {
-      expect(true, isTrue);
-    }, skip: 'Requires case table in code');
+      final h = OpcodeTestHarness();
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(2); // control val
+
+      h.emit(T3Opcodes.SWITCH);
+      h.emitUint16(2);
+
+      // Case 1: 1 (5 byte T3Value portable)
+      h.emitByte(T3DataType.int_.code);
+      h.emitInt32(1);
+      h.emitInt16(20); // offset1 = 10 + 20 = 30
+
+      // Case 2: 2 (5 byte T3Value portable)
+      h.emitByte(T3DataType.int_.code);
+      h.emitInt32(2);
+      h.emitInt16(23); // offset2 = 17 + 23 = 40
+
+      // Default
+      h.emitInt16(31); // target = 19 + 31 = 50
+
+      while (h.bytecodeLength < 30) h.emit(T3Opcodes.NOP);
+      // H1 (should be skipped)
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(11);
+      h.emit(T3Opcodes.RETVAL);
+
+      while (h.bytecodeLength < 40) h.emit(T3Opcodes.NOP);
+      // H2 (should be executed)
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(22);
+      h.emit(T3Opcodes.RETVAL);
+
+      h.build();
+      h.step(); // PUSHINT8
+      h.step(); // SWITCH
+      h.run(); // Continue until RETVAL
+      expect(h.r0.value, 22);
+    });
+
+    test('SWITCH executes default case when no match', () {
+      final h = OpcodeTestHarness();
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(99); // No match
+
+      h.emit(T3Opcodes.SWITCH);
+      h.emitUint16(1);
+
+      // Case 1: 1 (offset at 10)
+      h.emitByte(T3DataType.int_.code);
+      h.emitInt32(1);
+      h.emitInt16(20); // target = 10 + 20 = 30
+
+      // Default (offset at 12)
+      h.emitInt16(23); // target = 12 + 23 = 35
+
+      while (h.bytecodeLength < 30) h.emit(T3Opcodes.NOP);
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(11);
+      h.emit(T3Opcodes.RETVAL);
+
+      while (h.bytecodeLength < 35) h.emit(T3Opcodes.NOP);
+      // Default handler
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(55);
+      h.emit(T3Opcodes.RETVAL);
+
+      h.build();
+      h.step(); // PUSH
+      h.step(); // SWITCH
+      h.run();
+      expect(h.r0.value, 55);
+    });
   });
 
   group('Inheritance opcodes (require object hierarchy)', () {
     test('INHERIT calls inherited method', () {
-      expect(true, isTrue);
-    }, skip: 'Requires object inheritance setup');
+      final h = OpcodeTestHarness();
+
+      // Create hierarchy
+      final baseClsId = h.allocateObjectId();
+      final subClsId = h.allocateObjectId();
+
+      final propId = 1000;
+
+      // Superclass has the property (method returning 77)
+      final methodOffset = 50;
+      h.createObject(id: baseClsId, flags: 1); // class
+      h.setObjectProperty(baseClsId, propId, T3Value.fromCodeOffset(methodOffset));
+
+      h.createObject(id: subClsId, superclasses: [baseClsId]);
+
+      // Current frame setup
+      h.setSelf(T3Value.fromObject(subClsId));
+      h.setDefiningObject(T3Value.fromObject(subClsId));
+      h.setTargetProp(propId);
+
+      // Bytecode: INHERIT
+      h.emit(T3Opcodes.INHERIT);
+      h.emitByte(0); // argc
+      h.emitUint16(propId);
+
+      // Pad to methodOffset and add method
+      while (h.bytecodeLength < methodOffset) h.emit(T3Opcodes.NOP);
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(77);
+      h.emit(T3Opcodes.RETVAL);
+
+      h.build();
+      h.step(); // Trigger INHERIT
+      h.run(); // Run method
+
+      expect(h.r0.value, 77);
+    });
 
     test('DELEGATE delegates to object', () {
-      expect(true, isTrue);
-    }, skip: 'Requires delegation setup');
+      final h = OpcodeTestHarness();
+
+      final otherObjId = h.allocateObjectId();
+      final propId = 1001;
+      final methodOffset = 60;
+
+      h.createObject(id: otherObjId);
+      h.setObjectProperty(otherObjId, propId, T3Value.fromCodeOffset(methodOffset));
+
+      // Push object to delegate to
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(otherObjId);
+
+      h.emit(T3Opcodes.DELEGATE);
+      h.emitByte(0); // argc
+      h.emitUint16(propId);
+
+      // Method at offset 60
+      while (h.bytecodeLength < methodOffset) h.emit(T3Opcodes.NOP);
+      h.addFunction(OpcodeTestHarness.createMethodHeader(argCount: 0, localCount: 0));
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(88);
+      h.emit(T3Opcodes.RETVAL);
+
+      h.build();
+      h.step(); // PUSHOBJ
+      h.step(); // DELEGATE
+      h.run();
+
+      expect(h.r0.value, 88);
+    });
   });
 
   group('Iterator opcodes (require collection setup)', () {
     test('ITERNEXT advances iterator', () {
-      expect(true, isTrue);
-    }, skip: 'Requires iterator object setup');
+      final h = OpcodeTestHarness();
+
+      final iterId = h.allocateObjectId();
+      h.createIteratorObject(iterId, [T3Value.fromInt(10), T3Value.fromInt(20)]);
+
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(iterId);
+      h.emit(T3Opcodes.SETLCL1);
+      h.emitByte(0);
+
+      final loopStart = h.bytecodeLength;
+      h.emit(T3Opcodes.ITERNEXT);
+      h.emitUint16(0); // local 0 has iterator
+      h.emitInt16(10); // jump offset (to loop end)
+
+      // Inside loop
+      h.emit(T3Opcodes.SAYVAL);
+      h.emit(T3Opcodes.JMP);
+      h.emitInt16(loopStart - h.bytecodeLength); // loop back
+
+      while (h.bytecodeLength < loopStart + 10) h.emit(T3Opcodes.NOP);
+
+      h.build();
+      h.runSteps(2); // PUSHOBJ, SETLCL
+      h.run();
+
+      expect(h.output.toString(), '1020');
+    });
   });
 
-  group('Debug opcodes', () {
-    test('GETDBLCL gets debug local', () {
-      expect(true, isTrue);
-    }, skip: 'Debug opcodes need special handling');
+  group('PUSHPARLST opcode', () {
+    test('PUSHPARLST pushes varargs parameter list', () {
+      final h = OpcodeTestHarness();
+      h.addArgs([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30)]);
 
-    test('SETDBLCL sets debug local', () {
-      expect(true, isTrue);
-    }, skip: 'Debug opcodes need special handling');
+      h.emit(T3Opcodes.PUSHPARLST);
+      h.emitByte(1); // 1 fixed arg, 2 varargs
 
-    test('GETDBARG gets debug argument', () {
-      expect(true, isTrue);
-    }, skip: 'Debug opcodes need special handling');
+      h.build(argCount: 3);
+      h.step();
 
-    test('SETDBARG sets debug argument', () {
-      expect(true, isTrue);
-    }, skip: 'Debug opcodes need special handling');
+      final result = h.pop();
+      expect(result.isList, isTrue);
+      final listVals = h.getListValues(result);
+      expect(listVals.length, 2);
+      expect(listVals[0].value, 20);
+      expect(listVals[1].value, 30);
+    });
+  });
 
-    test('GETDBARGC gets debug argument count', () {
-      expect(true, isTrue);
-    }, skip: 'Debug opcodes need special handling');
+  group('Exception handling finally blocks', () {
+    test('finally block executes via class 0', () {
+      final h = OpcodeTestHarness();
+      final finallyOfs = 50;
 
-    test('BP breakpoint', () {
-      expect(true, isTrue);
-    }, skip: 'Debug opcodes need special handling');
+      // Handler for class 0 (finally) at offset 50
+      h.addExceptionHandler(0, 0, finallyOfs, 0);
+
+      // Bytecode: PUSHOBJ, THROW
+      final exObj = h.allocateObjectId();
+      h.createObject(id: exObj);
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(exObj);
+      h.emit(T3Opcodes.THROW);
+
+      while (h.bytecodeLength < finallyOfs) h.emit(T3Opcodes.NOP);
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitByte(55);
+
+      h.build();
+      h.step(); // PUSHOBJ
+      h.step(); // THROW
+
+      expect(h.interpreter.registers.ip, finallyOfs);
+      h.step(); // PUSHINT8
+      expect(h.pop().value, 55);
+      expect(h.pop().value, exObj);
+    });
   });
 
   group('Output opcodes (require I/O setup)', () {
@@ -1914,14 +2496,55 @@ void main() {
     }, skip: 'Requires I/O provider setup');
   });
 
-  group('SETIND opcode (requires indexable object)', () {
-    test('SETIND sets indexed value', () {
-      expect(true, isTrue);
-    }, skip: 'Requires mutable list/object');
+  group('SETIND opcode with mutable Vector', () {
+    test('SETIND sets indexed value on vector', () {
+      final h = OpcodeTestHarness();
+      // Create a Vector with values [10, 20, 30]
+      final vecId = h.createVectorObject([T3Value.fromInt(10), T3Value.fromInt(20), T3Value.fromInt(30)]);
 
-    test('SETINDLCL1I8 sets indexed local', () {
-      expect(true, isTrue);
-    }, skip: 'Requires mutable list in local');
+      // Pop order: index, container, value
+      // Push order: value, container, index
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(99); // new value (pushed first, popped last)
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(vecId); // container (pushed second)
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(2); // index (pushed last, popped first)
+      h.emit(T3Opcodes.SETIND);
+      h.build();
+      h.runSteps(4);
+
+      // Verify the vector was modified
+      final vec = h.lookupObject(vecId) as T3VectorObject;
+      expect(vec.elements[1].value, 99); // index 2 (1-based) = array[1]
+    });
+
+    test('SETINDLCL1I8 sets indexed value in local vector', () {
+      final h = OpcodeTestHarness();
+      // Create a Vector and store in local 0
+      final vecId = h.createVectorObject([T3Value.fromInt(100), T3Value.fromInt(200)]);
+
+      h.emit(T3Opcodes.PUSHOBJ);
+      h.emitUint32(vecId);
+      h.emit(T3Opcodes.SETLCL1);
+      h.emitByte(0);
+
+      // Push new value
+      h.emit(T3Opcodes.PUSHINT8);
+      h.emitInt8(77);
+
+      // SETINDLCL1I8: sets local[localNum][idx] = tos
+      h.emit(T3Opcodes.SETINDLCL1I8);
+      h.emitByte(0); // local number
+      h.emitByte(1); // 1-based index
+
+      h.build();
+      h.runSteps(4);
+
+      // Verify the vector was modified
+      final vec = h.lookupObject(vecId) as T3VectorObject;
+      expect(vec.elements[0].value, 77); // index 1 (1-based) = array[0]
+    });
   });
 
   group('PUSHPARLST opcode', () {
