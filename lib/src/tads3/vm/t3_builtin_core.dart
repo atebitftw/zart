@@ -72,11 +72,33 @@ class T3BuiltinCore {
               var opIndexProp = interp.getSymbolPropertyId('operator []');
               if (opIndexProp == null) opIndexProp = interp.getSymbolPropertyId('operator[]');
 
+              // Check if we need to mask the property ID for objects without large_property_ids flag
+              if (opIndexProp != null) {
+                final obj = interp.objectTable.lookup(val.value);
+                if (obj is T3TadsObject) {
+                  // Check if object supports large property IDs (flag 0x0004)
+                  final hasLargePropertyIds = (obj.flags & 0x0004) != 0;
+                  if (!hasLargePropertyIds && opIndexProp > 0xFFFF) {
+                    // Mask to 16-bit for objects that don't support large property IDs
+                    opIndexProp = opIndexProp & 0xFFFF;
+                  }
+                }
+              }
+
               if (opIndexProp == null) {
                 // Fallback: search symbols for operator[] fuzzy match
                 for (final key in interp.symbols.keys) {
                   if (key.indexOf('operator') >= 0 && key.indexOf(']') >= 0) {
                     opIndexProp = interp.getSymbolPropertyId(key);
+                    if (opIndexProp != null) {
+                      final obj = interp.objectTable.lookup(val.value);
+                      if (obj is T3TadsObject) {
+                        final hasLargePropertyIds = (obj.flags & 0x0004) != 0;
+                        if (!hasLargePropertyIds && opIndexProp > 0xFFFF) {
+                          opIndexProp = opIndexProp & 0xFFFF;
+                        }
+                      }
+                    }
                     break;
                   }
                 }
@@ -96,58 +118,22 @@ class T3BuiltinCore {
                   final constructProp = interp.getSymbolPropertyId('construct');
                   if (constructProp != null) props.remove(constructProp);
 
-                  print('DEBUG: props after filter: $props');
-
                   if (props.isNotEmpty) {
-                    final sortedProps = props.toList()..sort();
-                    opIndexProp = sortedProps.first;
-                    print('DEBUG: Heuristic chose opIndexProp=$opIndexProp');
-
-                    // Detailed dump
-                    print('DEBUG: Object Dump for ID ${val.value} (Hash: ${obj.hashCode})');
-                    print('DEBUG: loadImageProperties count: ${obj.loadImageProperties.length}');
+                    // Find CODEOFS property (method), not INT
+                    int? codeProp;
                     for (var p in obj.loadImageProperties) {
-                      print('DEBUG: Prop ${p.propId} (0x${p.propId.toRadixString(16)}) ValueType: ${p.value.type}');
-                      if (p.propId == opIndexProp) {
-                        print('DEBUG: MATCH FOUND in loop for $opIndexProp');
+                      if (props.contains(p.propId) && p.value.type == T3DataType.codeofs) {
+                        codeProp = p.propId;
+                        break;
                       }
                     }
-
-                    // Check lookupProperty DIRECTLY here using internal method if possible?
-                    // No, stick to public interface but reproduce logic.
-                    for (final prop in obj.loadImageProperties) {
-                      if (prop.propId == opIndexProp) {
-                        print('DEBUG: Manual search found prop!');
-                      }
-                    }
-                  } else {
-                    print('DEBUG: Heuristic failed, props empty');
+                    opIndexProp = codeProp ?? (props.toList()..sort()).first;
                   }
-                } else {
-                  print('DEBUG: Not T3TadsObject');
-                }
-              }
-
-              // Force print of object flags if it is a T3TadsObject
-              if (opIndexProp != null) {
-                final objRef = interp.objectTable.lookup(val.value);
-                if (objRef is T3TadsObject) {
-                  print('DEBUG: Obj Flags: 0x${objRef.flags.toRadixString(16)}');
                 }
               }
 
               if (opIndexProp != null) {
-                print('DEBUG: Calling prop $opIndexProp with idx $idx');
-                final propLookup = interp.objectTable.lookupProperty(val.value, opIndexProp);
-                if (propLookup != null) {
-                  final propVal = propLookup.value;
-                  print('DEBUG: propVal type=${propVal.type} value=${propVal.value}');
-                } else {
-                  print('DEBUG: prop lookup failed via objectTable');
-                }
-
                 final elem = interp.callMethodSynchronously(val, opIndexProp, args: [T3Value.fromInt(idx)]);
-                print('DEBUG: Result = $elem');
                 interp.registers.r0 = elem;
                 return;
               } else {
