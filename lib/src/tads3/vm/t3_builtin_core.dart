@@ -200,7 +200,13 @@ class T3BuiltinCore {
         result = interp.getStringValue(val);
         break;
       case T3DataType.obj:
-        result = 'object#${val.value}';
+        // Check for StringBuffer - extract its content
+        final obj = interp.objectTable.lookup(val.value);
+        if (obj is T3StringBuffer) {
+          result = obj.content;
+        } else {
+          result = 'object#${val.value}';
+        }
         break;
       case T3DataType.prop:
         result = 'property#${val.value}';

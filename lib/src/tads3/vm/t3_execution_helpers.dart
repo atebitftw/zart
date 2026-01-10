@@ -397,6 +397,10 @@ mixin T3ExecutionHelpers {
             } else if (obj.metaclass == 'lookuptable') {
               handleLookupTableIntrinsic(-1, target, argc, propId: propId);
               return;
+            } else if (obj.metaclass == 'string-buffer') {
+              // Handle StringBuffer instance methods (e.g., append, length)
+              handleStringBufferIntrinsic(target, propId, argc);
+              return;
             } else if (obj.metaclass == 'bignumber') {
               // Handle BigNumber instance methods (e.g., formatString)
               handleBigNumberIntrinsic(target, propId, argc);
@@ -525,12 +529,15 @@ mixin T3ExecutionHelpers {
 
     final placeholderName = target.type == T3DataType.sstring ? '*ConstStrObj' : '*ConstLstObj';
     final placeholder = execSymbols[placeholderName];
+    print('DEBUG handleIntrinsic: propId=$propId, placeholderName=$placeholderName, found=${placeholder != null}');
     if (placeholder != null && placeholder.type == T3DataType.obj) {
+      print('DEBUG handleIntrinsic: delegating to placeholder object ${placeholder.value}');
       execEvalProperty(placeholder, propId, argc: argc);
       return;
     }
 
     if (argc != null && argc > 0) execStack.discard(argc);
+    print('DEBUG handleIntrinsic: returning nil for propId=$propId');
     execRegisters.r0 = T3Value.nil();
   }
 
@@ -2366,6 +2373,95 @@ mixin T3ExecutionHelpers {
       return true;
     }
     return false;
+  }
+
+  // ==================== StringBuffer Instance Method Handling ====================
+
+  /// Handles instance method calls on StringBuffer objects (e.g., sb.append).
+  void handleStringBufferIntrinsic(T3Value target, int propId, int? argc) {
+    final obj = execObjectTable.lookup(target.value);
+    if (obj is! T3StringBuffer) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    // Get the stringbuffer metaclass to find function vector index
+    final metaclass = execMetaclasses?.byName('stringbuffer');
+    if (metaclass == null) {
+      // Try alternate name format
+      final metaclass2 = execMetaclasses?.byName('string-buffer');
+      if (metaclass2 == null) {
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.nil();
+        return;
+      }
+    }
+
+    final mc = metaclass ?? execMetaclasses?.byName('string-buffer');
+    final funcIdx = mc?.propertyIds.indexOf(propId) ?? -1;
+    if (funcIdx < 0) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    // StringBuffer instance methods (from vmstrbuf.h):
+    // Function vector indices are 1-based typical ordering:
+    // 1 = length
+    // 2 = charAt
+    // 3 = append
+    // etc.
+    final funcVectorIdx = funcIdx + 1; // Convert to 1-based
+
+    switch (funcVectorIdx) {
+      case 1: // length
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromInt(obj.length);
+        return;
+      case 2: // charAt
+        if (argc != null && argc >= 1) {
+          final idx = execStack.pop();
+          if (argc > 1) execStack.discard(argc - 1);
+          if (idx.isInt && idx.value >= 1 && idx.value <= obj.length) {
+            final charCode = obj.content.codeUnitAt(idx.value - 1);
+            final strOffset = execNextDynamicStringOffset++;
+            execDynamicStrings[strOffset] = String.fromCharCode(charCode);
+            execRegisters.r0 = T3Value.fromString(strOffset);
+          } else {
+            execRegisters.r0 = T3Value.nil();
+          }
+        } else {
+          if (argc != null && argc > 0) execStack.discard(argc);
+          execRegisters.r0 = T3Value.nil();
+        }
+        return;
+      case 3: // append
+        _handleStringBufferAppend(obj, argc);
+        return;
+      default:
+        // Unimplemented method - discard args and return self
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = target; // return self for chaining
+    }
+  }
+
+  /// Handles StringBuffer.append(val)
+  void _handleStringBufferAppend(T3StringBuffer obj, int? argc) {
+    if (argc != null && argc >= 1) {
+      final val = execStack.pop();
+      if (argc > 1) execStack.discard(argc - 1);
+
+      // Convert value to string and append
+      final text = getStringValue(val);
+      obj.append(text);
+
+      // Return self for chaining
+      execRegisters.r0 = T3Value.fromObject(obj.objectId);
+    } else {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.fromObject(obj.objectId);
+    }
   }
 
   // ==================== BigNumber Instance Method Handling ====================
