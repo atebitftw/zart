@@ -29,10 +29,10 @@ The following test files run successfully to completion:
 - [rand.t3](../assets/testers/tads/rand.t3) / [rand.t](../packages/tads-runner/tads3/test/data/rand.t)
 - [fib.t3](../assets/testers/tads/fib.t3) / [fib.t](../packages/tads-runner/tads3/test/data/fib.t)
 - [bigvec.t3](../assets/testers/tads/bigvec.t3) / [bigvec.t](../packages/tads-runner/tads3/test/data/bigvec.t)
+- [pi.t3](../assets/testers/tads/pi.t3) / [pi.t](../packages/tads-runner/tads3/test/data/pi.t)
 
 
 ## Blocked by Missing Built-in Functions
-- [pi.t3](../assets/testers/tads/pi.t3) / [pi.t](../packages/tads-runner/tads3/test/data/pi.t)
 - [undo.t3](../assets/testers/tads/undo.t3) / [undo.t](../packages/tads-runner/tads3/test/data/undo.t)
 
 ## Untested Tests

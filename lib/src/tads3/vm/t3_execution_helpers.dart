@@ -379,17 +379,8 @@ mixin T3ExecutionHelpers {
 
   /// Evaluates a property on a target object.
   void execEvalProperty(T3Value target, int propId, {int? argc, int? namedArgTableAddr}) {
-    // print('EVALPROP: target=$target propId=$propId (0x${propId.toRadixString(16)})');
     switch (target.type) {
       case T3DataType.obj:
-        // Debug for BigNumber
-        if (target.value == 2147483670) {
-          final obj = execObjectTable.lookup(target.value);
-          print('DEBUG: Calling property $propId on BigNumber object');
-          print('  Object: $obj');
-          print('  Metaclass: ${obj?.metaclass}');
-        }
-
         final result = execObjectTable.lookupProperty(target.value, propId);
         if (result == null) {
           final obj = execObjectTable.lookup(target.value);
@@ -405,6 +396,10 @@ mixin T3ExecutionHelpers {
               return;
             } else if (obj.metaclass == 'lookuptable') {
               handleLookupTableIntrinsic(-1, target, argc, propId: propId);
+              return;
+            } else if (obj.metaclass == 'bignumber') {
+              // Handle BigNumber instance methods (e.g., formatString)
+              handleBigNumberIntrinsic(target, propId, argc);
               return;
             } else if (obj.metaclass == 'intrinsic-class') {
               // Handle static methods on IntrinsicClass objects (e.g., BigNumber.getPi)
@@ -2373,6 +2368,76 @@ mixin T3ExecutionHelpers {
     return false;
   }
 
+  // ==================== BigNumber Instance Method Handling ====================
+
+  /// Handles instance method calls on BigNumber objects (e.g., bigNum.formatString).
+  void handleBigNumberIntrinsic(T3Value target, int propId, int? argc) {
+    final obj = execObjectTable.lookup(target.value);
+    if (obj is! T3BigNumber) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    // Get the bignumber metaclass to find function vector index
+    final metaclass = execMetaclasses?.byName('bignumber');
+    if (metaclass == null) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    final funcIdx = metaclass.propertyIds.indexOf(propId);
+    if (funcIdx < 0) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    // BigNumber instance methods (from vmbignum.h):
+    // Function vector indices are 1-based
+    // VMOBJBN_FORMAT = 1 (formatString)
+    // VMOBJBN_GET_PREC = 3 (getPrecision)
+    // etc.
+    final funcVectorIdx = funcIdx + 1; // Convert to 1-based
+
+    switch (funcVectorIdx) {
+      case 1: // VMOBJBN_FORMAT - formatString
+        _handleBigNumberFormatString(obj, argc);
+        break;
+      case 3: // VMOBJBN_GET_PREC - getPrecision
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.fromInt(obj.actualPrecision);
+        break;
+      default:
+        // Unimplemented method - return nil
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.nil();
+    }
+  }
+
+  /// Handles BigNumber.formatString(maxDigits?, flags?, wholePlaces?, fracDigits?, expDigits?, leadFill?)
+  void _handleBigNumberFormatString(T3BigNumber obj, int? argc) {
+    // Pop arguments (all optional)
+    int maxDigits = 0;
+    if (argc != null && argc >= 1) {
+      final arg = execStack.pop();
+      if (arg.isInt) maxDigits = arg.value;
+    }
+    // Discard remaining optional args for now
+    if (argc != null && argc > 1) {
+      execStack.discard(argc - 1);
+    }
+
+    // Format the number
+    final formatted = obj.formatString(maxDigits: maxDigits);
+
+    // Create a dynamic string and return it
+    final offset = execNextDynamicStringOffset++;
+    execDynamicStrings[offset] = formatted;
+    execRegisters.r0 = T3Value.fromString(offset);
+  }
+
   // ==================== IntrinsicClass Method Handling ====================
 
   /// Handles static method calls on IntrinsicClass objects (e.g., BigNumber.getPi).
@@ -2386,9 +2451,12 @@ mixin T3ExecutionHelpers {
       metaclassIndex = obj.metaclassIndex;
     } else if (obj is T3GenericObject) {
       // This is an IntrinsicClass object loaded from the OBJS block
-      // The object data contains the metaclass index
-      if (obj.rawData.length >= 2) {
-        metaclassIndex = obj.rawData[0] | (obj.rawData[1] << 8);
+      // IntrinsicClass data format (from vmintcls.cpp):
+      //   bytes 0-1: byte_count
+      //   bytes 2-3: metaclass_dependency_table_index
+      //   bytes 4-7: modifier_object_id
+      if (obj.rawData.length >= 4) {
+        metaclassIndex = obj.rawData[2] | (obj.rawData[3] << 8);
         final metaclass = execMetaclasses?.byIndex(metaclassIndex);
         metaclassName = metaclass?.name;
       }
@@ -2426,13 +2494,15 @@ mixin T3ExecutionHelpers {
     }
 
     // BigNumber static methods (from vmbignum.h):
-    // Index 33 = getPi
-    // Index 34 = getE
-    switch (funcIdx) {
-      case 33: // getPi
+    // The VMOBJBN_* enum values are 1-based function vector indices
+    // indexOf returns 0-based index, so add 1 to align with C++ constants
+    // VMOBJBN_GET_PI = 33, VMOBJBN_GET_E = 34
+    final funcVectorIdx = funcIdx + 1; // Convert to 1-based
+    switch (funcVectorIdx) {
+      case 33: // VMOBJBN_GET_PI
         _handleGetPi(argc);
         break;
-      case 34: // getE
+      case 34: // VMOBJBN_GET_E
         _handleGetE(argc);
         break;
       default:

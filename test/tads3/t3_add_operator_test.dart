@@ -34,19 +34,18 @@ void main() {
       expect(interp.getStringValue(result), 'count: 42');
     });
 
-    test('int + string concatenation', () {
+    test('int + string throws error (TADS3 semantics)', () {
+      // In TADS3, int + non-numeric throws an error (only string + x is allowed)
       final v1 = T3Value.fromInt(123);
       final s2 = interp.addDynamicString(' is the way');
       final v2 = T3Value.fromString(s2);
 
-      interp.t3Add(v1, v2);
-      final result = interp.stack.pop();
-
-      expect(result.isStringLike, isTrue);
-      expect(interp.getStringValue(result), '123 is the way');
+      // This should throw because int + string is not allowed in TADS3
+      expect(() => interp.t3Add(v1, v2), throwsA(isA<Exception>()));
     });
 
     test('string + nil concatenation', () {
+      // In TADS3, nil converts to the string 'nil' when concatenated
       final s1 = interp.addDynamicString('value: ');
       final v1 = T3Value.fromString(s1);
       final v2 = T3Value.nil();
@@ -55,23 +54,21 @@ void main() {
       final result = interp.stack.pop();
 
       expect(result.isStringLike, isTrue);
-      expect(interp.getStringValue(result), 'value: ');
+      expect(interp.getStringValue(result), 'value: nil');
     });
 
     test('string + list concatenation', () {
+      // In TADS3, lists are formatted with comma separators
       final s1 = interp.addDynamicString('list: ');
       final v1 = T3Value.fromString(s1);
-      final listId = interp.addDynamicList([
-        T3Value.fromInt(1),
-        T3Value.fromInt(2),
-      ]);
+      final listId = interp.addDynamicList([T3Value.fromInt(1), T3Value.fromInt(2)]);
       final v2 = T3Value.fromList(listId);
 
       interp.t3Add(v1, v2);
       final result = interp.stack.pop();
 
       expect(result.isStringLike, isTrue);
-      expect(interp.getStringValue(result), 'list: [1 2]');
+      expect(interp.getStringValue(result), 'list: [1, 2]');
     });
 
     test('complex string concatenation (basic.t pattern)', () {

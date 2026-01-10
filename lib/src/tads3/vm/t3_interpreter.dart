@@ -376,26 +376,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     _loadConstantPools();
     _loadCodePools();
     _loadSymbols();
-    print('Before _loadObjects: BigNumber = ${_symbols["BigNumber"]}');
     _loadObjects();
-    print('After _loadObjects: BigNumber = ${_symbols["BigNumber"]}');
-
-    // List all intrinsic-class objects
-    print('Intrinsic-class objects:');
-    for (int i = 1; i <= 100; i++) {
-      final obj = _objectTable.lookup(i);
-      if (obj != null && obj.metaclass == 'intrinsic-class') {
-        print('  #$i: $obj');
-      }
-    }
-
-    // Check if BigNumber object exists
-    final bnVal = _symbols["BigNumber"];
-    if (bnVal != null && bnVal.isObject) {
-      final bnObj = _objectTable.lookup(bnVal.value);
-      print('BigNumber object lookup: $bnObj');
-    }
-
     _createIntrinsicClassObjects(); // Create AFTER objects loaded so they don't get cleared
 
     _runStaticInitializers();
@@ -439,8 +420,12 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
       final obj = _objectTable.lookup(i);
       if (obj != null && obj.metaclass == 'intrinsic-class') {
         // Extract metaclass index from object data
-        if (obj is T3GenericObject && obj.rawData.length >= 2) {
-          final metaclassIndex = obj.rawData[0] | (obj.rawData[1] << 8);
+        // IntrinsicClass data format (from vmintcls.cpp):
+        //   bytes 0-1: byte_count
+        //   bytes 2-3: metaclass_dependency_table_index
+        //   bytes 4-7: modifier_object_id
+        if (obj is T3GenericObject && obj.rawData.length >= 4) {
+          final metaclassIndex = obj.rawData[2] | (obj.rawData[3] << 8);
           intrinsicClassObjects[metaclassIndex] = i;
         }
       }
@@ -452,11 +437,6 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
       if (objectId != null) {
         final symbolName = _metaclassNameToSymbol(metaclass.name);
         _symbols[symbolName] = T3Value.fromObject(objectId);
-
-        // Debug
-        if (metaclass.name == 'bignumber') {
-          print('Mapped BigNumber to object #$objectId (metaclass index ${metaclass.index})');
-        }
       }
     }
   }
