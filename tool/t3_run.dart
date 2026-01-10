@@ -27,6 +27,21 @@ void main(List<String> args) async {
   print('Object table count: ${interp.objectTable.count}');
   // interp.objectTable.dump();
 
+  // Debug: Check BigNumber symbol
+  try {
+    print('Symbol table has ${interp.symbols.length} symbols');
+    if (interp.symbols.containsKey('BigNumber')) {
+      final bigNumberSym = interp.symbols['BigNumber'];
+      print('BigNumber symbol exists: $bigNumberSym');
+    } else {
+      print('BigNumber symbol NOT FOUND');
+      print('All symbols: ${interp.symbols.keys.take(20).join(", ")}');
+    }
+  } catch (e, st) {
+    print('Error accessing symbols: $e');
+    print(st);
+  }
+
   print('Starting execution...');
   try {
     interp.traceExecution = false;

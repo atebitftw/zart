@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:crypto/crypto.dart';
 import 'package:zart/src/tads3/vm/t3_lookup_table.dart';
 import 'package:zart/src/tads3/vm/t3_byte_array.dart';
@@ -21,6 +22,8 @@ import 'package:zart/src/tads3/vm/t3_undo.dart';
 import 'package:zart/src/tads3/vm/t3_utf8.dart';
 import 'package:zart/src/tads3/vm/t3_value.dart';
 import 'package:zart/src/tads3/vm/t3_value_helpers.dart';
+import 'package:zart/src/tads3/vm/t3_intrinsic_class.dart';
+import 'package:zart/src/tads3/vm/t3_bignumber.dart';
 
 /// Mixin providing execution helpers for function calls, property access,
 /// object creation, and output handling.
@@ -379,6 +382,14 @@ mixin T3ExecutionHelpers {
     // print('EVALPROP: target=$target propId=$propId (0x${propId.toRadixString(16)})');
     switch (target.type) {
       case T3DataType.obj:
+        // Debug for BigNumber
+        if (target.value == 2147483670) {
+          final obj = execObjectTable.lookup(target.value);
+          print('DEBUG: Calling property $propId on BigNumber object');
+          print('  Object: $obj');
+          print('  Metaclass: ${obj?.metaclass}');
+        }
+
         final result = execObjectTable.lookupProperty(target.value, propId);
         if (result == null) {
           final obj = execObjectTable.lookup(target.value);
@@ -394,6 +405,10 @@ mixin T3ExecutionHelpers {
               return;
             } else if (obj.metaclass == 'lookuptable') {
               handleLookupTableIntrinsic(-1, target, argc, propId: propId);
+              return;
+            } else if (obj.metaclass == 'intrinsic-class') {
+              // Handle static methods on IntrinsicClass objects (e.g., BigNumber.getPi)
+              handleIntrinsicClassMethod(obj, propId, argc);
               return;
             }
           }
@@ -2353,18 +2368,147 @@ mixin T3ExecutionHelpers {
         propId: propId,
         pushResult: true,
       );
-      // Result will be in R0 when function returns, but we need it on stack for expression evaluation.
-      // Since callFunction sets up a new frame, we rely on the return handler to push R0 back?
-      // NOTE: This assumes that the caller properly handles the asynchronous nature of this call (e.g. by not consuming R0 immediately).
-      // However, for opcodes like ADD, they need to push the result.
-      // Since we can't pause execution here, we rely on the fact that T3ExecutionResult.continue_ will run the function,
-      // and when it returns, the result is in R0.
-      //
-      // BUT, the ADD opcode typically PUSHES the result.
-      // This is a complex interaction.
-      // For now, assuming standard calls work, but we might need to handle the return value specifically in the interpreter loop.
       return true;
     }
     return false;
+  }
+
+  // ==================== IntrinsicClass Method Handling ====================
+
+  /// Handles static method calls on IntrinsicClass objects (e.g., BigNumber.getPi).
+  void handleIntrinsicClassMethod(T3Object obj, int propId, int? argc) {
+    // Get the metaclass name - either from T3IntrinsicClass or from saved object data
+    String? metaclassName;
+    int? metaclassIndex;
+
+    if (obj is T3IntrinsicClass) {
+      metaclassName = obj.metaclassName;
+      metaclassIndex = obj.metaclassIndex;
+    } else if (obj is T3GenericObject) {
+      // This is an IntrinsicClass object loaded from the OBJS block
+      // The object data contains the metaclass index
+      if (obj.rawData.length >= 2) {
+        metaclassIndex = obj.rawData[0] | (obj.rawData[1] << 8);
+        final metaclass = execMetaclasses?.byIndex(metaclassIndex);
+        metaclassName = metaclass?.name;
+      }
+    }
+
+    if (metaclassName == null || metaclassIndex == null) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    if (metaclassName == 'bignumber') {
+      _handleBigNumberStaticMethod(metaclassIndex, propId, argc);
+    } else {
+      // Other intrinsic classes not yet implemented
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+    }
+  }
+
+  void _handleBigNumberStaticMethod(int metaclassIndex, int propId, int? argc) {
+    // Find which property index this is
+    final metaclass = execMetaclasses?.byIndex(metaclassIndex);
+    if (metaclass == null) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    final funcIdx = metaclass.propertyIds.indexOf(propId);
+    if (funcIdx < 0) {
+      if (argc != null && argc > 0) execStack.discard(argc);
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    // BigNumber static methods (from vmbignum.h):
+    // Index 33 = getPi
+    // Index 34 = getE
+    switch (funcIdx) {
+      case 33: // getPi
+        _handleGetPi(argc);
+        break;
+      case 34: // getE
+        _handleGetE(argc);
+        break;
+      default:
+        if (argc != null && argc > 0) execStack.discard(argc);
+        execRegisters.r0 = T3Value.nil();
+    }
+  }
+
+  void _handleGetPi(int? argc) {
+    if (argc == null || argc < 1) {
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    // Pop the precision argument
+    final precisionVal = execStack.pop();
+    if (precisionVal.type != T3DataType.int_) {
+      execRegisters.r0 = T3Value.nil();
+      return;
+    }
+
+    final precision = precisionVal.value;
+
+    // High-precision pi string (600+ digits)
+    const piDigits =
+        '3'
+        '1415926535897932384626433832795028841971693993751058209749445923'
+        '0781640628620899862803482534211706798214808651328230664709384460'
+        '9550582231725359408128481117450284102701938521105559644622948954'
+        '9303819644288109756659334461284756482337867831652712019091456485'
+        '6692346034861045432664821339360726024914127372458700660631558817'
+        '4881520920962829254091715364367892590360011330530548820466521384'
+        '1469519415116094330572703657595919530921861173819326117931051185'
+        '4807446237996274956735188575272489122793818301194912983367336244'
+        '0656643086021394946395224737190702179860943702770539217176293176'
+        '7523846748184676694051320005681271452635608277857713427577896091';
+
+    final requestedDigits = math.min(precision, piDigits.length).toInt();
+
+    // Create BCD representation
+    // Format: precision(2), actual_prec(2), exponent(2), flags(2), digits...
+    final bcdBytes = <int>[];
+
+    // Precision fields (little-endian UINT16)
+    bcdBytes.add(requestedDigits & 0xFF);
+    bcdBytes.add((requestedDigits >> 8) & 0xFF);
+    bcdBytes.add(requestedDigits & 0xFF);
+    bcdBytes.add((requestedDigits >> 8) & 0xFF);
+
+    // Exponent: pi = 3.14... so exponent is 1 (one digit before decimal)
+    final expValue = 1;
+    bcdBytes.add(expValue & 0xFF);
+    bcdBytes.add((expValue >> 8) & 0xFF);
+
+    // Flags: 0 for positive, normal number
+    bcdBytes.add(0);
+    bcdBytes.add(0);
+
+    // Now encode digits in BCD (2 digits per byte)
+    for (int i = 0; i < requestedDigits; i += 2) {
+      final digit1 = int.parse(piDigits[i]);
+      final digit2 = i + 1 < requestedDigits ? int.parse(piDigits[i + 1]) : 0;
+      bcdBytes.add((digit1 << 4) | digit2);
+    }
+
+    // Create the BigNumber object
+    final objId = execObjectTable.allocateObjectId();
+    final bigNum = T3BigNumber(objectId: objId, data: Uint8List.fromList(bcdBytes), isTransient: true);
+
+    execObjectTable.registerObject(bigNum);
+    execRegisters.r0 = T3Value.fromObject(objId);
+  }
+
+  void _handleGetE(int? argc) {
+    // Stub for now - similar to getPi but with e
+    if (argc != null && argc > 0) execStack.discard(argc);
+    execRegisters.r0 = T3Value.nil();
   }
 }

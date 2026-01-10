@@ -32,8 +32,8 @@ The following test files run successfully to completion:
 
 
 ## Blocked by Missing Built-in Functions
-- [pi.t3](../assets/testers/tads/pi.t3) / [pi.t](../packages/tads-runner/tads3/test/data/pi.t) - Needs tads-gen[8]
-- [undo.t3](../assets/testers/tads/undo.t3) / [undo.t](../packages/tads-runner/tads3/test/data/undo.t) - Some built-ins not implemented.
+- [pi.t3](../assets/testers/tads/pi.t3) / [pi.t](../packages/tads-runner/tads3/test/data/pi.t)
+- [undo.t3](../assets/testers/tads/undo.t3) / [undo.t](../packages/tads-runner/tads3/test/data/undo.t)
 
 ## Untested Tests
 - [asi.t3](../assets/testers/tads/asi.t3) / [asi.t](../packages/tads-runner/tads3/test/data/asi.t)

@@ -26,6 +26,7 @@ import 'package:zart/src/tads3/vm/t3_call_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_result.dart';
 import 'package:zart/src/tads3/vm/t3_save_manager.dart';
+import 'package:zart/src/tads3/vm/t3_intrinsic_class.dart';
 
 /// TADS3 VM interpreter.
 ///
@@ -375,7 +376,28 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     _loadConstantPools();
     _loadCodePools();
     _loadSymbols();
+    print('Before _loadObjects: BigNumber = ${_symbols["BigNumber"]}');
     _loadObjects();
+    print('After _loadObjects: BigNumber = ${_symbols["BigNumber"]}');
+
+    // List all intrinsic-class objects
+    print('Intrinsic-class objects:');
+    for (int i = 1; i <= 100; i++) {
+      final obj = _objectTable.lookup(i);
+      if (obj != null && obj.metaclass == 'intrinsic-class') {
+        print('  #$i: $obj');
+      }
+    }
+
+    // Check if BigNumber object exists
+    final bnVal = _symbols["BigNumber"];
+    if (bnVal != null && bnVal.isObject) {
+      final bnObj = _objectTable.lookup(bnVal.value);
+      print('BigNumber object lookup: $bnObj');
+    }
+
+    _createIntrinsicClassObjects(); // Create AFTER objects loaded so they don't get cleared
+
     _runStaticInitializers();
   }
 
@@ -389,7 +411,7 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     _entrypoint = T3Entrypoint.parse(data);
   }
 
-  /// Loads the MCLD block.
+  /// Loads the MCLD block and creates IntrinsicClass objects.
   void _loadMetaclasses() {
     final block = _image!.findBlock(T3Block.typeMetaclassDep);
     if (block == null) {
@@ -403,6 +425,61 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
     // Cache indices for primitive types
     _stringMetaclassIdx = _metaclasses!.byName('string')?.index;
     _listMetaclassIdx = _metaclasses!.byName('list')?.index;
+  }
+
+  /// Maps intrinsic class symbols to existing IntrinsicClass objects.
+  /// Must be called AFTER _loadObjects() so the objects exist.
+  void _createIntrinsicClassObjects() {
+    if (_metaclasses == null) return;
+
+    // Find all existing intrinsic-class objects and map them by metaclass index
+    final intrinsicClassObjects = <int, int>{}; // metaclassIndex -> objectId
+
+    for (int i = 1; i <= 1000; i++) {
+      final obj = _objectTable.lookup(i);
+      if (obj != null && obj.metaclass == 'intrinsic-class') {
+        // Extract metaclass index from object data
+        if (obj is T3GenericObject && obj.rawData.length >= 2) {
+          final metaclassIndex = obj.rawData[0] | (obj.rawData[1] << 8);
+          intrinsicClassObjects[metaclassIndex] = i;
+        }
+      }
+    }
+
+    // Map symbol names to the existing intrinsic class objects
+    for (final metaclass in _metaclasses!.dependencies) {
+      final objectId = intrinsicClassObjects[metaclass.index];
+      if (objectId != null) {
+        final symbolName = _metaclassNameToSymbol(metaclass.name);
+        _symbols[symbolName] = T3Value.fromObject(objectId);
+
+        // Debug
+        if (metaclass.name == 'bignumber') {
+          print('Mapped BigNumber to object #$objectId (metaclass index ${metaclass.index})');
+        }
+      }
+    }
+  }
+
+  /// Converts a metaclass name to the expected symbol name.
+  /// E.g., 'bignumber' -> 'BigNumber', 'string' -> 'String'
+  String _metaclassNameToSymbol(String metaclassName) {
+    // Map well-known metaclasses to their proper symbol names
+    const nameMap = {
+      'bignumber': 'BigNumber',
+      'string': 'String',
+      'list': 'List',
+      'vector': 'Vector',
+      'lookuptable': 'LookupTable',
+      'iterator': 'Iterator',
+      'file': 'File',
+      'bytearray': 'ByteArray',
+      'tads-object': 'TadsObject',
+      'anon-func-ptr': 'AnonFuncPtr',
+      'intrinsic-class': 'IntrinsicClass',
+    };
+
+    return nameMap[metaclassName] ?? metaclassName[0].toUpperCase() + metaclassName.substring(1);
   }
 
   /// Loads the FNSD block.
