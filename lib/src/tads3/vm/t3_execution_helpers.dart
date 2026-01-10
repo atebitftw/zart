@@ -521,23 +521,53 @@ mixin T3ExecutionHelpers {
       }
     }
 
-    // Fallback for known property IDs if not in MCLD
+    // For list/string methods not in MCLD, check the IntrinsicClass modifier object
+    // This is how "modify List" works - the IntrinsicClass for List has a modifier_object_id
+    // that points to the object created by "modify List" where methods like myjoin are defined.
+
+    // Find the IntrinsicClass object for this type (list or string)
+    final metaclassName = target.type == T3DataType.sstring ? 'String' : 'List';
+    final intrinsicClassVal = execSymbols[metaclassName];
+    print('DEBUG: Looking for $metaclassName IntrinsicClass, found=${intrinsicClassVal != null}');
+
+    if (intrinsicClassVal != null && intrinsicClassVal.type == T3DataType.obj) {
+      final intrinsicClass = execObjectTable.lookup(intrinsicClassVal.value);
+      print('DEBUG: IntrinsicClass obj id=${intrinsicClassVal.value}, metaclass=${intrinsicClass?.metaclass}');
+      if (intrinsicClass is T3GenericObject &&
+          intrinsicClass.metaclass == 'intrinsic-class' &&
+          intrinsicClass.rawData.length >= 8) {
+        // Extract modifier_object_id from bytes 4-7
+        final modifierId =
+            intrinsicClass.rawData[4] |
+            (intrinsicClass.rawData[5] << 8) |
+            (intrinsicClass.rawData[6] << 16) |
+            (intrinsicClass.rawData[7] << 24);
+        print('DEBUG: modifierId=$modifierId for $metaclassName');
+
+        if (modifierId != 0) {
+          // Check if the modifier object has this property
+          final modifierResult = execObjectTable.lookupProperty(modifierId, propId);
+          print('DEBUG: modifierResult=$modifierResult for propId=$propId on modifier $modifierId');
+          if (modifierResult != null) {
+            // Found the property on the modifier - delegate to that object
+            final modifierVal = T3Value.fromObject(modifierId);
+            execEvalProperty(modifierVal, propId, argc: argc);
+            return;
+          }
+        }
+      }
+    }
+
+    // Fallback for known builtin property IDs if not in MCLD and not on modifier
     if (target.type == T3DataType.list) {
       handleListIntrinsic(-1, target, argc, propId: propId);
       return;
-    }
-
-    final placeholderName = target.type == T3DataType.sstring ? '*ConstStrObj' : '*ConstLstObj';
-    final placeholder = execSymbols[placeholderName];
-    print('DEBUG handleIntrinsic: propId=$propId, placeholderName=$placeholderName, found=${placeholder != null}');
-    if (placeholder != null && placeholder.type == T3DataType.obj) {
-      print('DEBUG handleIntrinsic: delegating to placeholder object ${placeholder.value}');
-      execEvalProperty(placeholder, propId, argc: argc);
+    } else if (target.type == T3DataType.sstring) {
+      handleStringIntrinsic(-1, target, argc, propId: propId);
       return;
     }
 
     if (argc != null && argc > 0) execStack.discard(argc);
-    print('DEBUG handleIntrinsic: returning nil for propId=$propId');
     execRegisters.r0 = T3Value.nil();
   }
 
