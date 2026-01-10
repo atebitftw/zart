@@ -26,7 +26,7 @@ import 'package:zart/src/tads3/vm/t3_call_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_helpers.dart';
 import 'package:zart/src/tads3/vm/t3_execution_result.dart';
 import 'package:zart/src/tads3/vm/t3_save_manager.dart';
-import 'package:zart/src/tads3/vm/t3_intrinsic_class.dart';
+import 'package:zart/src/tads3/vm/t3_html_entities.dart';
 
 /// TADS3 VM interpreter.
 ///
@@ -2359,13 +2359,16 @@ class T3Interpreter with T3ValueHelpers, T3CallHelpers, T3ExecutionHelpers imple
   void Function(String text)? onPrint;
 
   /// Raw print to console - bridge for mixins.
+  /// Converts TADS3 HTML entities (like &rarr;) to Unicode before output.
   void printRaw(String text) {
     if (text.isEmpty) return;
+    // Convert HTML entities to Unicode characters
+    final converted = convertHtmlEntities(text);
     if (onPrint != null) {
-      onPrint!(text);
+      onPrint!(converted);
     } else {
       // ignore: avoid_print
-      stdout.write(text);
+      stdout.write(converted);
     }
   }
 
