@@ -15,14 +15,14 @@ Essential for the basic execution of the T3 VM.
 - [x] `vmtype.cpp` / `vmtype.h` - Data type definitions <!-- id: 112 -->
 - [x] `vmerr.cpp` / `vmerr.h` - Error handling and exceptions <!-- id: 108 -->
 - [x] `vmerrmsg.cpp` - Error message strings <!-- id: 109 -->
-- [ ] `vmstack.cpp` / `vmstack.h` - VM stack implementation <!-- id: 106 -->
-- [ ] `vmpool.cpp` / `vmpool.h` - Constant and code pool management <!-- id: 107 -->
-- [ ] `vmglob.cpp` / `vmglob.h` / `vmglobv.h` - Global variable management <!-- id: 111 -->
+- [x] `vmstack.cpp` / `vmstack.h` - VM stack implementation <!-- id: 106 -->
+- [x] `vmpool.cpp` / `vmpool.h` - Constant and code pool management <!-- id: 107 -->
+- [x] `vmglob.cpp` / `vmglob.h` / `vmglobv.h` - Global variable management <!-- id: 111 -->
 
 ## Object System Core
 Root classes for the T3 object system.
 
-- [ ] `vmobj.cpp` / `vmobj.h` - Root T3 object class <!-- id: 104 -->
+- [x] `vmobj.cpp` / `vmobj.h` - Root T3 object class <!-- id: 104 -->
 - [ ] `vmcoll.cpp` / `vmcoll.h` - Collection base class <!-- id: 204 -->
 - [ ] `vmtobj.cpp` / `vmtobj.h` - TadsObject metaclass <!-- id: 214 -->
 
