@@ -10,6 +10,7 @@ import 'package:zart/src/tads3/vm/t3_opcode.dart';
 import 'dart:typed_data';
 import 'package:zart/src/tads3/vm/t3_std.dart' show t3Ashr, t3Lshr;
 import 'package:zart/src/tads3/vm/t3_type.dart';
+import 'package:zart/src/tads3/vm/t3_error.dart';
 
 // ----------------------------------------------------------------------------
 // Special Return Addresses
@@ -730,6 +731,135 @@ class T3Interpreter {
           stack.discard();
           break;
 
+        case opcJe:
+          final v2 = T3Value();
+          stack.pop(v2);
+          final v1 = T3Value();
+          stack.pop(v1);
+          if (v1.equals(v2)) {
+            globals.pc += 2 + _getOpInt16(codeData, p + 1);
+          } else {
+            globals.pc += 2;
+          }
+          break;
+
+        case opcJne:
+          final v2 = T3Value();
+          stack.pop(v2);
+          final v1 = T3Value();
+          stack.pop(v1);
+          if (!v1.equals(v2)) {
+            globals.pc += 2 + _getOpInt16(codeData, p + 1);
+          } else {
+            globals.pc += 2;
+          }
+          break;
+
+        case opcJgt:
+          _popInts((v1, v2) {
+            if (v1 > v2)
+              globals.pc += 2 + _getOpInt16(codeData, p + 1);
+            else
+              globals.pc += 2;
+          });
+          break;
+
+        case opcJge:
+          _popInts((v1, v2) {
+            if (v1 >= v2)
+              globals.pc += 2 + _getOpInt16(codeData, p + 1);
+            else
+              globals.pc += 2;
+          });
+          break;
+
+        case opcJlt:
+          _popInts((v1, v2) {
+            if (v1 < v2)
+              globals.pc += 2 + _getOpInt16(codeData, p + 1);
+            else
+              globals.pc += 2;
+          });
+          break;
+
+        case opcJle:
+          _popInts((v1, v2) {
+            if (v1 <= v2)
+              globals.pc += 2 + _getOpInt16(codeData, p + 1);
+            else
+              globals.pc += 2;
+          });
+          break;
+
+        case opcJst:
+          if (stack.get(0).isLogicalTrue) {
+            globals.pc += 2 + _getOpInt16(codeData, p + 1);
+          } else {
+            globals.pc += 2;
+            stack.discard();
+          }
+          break;
+
+        case opcJsf:
+          if (!stack.get(0).isLogicalTrue) {
+            globals.pc += 2 + _getOpInt16(codeData, p + 1);
+          } else {
+            globals.pc += 2;
+            stack.discard();
+          }
+          break;
+
+        case opcJr0t:
+          if (globals.r0.isLogicalTrue)
+            globals.pc += 2 + _getOpInt16(codeData, p + 1);
+          else
+            globals.pc += 2;
+          break;
+
+        case opcJr0f:
+          if (!globals.r0.isLogicalTrue)
+            globals.pc += 2 + _getOpInt16(codeData, p + 1);
+          else
+            globals.pc += 2;
+          break;
+
+        case opcJnotNil:
+          if (stack.get(0).type != T3DataType.nil) {
+            globals.pc += 2 + _getOpInt16(codeData, p + 1);
+          } else {
+            globals.pc += 2;
+          }
+          break;
+
+        case opcSwitch:
+          final count = _getOpUint16(codeData, p + 1);
+          final defOfs = _getOpInt16(codeData, p + 3);
+          final v = stack.popVal();
+          final val = v.getAsInt();
+
+          var found = false;
+          for (var i = 0; i < count; i++) {
+            final caseVal = _getOpInt32(codeData, p + 5 + i * 6);
+            if (caseVal == val) {
+              final caseOfs = _getOpInt16(codeData, p + 5 + i * 6 + 4);
+              globals.pc += 5 + i * 6 + caseOfs;
+              found = true;
+              break;
+            }
+          }
+
+          if (!found) {
+            globals.pc += 5 + (count * 6) + defOfs;
+          }
+          break;
+
+        case opcThrow:
+          final exc = stack.popVal();
+          _throwException(exc);
+          break;
+
+        // --- Quick Local Access (0xAA - 0xAF) ---
+
         // --- Quick Local Access (0xAA - 0xAF) ---
         case opcGetLclN0:
           stack.push(T3Value.copy(stack.getRef(globals.framePtr + vmrunFpOfsLcl1)));
@@ -797,6 +927,71 @@ class T3Interpreter {
     }
 
     return false;
+  }
+
+  void _popInts(void Function(int v1, int v2) callback) {
+    final stack = globals.stack!;
+    final v2Val = T3Value();
+    stack.pop(v2Val);
+    final v1Val = T3Value();
+    stack.pop(v1Val);
+    callback(v1Val.getAsInt(), v2Val.getAsInt());
+  }
+
+  void _throwException(T3Value exc) {
+    // Search for a handler starting from the current frame
+    var fp = globals.framePtr;
+    var pc = globals.pc;
+    var ep = globals.entryPtr;
+    final stack = globals.stack!;
+
+    while (fp != -1 && !vmrunIsSpecialReturn(pc)) {
+      // Get the function header and exception table
+      final (codeData, p) = globals.codePool!.getPtr(ep);
+      final hdr = T3FuncHeader(codeData, p);
+      if (hdr.hasExcTable) {
+        final table = T3ExcTable.fromFuncHeader(hdr, codeData)!;
+
+        // Match relative PC
+        final relPc = pc - ep;
+
+        // Find handler
+        final entry = table.findHandler(relPc, (excClassId) {
+          // TODO: Implement proper instanceOf check
+          // For now, if it's an object, we'll assume it matches if we want to be simple
+          // But we should really check the object table.
+          return true;
+        });
+
+        if (entry != null) {
+          // Found a handler!
+          globals.framePtr = fp;
+          globals.entryPtr = ep;
+          globals.pc = ep + entry.handlerOfs;
+
+          // Push exception onto stack for handler
+          stack.push(exc);
+          return;
+        }
+      }
+
+      // No handler in this frame, unwind
+      if (fp == -1) break;
+
+      final retPc = stack.getRef(fp + vmrunFpOfsRet).getAsOfs()!;
+      final nextFp = stack.getRef(fp + vmrunFpOfsEncFp).getAsStack()!;
+      final nextEp = stack.getRef(fp + vmrunFpOfsEncEp).getAsOfs()!;
+
+      // If we hit a recursive return, we can't unwind further here
+      if (vmrunIsSpecialReturn(retPc)) break;
+
+      pc = retPc;
+      fp = nextFp;
+      ep = nextEp;
+    }
+
+    // If no handler found, it's an unhandled exception
+    throw T3VmException(vmErrUnhandledExc);
   }
 
   // --- Operand Fetch Helpers ---

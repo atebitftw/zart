@@ -196,6 +196,13 @@ class T3Stack {
     val.copyFrom(_arr[--_sp]);
   }
 
+  /// Pop and return the top element
+  T3Value popVal() {
+    final v = T3Value();
+    pop(v);
+    return v;
+  }
+
   /// Discard the top element
   void discard([int n = 1]) {
     _sp -= n;
