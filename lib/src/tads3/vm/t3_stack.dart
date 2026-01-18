@@ -57,7 +57,8 @@ class T3Stack {
   T3Stack(int maxDepth, int reserveDepth) : _maxDepth = maxDepth, _reserveDepth = reserveDepth {
     // Allocate the stack with reserve and safety buffer
     final totalSize = maxDepth + reserveDepth + 25;
-    _arr = List<T3Value>.filled(totalSize, T3Value(), growable: false);
+    // Use generate to create distinct T3Value instances for each slot
+    _arr = List<T3Value>.generate(totalSize, (_) => T3Value(), growable: false);
 
     // Initialize the stack pointer
     init();

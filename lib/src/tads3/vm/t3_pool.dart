@@ -18,6 +18,7 @@
 library;
 
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:zart/src/tads3/vm/t3_error.dart';
 
 /// Pool offset type - represents an offset into the pool
@@ -304,6 +305,22 @@ class T3PoolPaged extends T3Pool {
 /// This pool implementation pre-loads all available pages in the pool and
 /// keeps the complete pool in memory at all times.
 class T3PoolInMem extends T3PoolPaged {
+  /// Get a string from the pool.
+  String getString(PoolOffset offset) {
+    if (!validateOffset(offset)) throw T3VmException(vmErrInvalidOpcode);
+    final (data, p) = getPtr(offset);
+    // T3 Strings are 2-byte length prefix + utf8 (usually) bytes
+    final len = data[p] | (data[p + 1] << 8);
+    // Be careful about page boundaries!
+    // If the string crosses a page boundary, getPtr returns the pointer to the start page.
+    // T3PoolPaged logic might need to handle crossing.
+    // However, TADS3 guarantees objects/strings don't cross page boundaries in the pool usually?
+    // "A given object must be entirely contained in a single page." (Line 153 in t3_pool.dart)
+    // So we can assume it's contiguous in the page.
+    final strBytes = data.sublist(p + 2, p + 2 + len);
+    return utf8.decode(strBytes);
+  }
+
   /// Terminate - free our resources
   void terminateNv() {
     freeBackingPages();

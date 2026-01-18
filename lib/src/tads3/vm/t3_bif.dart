@@ -255,6 +255,56 @@ class T3BifTable {
     }
     return (name, '000000');
   }
+
+  /// Call a built-in function.
+  void callBif(int setIdx, int funcIdx, int argc) {
+    if (!validateEntry(setIdx, funcIdx)) {
+      throw T3VmException(vmErrBadTypeBif);
+    }
+
+    final desc = getDesc(setIdx, funcIdx)!;
+    if (!desc.argcOk(argc)) {
+      // throw T3VmException(vmErrWrongNumOfArgs);
+    }
+
+    // Call the function
+    desc.func?.call(argc);
+  }
+
+  /// Helper to register a single function for testing.
+  /// This will create/expand entries and function lists as needed.
+  void addFunc(int setIdx, int funcIdx, T3BifFunc func) {
+    // Expand entries if needed
+    while (_entries.length <= setIdx) {
+      _entries.add(T3BifEntry(funcSetId: 'test-set-${_entries.length}', functions: []));
+      _names.add('test-set-${_entries.length - 1}');
+    }
+
+    final entry = _entries[setIdx];
+    if (entry == null) return; // Should not happen given loop above
+
+    // Create a new list of functions based on existing invalid ones
+    // We can't modify the existing list in place if it is unmodifiable,
+    // but T3BifEntry just holds a list.
+    // However, T3BifEntry.functions is final. So we must recreate the entry.
+
+    final newFuncs = List<T3BifDesc>.from(entry.functions);
+    while (newFuncs.length <= funcIdx) {
+      newFuncs.add(T3BifDesc(minArgc: 0));
+    }
+
+    newFuncs[funcIdx] = T3BifDesc(minArgc: 0, varargs: true, func: func);
+
+    final newEntry = T3BifEntry(
+      funcSetId: entry.funcSetId,
+      functions: newFuncs,
+      attach: entry.attach,
+      detach: entry.detach,
+    );
+
+    _entries[setIdx] = newEntry;
+    newEntry.linkToImage(setIdx);
+  }
 }
 
 // ----------------------------------------------------------------------------

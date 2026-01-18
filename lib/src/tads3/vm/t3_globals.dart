@@ -181,6 +181,13 @@ class T3Globals extends T3VM {
   String? syslogfile;
 
   // ========================================================================
+  // I/O Customization
+  // ========================================================================
+
+  /// Output function for console output (defaults to print)
+  void Function(String) printFn = print;
+
+  // ========================================================================
   // Constructor and Cleanup
   // ========================================================================
 

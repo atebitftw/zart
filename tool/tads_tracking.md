@@ -32,7 +32,7 @@ Core execution loop and dispatch.
 - [x] `vmop.cpp` / `vmop.h` - Opcode definitions and helpers <!-- id: 113 -->
 - [x] `vmfunc.cpp` / `vmfunc.h` - Function and method handling <!-- id: 105 -->
 - [x] `vmbif.cpp` / `vmbif.h` - Core BIF handling <!-- id: 302 -->
-- [/] `vmrun.cpp` / `vmrun.h` - Main execution loop (Phase 4: core & basic opcodes complete) <!-- id: 102 -->
+- [/] `vmrun.cpp` / `vmrun.h` - Main execution loop (Phase 8 complete; Missing: VarArgs, Local Modifiers, Debug) <!-- id: 102 -->
 
 ## Essential Metaclasses
 Commonly used TADS 3 data types.

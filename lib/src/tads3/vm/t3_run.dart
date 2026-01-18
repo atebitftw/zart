@@ -616,7 +616,27 @@ class T3Interpreter {
           final argc = _getOpUint8(codeData, p + 1);
           final target = _getOpUint32(codeData, p + 2);
           globals.pc += 5;
+
+          // Push context (5 items) for direct function call (no object context)
+          globals.stack!.push(T3Value(T3DataType.prop)..setPropId(invalidPropertyId));
+          globals.stack!.push(T3Value(T3DataType.nil)); // targetobj
+          globals.stack!.push(T3Value(T3DataType.nil)); // definingobj
+          globals.stack!.push(T3Value(T3DataType.nil)); // self
+          globals.stack!.push(T3Value(T3DataType.nil)); // invokee
+
           final nextPc = functionCaller.doCall(globals.pc, target, argc);
+          if (nextPc != null) {
+            globals.pc = nextPc;
+          }
+          break;
+
+        case opcPtrCall: // 0x59
+          final argc = _getOpUint8(codeData, p + 1);
+          globals.pc += 1; // Instruction size 2 (increment 1)
+          final funcPtr = T3Value();
+          stack.pop(funcPtr);
+
+          final nextPc = functionCaller.callFuncPtr(funcPtr, argc, globals.pc);
           if (nextPc != null) {
             globals.pc = nextPc;
           }
@@ -695,6 +715,142 @@ class T3Interpreter {
           stack.pop(v2);
           stack.push(v1);
           stack.push(v2);
+          break;
+
+        // --- Built-in Functions and I/O (0xB0 - 0xBC) ---
+        case opcSay:
+          final strId = _getOpUint32(codeData, p + 1);
+          globals.pc += 4;
+          final str = globals.constPool!.getString(strId);
+          globals.printFn(str); // Placeholder
+          break;
+
+        case opcBuiltinA:
+          final funcIdx = _getOpUint8(codeData, p + 1);
+          final argc = _getOpUint8(codeData, p + 2);
+          globals.pc += 2;
+          globals.bifTable?.callBif(0, funcIdx, argc);
+          break;
+
+        case opcBuiltinB:
+          final funcIdx = _getOpUint8(codeData, p + 1);
+          final argc = _getOpUint8(codeData, p + 2);
+          globals.pc += 2;
+          globals.bifTable?.callBif(1, funcIdx, argc);
+          break;
+
+        case opcBuiltinC:
+          final funcIdx = _getOpUint8(codeData, p + 1);
+          final argc = _getOpUint8(codeData, p + 2);
+          globals.pc += 2;
+          globals.bifTable?.callBif(2, funcIdx, argc);
+          break;
+
+        case opcBuiltinD:
+          final funcIdx = _getOpUint8(codeData, p + 1);
+          final argc = _getOpUint8(codeData, p + 2);
+          globals.pc += 2;
+          globals.bifTable?.callBif(3, funcIdx, argc);
+          break;
+
+        case opcBuiltin1:
+          final setIdx = _getOpUint8(codeData, p + 1);
+          final funcIdx = _getOpUint8(codeData, p + 2);
+          final argc = _getOpUint8(codeData, p + 3);
+          globals.pc += 3;
+          globals.bifTable?.callBif(setIdx, funcIdx, argc);
+          break;
+
+        case opcBuiltin2:
+          final setIdx = _getOpUint8(codeData, p + 1);
+          final funcIdx = _getOpUint16(codeData, p + 2);
+          final argc = _getOpUint8(codeData, p + 4);
+          globals.pc += 4;
+          globals.bifTable?.callBif(setIdx, funcIdx, argc);
+          break;
+
+        case opcSayVal:
+          final val = T3Value();
+          stack.pop(val);
+          if (val.type == T3DataType.sstring) {
+            globals.printFn(globals.constPool!.getString(val.getAsSstring()!));
+          } else if (val.type == T3DataType.int32) {
+            globals.printFn(val.getAsInt().toString());
+          } else {
+            globals.printFn(val.toString());
+          }
+          break;
+
+        // --- Inheritance and Delegation (0x72 - 0x78) ---
+        case opcInherit:
+          final argc = _getOpUint8(codeData, p + 1);
+          final propId = _getOpUint16(codeData, p + 2);
+          globals.pc += 3;
+
+          // Get 'self' and 'definingObj' from current frame
+          final selfVal = stack.getRef(globals.framePtr + vmrunFpOfsSelf);
+          final defObjVal = stack.getRef(globals.framePtr + vmrunFpOfsDefObj);
+
+          if (selfVal.type != T3DataType.obj || defObjVal.type != T3DataType.obj) {
+            throw T3VmException(vmErrObjValReqd);
+          }
+
+          final defObjId = defObjVal.getAsObj()!;
+          final selfObjId = selfVal.getAsObj()!;
+
+          // Note: inherit uses inhProp on the self object, passing definingObj
+          // to let the object system determine where to start the search.
+          final selfObjEntry = globals.objTable!.getEntry(selfObjId);
+          if (selfObjEntry == null) throw T3VmException(vmErrObjValReqd);
+
+          final retval = T3Value();
+          final sourceObj = <int>[];
+
+          // inhProp(vm, propId, retval, self, origTarget, definingObj, sourceObj, argc)
+          final found = selfObjEntry.obj!.inhProp(
+            globals,
+            propId,
+            retval,
+            selfObjId,
+            selfObjId,
+            defObjId,
+            sourceObj,
+            argc,
+          );
+
+          if (!found) {
+            // Unhandled inheritance is usually an error or returns nil?
+            throw T3VmException(vmErrInvalidSetprop); // Placeholder for PropNotDefined (1001)
+          }
+
+          // Push return value (even if nil)
+          stack.push(retval);
+          break;
+
+        case opcDelegate:
+          final argc = _getOpUint8(codeData, p + 1);
+          final propId = _getOpUint16(codeData, p + 2);
+          globals.pc += 3;
+
+          final targetVal = stack.popVal();
+          if (targetVal.type != T3DataType.obj) throw T3VmException(vmErrObjValReqd);
+
+          final targetId = targetVal.getAsObj()!;
+          final targetEntry = globals.objTable!.getEntry(targetId);
+          if (targetEntry == null) throw T3VmException(vmErrObjValReqd);
+
+          // Invoke prop on target
+          final retval = T3Value();
+          final sourceObj = <int>[];
+
+          // getProp(vm, propId, retval, self, sourceObj, argc)
+          final found = targetEntry.obj!.getProp(globals, propId, retval, targetId, sourceObj, argc);
+
+          if (!found) {
+            throw T3VmException(vmErrInvalidSetprop);
+          }
+
+          stack.push(retval);
           break;
 
         // --- Control Flow (0x90 - 0xA6) ---
@@ -834,6 +990,13 @@ class T3Interpreter {
         case opcSwitch:
           final count = _getOpUint16(codeData, p + 1);
           final defOfs = _getOpInt16(codeData, p + 3);
+          // globals.pc was p+1.
+          // Table starts at p+5. Loop iterates count times (size 6).
+          // Match skips 4 + (count*6) + caseOfs?
+          // Spec says caseOfs is relative to start of instruction?
+          // If so, globals.pc = p + caseOfs. Current globals.pc = p+1.
+          // So += caseOfs - 1.
+
           final v = stack.popVal();
           final val = v.getAsInt();
 
@@ -842,20 +1005,55 @@ class T3Interpreter {
             final caseVal = _getOpInt32(codeData, p + 5 + i * 6);
             if (caseVal == val) {
               final caseOfs = _getOpInt16(codeData, p + 5 + i * 6 + 4);
-              globals.pc += 5 + i * 6 + caseOfs;
+              globals.pc += caseOfs - 1; // Assuming caseOfs relative to Opcode start
               found = true;
               break;
             }
           }
 
           if (!found) {
-            globals.pc += 5 + (count * 6) + defOfs;
+            // Skip table (4 + count*6) and add defOfs (relative to next instr?)
+            // Spec says "branches relative to start of next instr".
+            // Next instr start = p + 5 + count*6.
+            // So target = p + 5 + count*6 + defOfs.
+            // globals.pc = p+1. Diff = 4 + count*6 + defOfs.
+            globals.pc += 4 + (count * 6) + defOfs;
           }
           break;
 
         case opcThrow:
           final exc = stack.popVal();
           _throwException(exc);
+          break;
+
+        // --- Object Creation (0xC0 - 0xC3) ---
+        case opcNew1:
+          final argc = _getOpUint8(codeData, p + 1);
+          globals.pc += 1;
+
+          final clsVal = stack.popVal();
+          if (clsVal.type != T3DataType.obj) throw T3VmException(vmErrObjValReqd);
+
+          final clsId = clsVal.getAsObj()!;
+          final clsEntry = globals.objTable!.getEntry(clsId);
+          if (clsEntry == null) throw T3VmException(vmErrObjValReqd);
+
+          // createInstance(vm, self, pc, pcOfs, argc)
+          clsEntry.obj!.createInstance(globals, clsId, codeData, p, argc);
+          break;
+
+        case opcNew2:
+          final argc = _getOpUint8(codeData, p + 1);
+          final metaIdx = _getOpUint16(codeData, p + 2);
+          globals.pc += 3;
+
+          final metaTable = globals.metaTable;
+          if (metaTable == null) throw T3VmException(vmErrUnknownMetaclass);
+
+          final metaEntry = metaTable.getEntryFromReg(metaIdx);
+          if (metaEntry == null) throw T3VmException(vmErrUnknownMetaclass);
+
+          metaEntry.meta.createFromStack(globals, codeData, p, argc);
           break;
 
         // --- Quick Local Access (0xAA - 0xAF) ---
@@ -905,6 +1103,8 @@ class T3Interpreter {
     final stack = globals.stack!;
     final fp = globals.framePtr;
 
+    // Capture the return address and old frame pointer
+    // Capture the return address and old frame pointer
     // Capture the return address and old frame pointer
     final retPc = stack.getRef(fp + vmrunFpOfsRet).getAsOfs()!;
     final oldFp = stack.getRef(fp + vmrunFpOfsEncFp).getAsStack()!;

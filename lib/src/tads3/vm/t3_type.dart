@@ -350,6 +350,9 @@ class T3Value {
   /// Get the value as a property ID
   int? getAsProp() => type == T3DataType.prop ? _propValue : null;
 
+  /// Get the value as a string offset
+  int? getAsSstring() => type == T3DataType.sstring ? _ofsValue : null;
+
   /// Get the value as a native descriptor.
   /// Get the value as an integer, throwing an error if it's any other type
   int getAsInt() {

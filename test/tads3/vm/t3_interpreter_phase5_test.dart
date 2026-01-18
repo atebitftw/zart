@@ -82,12 +82,12 @@ void main() {
 
       // Case 2: 20 -> +8
       writer.add([20, 0, 0, 0]); // Val=20
-      writer.add([8, 0]); // Ofs=8
+      writer.add([20, 0]); // Ofs=20 (Target 32)
 
       // Target for Case 2 calculation:
-      // OpStart (relative to code start) = 10 (header) + 2 (push) = 12.
-      // globals.pc incremented to 13 before dispatch.
-      // logic: pc(13) + 5 + i(1)*6 + ofs(8) = 13 + 5 + 6 + 8 = 32.
+      // OpStart (relative to code start) = 12.
+      // Target = 32.
+      // Offset relative to OpStart = 32 - 12 = 20.
 
       final opcodes = writer.toBytes();
 
@@ -133,16 +133,16 @@ void main() {
 
       writer.addByte(opcSwitch);
       writer.add([1, 0]); // Count = 1
-      writer.add([0x10, 0x00]); // DefOfs = 16
+      writer.add([17, 0]); // DefOfs = 17 (Target 40)
 
       // Case 1: 10 -> +4
       writer.add([10, 0, 0, 0]);
       writer.add([4, 0]);
 
       // Target for Default:
-      // OpStart = 2.
-      // Logic: pc(13) + 5 + (count*6) + defOfs
-      // 13 + 5 + 6 + 16 = 40.
+      // OpStart = 12 (10+2). Size = 1(op) + 2(cnt) + 2(def) + 6(case) = 11.
+      // Next Instr = 23.
+      // Target = 40. Offset = 40 - 23 = 17.
 
       final opcodes = writer.toBytes();
       final data = Uint8List(60);
