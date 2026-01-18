@@ -23,16 +23,16 @@ Essential for the basic execution of the T3 VM.
 Root classes for the T3 object system.
 
 - [x] `vmobj.cpp` / `vmobj.h` - Root T3 object class <!-- id: 104 -->
-- [ ] `vmcoll.cpp` / `vmcoll.h` - Collection base class <!-- id: 204 -->
-- [ ] `vmtobj.cpp` / `vmtobj.h` - TadsObject metaclass <!-- id: 214 -->
+- [x] `vmcoll.cpp` / `vmcoll.h` - Collection base class <!-- id: 204 -->
+- [x] `vmtobj.cpp` / `vmtobj.h` - TadsObject metaclass <!-- id: 214 -->
 
 ## Interpreter & Execution Engine
 Core execution loop and dispatch.
 
-- [ ] `vmop.cpp` / `vmop.h` - Opcode definitions and helpers <!-- id: 113 -->
-- [ ] `vmfunc.cpp` / `vmfunc.h` - Function and method handling <!-- id: 105 -->
-- [ ] `vmbif.cpp` / `vmbif.h` - Core BIF handling <!-- id: 302 -->
-- [ ] `vmrun.cpp` / `vmrun.h` - Main execution loop / bytecode dispatcher <!-- id: 102 -->
+- [x] `vmop.cpp` / `vmop.h` - Opcode definitions and helpers <!-- id: 113 -->
+- [x] `vmfunc.cpp` / `vmfunc.h` - Function and method handling <!-- id: 105 -->
+- [x] `vmbif.cpp` / `vmbif.h` - Core BIF handling <!-- id: 302 -->
+- [/] `vmrun.cpp` / `vmrun.h` - Main execution loop (Phase 2: arithmetic) <!-- id: 102 -->
 
 ## Essential Metaclasses
 Commonly used TADS 3 data types.

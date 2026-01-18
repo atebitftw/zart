@@ -46,6 +46,9 @@ class T3Stack {
   /// Flag indicating if reserve is currently in use
   bool _reserveInUse = false;
 
+  /// Get a pointer to the top of the stack
+  int getTopPointer() => _sp;
+
   /// Create a stack with the specified maximum depth and reserve space
   ///
   /// The stack is allocated with [maxDepth] + [reserveDepth] + 25 slots.
@@ -269,57 +272,5 @@ class T3Stack {
   /// Use with caution - index must be valid.
   void setAt(int idx, T3Value val) {
     _arr[idx] = val;
-  }
-}
-
-/// Extension on T3Value to add a copyFrom method
-extension T3ValueCopy on T3Value {
-  /// Copy the value from another T3Value
-  void copyFrom(T3Value other) {
-    // Copy the type
-    type = other.type;
-
-    // Copy the value based on type
-    switch (other.type) {
-      case T3DataType.nil:
-      case T3DataType.trueValue:
-      case T3DataType.empty:
-        // No value to copy
-        break;
-
-      case T3DataType.int32:
-        setInt(other.getAsInt());
-        break;
-
-      case T3DataType.obj:
-      case T3DataType.objX:
-        final objId = other.getAsObj();
-        if (objId != null) {
-          setObj(objId);
-        }
-        break;
-
-      case T3DataType.prop:
-        // Copy property ID
-        // Note: We don't have a getPropId() method, so we'll need to add one
-        // For now, just copy the type
-        break;
-
-      case T3DataType.sstring:
-      case T3DataType.dstring:
-      case T3DataType.list:
-      case T3DataType.codeOfs:
-      case T3DataType.funcPtr:
-      case T3DataType.bifPtr:
-      case T3DataType.bifPtrX:
-        // These types store offsets or other data
-        // We'll need to extend T3Value to support copying these
-        // For now, just copy the type
-        break;
-
-      default:
-        // Unknown type - just copy the type
-        break;
-    }
   }
 }

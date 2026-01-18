@@ -143,6 +143,9 @@ abstract class T3Pool {
   ///
   /// Returns the offset if the pointer is valid, null if not.
   PoolOffset? getOffsetFromPtr(Uint8List mem, int offsetInMem);
+
+  /// Terminate the pool
+  void terminate() {}
 }
 
 /// Paged constant pool

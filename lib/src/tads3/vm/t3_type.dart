@@ -331,6 +331,26 @@ class T3Value {
   /// Get an object, or null if it's not an object
   ObjectId? getAsObj() => type == T3DataType.obj ? _objValue : null;
 
+  /// Get the value as an offset
+  PoolOffset? getAsOfs() =>
+      (type == T3DataType.sstring ||
+          type == T3DataType.dstring ||
+          type == T3DataType.list ||
+          type == T3DataType.codeOfs ||
+          type == T3DataType.funcPtr)
+      ? _ofsValue
+      : null;
+
+  /// Get the value as a stack pointer
+  int? getAsStack() => type == T3DataType.stack ? _ptrValue : null;
+
+  /// Get the value as a code pointer
+  int? getAsCodePtr() => type == T3DataType.codePtr ? _ptrValue : null;
+
+  /// Get the value as a property ID
+  int? getAsProp() => type == T3DataType.prop ? _propValue : null;
+
+  /// Get the value as a native descriptor.
   /// Get the value as an integer, throwing an error if it's any other type
   int getAsInt() {
     if (type == T3DataType.int32) {
@@ -354,6 +374,17 @@ class T3Value {
   /// Get a logical as numeric TRUE or FALSE.
   /// Caller must ensure the value is either true or nil.
   bool getLogical() => type == T3DataType.trueValue;
+
+  /// Determine if the value is logically true (exactly trueValue)
+  bool get isLogicalTrue => type == T3DataType.trueValue;
+
+  /// Determine if the value is "truthy" in TADS3 sense.
+  /// In TADS3, everything is true EXCEPT nil, empty, and integer 0.
+  bool get isTrue {
+    if (type == T3DataType.nil || type == T3DataType.empty) return false;
+    if (type == T3DataType.int32) return _intValue != 0;
+    return true;
+  }
 
   // ------------------------------------------------------------------------
   // Type Checking
@@ -938,8 +969,27 @@ PoolOffset vmbGetDhOfs(Uint8List buf, int offset) {
 }
 
 // ----------------------------------------------------------------------------
-// Exceptions
+// T3Value Extension
 // ----------------------------------------------------------------------------
+
+/// Extension to add copyFrom to T3Value
+extension T3ValueCopyExt on T3Value {
+  /// Copy value from another T3Value
+  ///
+  /// This modifies this value in place by copying all fields from [other].
+  void copyFrom(T3Value other) {
+    type = other.type;
+    _ptrValue = other._ptrValue;
+    _objValue = other._objValue;
+    _propValue = other._propValue;
+    _intValue = other._intValue;
+    _enumValue = other._enumValue;
+    _ofsValue = other._ofsValue;
+    _nativeDesc = other._nativeDesc;
+    _bifSetIdx = other._bifSetIdx;
+    _bifFuncIdx = other._bifFuncIdx;
+  }
+}
 
 /// Exception thrown for type-related errors
 class T3TypeError implements Exception {

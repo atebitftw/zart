@@ -23,8 +23,12 @@ library;
 
 import 'package:zart/src/tads3/vm/t3_metaclass_table.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
+import 'package:zart/src/tads3/vm/t3_type.dart';
 import 'package:zart/src/tads3/vm/t3_pool.dart';
+import 'package:zart/src/tads3/vm/t3_bif.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
+
+import 'package:zart/src/tads3/vm/t3_object.dart';
 
 /// TADS3 VM Global State
 ///
@@ -39,7 +43,7 @@ import 'package:zart/src/tads3/vm/t3_stack.dart';
 ///
 /// In Dart, we just use a simple class, which is equivalent to the most
 /// flexible C++ configuration but more idiomatic.
-class T3Globals {
+class T3Globals extends T3VM {
   // ========================================================================
   // Pool Managers (implemented)
   // ========================================================================
@@ -53,7 +57,7 @@ class T3Globals {
   /// Code pool manager
   ///
   /// Manages compiled bytecode loaded from the image file.
-  T3PoolInMem? codePool;
+  T3Pool? codePool;
 
   // ========================================================================
   // Stack and Interpreter (partially implemented)
@@ -65,8 +69,10 @@ class T3Globals {
   /// and parameter passing.
   T3Stack? stack;
 
-  // TODO: Implement T3Interpreter
-  // T3Interpreter? interpreter;
+  /// VM interpreter
+  ///
+  /// The execution engine that handles opcode fetching and dispatch.
+  dynamic interpreter;
 
   // ========================================================================
   // Object System (implemented)
@@ -96,8 +102,10 @@ class T3Globals {
   // TODO: Implement T3Undo (undo manager)
   // T3Undo? undo;
 
-  // TODO: Implement T3BifTable (built-in function set table)
-  // T3BifTable? bifTable;
+  /// Built-in function set table
+  ///
+  /// Manages registered BIF sets for intrinsic functions.
+  T3BifTable? bifTable;
 
   // TODO: Implement T3SrcfTable (source file list for debugger)
   // T3SrcfTable? srcfTable;
@@ -110,6 +118,25 @@ class T3Globals {
 
   // TODO: Implement T3Debugger
   // T3Debugger? debugger;
+
+  // ========================================================================
+  // Registers and Execution State
+  // ========================================================================
+
+  /// Current program counter (byte-code offset)
+  int pc = 0;
+
+  /// Current entry pointer (base address of current function)
+  int entryPtr = 0;
+
+  /// Current frame pointer (stack index)
+  int framePtr = 0;
+
+  /// Method header size (loaded from image)
+  int funchdrSize = 0;
+
+  /// Data register 0
+  final T3Value r0 = T3Value();
 
   // ========================================================================
   // Scalar Globals
@@ -185,7 +212,9 @@ class T3Globals {
     // varheap?.dispose();
     // undo?.dispose();
     // metaTable?.dispose();
-    // bifTable?.dispose();
+    // Clean up BIF table
+    bifTable?.clear();
+    bifTable = null;
     // srcfTable?.dispose();
     // imageLoader?.dispose();
     // console?.dispose();
