@@ -992,6 +992,72 @@ extension T3ValueCopyExt on T3Value {
     _bifSetIdx = other._bifSetIdx;
     _bifFuncIdx = other._bifFuncIdx;
   }
+
+  /// Test equality with another value based on TADS3 rules
+  bool testEquality(dynamic vm, T3Value other, int depth) {
+    if (type != other.type) return false;
+
+    switch (type) {
+      case T3DataType.nil:
+      case T3DataType.trueValue:
+      case T3DataType.empty:
+        return true;
+      case T3DataType.obj:
+        if (_objValue == other._objValue) return true;
+        if (_objValue == invalidObjectId || other._objValue == invalidObjectId) return false;
+        final obj = vm.objTable.getObj(_objValue!);
+        return obj.equals(vm, _objValue!, other, depth + 1);
+      case T3DataType.prop:
+        return _propValue == other._propValue;
+      case T3DataType.int32:
+        return _intValue == other._intValue;
+      case T3DataType.enumValue:
+        return _enumValue == other._enumValue;
+      case T3DataType.sstring:
+      case T3DataType.dstring:
+      case T3DataType.list:
+      case T3DataType.codeOfs:
+      case T3DataType.funcPtr:
+        return _ofsValue == other._ofsValue;
+      default:
+        return false;
+    }
+  }
+
+  /// Read a T3Value from a byte buffer (VMB_DATAHOLDER format).
+  /// The type byte at the current offset is assumed to have already been set.
+  /// This method reads the 9 bytes of data following the type byte.
+  void readFromBuffer(Uint8List data, int offset) {
+    // VMB_DATAHOLDER is 10 bytes: 1 byte type + 9 bytes data.
+    // The type is already set by the caller.
+    // We read the 9 bytes starting at offset + 1.
+    final pos = offset + 1;
+    switch (type) {
+      case T3DataType.nil:
+      case T3DataType.trueValue:
+      case T3DataType.empty:
+        break;
+      case T3DataType.int32:
+        _intValue = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+        break;
+      case T3DataType.obj:
+        _objValue = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+        break;
+      case T3DataType.prop:
+        _propValue = data[pos] | (data[pos + 1] << 8);
+        break;
+      case T3DataType.sstring:
+      case T3DataType.dstring:
+      case T3DataType.list:
+      case T3DataType.codeOfs:
+      case T3DataType.funcPtr:
+        _ofsValue = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+        break;
+      default:
+        // Other types might need specific handling or are not present in constant data
+        break;
+    }
+  }
 }
 
 /// Exception thrown for type-related errors

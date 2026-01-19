@@ -32,15 +32,15 @@ Core execution loop and dispatch.
 - [x] `vmop.cpp` / `vmop.h` - Opcode definitions and helpers <!-- id: 113 -->
 - [x] `vmfunc.cpp` / `vmfunc.h` - Function and method handling <!-- id: 105 -->
 - [x] `vmbif.cpp` / `vmbif.h` - Core BIF handling <!-- id: 302 -->
-- [/] `vmrun.cpp` / `vmrun.h` - Main execution loop (Phase 8 complete; Missing: VarArgs, Local Modifiers, Debug) <!-- id: 102 -->
+- [x] `vmrun.cpp` / `vmrun.h` - Main execution loop (Phase 12 complete) <!-- id: 102 -->
 
 ## Essential Metaclasses
 Commonly used TADS 3 data types.
 
-- [ ] `vmstr.cpp` / `vmstr.h` - String metaclass <!-- id: 202 -->
-- [ ] `vmlst.cpp` / `vmlst.h` - List metaclass <!-- id: 200 -->
-- [ ] `vmvec.cpp` / `vmvec.h` - Vector metaclass <!-- id: 201 -->
-- [ ] `vmanonfn.cpp` / `vmanonfn.h` - Anonymous function metaclass <!-- id: 218 -->
+- [x] `vmstr.cpp` / `vmstr.h` - String metaclass <!-- id: 202 -->
+- [x] `vmlst.cpp` / `vmlst.h` - List metaclass <!-- id: 200 -->
+- [x] `vmvec.cpp` / `vmvec.h` - Vector metaclass (Ported to `t3_vector.dart`, verified with unit tests) <!-- id: 201 -->
+- [x] `vmanonfn.cpp` / `vmanonfn.h` - Anonymous function metaclass (Ported to `t3_anon_fn.dart`, verified with unit tests) <!-- id: 218 -->
 - [ ] `vmiter.cpp` / `vmiter.h` - Iterator metaclass <!-- id: 217 -->
 
 ## Advanced Metaclasses
@@ -70,19 +70,19 @@ Function sets provided by the VM.
 ## VM Management & Entrypoint
 VM initialization and host integration.
 
-- [ ] `vminit.cpp` / `vminit.h` - VM initialization and termination <!-- id: 110 -->
-- [ ] `vmcore.cpp` / `vmcore.h` - Core VM definitions <!-- id: 100 -->
-- [ ] `vmmain.cpp` / `vmmain.h` - Interpreter main entrypoint <!-- id: 101 -->
-- [ ] `vmhost.h` - Host application interface <!-- id: 501 -->
-- [ ] `os_stdio.cpp` - Standard I/O interface <!-- id: 500 -->
+- [x] `vminit.cpp` / `vminit.h` - VM initialization and termination <!-- id: 110 -->
+- [x] `vmcore.cpp` / `vmcore.h` - Core VM definitions <!-- id: 100 -->
+- [x] `vmmain.cpp` / `vmmain.h` - Interpreter main entrypoint <!-- id: 101 -->
+- [x] `vmhost.h` - Host application interface <!-- id: 501 -->
+- [x] `os_stdio.cpp` - Standard I/O interface <!-- id: 500 -->
 
 ## Support Libraries
 Low-level algorithm implementations.
 
-- [ ] `vmisaac.cpp` / `vmisaac.h` - ISAAC random number generator <!-- id: 406 -->
-- [ ] `sha2.cpp` / `sha2.h` - SHA-256 implementation <!-- id: 403 -->
-- [ ] `md5.cpp` / `md5.h` - MD5 implementation <!-- id: 404 -->
-- [ ] `vmcrc.cpp` / `vmcrc.h` - CRC-32 implementation <!-- id: 405 -->
+- [x] `vmisaac.cpp` / `vmisaac.h` - ISAAC random number generator <!-- id: 406 -->
+- [x] `sha2.cpp` / `sha2.h` - SHA-256 implementation <!-- id: 403 -->
+- [x] `md5.cpp` / `md5.h` - MD5 implementation <!-- id: 404 -->
+- [x] `vmcrc.cpp` / `vmcrc.h` - CRC-32 implementation <!-- id: 405 -->
 
 ## TADS 3 Compiler (TC)
 Files related to the TADS 3 compiler (low priority for interpreter port).

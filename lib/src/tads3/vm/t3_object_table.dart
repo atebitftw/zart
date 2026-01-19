@@ -205,6 +205,14 @@ class T3ObjectTable {
     return id;
   }
 
+  /// Register an existing object instance in the object table.
+  /// Returns the newly allocated object ID.
+  int registerObj(T3Object obj, [bool inRootSet = false]) {
+    final id = allocObj(T3VM(), inRootSet);
+    getEntry(id)!.obj = obj;
+    return id;
+  }
+
   /// Allocate an object at a specific ID.
   ///
   /// Used when loading objects from an image file or restoring from saved state,

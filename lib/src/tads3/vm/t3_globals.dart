@@ -29,6 +29,13 @@ import 'package:zart/src/tads3/vm/t3_bif.dart';
 import 'package:zart/src/tads3/vm/t3_stack.dart';
 
 import 'package:zart/src/tads3/vm/t3_object.dart';
+import 'package:zart/src/tads3/vm/t3_list.dart';
+import 'package:zart/src/tads3/vm/t3_vector.dart';
+import 'package:zart/src/tads3/vm/t3_string.dart';
+import 'package:zart/src/tads3/vm/t3_tads_object.dart';
+import 'package:zart/src/tads3/vm/t3_anon_fn.dart';
+import 'package:zart/src/tads3/vm/t3_iter.dart';
+import 'package:zart/src/tads3/vm/t3_collection.dart';
 
 /// TADS3 VM Global State
 ///
@@ -192,7 +199,23 @@ class T3Globals extends T3VM {
   // ========================================================================
 
   /// Create a new VM globals instance
-  T3Globals();
+  T3Globals() {
+    _initMetaclasses();
+  }
+
+  void _initMetaclasses() {
+    metaTable = T3MetaclassTable();
+
+    // Register all standard metaclasses
+    metaTable!.registerMetaclass(T3ObjList.metaclassReg);
+    metaTable!.registerMetaclass(T3ObjVector.metaclassReg);
+    metaTable!.registerMetaclass(T3ObjString.metaclassReg);
+    metaTable!.registerMetaclass(T3MetaclassTads()); // TadsObject doesn't have it as static final yet?
+    metaTable!.registerMetaclass(T3ObjAnonFn.metaclassReg);
+    metaTable!.registerMetaclass(T3ObjIter.metaclassReg);
+    metaTable!.registerMetaclass(T3ObjIterIdx.metaclassRegIdx);
+    metaTable!.registerMetaclass(T3MetaclassCollection());
+  }
 
   /// Dispose of all resources
   ///

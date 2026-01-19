@@ -11,6 +11,9 @@ import 'dart:typed_data';
 import 'package:zart/src/tads3/vm/t3_std.dart' show t3Ashr, t3Lshr;
 import 'package:zart/src/tads3/vm/t3_type.dart';
 import 'package:zart/src/tads3/vm/t3_error.dart';
+import 'package:zart/src/tads3/vm/t3_object.dart';
+import 'package:zart/src/tads3/vm/t3_string.dart';
+import 'package:zart/src/tads3/vm/t3_list.dart';
 
 // ----------------------------------------------------------------------------
 // Special Return Addresses
@@ -452,8 +455,26 @@ class T3FunctionCaller {
 
       case T3DataType.obj:
         // Anonymous function or other invokable object.
-        // We'll need metaclass support to check if it's invokable.
-        // For now, placeholder error.
+        final objId = funcPtr.getAsObj();
+        if (objId == null) return null;
+
+        final obj = globals.objTable?.getObj(objId);
+        if (obj == null) return null;
+
+        final invokerVal = T3Value();
+        if (obj.getInvoker(globals as dynamic, invokerVal)) {
+          // If the invoker is a function pointer or code offset, call it.
+          if (invokerVal.type == T3DataType.funcPtr || invokerVal.type == T3DataType.codeOfs) {
+            return doCall(callerOfs, invokerVal.getAsOfs()!, argc);
+          }
+          // Note: Built-in functions are handled by the bifPtr case if
+          // getInvoker returns a bifPtr.
+          if (invokerVal.type == T3DataType.bifPtr) {
+            stack.discard(5);
+            // globals.bifTable.callBif(invokerVal.getBifSet(), invokerVal.getBifFunc(), argc);
+            return null;
+          }
+        }
         return null;
 
       case T3DataType.bifPtr:
@@ -485,6 +506,9 @@ class T3Interpreter {
 
   /// Function caller helper
   late final T3FunctionCaller functionCaller;
+
+  /// VarArgC modifier flag - when true, next call uses argc from stack
+  bool _varArgcModifier = false;
 
   /// Create an interpreter
   T3Interpreter(this.globals) {
@@ -563,6 +587,21 @@ class T3Interpreter {
           globals.pc += 4;
           break;
 
+        case opcPushPropId:
+          stack.push(T3Value(T3DataType.prop)..setPropId(_getOpUint16(codeData, p + 1)));
+          globals.pc += 2;
+          break;
+
+        case opcPushLst:
+          stack.push(T3Value(T3DataType.list)..setList(_getOpUint32(codeData, p + 1)));
+          globals.pc += 4;
+          break;
+
+        case opcPushEnum:
+          stack.push(T3Value(T3DataType.enumValue)..setEnum(_getOpUint32(codeData, p + 1)));
+          globals.pc += 4;
+          break;
+
         // --- Arithmetic/Logic Operations (0x20 - 0x30) ---
         case opcNeg:
           final v = _popInt();
@@ -579,6 +618,60 @@ class T3Interpreter {
           final v2 = _popInt();
           final v1 = _popInt();
           stack.push(T3Value(T3DataType.int32)..setInt(v1 - v2));
+          break;
+
+        case opcMul:
+          final v2 = _popInt();
+          final v1 = _popInt();
+          stack.push(T3Value(T3DataType.int32)..setInt(T3Arithmetic.computeIntProduct(v1, v2)));
+          break;
+
+        case opcDiv:
+          final v2 = _popInt();
+          final v1 = _popInt();
+          final result = T3Arithmetic.computeIntQuotient(v1, v2);
+          if (result == null) throw T3VmException(vmErrDivideByZero);
+          stack.push(T3Value(T3DataType.int32)..setInt(result));
+          break;
+
+        case opcMod:
+          final v2 = _popInt();
+          final v1 = _popInt();
+          final result = T3Arithmetic.computeIntMod(v1, v2);
+          if (result == null) throw T3VmException(vmErrDivideByZero);
+          stack.push(T3Value(T3DataType.int32)..setInt(result));
+          break;
+
+        case opcBand:
+          final v2 = _popInt();
+          final v1 = _popInt();
+          stack.push(T3Value(T3DataType.int32)..setInt(T3Arithmetic.bitwiseAnd(v1, v2)));
+          break;
+
+        case opcBor:
+          final v2 = _popInt();
+          final v1 = _popInt();
+          stack.push(T3Value(T3DataType.int32)..setInt(T3Arithmetic.bitwiseOr(v1, v2)));
+          break;
+
+        case opcBnot:
+          final v = _popInt();
+          stack.push(T3Value(T3DataType.int32)..setInt(T3Arithmetic.bitwiseNot(v)));
+          break;
+
+        case opcNot:
+          final v = stack.popVal();
+          stack.push(T3Value()..setLogical(!v.isLogicalTrue));
+          break;
+
+        case opcInc:
+          final v = _popInt();
+          stack.push(T3Value(T3DataType.int32)..setInt(v + 1));
+          break;
+
+        case opcDec:
+          final v = _popInt();
+          stack.push(T3Value(T3DataType.int32)..setInt(v - 1));
           break;
 
         // --- Comparison Operations (0x40 - 0x45) ---
@@ -613,9 +706,18 @@ class T3Interpreter {
 
         // --- Function Calls (0x58 - 0x59) ---
         case opcCall:
-          final argc = _getOpUint8(codeData, p + 1);
+          int argc;
           final target = _getOpUint32(codeData, p + 2);
-          globals.pc += 5;
+
+          // Check VarArgC modifier - if set, argc is on stack, not in operand
+          if (_varArgcModifier) {
+            argc = stack.popVal().getAsInt();
+            _varArgcModifier = false; // Clear modifier after use
+            globals.pc += 5; // Still skip the operand bytes
+          } else {
+            argc = _getOpUint8(codeData, p + 1);
+            globals.pc += 5;
+          }
 
           // Push context (5 items) for direct function call (no object context)
           globals.stack!.push(T3Value(T3DataType.prop)..setPropId(invalidPropertyId));
@@ -704,6 +806,12 @@ class T3Interpreter {
           stack.discard();
           break;
 
+        case opcDisc1:
+          final cnt = _getOpUint8(codeData, p + 1);
+          globals.pc += 1;
+          stack.discard(cnt);
+          break;
+
         case opcGetR0:
           stack.push(T3Value.copy(globals.r0));
           break;
@@ -715,6 +823,101 @@ class T3Interpreter {
           stack.pop(v2);
           stack.push(v1);
           stack.push(v2);
+          break;
+
+        // --- Index Operations (0xBA-0xBC) ---
+        case opcIndex:
+          // Index: Stack has [container, index]. Pop both, push result.
+          final idx = stack.popVal();
+          final container = stack.popVal();
+          final result = _indexValue(container, idx);
+          stack.push(result);
+          break;
+
+        case opcIdxInt8:
+          // Index TOS by an immediate int8 value
+          final idx = _getOpInt8(codeData, p + 1);
+          globals.pc += 1;
+          final container = stack.popVal();
+          final result = _indexValue(container, T3Value(T3DataType.int32)..setInt(idx));
+          stack.push(result);
+          break;
+
+        case opcIdxLcl1Int8:
+          // Index a local variable by an int8 value
+          final lclIdx = _getOpUint8(codeData, p + 1);
+          final idx = _getOpInt8(codeData, p + 2);
+          globals.pc += 2;
+          final container = stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx);
+          final result = _indexValue(container, T3Value(T3DataType.int32)..setInt(idx));
+          stack.push(result);
+          break;
+
+        // --- Argument Count (0x87) ---
+        case opcGetArgC:
+          // Push the current frame's argument count
+          final argcVal = stack.getRef(globals.framePtr + vmrunFpOfsArgc);
+          stack.push(T3Value(T3DataType.int32)..setInt(argcVal.getAsInt()));
+          break;
+
+        // --- VarArgs Opcodes (0x0D, 0x0E, 0x76) ---
+        case opcPushParLst:
+          // Create a list from the variable arguments
+          // Format: opc fixedCnt(UINT1)
+          final fixedCnt = _getOpUint8(codeData, p + 1);
+          globals.pc += 1;
+
+          // Get total argc from frame
+          final argc = stack.getRef(globals.framePtr + vmrunFpOfsArgc).getAsInt();
+          final varargCnt = argc - fixedCnt;
+
+          // Create a list with the variable arguments
+          // Args are at FP + vmrunFpOfsArg1 - index (going backwards from FP)
+          // Fixed args are at indices 0..fixedCnt-1, varargs at fixedCnt..argc-1
+          final listElements = <T3Value>[];
+          for (var i = 0; i < varargCnt; i++) {
+            final argVal = stack.getRef(globals.framePtr + vmrunFpOfsArg1 - (fixedCnt + i));
+            listElements.add(T3Value.copy(argVal));
+          }
+
+          // Push as list constant (for now, push as obj when we have list metaclass)
+          // Placeholder: push nil if no list support, or create dynamic list
+          if (listElements.isEmpty) {
+            stack.push(T3Value(T3DataType.list)..setList(0)); // Empty list
+          } else {
+            // TODO: Create actual list object via metaclass
+            // For now, push a placeholder indicating list count
+            stack.push(T3Value(T3DataType.list)..setList(varargCnt));
+          }
+          break;
+
+        case opcMakeLstPar:
+          // Expand a list value into stack arguments
+          // Pop value and argc counter from stack
+          final listVal = stack.popVal();
+          final cntVal = stack.popVal();
+          var cnt = cntVal.getAsInt();
+
+          // Check if listVal is list-like
+          if (listVal.type == T3DataType.list || listVal.type == T3DataType.obj) {
+            // TODO: Proper list expansion when list metaclass is available
+            // For now, treat as single value if we can't expand
+            stack.push(listVal);
+            cnt++;
+          } else {
+            // Not a list - just push it back and increment counter
+            stack.push(listVal);
+            cnt++;
+          }
+
+          // Push updated argument counter
+          stack.push(T3Value(T3DataType.int32)..setInt(cnt));
+          break;
+
+        case opcVarArgC:
+          // This is a modifier for the next call instruction
+          // The next call should read argc from stack instead of operand
+          _varArgcModifier = true;
           break;
 
         // --- Built-in Functions and I/O (0xB0 - 0xBC) ---
@@ -913,37 +1116,41 @@ class T3Interpreter {
 
         case opcJgt:
           _popInts((v1, v2) {
-            if (v1 > v2)
+            if (v1 > v2) {
               globals.pc += 2 + _getOpInt16(codeData, p + 1);
-            else
+            } else {
               globals.pc += 2;
+            }
           });
           break;
 
         case opcJge:
           _popInts((v1, v2) {
-            if (v1 >= v2)
+            if (v1 >= v2) {
               globals.pc += 2 + _getOpInt16(codeData, p + 1);
-            else
+            } else {
               globals.pc += 2;
+            }
           });
           break;
 
         case opcJlt:
           _popInts((v1, v2) {
-            if (v1 < v2)
+            if (v1 < v2) {
               globals.pc += 2 + _getOpInt16(codeData, p + 1);
-            else
+            } else {
               globals.pc += 2;
+            }
           });
           break;
 
         case opcJle:
           _popInts((v1, v2) {
-            if (v1 <= v2)
+            if (v1 <= v2) {
               globals.pc += 2 + _getOpInt16(codeData, p + 1);
-            else
+            } else {
               globals.pc += 2;
+            }
           });
           break;
 
@@ -966,17 +1173,19 @@ class T3Interpreter {
           break;
 
         case opcJr0t:
-          if (globals.r0.isLogicalTrue)
+          if (globals.r0.isLogicalTrue) {
             globals.pc += 2 + _getOpInt16(codeData, p + 1);
-          else
+          } else {
             globals.pc += 2;
+          }
           break;
 
         case opcJr0f:
-          if (!globals.r0.isLogicalTrue)
+          if (!globals.r0.isLogicalTrue) {
             globals.pc += 2 + _getOpInt16(codeData, p + 1);
-          else
+          } else {
             globals.pc += 2;
+          }
           break;
 
         case opcJnotNil:
@@ -1084,6 +1293,224 @@ class T3Interpreter {
             final obj = globals.objTable!.getEntry(self.getAsObj()!)?.obj;
             obj?.setProp(globals, null, self.getAsObj()!, propId, val);
           }
+          break;
+
+        // --- Local Variable Modification (0xD0 - 0xDB) ---
+        case opcIncLcl:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          final lclRef = stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx);
+          lclRef.setInt(lclRef.getAsInt() + 1);
+          break;
+
+        case opcDecLcl:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          final lclRef = stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx);
+          lclRef.setInt(lclRef.getAsInt() - 1);
+          break;
+
+        case opcAddILcl1:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          final addVal = _getOpInt8(codeData, p + 3);
+          globals.pc += 3;
+          final lclRef = stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx);
+          lclRef.setInt(lclRef.getAsInt() + addVal);
+          break;
+
+        case opcAddILcl4:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          final addVal = _getOpInt32(codeData, p + 3);
+          globals.pc += 6;
+          final lclRef = stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx);
+          lclRef.setInt(lclRef.getAsInt() + addVal);
+          break;
+
+        case opcAddToLcl:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          final addVal = stack.popVal();
+          final lclRef = stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx);
+          lclRef.setInt(lclRef.getAsInt() + addVal.getAsInt());
+          break;
+
+        case opcSubFromLcl:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          final subVal = stack.popVal();
+          final lclRef = stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx);
+          lclRef.setInt(lclRef.getAsInt() - subVal.getAsInt());
+          break;
+
+        case opcZeroLcl1:
+          final lclIdx = _getOpUint8(codeData, p + 1);
+          globals.pc += 1;
+          stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx).setInt(0);
+          break;
+
+        case opcZeroLcl2:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx).setInt(0);
+          break;
+
+        case opcNilLcl1:
+          final lclIdx = _getOpUint8(codeData, p + 1);
+          globals.pc += 1;
+          stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx).setNil();
+          break;
+
+        case opcNilLcl2:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx).setNil();
+          break;
+
+        case opcOneLcl1:
+          final lclIdx = _getOpUint8(codeData, p + 1);
+          globals.pc += 1;
+          stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx).setInt(1);
+          break;
+
+        case opcOneLcl2:
+          final lclIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          stack.getRef(globals.framePtr + vmrunFpOfsLcl1 + lclIdx).setInt(1);
+          break;
+
+        // --- Context Management (0xEB - 0xED) ---
+        case opcSetSelf:
+          // Pop value and set as 'self' in current frame
+          final selfVal = stack.popVal();
+          stack.getRef(globals.framePtr + vmrunFpOfsSelf).copyFrom(selfVal);
+          break;
+
+        case opcLoadCtx:
+          // Pop context object from stack and restore to frame
+          // Context contains: targetProp, targetObj, definingObj, self, invokee
+          final ctxVal = stack.popVal();
+          if (ctxVal.type == T3DataType.obj) {
+            // TODO: Load context from object when StackFrameRef metaclass available
+            // For now, set self from the context object
+            stack.getRef(globals.framePtr + vmrunFpOfsSelf).copyFrom(ctxVal);
+          }
+          break;
+
+        case opcStoreCtx:
+          // Store current frame context and push as object onto stack
+          // For now, push self as a placeholder for context object
+          final selfVal = stack.getRef(globals.framePtr + vmrunFpOfsSelf);
+          stack.push(T3Value.copy(selfVal));
+          break;
+
+        // --- Debug Opcodes (0xF1-0xF2, 0x85-0x86, 0x8C, 0xE9-0xEA) ---
+        case opcNop:
+          // No operation - do nothing
+          break;
+
+        case opcBp:
+          // Debugger breakpoint - in non-debug mode, treat as NOP
+          // A real debugger would pause execution here
+          break;
+
+        case opcGetDbLcl:
+          // Push debug frame local - used by debugger to read locals
+          // Format: opc frameIdx(UINT2) lclIdx(UINT2)
+          final frameIdx = _getOpUint16(codeData, p + 1);
+          final lclIdx = _getOpUint16(codeData, p + 3);
+          globals.pc += 4;
+          // Walk up frameIdx frames and get local
+          var fp = globals.framePtr;
+          for (var i = 0; i < frameIdx && fp != -1; i++) {
+            fp = stack.getRef(fp + vmrunFpOfsEncFp).getAsStack() ?? -1;
+          }
+          if (fp != -1) {
+            stack.push(T3Value.copy(stack.getRef(fp + vmrunFpOfsLcl1 + lclIdx)));
+          } else {
+            stack.push(T3Value(T3DataType.nil));
+          }
+          break;
+
+        case opcGetDbArg:
+          // Push debug frame argument
+          // Format: opc frameIdx(UINT2) argIdx(UINT2)
+          final frameIdx = _getOpUint16(codeData, p + 1);
+          final argIdx = _getOpUint16(codeData, p + 3);
+          globals.pc += 4;
+          var fp = globals.framePtr;
+          for (var i = 0; i < frameIdx && fp != -1; i++) {
+            fp = stack.getRef(fp + vmrunFpOfsEncFp).getAsStack() ?? -1;
+          }
+          if (fp != -1) {
+            stack.push(T3Value.copy(stack.getRef(fp + vmrunFpOfsArg1 - argIdx)));
+          } else {
+            stack.push(T3Value(T3DataType.nil));
+          }
+          break;
+
+        case opcGetDbArgC:
+          // Push debug frame argument count
+          // Format: opc frameIdx(UINT2)
+          final frameIdx = _getOpUint16(codeData, p + 1);
+          globals.pc += 2;
+          var fp = globals.framePtr;
+          for (var i = 0; i < frameIdx && fp != -1; i++) {
+            fp = stack.getRef(fp + vmrunFpOfsEncFp).getAsStack() ?? -1;
+          }
+          if (fp != -1) {
+            final argc = stack.getRef(fp + vmrunFpOfsArgc).getAsInt();
+            stack.push(T3Value(T3DataType.int32)..setInt(argc));
+          } else {
+            stack.push(T3Value(T3DataType.int32)..setInt(0));
+          }
+          break;
+
+        case opcSetDbLcl:
+          // Set debug frame local
+          // Format: opc frameIdx(UINT2) lclIdx(UINT2)
+          final frameIdx = _getOpUint16(codeData, p + 1);
+          final lclIdx = _getOpUint16(codeData, p + 3);
+          globals.pc += 4;
+          final val = stack.popVal();
+          var fp = globals.framePtr;
+          for (var i = 0; i < frameIdx && fp != -1; i++) {
+            fp = stack.getRef(fp + vmrunFpOfsEncFp).getAsStack() ?? -1;
+          }
+          if (fp != -1) {
+            stack.getRef(fp + vmrunFpOfsLcl1 + lclIdx).copyFrom(val);
+          }
+          break;
+
+        case opcSetDbArg:
+          // Set debug frame argument
+          // Format: opc frameIdx(UINT2) argIdx(UINT2)
+          final frameIdx = _getOpUint16(codeData, p + 1);
+          final argIdx = _getOpUint16(codeData, p + 3);
+          globals.pc += 4;
+          final val = stack.popVal();
+          var fp = globals.framePtr;
+          for (var i = 0; i < frameIdx && fp != -1; i++) {
+            fp = stack.getRef(fp + vmrunFpOfsEncFp).getAsStack() ?? -1;
+          }
+          if (fp != -1) {
+            stack.getRef(fp + vmrunFpOfsArg1 - argIdx).copyFrom(val);
+          }
+          break;
+
+        // --- Named Args Opcodes (0x56-0x57) ---
+        case opcNamedArgPtr:
+          // Pointer to named argument table - skip table offset
+          // Format: opc tableOfs(INT2)
+          globals.pc += 2;
+          // Named args are optional feature, just skip for now
+          break;
+
+        case opcNamedArgTab:
+          // Named argument table - skip table bytes
+          // Format: opc count(UINT1) entries...
+          final count = _getOpUint8(codeData, p + 1);
+          // Each entry is: nameOfs(UINT2) + localIdx(UINT2) = 4 bytes
+          globals.pc += 1 + (count * 4);
           break;
 
         default:
@@ -1220,5 +1647,53 @@ class T3Interpreter {
     // Dart integers are 64-bit, so we need to handle 32-bit sign extension if needed.
     // However, TADS3 UINT4 and INT4 are the same bit pattern.
     return (v & 0xffffffff).toSigned(32);
+  }
+
+  /// Index a container (list/string) by an index value.
+  /// Returns the element at the given index.
+  T3Value _indexValue(T3Value container, T3Value idx) {
+    final result = T3Value();
+
+    switch (container.type) {
+      case T3DataType.list:
+        final ofs = container.getAsOfs();
+        final pool = globals.constPool;
+        if (ofs != null && pool != null && pool.validateOffset(ofs)) {
+          final (data, localOfs) = pool.getPtr(ofs);
+          final listObj = T3ObjList.fromConstPool(data, localOfs);
+          if (listObj.indexValQ(T3VM(), result, 0, idx)) {
+            return result;
+          }
+        }
+        return T3Value(T3DataType.nil);
+
+      case T3DataType.sstring:
+        final ofs = container.getAsOfs();
+        final pool = globals.constPool;
+        if (ofs != null && pool != null && pool.validateOffset(ofs)) {
+          final (data, localOfs) = pool.getPtr(ofs);
+          final strObj = T3ObjString.fromConstPool(data, localOfs);
+          if (strObj.indexValQ(T3VM(), result, 0, idx)) {
+            return result;
+          }
+        }
+        return T3Value(T3DataType.nil);
+
+      case T3DataType.obj:
+        final objId = container.getAsObj();
+        if (objId != null) {
+          final entry = globals.objTable?.getEntry(objId);
+          final obj = entry?.obj;
+          if (obj != null) {
+            if (obj.indexValQ(T3VM(), result, objId, idx)) {
+              return result;
+            }
+          }
+        }
+        throw T3VmException(vmErrObjValReqd);
+
+      default:
+        throw T3VmException(vmErrObjValReqd);
+    }
   }
 }

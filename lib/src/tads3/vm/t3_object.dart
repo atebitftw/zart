@@ -433,9 +433,14 @@ class T3MetaclassRoot extends T3Metaclass {
 
 /// Placeholder types for features not yet implemented
 
-/// Placeholder for the TADS3 VM instance.
+/// Placeholder for the VM execution environment.
 class T3VM {
   /// Placeholder - will be defined elsewhere
+  dynamic get stack => null;
+  dynamic get objTable => null;
+  dynamic get metaTable => null;
+  dynamic get constPool => null;
+  dynamic get interpreter => null;
 }
 
 /// Placeholder for the undo system.

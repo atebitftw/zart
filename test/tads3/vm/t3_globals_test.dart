@@ -56,14 +56,17 @@ class MockBackingStore extends T3PoolBackingStore {
 
 void main() {
   group('T3Globals - Initialization', () {
-    test('creates with all subsystem fields null', () {
+    test('creates with core subsystem fields mostly null', () {
       final globals = T3Globals();
 
       expect(globals.constPool, isNull);
       expect(globals.codePool, isNull);
       expect(globals.stack, isNull);
       expect(globals.objTable, isNull);
-      expect(globals.metaTable, isNull);
+
+      // metaTable should be initialized with standard metaclasses
+      expect(globals.metaTable, isNotNull);
+      expect(globals.metaTable!.count, greaterThan(0));
     });
 
     test('creates with scalar fields at default values', () {
