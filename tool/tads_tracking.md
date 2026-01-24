@@ -41,12 +41,13 @@ Commonly used TADS 3 data types.
 - [x] `vmlst.cpp` / `vmlst.h` - List metaclass <!-- id: 200 -->
 - [x] `vmvec.cpp` / `vmvec.h` - Vector metaclass (Ported to `t3_vector.dart`, verified with unit tests) <!-- id: 201 -->
 - [x] `vmanonfn.cpp` / `vmanonfn.h` - Anonymous function metaclass (Ported to `t3_anon_fn.dart`, verified with unit tests) <!-- id: 218 -->
-- [ ] `vmiter.cpp` / `vmiter.h` - Iterator metaclass <!-- id: 217 -->
+- [x] `vmiter.cpp` / `vmiter.h` - Iterator metaclass (Ported to `t3_iter.dart`, verified with unit tests) <!-- id: 217 -->
+
 
 ## Advanced Metaclasses
 Complex built-in TADS 3 objects.
 
-- [ ] `vmstrbuf.cpp` / `vmstrbuf.h` - StringBuffer metaclass <!-- id: 213 -->
+- [x] `vmstrbuf.cpp` / `vmstrbuf.h` - StringBuffer metaclass (Ported to `t3_strbuf.dart`, verified with unit tests) <!-- id: 213 -->
 - [ ] `vmlookup.cpp` / `vmlookup.h` - LookupTable metaclass <!-- id: 211 -->
 - [ ] `vmdict.cpp` / `vmdict.h` - Dictionary metaclass <!-- id: 203 -->
 - [ ] `vmregex.cpp` / `vmregex.h` - RexGroup metaclass <!-- id: 212 -->

@@ -213,6 +213,14 @@ class T3ObjectTable {
     return id;
   }
 
+  /// Set the object for an already-allocated entry.
+  void setObj(int id, T3Object obj) {
+    final entry = getEntry(id);
+    if (entry != null) {
+      entry.obj = obj;
+    }
+  }
+
   /// Allocate an object at a specific ID.
   ///
   /// Used when loading objects from an image file or restoring from saved state,

@@ -254,6 +254,30 @@ class T3ObjIterIdx extends T3ObjIter {
     curIndex = idx;
   }
 
+  /// Get the next iteration item (used by opcIterNext for foreach loops).
+  ///
+  /// This provides direct iteration without going through property dispatch,
+  /// making foreach loops more efficient.
+  @override
+  bool iterNext(T3VM vm, int self, T3Value val) {
+    // Get the next index (current + 1)
+    final idx = curIndex + 1;
+
+    // Check if still in valid range
+    if (idx <= lastValid) {
+      // Retrieve the value at this index
+      _getIndexedVal(vm, idx, val);
+
+      // Update current index
+      _setCurIndex(vm, self, idx);
+
+      return true;
+    }
+
+    // No more values available
+    return false;
+  }
+
   @override
   void markRefs(T3VM vm, int state) {
     if (collectionValue.type == T3DataType.obj) {
