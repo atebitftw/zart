@@ -51,7 +51,12 @@ class T3BifDesc {
   int? bifPtrFuncIdx;
 
   /// Create a BIF descriptor.
-  T3BifDesc({required this.minArgc, this.optArgc = 0, this.varargs = false, this.func}) {
+  T3BifDesc({
+    required this.minArgc,
+    this.optArgc = 0,
+    this.varargs = false,
+    this.func,
+  }) {
     _initSynthHdr();
   }
 
@@ -110,7 +115,12 @@ class T3BifEntry {
   final void Function()? detach;
 
   /// Create a BIF entry.
-  T3BifEntry({required this.funcSetId, required this.functions, this.attach, this.detach});
+  T3BifEntry({
+    required this.funcSetId,
+    required this.functions,
+    this.attach,
+    this.detach,
+  });
 
   /// Number of functions in this set.
   int get funcCount => functions.length;
@@ -276,7 +286,9 @@ class T3BifTable {
   void addFunc(int setIdx, int funcIdx, T3BifFunc func) {
     // Expand entries if needed
     while (_entries.length <= setIdx) {
-      _entries.add(T3BifEntry(funcSetId: 'test-set-${_entries.length}', functions: []));
+      _entries.add(
+        T3BifEntry(funcSetId: 'test-set-${_entries.length}', functions: []),
+      );
       _names.add('test-set-${_entries.length - 1}');
     }
 

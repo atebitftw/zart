@@ -28,7 +28,11 @@ class T3ObjVector extends T3Collection {
   static final T3MetaclassVector metaclassReg = T3MetaclassVector();
 
   /// Create a vector with initial allocated capacity
-  T3ObjVector([int capacity = 0]) : _elements = List<T3Value>.generate(capacity, (_) => T3Value(T3DataType.nil));
+  T3ObjVector([int capacity = 0])
+    : _elements = List<T3Value>.generate(
+        capacity,
+        (_) => T3Value(T3DataType.nil),
+      );
 
   /// Initialize the extension with allocation size
   void initHeader({int allocSize = 0}) {
@@ -76,14 +80,20 @@ class T3ObjVector extends T3Collection {
   void newIterator(T3VM vm, T3Value retval, T3Value selfVal) {
     // For a snapshot iterator on a mutable collection, we create a copy
     // as an immutable list.
-    final snapshot = T3ObjList(List<T3Value>.from(_elements.sublist(0, _elementCount).map((v) => T3Value.copy(v))));
+    final snapshot = T3ObjList(
+      List<T3Value>.from(
+        _elements.sublist(0, _elementCount).map((v) => T3Value.copy(v)),
+      ),
+    );
 
     // We need to allocate an ID for the snapshot list if we want to pass it
     // in a T3Value.
     final id = vm.objTable!.allocObj(vm, true);
     vm.objTable!.getEntry(id)!.obj = snapshot;
 
-    retval.setObj(T3ObjIterIdx.createForColl(vm, T3Value()..setObj(id), 1, _elementCount));
+    retval.setObj(
+      T3ObjIterIdx.createForColl(vm, T3Value()..setObj(id), 1, _elementCount),
+    );
   }
 
   @override
@@ -105,7 +115,14 @@ class T3ObjVector extends T3Collection {
   }
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     final selfVal = T3Value()..setObj(self);
     if (constGetCollProp(vm, propId, retval, selfVal, sourceObj, argc)) {
       return true;
@@ -324,7 +341,10 @@ class T3ObjVector extends T3Collection {
   bool _getpToList(T3VM vm, T3Value retval, int? argc) {
     _checkArgs(argc, 0);
     // Create new T3Value objects for the list to ensure immutability
-    final listElements = List<T3Value>.generate(_elementCount, (i) => T3Value.copy(_elements[i]));
+    final listElements = List<T3Value>.generate(
+      _elementCount,
+      (i) => T3Value.copy(_elements[i]),
+    );
     final listObj = T3ObjList(listElements);
     final id = vm.objTable.registerObj(listObj);
     retval.setObj(id);
@@ -379,8 +399,12 @@ class T3ObjVector extends T3Collection {
   bool _getpFillVal(T3VM vm, T3Value retval, int self, int? argc) {
     _checkArgs(argc, 1, 3);
     final val = vm.stack.pop();
-    final startArg = (argc != null && argc >= 2) ? vm.stack.pop().getAsInt() : 1;
-    final countArg = (argc != null && argc >= 3) ? vm.stack.pop().getAsInt() : null;
+    final startArg = (argc != null && argc >= 2)
+        ? vm.stack.pop().getAsInt()
+        : 1;
+    final countArg = (argc != null && argc >= 3)
+        ? vm.stack.pop().getAsInt()
+        : null;
 
     var start = startArg;
     if (start < 0) start += _elementCount + 1;
@@ -426,7 +450,13 @@ class T3ObjVector extends T3Collection {
   }
 
   @override
-  bool setIndexValQ(T3VM vm, T3Value result, int self, T3Value indexVal, T3Value val) {
+  bool setIndexValQ(
+    T3VM vm,
+    T3Value result,
+    int self,
+    T3Value indexVal,
+    T3Value val,
+  ) {
     if (indexVal.type != T3DataType.int32) return false;
     final idx = indexVal.getAsInt();
     if (idx < 1 || idx > _elementCount) {
@@ -596,7 +626,14 @@ class T3MetaclassVector extends T3Metaclass {
   void createForRestore(T3VM vm, int id) {}
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     if (prop == 5) {
       // generate
       return _getpGenerate(vm, result, argc);

@@ -66,8 +66,12 @@ class T3TadsObjProp {
   /// Property value - stored as a copy of the assigned value
   T3Value val;
 
-  T3TadsObjProp({required this.propId, T3Value? value, this.next, this.flags = 0})
-    : val = value != null ? T3Value.copy(value) : T3Value();
+  T3TadsObjProp({
+    required this.propId,
+    T3Value? value,
+    this.next,
+    this.flags = 0,
+  }) : val = value != null ? T3Value.copy(value) : T3Value();
 
   /// Check if this property was modified (not from image file)
   bool get isModified => (flags & vmtoPropMod) != 0;
@@ -126,10 +130,17 @@ class T3TadsObjHeader {
   /// Cached inheritance path (for multiple inheritance)
   List<T3TadsObjSc>? inhPath;
 
-  T3TadsObjHeader({this.liObjFlags = 0, this.internObjFlags = 0, int superclassCount = 0, int hashSize = 16})
-    : superclasses = List<T3TadsObjSc>.generate(superclassCount, (_) => T3TadsObjSc(id: invalidObj)),
-      hashBuckets = List<T3TadsObjProp?>.filled(hashSize, null),
-      propEntries = [];
+  T3TadsObjHeader({
+    this.liObjFlags = 0,
+    this.internObjFlags = 0,
+    int superclassCount = 0,
+    int hashSize = 16,
+  }) : superclasses = List<T3TadsObjSc>.generate(
+         superclassCount,
+         (_) => T3TadsObjSc(id: invalidObj),
+       ),
+       hashBuckets = List<T3TadsObjProp?>.filled(hashSize, null),
+       propEntries = [];
 
   /// Get hash table size
   int get hashSize => hashBuckets.length;
@@ -291,7 +302,10 @@ class T3TadsObject extends T3Object {
 
   /// Initialize with a new header
   void initHeader({int superclassCount = 0, int propCount = vmtobjPropInit}) {
-    ext = T3TadsObjHeader(superclassCount: superclassCount, hashSize: _calcHashSize(propCount));
+    ext = T3TadsObjHeader(
+      superclassCount: superclassCount,
+      hashSize: _calcHashSize(propCount),
+    );
   }
 
   /// Calculate appropriate hash size for expected property count
@@ -435,7 +449,14 @@ class T3TadsObject extends T3Object {
   }
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     // Look for property in our own table first
     final propEntry = header.findPropEntry(propId);
     if (propEntry != null) {
@@ -576,7 +597,14 @@ class T3MetaclassTads extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, dynamic result, dynamic pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    dynamic result,
+    dynamic pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     // TadsObject has no static properties
     return false;
   }

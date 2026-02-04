@@ -13,7 +13,9 @@ void main() {
     });
 
     T3ObjList createList(List<int> ints) {
-      return T3ObjList(ints.map((i) => T3Value(T3DataType.int32)..setInt(i)).toList());
+      return T3ObjList(
+        ints.map((i) => T3Value(T3DataType.int32)..setInt(i)).toList(),
+      );
     }
 
     test('length returns element count', () {

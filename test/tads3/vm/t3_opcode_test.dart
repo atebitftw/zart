@@ -243,7 +243,16 @@ void main() {
 
       test('computes size for short string', () {
         // opcPushStrI + UINT16 length (5) + 5 bytes = 8 bytes
-        final data = Uint8List.fromList([opcPushStrI, 0x05, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F]);
+        final data = Uint8List.fromList([
+          opcPushStrI,
+          0x05,
+          0x00,
+          0x48,
+          0x65,
+          0x6C,
+          0x6C,
+          0x6F,
+        ]);
         expect(T3Opcodes.getOpSize(data, 0), equals(8));
       });
 
@@ -315,7 +324,9 @@ void main() {
 
       void register(int value, String name) {
         if (opcodes.containsKey(value)) {
-          duplicates.add('$name and ${opcodes[value]} both have value 0x${value.toRadixString(16)}');
+          duplicates.add(
+            '$name and ${opcodes[value]} both have value 0x${value.toRadixString(16)}',
+          );
         } else {
           opcodes[value] = name;
         }
@@ -408,7 +419,11 @@ void main() {
       register(opcBp, 'opcBp');
       register(opcNop, 'opcNop');
 
-      expect(duplicates, isEmpty, reason: 'Found duplicate opcode values: $duplicates');
+      expect(
+        duplicates,
+        isEmpty,
+        reason: 'Found duplicate opcode values: $duplicates',
+      );
     });
   });
 }

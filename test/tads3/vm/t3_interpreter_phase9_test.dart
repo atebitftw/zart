@@ -106,7 +106,10 @@ void main() {
       // FP-2: enclosing entry pointer
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
       // FP-3: return address
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
     }
 
     test('opcGetArgC - Push Argument Count', () {
@@ -203,7 +206,10 @@ void main() {
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(19, T3Value(T3DataType.int32)..setInt(5)); // argc = 5
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       // Set 5 arguments (at FP-11, FP-12, FP-13, FP-14, FP-15)
       // vmrunFpOfsArg1 = -11

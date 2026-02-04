@@ -103,7 +103,16 @@ const _namedClasses = <String, String>{
 };
 
 /// Mode flags that modify regex behavior.
-const _modeFlags = <String>{'case', 'nocase', 'min', 'max', 'fe', 'fb', 'firstend', 'firstbegin'};
+const _modeFlags = <String>{
+  'case',
+  'nocase',
+  'min',
+  'max',
+  'fe',
+  'fb',
+  'firstend',
+  'firstbegin',
+};
 
 // ----------------------------------------------------------------------------
 // T3Regex
@@ -272,9 +281,15 @@ class T3Regex {
 
     if (startIndex == 0) {
       if (replaceAll) {
-        return str.replaceAllMapped(_regex, (m) => _applyReplacement(m, dartReplacement));
+        return str.replaceAllMapped(
+          _regex,
+          (m) => _applyReplacement(m, dartReplacement),
+        );
       } else {
-        return str.replaceFirstMapped(_regex, (m) => _applyReplacement(m, dartReplacement));
+        return str.replaceFirstMapped(
+          _regex,
+          (m) => _applyReplacement(m, dartReplacement),
+        );
       }
     }
 
@@ -283,9 +298,17 @@ class T3Regex {
     final suffix = str.substring(startIndex);
 
     if (replaceAll) {
-      return prefix + suffix.replaceAllMapped(_regex, (m) => _applyReplacement(m, dartReplacement));
+      return prefix +
+          suffix.replaceAllMapped(
+            _regex,
+            (m) => _applyReplacement(m, dartReplacement),
+          );
     } else {
-      return prefix + suffix.replaceFirstMapped(_regex, (m) => _applyReplacement(m, dartReplacement));
+      return prefix +
+          suffix.replaceFirstMapped(
+            _regex,
+            (m) => _applyReplacement(m, dartReplacement),
+          );
     }
   }
 
@@ -294,7 +317,13 @@ class T3Regex {
     final groups = <T3RegexGroup?>[];
 
     // Group 0 is the entire match
-    groups.add(T3RegexGroup(match.start + offset, match.end + offset, match.group(0) ?? ''));
+    groups.add(
+      T3RegexGroup(
+        match.start + offset,
+        match.end + offset,
+        match.group(0) ?? '',
+      ),
+    );
 
     // Groups 1-9
     for (var i = 1; i <= 9; i++) {
@@ -303,8 +332,13 @@ class T3Regex {
         if (groupText != null) {
           // Calculate group offsets - this is tricky with Dart's Match
           // We need to find where the group appears in the match
-          final groupStart = fullString.indexOf(groupText, match.start + offset);
-          groups.add(T3RegexGroup(groupStart, groupStart + groupText.length, groupText));
+          final groupStart = fullString.indexOf(
+            groupText,
+            match.start + offset,
+          );
+          groups.add(
+            T3RegexGroup(groupStart, groupStart + groupText.length, groupText),
+          );
         } else {
           groups.add(null);
         }
@@ -313,7 +347,12 @@ class T3Regex {
       }
     }
 
-    return T3RegexMatch(match.start + offset, match.end + offset, match.group(0) ?? '', groups);
+    return T3RegexMatch(
+      match.start + offset,
+      match.end + offset,
+      match.group(0) ?? '',
+      groups,
+    );
   }
 
   /// Apply replacement with group backreferences.

@@ -100,7 +100,11 @@ abstract class T3Object {
   /// Enumerate properties of the object.
   /// Invokes [callback] for each property. The callback must not modify
   /// the object or invoke garbage collection.
-  void enumProps(T3VM vm, int self, void Function(T3VM vm, int self, int prop, T3Value val) callback) {
+  void enumProps(
+    T3VM vm,
+    int self,
+    void Function(T3VM vm, int self, int prop, T3Value val) callback,
+  ) {
     // By default, no properties to enumerate
   }
 
@@ -117,7 +121,14 @@ abstract class T3Object {
   ///
   /// If [argc] is not null, this function can consume arguments from the
   /// stack and set [argc] to zero to indicate consumption.
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc);
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  );
 
   /// Get the invocation routine for this object.
   /// If the object has a function interface, sets up a FUNCPTR or CODEPTR
@@ -183,7 +194,13 @@ abstract class T3Object {
 
   /// Reload the object from an image file.
   /// Discards changes and restores to the image file state.
-  void reloadFromImage(T3VM vm, int self, Uint8List ptr, int offset, int size) {}
+  void reloadFromImage(
+    T3VM vm,
+    int self,
+    Uint8List ptr,
+    int offset,
+    int size,
+  ) {}
 
   /// Reset to the image file state.
   /// Discards changes made since loading.
@@ -246,7 +263,13 @@ abstract class T3Object {
   /// Set an indexed element of the object (query mode).
   /// Returns true and stores the new container in [newContainer] if supported,
   /// or returns false if indexing is not supported.
-  bool setIndexValQ(T3VM vm, T3Value newContainer, int self, T3Value indexVal, T3Value newVal) => false;
+  bool setIndexValQ(
+    T3VM vm,
+    T3Value newContainer,
+    int self,
+    T3Value indexVal,
+    T3Value newVal,
+  ) => false;
 
   /// Get the next iterator value.
   /// Returns true and fills in [val] if another value is available,
@@ -272,7 +295,13 @@ abstract class T3Object {
 
   /// Cast to string with explicit radix (for toString() calls).
   /// By default, uses the basic castToString() processing.
-  String? explicitToString(T3VM vm, int self, T3Value newStr, int radix, int flags) {
+  String? explicitToString(
+    T3VM vm,
+    int self,
+    T3Value newStr,
+    int radix,
+    int flags,
+  ) {
     return castToString(vm, self, newStr);
   }
 
@@ -361,11 +390,25 @@ abstract class T3Metaclass {
   void createForRestore(T3VM vm, int id);
 
   /// Call a static property of the metaclass.
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop);
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  );
 
   /// Set a static property of the metaclass.
   /// Returns true if successful, false if the property isn't settable.
-  bool setStatProp(T3VM vm, T3Undo? undo, int self, T3Value classState, int prop, T3Value val) => false;
+  bool setStatProp(
+    T3VM vm,
+    T3Undo? undo,
+    int self,
+    T3Value classState,
+    int prop,
+    T3Value val,
+  ) => false;
 
   /// Get the number of super-metaclasses.
   /// All metaclasses have exactly one super-metaclass, except root object.
@@ -410,7 +453,14 @@ class T3MetaclassRoot extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     // Root object has no static properties
     return false;
   }

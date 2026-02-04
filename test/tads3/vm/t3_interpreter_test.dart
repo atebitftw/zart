@@ -229,7 +229,15 @@ void main() {
     });
 
     test('opcJnil (jump if nil and discard)', () {
-      runBytecode([opcPushNil, opcJnil, 0x01, 0x00, opcPush1, opcPush0, opcRetval]);
+      runBytecode([
+        opcPushNil,
+        opcJnil,
+        0x01,
+        0x00,
+        opcPush1,
+        opcPush0,
+        opcRetval,
+      ]);
       expect(globals.r0.getAsInt(), equals(0));
     });
   });
@@ -306,7 +314,11 @@ void main() {
     test('opcGetProp', () {
       obj.props[1234] = T3Value()..setInt(42);
       runBytecode([
-        opcPushObj, (objId & 0xFF), (objId >> 8) & 0xFF, (objId >> 16) & 0xFF, (objId >> 24) & 0xFF,
+        opcPushObj,
+        (objId & 0xFF),
+        (objId >> 8) & 0xFF,
+        (objId >> 16) & 0xFF,
+        (objId >> 24) & 0xFF,
         opcGetProp, 0xD2, 0x04, // 1234
         opcRet,
       ]);
@@ -315,7 +327,11 @@ void main() {
 
     test('opcSetProp', () {
       runBytecode([
-        opcPushObj, (objId & 0xFF), (objId >> 8) & 0xFF, (objId >> 16) & 0xFF, (objId >> 24) & 0xFF,
+        opcPushObj,
+        (objId & 0xFF),
+        (objId >> 8) & 0xFF,
+        (objId >> 16) & 0xFF,
+        (objId >> 24) & 0xFF,
         opcPushInt8, 42,
         opcSetProp, 0xD2, 0x04, // 1234
         opcRet,
@@ -359,7 +375,14 @@ class MockObject extends T3Object {
   final Map<int, T3Value> props = {};
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     if (props.containsKey(propId)) {
       retval.copyFrom(props[propId]!);
       sourceObj[0] = self;

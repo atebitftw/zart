@@ -17,7 +17,8 @@ class MockCodePool extends T3Pool {
   (Uint8List, int) getPtr(int offset) {
     for (final key in _pages.keys) {
       final page = _pages[key]!;
-      if (offset >= key && offset < key + page.length) return (page, offset - key);
+      if (offset >= key && offset < key + page.length)
+        return (page, offset - key);
     }
     if (_pages.containsKey(offset)) return (_pages[offset]!, 0);
     throw RangeError('Invalid code offset: $offset');
@@ -66,7 +67,10 @@ void main() {
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(19, T3Value(T3DataType.int32)..setInt(2)); // argc = 2
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
       stack.setAt(21, T3Value(T3DataType.int32)..setInt(localVal)); // local 0
       // Args at FP - vmrunFpOfsArg1 (which is -10)
       stack.setAt(10, T3Value(T3DataType.int32)..setInt(100)); // arg 0

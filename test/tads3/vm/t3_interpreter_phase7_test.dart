@@ -105,12 +105,16 @@ void main() {
       globals.framePtr = 20;
       stack.init();
       // Pad stack up to 30
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       // Setup initial frame
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 10;
       interpreter.run();
@@ -156,12 +160,16 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       // Setup initial frame
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 10;
       interpreter.run();
@@ -206,10 +214,14 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 10;
       interpreter.run();

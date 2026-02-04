@@ -112,8 +112,14 @@ void main() {
       });
 
       test('respects length limits', () {
-        expect(libStrcmp('hello', 3, 'help', 3), equals(0)); // Both truncate to 'hel'
-        expect(libStrcmp('hello', 2, 'help', 2), equals(0)); // Both truncate to 'he'
+        expect(
+          libStrcmp('hello', 3, 'help', 3),
+          equals(0),
+        ); // Both truncate to 'hel'
+        expect(
+          libStrcmp('hello', 2, 'help', 2),
+          equals(0),
+        ); // Both truncate to 'he'
       });
     });
 
@@ -145,8 +151,14 @@ void main() {
       });
 
       test('respects length limit', () {
-        expect(libStrnchr('hello', 2, 'l'.codeUnitAt(0)), equals(-1)); // 'l' is at index 2
-        expect(libStrnchr('hello', 3, 'l'.codeUnitAt(0)), equals(2)); // Now we can find it
+        expect(
+          libStrnchr('hello', 2, 'l'.codeUnitAt(0)),
+          equals(-1),
+        ); // 'l' is at index 2
+        expect(
+          libStrnchr('hello', 3, 'l'.codeUnitAt(0)),
+          equals(2),
+        ); // Now we can find it
       });
 
       test('handles empty string', () {

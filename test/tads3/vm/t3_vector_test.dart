@@ -70,14 +70,26 @@ void main() {
       vec.indexValQ(vm, res, 0, T3Value(T3DataType.int32)..setInt(1));
       expect(res.getAsInt(), equals(10));
 
-      vec.setIndexValQ(vm, res, 0, T3Value(T3DataType.int32)..setInt(1), T3Value(T3DataType.int32)..setInt(99));
+      vec.setIndexValQ(
+        vm,
+        res,
+        0,
+        T3Value(T3DataType.int32)..setInt(1),
+        T3Value(T3DataType.int32)..setInt(99),
+      );
       expect(vec.getElement(1).getAsInt(), equals(99));
     });
 
     test('indexing beyond length expands by 1', () {
       final vec = createVector([10]);
       final res = T3Value();
-      vec.setIndexValQ(vm, res, 0, T3Value(T3DataType.int32)..setInt(2), T3Value(T3DataType.int32)..setInt(20));
+      vec.setIndexValQ(
+        vm,
+        res,
+        0,
+        T3Value(T3DataType.int32)..setInt(2),
+        T3Value(T3DataType.int32)..setInt(20),
+      );
       expect(vec.length, equals(2));
       expect(vec.getElement(2).getAsInt(), equals(20));
     });

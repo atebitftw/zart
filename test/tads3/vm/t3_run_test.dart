@@ -209,7 +209,10 @@ void main() {
       expect(nextPc, equals(globals.funchdrSize));
 
       // Verify frame pointer updated
-      expect(globals.framePtr, equals(stack.getTopPointer() - 4)); // -4 because of 3 locals + FP slot
+      expect(
+        globals.framePtr,
+        equals(stack.getTopPointer() - 4),
+      ); // -4 because of 3 locals + FP slot
 
       // Verify metadata pushed on stack
       // FP points to the OLD FP
@@ -221,7 +224,10 @@ void main() {
       expect(stack.getRef(fp - 1).getAsInt(), equals(argc));
 
       expect(stack.getRef(fp - 2).type, equals(T3DataType.codeOfs));
-      expect(stack.getRef(fp - 2).getAsOfs(), equals(0)); // globals.entryPtr starts at 0
+      expect(
+        stack.getRef(fp - 2).getAsOfs(),
+        equals(0),
+      ); // globals.entryPtr starts at 0
 
       expect(stack.getRef(fp - 3).type, equals(T3DataType.codeOfs));
       expect(stack.getRef(fp - 3).getAsOfs(), equals(callerOfs));
@@ -232,7 +238,10 @@ void main() {
       expect(stack.getRef(fp - 5).type, equals(T3DataType.nil));
 
       // Verify locals (3 locals)
-      expect(stack.getRef(fp + 1).type, equals(T3DataType.nil)); // Wait, locals should be nil?
+      expect(
+        stack.getRef(fp + 1).type,
+        equals(T3DataType.nil),
+      ); // Wait, locals should be nil?
       // In my implementation: stack.push(T3Value(T3DataType.nil));
       // T3Value(T3DataType.nil) is what it is.
       expect(stack.getRef(fp + 1).type, equals(T3DataType.nil));
@@ -317,7 +326,14 @@ class MockObject extends T3Object {
   final Map<int, T3Value> props = {};
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     if (props.containsKey(propId)) {
       retval.copyFrom(props[propId]!);
       sourceObj[0] = self;

@@ -143,7 +143,13 @@ void main() {
 
       expect(
         () => pool.attachBackingStore(store),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrBadPoolPageSize)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrBadPoolPageSize,
+          ),
+        ),
       );
     });
 

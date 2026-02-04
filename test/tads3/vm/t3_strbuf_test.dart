@@ -81,7 +81,10 @@ void main() {
         vm.stack.pushInt(100);
         vm.stack.pushInt(50);
         vm.stack.pushInt(25);
-        expect(() => T3ObjStringBuffer.createFromStack(vm, 3), throwsA(isA<T3VmException>()));
+        expect(
+          () => T3ObjStringBuffer.createFromStack(vm, 3),
+          throwsA(isA<T3VmException>()),
+        );
       });
     });
 
@@ -245,7 +248,10 @@ void main() {
       test('ensureSpace expands in increments', () {
         final buf = T3ObjStringBuffer(20, 10);
         buf.ensureSpace(35);
-        expect(buf.allocatedSize, equals(48)); // 35 rounded up by inc of 16 (min)
+        expect(
+          buf.allocatedSize,
+          equals(48),
+        ); // 35 rounded up by inc of 16 (min)
       });
     });
 
@@ -260,7 +266,10 @@ void main() {
         final id1 = vm.objTable.registerObj(buf1, false);
         final id2 = vm.objTable.registerObj(buf2, false);
 
-        expect(buf1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0), isTrue);
+        expect(
+          buf1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0),
+          isTrue,
+        );
       });
 
       test('not equals StringBuffer with different content', () {
@@ -273,7 +282,10 @@ void main() {
         final id1 = vm.objTable.registerObj(buf1, false);
         final id2 = vm.objTable.registerObj(buf2, false);
 
-        expect(buf1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0), isFalse);
+        expect(
+          buf1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0),
+          isFalse,
+        );
       });
     });
 
@@ -288,7 +300,10 @@ void main() {
         final id1 = vm.objTable.registerObj(buf1, false);
         final id2 = vm.objTable.registerObj(buf2, false);
 
-        expect(buf1.compareTo(vm, id1, T3Value(T3DataType.obj)..setObj(id2)), lessThan(0));
+        expect(
+          buf1.compareTo(vm, id1, T3Value(T3DataType.obj)..setObj(id2)),
+          lessThan(0),
+        );
       });
 
       test('compares greater than', () {
@@ -301,7 +316,10 @@ void main() {
         final id1 = vm.objTable.registerObj(buf1, false);
         final id2 = vm.objTable.registerObj(buf2, false);
 
-        expect(buf1.compareTo(vm, id1, T3Value(T3DataType.obj)..setObj(id2)), greaterThan(0));
+        expect(
+          buf1.compareTo(vm, id1, T3Value(T3DataType.obj)..setObj(id2)),
+          greaterThan(0),
+        );
       });
 
       test('shorter string compares less', () {
@@ -314,7 +332,10 @@ void main() {
         final id1 = vm.objTable.registerObj(buf1, false);
         final id2 = vm.objTable.registerObj(buf2, false);
 
-        expect(buf1.compareTo(vm, id1, T3Value(T3DataType.obj)..setObj(id2)), lessThan(0));
+        expect(
+          buf1.compareTo(vm, id1, T3Value(T3DataType.obj)..setObj(id2)),
+          lessThan(0),
+        );
       });
     });
 

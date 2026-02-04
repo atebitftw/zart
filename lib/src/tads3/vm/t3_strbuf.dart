@@ -401,9 +401,19 @@ class T3ObjStringBuffer extends T3Object {
   // --------------------------------------------------------------------------
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     // Translate property to function index
-    final funcIdx = vm.metaTable.propToVectorIdx(metaclassReg.getRegIdx(), propId);
+    final funcIdx = vm.metaTable.propToVectorIdx(
+      metaclassReg.getRegIdx(),
+      propId,
+    );
 
     switch (funcIdx) {
       case _propIdxLen:
@@ -585,7 +595,13 @@ class T3ObjStringBuffer extends T3Object {
   }
 
   @override
-  bool setIndexValQ(T3VM vm, T3Value newContainer, int self, T3Value indexVal, T3Value newVal) {
+  bool setIndexValQ(
+    T3VM vm,
+    T3Value newContainer,
+    int self,
+    T3Value indexVal,
+    T3Value newVal,
+  ) {
     var idx = _tryGetInt(indexVal) ?? 0;
 
     // Adjust to 0-based or end-based
@@ -746,7 +762,14 @@ class T3MetaclassStringBuffer extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     // StringBuffer has no static properties
     return false;
   }

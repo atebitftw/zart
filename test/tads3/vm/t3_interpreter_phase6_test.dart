@@ -71,7 +71,14 @@ class MockT3Object extends T3Object {
   }
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     getPropCalled = true;
     lastPropId = propId;
     retval.setInt(5678); // Return dummy value
@@ -90,7 +97,11 @@ class MockT3Object extends T3Object {
   @override
   void setProp(T3VM vm, dynamic undo, int self, int propId, T3Value val) {}
   @override
-  void enumProps(T3VM vm, int self, void Function(T3VM vm, int self, int prop, T3Value val) callback) {}
+  void enumProps(
+    T3VM vm,
+    int self,
+    void Function(T3VM vm, int self, int prop, T3Value val) callback,
+  ) {}
   @override
   void buildPropList(T3VM vm, int self, T3Value retval) {}
 
@@ -136,7 +147,14 @@ class MockMetaclass extends T3Metaclass {
 
   // Abstracts
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) => false;
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) => false;
   @override
   void createForImageLoad(T3VM vm, int id) {}
   @override
@@ -211,7 +229,8 @@ void main() {
       // Setup stack frame
 
       // Pad stack up to 30
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
@@ -221,7 +240,10 @@ void main() {
       stack.setAt(12, T3Value(T3DataType.obj)..setObj(2)); // DefObj
 
       // RetAddr
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 10;
       interpreter.run();
@@ -250,12 +272,16 @@ void main() {
       globals.framePtr = 20;
       stack.init();
       // Pad stack up to 30
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       // RetAddr, EncFP, EncEP
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 10;
       interpreter.run();
@@ -281,11 +307,15 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 10;
       interpreter.run();
@@ -309,11 +339,15 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 10;
       interpreter.run();

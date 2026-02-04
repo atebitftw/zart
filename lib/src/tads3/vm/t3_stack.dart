@@ -54,7 +54,9 @@ class T3Stack {
   /// The stack is allocated with [maxDepth] + [reserveDepth] + 25 slots.
   /// The extra 25 slots provide a safety buffer for intrinsics that push
   /// without checking.
-  T3Stack(int maxDepth, int reserveDepth) : _maxDepth = maxDepth, _reserveDepth = reserveDepth {
+  T3Stack(int maxDepth, int reserveDepth)
+    : _maxDepth = maxDepth,
+      _reserveDepth = reserveDepth {
     // Allocate the stack with reserve and safety buffer
     final totalSize = maxDepth + reserveDepth + 25;
     // Use generate to create distinct T3Value instances for each slot

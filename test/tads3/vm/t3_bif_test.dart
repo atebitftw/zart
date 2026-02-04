@@ -88,7 +88,11 @@ void main() {
 
   group('T3BifEntry', () {
     test('creates entry with correct values', () {
-      final funcs = [T3BifDesc(minArgc: 0), T3BifDesc(minArgc: 1), T3BifDesc(minArgc: 2)];
+      final funcs = [
+        T3BifDesc(minArgc: 0),
+        T3BifDesc(minArgc: 1),
+        T3BifDesc(minArgc: 2),
+      ];
       final entry = T3BifEntry(funcSetId: 'test-set/010000', functions: funcs);
 
       expect(entry.funcSetId, equals('test-set/010000'));
@@ -109,7 +113,11 @@ void main() {
 
     test('linkToImage calls attach callback', () {
       var attachCalled = false;
-      final entry = T3BifEntry(funcSetId: 'test-set', functions: [], attach: () => attachCalled = true);
+      final entry = T3BifEntry(
+        funcSetId: 'test-set',
+        functions: [],
+        attach: () => attachCalled = true,
+      );
 
       entry.linkToImage(0);
       expect(attachCalled, isTrue);
@@ -117,7 +125,11 @@ void main() {
 
     test('unloadImage calls detach callback', () {
       var detachCalled = false;
-      final entry = T3BifEntry(funcSetId: 'test-set', functions: [], detach: () => detachCalled = true);
+      final entry = T3BifEntry(
+        funcSetId: 'test-set',
+        functions: [],
+        detach: () => detachCalled = true,
+      );
 
       entry.unloadImage();
       expect(detachCalled, isTrue);
@@ -177,7 +189,9 @@ void main() {
 
     test('getDesc returns null for invalid indices', () {
       final table = T3BifTable();
-      table.addEntry(T3BifEntry(funcSetId: 'set1', functions: [T3BifDesc(minArgc: 0)]));
+      table.addEntry(
+        T3BifEntry(funcSetId: 'set1', functions: [T3BifDesc(minArgc: 0)]),
+      );
 
       expect(table.getDesc(-1, 0), isNull);
       expect(table.getDesc(0, -1), isNull);
@@ -250,7 +264,13 @@ void main() {
     test('clear removes all entries and calls detach', () {
       var detachCalled = false;
       final table = T3BifTable();
-      table.addEntry(T3BifEntry(funcSetId: 'set1', functions: [], detach: () => detachCalled = true));
+      table.addEntry(
+        T3BifEntry(
+          funcSetId: 'set1',
+          functions: [],
+          detach: () => detachCalled = true,
+        ),
+      );
 
       expect(table.count, equals(1));
 
@@ -268,7 +288,13 @@ void main() {
     test('checkArgc throws for incorrect count', () {
       expect(
         () => T3BifHelper.checkArgc(2, 3),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', equals(vmErrWrongNumOfArgs))),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            equals(vmErrWrongNumOfArgs),
+          ),
+        ),
       );
     });
 
@@ -279,8 +305,14 @@ void main() {
     });
 
     test('checkArgcRange throws for count outside range', () {
-      expect(() => T3BifHelper.checkArgcRange(0, 1, 3), throwsA(isA<T3VmException>()));
-      expect(() => T3BifHelper.checkArgcRange(4, 1, 3), throwsA(isA<T3VmException>()));
+      expect(
+        () => T3BifHelper.checkArgcRange(0, 1, 3),
+        throwsA(isA<T3VmException>()),
+      );
+      expect(
+        () => T3BifHelper.checkArgcRange(4, 1, 3),
+        throwsA(isA<T3VmException>()),
+      );
     });
   });
 }

@@ -87,12 +87,20 @@ class T3ObjList extends T3Collection {
           // No additional data
           break;
         case T3DataType.int32:
-          final intVal = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+          final intVal =
+              data[pos] |
+              (data[pos + 1] << 8) |
+              (data[pos + 2] << 16) |
+              (data[pos + 3] << 24);
           val.setInt(intVal.toSigned(32));
           pos += 4;
           break;
         case T3DataType.obj:
-          final objId = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+          final objId =
+              data[pos] |
+              (data[pos + 1] << 8) |
+              (data[pos + 2] << 16) |
+              (data[pos + 3] << 24);
           val.setObj(objId);
           pos += 4;
           break;
@@ -103,7 +111,11 @@ class T3ObjList extends T3Collection {
           break;
         case T3DataType.sstring:
         case T3DataType.list:
-          final ofs = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+          final ofs =
+              data[pos] |
+              (data[pos + 1] << 8) |
+              (data[pos + 2] << 16) |
+              (data[pos + 3] << 24);
           if (type == T3DataType.sstring) {
             val.setSstring(ofs);
           } else {
@@ -142,7 +154,14 @@ class T3ObjList extends T3Collection {
   }
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     sourceObj[0] = self;
     return _evalProp(propId, retval, argc);
   }
@@ -273,8 +292,12 @@ class T3ObjList extends T3Collection {
     if (startIdx < 0 || startIdx >= elements.length) {
       return T3ObjList([]);
     }
-    final endIdx = len != null ? (startIdx + len).clamp(0, elements.length) : elements.length;
-    return T3ObjList(elements.sublist(startIdx, endIdx).map(T3Value.copy).toList());
+    final endIdx = len != null
+        ? (startIdx + len).clamp(0, elements.length)
+        : elements.length;
+    return T3ObjList(
+      elements.sublist(startIdx, endIdx).map(T3Value.copy).toList(),
+    );
   }
 
   /// Check if value equals another
@@ -315,7 +338,14 @@ class T3MetaclassList extends T3Metaclass {
   void createForRestore(T3VM vm, int id) {}
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     return false;
   }
 

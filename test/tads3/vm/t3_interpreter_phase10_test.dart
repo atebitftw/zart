@@ -73,7 +73,10 @@ void main() {
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(19, T3Value(T3DataType.int32)..setInt(0)); // argc
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
       // Local 0 at FP+1 = slot 21
       stack.setAt(21, T3Value(T3DataType.int32)..setInt(localVal));
     }

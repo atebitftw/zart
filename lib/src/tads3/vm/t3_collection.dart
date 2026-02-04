@@ -95,7 +95,14 @@ abstract class T3Collection extends T3Object {
   ///
   /// This allows evaluating collection properties for both object values
   /// and constant values using the same code.
-  bool constGetCollProp(T3VM vm, int propId, T3Value retval, T3Value selfVal, List<int> sourceObj, int? argc) {
+  bool constGetCollProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    T3Value selfVal,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     // Translate property ID to function index via metaclass table
     // For now, we'll use a simple mapping based on known property IDs
     // TODO: Use proper property-to-index translation when metaclass table is ready
@@ -146,7 +153,12 @@ abstract class T3Collection extends T3Object {
   /// Property evaluator: createLiveIterator()
   ///
   /// Creates a live iterator that tracks changes to the collection.
-  bool getpCreateLiveIterator(T3VM vm, T3Value retval, T3Value selfVal, int? argc) {
+  bool getpCreateLiveIterator(
+    T3VM vm,
+    T3Value retval,
+    T3Value selfVal,
+    int? argc,
+  ) {
     // Check arguments - expects 0 arguments
     if (argc != null && argc != 0) {
       throw T3VmException(vmErrWrongNumOfArgs);
@@ -189,7 +201,14 @@ class T3MetaclassCollection extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, dynamic result, dynamic pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    dynamic result,
+    dynamic pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     // Collection has no static properties - inherit base handling
     // This would delegate to CVmObject::call_stat_prop in C++
     return false;

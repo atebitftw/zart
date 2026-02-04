@@ -29,7 +29,14 @@ class MockT3Object extends T3Object {
   void setProp(T3VM vm, T3Undo? undo, int self, int propId, dynamic val) {}
 
   @override
-  bool getProp(T3VM vm, int propId, dynamic retval, int self, List<int> sourceObj, int? argc) => false;
+  bool getProp(
+    T3VM vm,
+    int propId,
+    dynamic retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) => false;
 
   @override
   bool inhProp(
@@ -79,7 +86,8 @@ class MockT3Metaclass extends T3Metaclass {
   String getMetaName() => _name;
 
   @override
-  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) => invalidObj;
+  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) =>
+      invalidObj;
 
   @override
   void createForImageLoad(T3VM vm, int id) {}
@@ -88,7 +96,14 @@ class MockT3Metaclass extends T3Metaclass {
   void createForRestore(T3VM vm, int id) {}
 
   @override
-  bool callStatProp(T3VM vm, dynamic result, dynamic pc, int pcOffset, int argc, int prop) => false;
+  bool callStatProp(
+    T3VM vm,
+    dynamic result,
+    dynamic pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) => false;
 
   @override
   int getSupermeta(T3VM vm, int idx) => invalidObj;

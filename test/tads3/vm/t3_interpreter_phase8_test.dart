@@ -47,7 +47,8 @@ class MockCodePool extends T3Pool {
 class MockConstPool extends T3PoolInMem {
   final Map<int, String> _strings = {};
 
-  MockConstPool() : super(); // Initialize super with defaults? T3PoolInMem usually takes no args or calls super
+  MockConstPool()
+    : super(); // Initialize super with defaults? T3PoolInMem usually takes no args or calls super
 
   void setString(int id, String s) => _strings[id] = s;
 
@@ -111,7 +112,10 @@ void main() {
       globals.framePtr = 20;
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 0;
       interpreter.run();
@@ -148,7 +152,10 @@ void main() {
       // Initialize stack frame for return
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive)); // RetAddr
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      ); // RetAddr
 
       globals.pc = 0;
       interpreter.run();
@@ -178,7 +185,10 @@ void main() {
       globals.framePtr = 20;
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 0;
       interpreter.run();
@@ -208,7 +218,10 @@ void main() {
       globals.framePtr = 20;
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 0;
       interpreter.run();
@@ -237,7 +250,10 @@ void main() {
       globals.framePtr = 20;
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.pc = 0;
       interpreter.run();

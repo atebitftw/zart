@@ -291,8 +291,18 @@ class T3ObjDict extends T3Object {
   }
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
-    final funcIdx = vm.metaTable.propToVectorIdx(metaclassReg.getRegIdx(), propId);
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
+    final funcIdx = vm.metaTable.propToVectorIdx(
+      metaclassReg.getRegIdx(),
+      propId,
+    );
     if (funcIdx != null && funcIdx >= 1 && funcIdx <= _propIdxCorrect) {
       sourceObj[0] = self;
       switch (funcIdx) {
@@ -582,19 +592,35 @@ class T3ObjDict extends T3Object {
       // Check for accept state
       if (s.node.wordCount > 0 && s.ipos == wordRunes.length) {
         // Found a matching word
-        final existing = results.where((w) => w.str.length == s.str.length && _listEquals(w.str, s.str)).firstOrNull;
+        final existing = results
+            .where(
+              (w) => w.str.length == s.str.length && _listEquals(w.str, s.str),
+            )
+            .firstOrNull;
 
         if (existing == null) {
           results.add(_CorrWord(List.from(s.str), s.dist, s.repl));
-        } else if (s.dist < existing.dist || (s.dist == existing.dist && s.repl < existing.repl)) {
+        } else if (s.dist < existing.dist ||
+            (s.dist == existing.dist && s.repl < existing.repl)) {
           existing.dist = s.dist;
           existing.repl = s.repl;
         }
       }
 
       // Try insertion (skip input character)
-      if (s.dist < maxDist && s.ipos < wordRunes.length && s.type != _CorrType.deletion) {
-        stack.add(_CorrState(List.from(s.str), s.dist + 1, s.repl, s.ipos + 1, s.node, _CorrType.insertion));
+      if (s.dist < maxDist &&
+          s.ipos < wordRunes.length &&
+          s.type != _CorrType.deletion) {
+        stack.add(
+          _CorrState(
+            List.from(s.str),
+            s.dist + 1,
+            s.repl,
+            s.ipos + 1,
+            s.node,
+            _CorrType.insertion,
+          ),
+        );
       }
 
       // Try each child transition
@@ -605,19 +631,46 @@ class T3ObjDict extends T3Object {
         if (s.ipos < wordRunes.length) {
           if (wordRunes[s.ipos] == child.ch) {
             // Exact match
-            stack.add(_CorrState(newStr, s.dist, s.repl, s.ipos + 1, child, _CorrType.noChange));
+            stack.add(
+              _CorrState(
+                newStr,
+                s.dist,
+                s.repl,
+                s.ipos + 1,
+                child,
+                _CorrType.noChange,
+              ),
+            );
           }
 
           // Try corrections if we have edit distance remaining
           if (s.dist < maxDist) {
             // Replacement
             if (wordRunes[s.ipos] != child.ch) {
-              stack.add(_CorrState(newStr, s.dist + 1, s.repl + 1, s.ipos + 1, child, _CorrType.replacement));
+              stack.add(
+                _CorrState(
+                  newStr,
+                  s.dist + 1,
+                  s.repl + 1,
+                  s.ipos + 1,
+                  child,
+                  _CorrType.replacement,
+                ),
+              );
             }
 
             // Deletion (input missing a character)
             if (s.type != _CorrType.insertion) {
-              stack.add(_CorrState(newStr, s.dist + 1, s.repl, s.ipos, child, _CorrType.deletion));
+              stack.add(
+                _CorrState(
+                  newStr,
+                  s.dist + 1,
+                  s.repl,
+                  s.ipos,
+                  child,
+                  _CorrType.deletion,
+                ),
+              );
             }
           }
 
@@ -628,17 +681,38 @@ class T3ObjDict extends T3Object {
               s.str.isNotEmpty &&
               wordRunes[s.ipos - 1] == child.ch &&
               wordRunes[s.ipos] == s.str.last) {
-            stack.add(_CorrState(newStr, s.dist, s.repl - 1, s.ipos + 1, child, _CorrType.transposition));
+            stack.add(
+              _CorrState(
+                newStr,
+                s.dist,
+                s.repl - 1,
+                s.ipos + 1,
+                child,
+                _CorrType.transposition,
+              ),
+            );
           }
         } else if (s.dist < maxDist && s.type != _CorrType.insertion) {
           // Past end of input - try deletion
-          stack.add(_CorrState(newStr, s.dist + 1, s.repl, s.ipos, child, _CorrType.deletion));
+          stack.add(
+            _CorrState(
+              newStr,
+              s.dist + 1,
+              s.repl,
+              s.ipos,
+              child,
+              _CorrType.deletion,
+            ),
+          );
         }
       }
     }
 
     // Filter out exact matches (dist == 0) and format results
-    return results.where((w) => w.dist > 0).map((w) => [String.fromCharCodes(w.str), w.dist, w.repl]).toList();
+    return results
+        .where((w) => w.dist > 0)
+        .map((w) => [String.fromCharCodes(w.str), w.dist, w.repl])
+        .toList();
   }
 
   static bool _listEquals(List<int> a, List<int> b) {
@@ -835,12 +909,16 @@ class T3ObjDict extends T3Object {
     for (final corr in corrections) {
       // Create sublist [word, dist, repl]
       final subItems = <T3Value>[
-        T3Value()..setObj(vm.objTable.registerObj(T3ObjString(corr[0] as String), false)),
+        T3Value()..setObj(
+          vm.objTable.registerObj(T3ObjString(corr[0] as String), false),
+        ),
         T3Value()..setInt(corr[1] as int),
         T3Value()..setInt(corr[2] as int),
       ];
       final subList = T3ObjList(subItems);
-      resultItems.add(T3Value()..setObj(vm.objTable.registerObj(subList, false)));
+      resultItems.add(
+        T3Value()..setObj(vm.objTable.registerObj(subList, false)),
+      );
     }
 
     final list = T3ObjList(resultItems);
@@ -937,7 +1015,14 @@ class T3MetaclassDict extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) => false;
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) => false;
 
   @override
   int getSupermeta(T3VM vm, int idx) => invalidObj;

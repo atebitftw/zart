@@ -211,7 +211,9 @@ class T3Globals extends T3VM {
     metaTable!.registerMetaclass(T3ObjList.metaclassReg);
     metaTable!.registerMetaclass(T3ObjVector.metaclassReg);
     metaTable!.registerMetaclass(T3ObjString.metaclassReg);
-    metaTable!.registerMetaclass(T3MetaclassTads()); // TadsObject doesn't have it as static final yet?
+    metaTable!.registerMetaclass(
+      T3MetaclassTads(),
+    ); // TadsObject doesn't have it as static final yet?
     metaTable!.registerMetaclass(T3ObjAnonFn.metaclassReg);
     metaTable!.registerMetaclass(T3ObjIter.metaclassReg);
     metaTable!.registerMetaclass(T3ObjIterIdx.metaclassRegIdx);

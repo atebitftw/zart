@@ -109,13 +109,17 @@ void main() {
       globals.framePtr = 20;
       stack.init();
       // Push 30 items
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       // Fixup frame metadata at FP=20
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
       // RetAddr at FP-3 = 17
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;
@@ -153,11 +157,15 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;
@@ -195,7 +203,8 @@ void main() {
 
       // ExcTable
       final etData = excTable.toBytes();
-      for (var i = 0; i < etData.length; i++) data[10 + opcodes.length + i] = etData[i];
+      for (var i = 0; i < etData.length; i++)
+        data[10 + opcodes.length + i] = etData[i];
 
       // Handler at 40
       data[40] = opcRetnil;
@@ -205,12 +214,16 @@ void main() {
       // Setup Stack
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       // Fixup frame metadata
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;
@@ -236,10 +249,14 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;
@@ -267,12 +284,16 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
 
       // Fixup frame metadata
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0)); // EncFP
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0)); // EncEP
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;
@@ -302,10 +323,14 @@ void main() {
       codePool.setCode(0, data);
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;
@@ -332,10 +357,14 @@ void main() {
 
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;
@@ -364,10 +393,14 @@ void main() {
       globals.r0.setTrue();
       globals.framePtr = 20;
       stack.init();
-      for (var i = 0; i < 30; i++) stack.push(T3Value(T3DataType.int32)..setInt(0));
+      for (var i = 0; i < 30; i++)
+        stack.push(T3Value(T3DataType.int32)..setInt(0));
       stack.setAt(20, T3Value(T3DataType.stack)..setStack(0));
       stack.setAt(18, T3Value(T3DataType.codeOfs)..setCodeOfs(0));
-      stack.setAt(17, T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive));
+      stack.setAt(
+        17,
+        T3Value(T3DataType.codeOfs)..setCodeOfs(vmrunRetRecursive),
+      );
 
       globals.entryPtr = 0;
       globals.pc = 10;

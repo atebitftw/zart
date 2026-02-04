@@ -243,7 +243,11 @@ class T3PoolPaged extends T3Pool {
 
       // Allocate or reallocate at the new size
       if (_pages == null) {
-        _pages = List<T3PoolPage>.generate(_pageSlotsMax, (_) => T3PoolPage(), growable: false);
+        _pages = List<T3PoolPage>.generate(
+          _pageSlotsMax,
+          (_) => T3PoolPage(),
+          growable: false,
+        );
       } else {
         // Grow the list
         final newPages = List<T3PoolPage>.generate(
@@ -389,7 +393,9 @@ class T3PoolInMem extends T3PoolPaged {
     // To be valid, it must be within the range of valid pages, the page
     // must be allocated, and the offset in the page must be within the
     // page's actual allocated size
-    return page < _pageSlots && _pages![page].mem != null && pageOffset < _pages![page].size;
+    return page < _pageSlots &&
+        _pages![page].mem != null &&
+        pageOffset < _pages![page].size;
   }
 
   @override

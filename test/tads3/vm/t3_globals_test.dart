@@ -21,7 +21,9 @@ class MockBackingStore extends T3PoolBackingStore {
   final int _pageSize;
   final int _pageCount;
 
-  MockBackingStore({int pageSize = 1024, int pageCount = 4}) : _pageSize = pageSize, _pageCount = pageCount;
+  MockBackingStore({int pageSize = 1024, int pageCount = 4})
+    : _pageSize = pageSize,
+      _pageCount = pageCount;
 
   @override
   int getPageCount() => _pageCount;

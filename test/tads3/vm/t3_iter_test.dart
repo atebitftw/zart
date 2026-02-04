@@ -108,7 +108,13 @@ void main() {
         final result = T3Value();
         expect(
           () => iter.getpGetCurKey(vm, 0, result, 0),
-          throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrOutOfRange)),
+          throwsA(
+            isA<T3VmException>().having(
+              (e) => e.errorCode,
+              'errorCode',
+              vmErrOutOfRange,
+            ),
+          ),
         );
       });
 
@@ -120,7 +126,13 @@ void main() {
         final result = T3Value();
         expect(
           () => iter.getpGetCurKey(vm, 0, result, 0),
-          throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrOutOfRange)),
+          throwsA(
+            isA<T3VmException>().having(
+              (e) => e.errorCode,
+              'errorCode',
+              vmErrOutOfRange,
+            ),
+          ),
         );
       });
     });
@@ -202,12 +214,18 @@ void main() {
 
     test('createForImageLoad throws', () {
       final meta = T3MetaclassIter();
-      expect(() => meta.createForImageLoad(T3VM(), 1), throwsA(isA<T3VmException>()));
+      expect(
+        () => meta.createForImageLoad(T3VM(), 1),
+        throwsA(isA<T3VmException>()),
+      );
     });
 
     test('createFromStack throws', () {
       final meta = T3MetaclassIter();
-      expect(() => meta.createFromStack(T3VM(), Uint8List(0), 0, 0), throwsA(isA<T3VmException>()));
+      expect(
+        () => meta.createFromStack(T3VM(), Uint8List(0), 0, 0),
+        throwsA(isA<T3VmException>()),
+      );
     });
   });
 
@@ -224,7 +242,10 @@ void main() {
 
     test('createFromStack throws', () {
       final meta = T3MetaclassIterIdx();
-      expect(() => meta.createFromStack(T3VM(), Uint8List(0), 0, 0), throwsA(isA<T3VmException>()));
+      expect(
+        () => meta.createFromStack(T3VM(), Uint8List(0), 0, 0),
+        throwsA(isA<T3VmException>()),
+      );
     });
   });
 

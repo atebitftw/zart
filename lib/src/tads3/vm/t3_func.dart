@@ -162,7 +162,10 @@ class T3ExcEntry {
 
   /// Read a little-endian UINT32.
   int _readUint32(int offset) {
-    return _data[offset] | (_data[offset + 1] << 8) | (_data[offset + 2] << 16) | (_data[offset + 3] << 24);
+    return _data[offset] |
+        (_data[offset + 1] << 8) |
+        (_data[offset + 2] << 16) |
+        (_data[offset + 3] << 24);
   }
 }
 
@@ -211,7 +214,10 @@ class T3ExcTable {
   ///
   /// The [isInstanceOf] callback should return true if the exception object
   /// is an instance of the given exception class ID.
-  T3ExcEntry? findHandler(int codeOfs, bool Function(int exceptionClassId) isInstanceOf) {
+  T3ExcEntry? findHandler(
+    int codeOfs,
+    bool Function(int exceptionClassId) isInstanceOf,
+  ) {
     for (int i = 0; i < count; i++) {
       final entry = getEntry(i);
       if (entry.coversOffset(codeOfs) && isInstanceOf(entry.exceptionClass)) {

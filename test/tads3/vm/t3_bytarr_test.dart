@@ -111,7 +111,13 @@ void main() {
     test('setIndexValQ works for 1-based indexing', () {
       final arr = createByteArray([10, 20, 30]);
       final result = T3Value();
-      arr.setIndexValQ(vm, result, 0, T3Value(T3DataType.int32)..setInt(2), T3Value(T3DataType.int32)..setInt(99));
+      arr.setIndexValQ(
+        vm,
+        result,
+        0,
+        T3Value(T3DataType.int32)..setInt(2),
+        T3Value(T3DataType.int32)..setInt(99),
+      );
       expect(arr.getElement(2), equals(99));
     });
 
@@ -417,12 +423,20 @@ void main() {
     });
 
     test('getMetaName returns correct identifier', () {
-      expect(T3MetaclassByteArray.instance.getMetaName(), equals('bytearray/030002'));
+      expect(
+        T3MetaclassByteArray.instance.getMetaName(),
+        equals('bytearray/030002'),
+      );
     });
 
     test('createFromStack with integer creates sized array', () {
       vm.stack.pushInt(10);
-      final id = T3MetaclassByteArray.instance.createFromStack(vm, Uint8List(0), 0, 1);
+      final id = T3MetaclassByteArray.instance.createFromStack(
+        vm,
+        Uint8List(0),
+        0,
+        1,
+      );
       final arr = vm.objTable.getObj(id) as T3ObjByteArray;
       expect(arr.length, equals(10));
     });
@@ -435,7 +449,12 @@ void main() {
 
       // Create copy
       vm.stack.pushObj(srcId);
-      final id = T3MetaclassByteArray.instance.createFromStack(vm, Uint8List(0), 0, 1);
+      final id = T3MetaclassByteArray.instance.createFromStack(
+        vm,
+        Uint8List(0),
+        0,
+        1,
+      );
       final arr = vm.objTable.getObj(id) as T3ObjByteArray;
 
       expect(arr.length, equals(5));

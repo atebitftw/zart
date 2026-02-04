@@ -57,7 +57,10 @@ void main() {
       test('createFromStack with 2 args throws', () {
         vm.stack.pushInt(1);
         vm.stack.pushInt(2);
-        expect(() => T3ObjDict.createFromStack(vm, 2), throwsA(isA<T3VmException>()));
+        expect(
+          () => T3ObjDict.createFromStack(vm, 2),
+          throwsA(isA<T3VmException>()),
+        );
       });
     });
 
@@ -467,7 +470,10 @@ void main() {
         final dict = T3ObjDict();
         final dictId = vm.objTable.registerObj(dict, false);
 
-        expect(() => dict.setProp(vm, null, dictId, 1, T3Value()..setNil()), throwsA(isA<T3VmException>()));
+        expect(
+          () => dict.setProp(vm, null, dictId, 1, T3Value()..setNil()),
+          throwsA(isA<T3VmException>()),
+        );
       });
     });
   });

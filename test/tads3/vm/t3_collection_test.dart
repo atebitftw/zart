@@ -37,7 +37,14 @@ class MockCollection extends T3Collection {
 
   // Required abstract method implementations from T3Object
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     // Set up self value for collection property lookup
     final selfVal = T3Value();
     selfVal.setObj(self);
@@ -117,7 +124,13 @@ void main() {
 
       expect(
         () => metaclass.createFromStack(vm, null, 0, 0),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrBadDynamicNew)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrBadDynamicNew,
+          ),
+        ),
       );
     });
 
@@ -127,7 +140,13 @@ void main() {
 
       expect(
         () => metaclass.createForImageLoad(vm, 1),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrBadStaticNew)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrBadStaticNew,
+          ),
+        ),
       );
     });
 
@@ -137,7 +156,13 @@ void main() {
 
       expect(
         () => metaclass.createForRestore(vm, 1),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrBadStaticNew)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrBadStaticNew,
+          ),
+        ),
       );
     });
   });
@@ -243,7 +268,13 @@ void main() {
 
       expect(
         () => coll.getpCreateIterator(vm, retval, selfVal, 1),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrWrongNumOfArgs)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrWrongNumOfArgs,
+          ),
+        ),
       );
     });
 
@@ -255,7 +286,13 @@ void main() {
 
       expect(
         () => coll.getpCreateLiveIterator(vm, retval, selfVal, 2),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrWrongNumOfArgs)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrWrongNumOfArgs,
+          ),
+        ),
       );
     });
 
@@ -282,7 +319,14 @@ void main() {
       final sourceObj = [0];
 
       // Unknown property ID should return false
-      final result = coll.constGetCollProp(vm, 99999, retval, selfVal, sourceObj, 0);
+      final result = coll.constGetCollProp(
+        vm,
+        99999,
+        retval,
+        selfVal,
+        sourceObj,
+        0,
+      );
       expect(result, isFalse);
     });
   });
@@ -294,7 +338,8 @@ class _MockMetaclass extends T3Metaclass {
   String getMetaName() => 'mock/000000';
 
   @override
-  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) => invalidObj;
+  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) =>
+      invalidObj;
 
   @override
   void createForImageLoad(T3VM vm, int id) {}
@@ -303,7 +348,14 @@ class _MockMetaclass extends T3Metaclass {
   void createForRestore(T3VM vm, int id) {}
 
   @override
-  bool callStatProp(T3VM vm, dynamic result, dynamic pc, int pcOffset, int argc, int prop) => false;
+  bool callStatProp(
+    T3VM vm,
+    dynamic result,
+    dynamic pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) => false;
 
   @override
   int getSupermeta(T3VM vm, int idx) => invalidObj;

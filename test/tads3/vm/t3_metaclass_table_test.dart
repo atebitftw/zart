@@ -21,7 +21,8 @@ class MockMetaclass1 extends T3Metaclass {
   String getMetaName() => _name;
 
   @override
-  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) => invalidObj;
+  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) =>
+      invalidObj;
 
   @override
   void createForImageLoad(T3VM vm, int id) {}
@@ -30,7 +31,14 @@ class MockMetaclass1 extends T3Metaclass {
   void createForRestore(T3VM vm, int id) {}
 
   @override
-  bool callStatProp(T3VM vm, dynamic result, dynamic pc, int pcOffset, int argc, int prop) => false;
+  bool callStatProp(
+    T3VM vm,
+    dynamic result,
+    dynamic pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) => false;
 
   @override
   int getSupermeta(T3VM vm, int idx) => invalidObj;
@@ -50,7 +58,8 @@ class MockMetaclass2 extends T3Metaclass {
   String getMetaName() => 'test-meta-2/030001';
 
   @override
-  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) => invalidObj;
+  int createFromStack(T3VM vm, dynamic pc, int pcOffset, int argc) =>
+      invalidObj;
 
   @override
   void createForImageLoad(T3VM vm, int id) {}
@@ -59,7 +68,14 @@ class MockMetaclass2 extends T3Metaclass {
   void createForRestore(T3VM vm, int id) {}
 
   @override
-  bool callStatProp(T3VM vm, dynamic result, dynamic pc, int pcOffset, int argc, int prop) => false;
+  bool callStatProp(
+    T3VM vm,
+    dynamic result,
+    dynamic pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) => false;
 
   @override
   int getSupermeta(T3VM vm, int idx) => invalidObj;
@@ -106,7 +122,10 @@ void main() {
       final meta2 = MockMetaclass1(); // Same name
 
       table.registerMetaclass(meta1);
-      expect(() => table.registerMetaclass(meta2), throwsA(isA<T3VmException>()));
+      expect(
+        () => table.registerMetaclass(meta2),
+        throwsA(isA<T3VmException>()),
+      );
     });
 
     test('tracks metaclass count', () {
@@ -181,7 +200,10 @@ void main() {
     });
 
     test('throws error when registering prop for invalid metaclass', () {
-      expect(() => table.registerProp(999, 100, 5), throwsA(isA<T3VmException>()));
+      expect(
+        () => table.registerProp(999, 100, 5),
+        throwsA(isA<T3VmException>()),
+      );
     });
 
     test('property mappings are per-metaclass', () {

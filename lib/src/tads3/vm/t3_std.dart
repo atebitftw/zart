@@ -197,7 +197,12 @@ bool libStrequalCollapseSpaces(String a, int aLen, String b, int bLen) {
 bool _isWhitespace(String char) {
   if (char.isEmpty) return false;
   final code = char.codeUnitAt(0);
-  return code == 0x20 || code == 0x09 || code == 0x0A || code == 0x0D || code == 0x0B || code == 0x0C;
+  return code == 0x20 ||
+      code == 0x09 ||
+      code == 0x0A ||
+      code == 0x0D ||
+      code == 0x0B ||
+      code == 0x0C;
 }
 
 // ----------------------------------------------------------------------------
@@ -208,10 +213,18 @@ bool _isWhitespace(String char) {
 bool isAscii(int c) => c >= 0 && c <= 127;
 
 /// Determine if a character is an ASCII space character.
-bool isSpace(int c) => isAscii(c) && (c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D || c == 0x0B || c == 0x0C);
+bool isSpace(int c) =>
+    isAscii(c) &&
+    (c == 0x20 ||
+        c == 0x09 ||
+        c == 0x0A ||
+        c == 0x0D ||
+        c == 0x0B ||
+        c == 0x0C);
 
 /// Determine if a character is an ASCII alphabetic character (a-z, A-Z).
-bool isAlpha(int c) => isAscii(c) && ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A));
+bool isAlpha(int c) =>
+    isAscii(c) && ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A));
 
 /// Determine if a character is an ASCII numeric character (0-9).
 bool isDigit(int c) => isAscii(c) && c >= 0x30 && c <= 0x39;
@@ -221,7 +234,10 @@ bool isOdigit(int c) => isAscii(c) && c >= 0x30 && c <= 0x37;
 
 /// Determine if a character is an ASCII hex numeric character (0-9, a-f, A-F).
 bool isXdigit(int c) =>
-    isAscii(c) && ((c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x46) || (c >= 0x61 && c <= 0x66));
+    isAscii(c) &&
+    ((c >= 0x30 && c <= 0x39) ||
+        (c >= 0x41 && c <= 0x46) ||
+        (c >= 0x61 && c <= 0x66));
 
 /// Get the numeric value of a decimal digit character.
 int valueOfDigit(int c) => c - 0x30;
@@ -298,7 +314,9 @@ class T3ArrayList<T> {
   T3ArrayList() : _allocated = 16, _incrementSize = 16;
 
   /// Create an array list with custom initial size and increment.
-  T3ArrayList.withSize(int initialSize, int incrementSize) : _allocated = initialSize, _incrementSize = incrementSize;
+  T3ArrayList.withSize(int initialSize, int incrementSize)
+    : _allocated = initialSize,
+      _incrementSize = incrementSize;
 
   /// Get the number of elements in the array.
   int get count => _count;

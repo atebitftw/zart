@@ -108,13 +108,23 @@ void main() {
     });
 
     test('creates exception with version flag', () {
-      final exc = T3VmException.withParams(vmErrMetaclassTooOld, [], versionFlag: true, metaclass: 'String/030000');
+      final exc = T3VmException.withParams(
+        vmErrMetaclassTooOld,
+        [],
+        versionFlag: true,
+        metaclass: 'String/030000',
+      );
       expect(exc.versionFlag, isTrue);
       expect(exc.metaclass, equals('String/030000'));
     });
 
     test('creates exception with funcset', () {
-      final exc = T3VmException.withParams(vmErrFuncsetTooOld, [], versionFlag: true, funcset: 'tads-gen/030008');
+      final exc = T3VmException.withParams(
+        vmErrFuncsetTooOld,
+        [],
+        versionFlag: true,
+        funcset: 'tads-gen/030008',
+      );
       expect(exc.versionFlag, isTrue);
       expect(exc.funcset, equals('tads-gen/030008'));
     });
@@ -175,7 +185,11 @@ void main() {
 
       for (final code in errorCodes) {
         final msg = getErrorMessage(code);
-        expect(msg, isNotNull, reason: 'Error code $code should have a message');
+        expect(
+          msg,
+          isNotNull,
+          reason: 'Error code $code should have a message',
+        );
         expect(msg, isNotEmpty);
       }
     });
@@ -228,7 +242,11 @@ void main() {
 
     test('formats message with multiple parameters', () {
       final template = 'Error %d: %s at %x';
-      final params = [T3ErrorParam.int(42), T3ErrorParam.string('overflow'), T3ErrorParam.int(0x1234)];
+      final params = [
+        T3ErrorParam.int(42),
+        T3ErrorParam.string('overflow'),
+        T3ErrorParam.int(0x1234),
+      ];
       final exc = T3VmException.withParams(vmErrNumOverflow, params);
       final formatted = formatErrorMessage(template, exc);
       expect(formatted, equals('Error 42: overflow at 1234'));
@@ -281,7 +299,13 @@ void main() {
     test('throwVmError throws exception', () {
       expect(
         () => throwVmError(vmErrDivideByZero),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrDivideByZero)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrDivideByZero,
+          ),
+        ),
       );
     });
 
@@ -331,8 +355,16 @@ void main() {
     });
 
     test('metaclass too old error with version info', () {
-      final params = [T3ErrorParam.string('String/030005'), T3ErrorParam.string('String/030000')];
-      final exc = T3VmException.withParams(vmErrMetaclassTooOld, params, versionFlag: true, metaclass: 'String/030005');
+      final params = [
+        T3ErrorParam.string('String/030005'),
+        T3ErrorParam.string('String/030000'),
+      ];
+      final exc = T3VmException.withParams(
+        vmErrMetaclassTooOld,
+        params,
+        versionFlag: true,
+        metaclass: 'String/030005',
+      );
 
       expect(exc.versionFlag, isTrue);
       expect(exc.metaclass, equals('String/030005'));
@@ -342,7 +374,10 @@ void main() {
     });
 
     test('unavailable intrinsic function error', () {
-      final params = [T3ErrorParam.int(15), T3ErrorParam.string('tads-gen/030008')];
+      final params = [
+        T3ErrorParam.int(15),
+        T3ErrorParam.string('tads-gen/030008'),
+      ];
       final exc = T3VmException.withParams(vmErrUnavailIntrinsic, params);
       final msg = exc.toString();
       expect(msg, contains('15'));

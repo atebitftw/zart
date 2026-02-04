@@ -126,9 +126,19 @@ class T3ObjByteArray extends T3Object {
   }
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     // Get the function table index from the property ID
-    final funcIdx = vm.metaTable?.propToVectorIdx(getMetaclassReg().getRegIdx(), propId);
+    final funcIdx = vm.metaTable?.propToVectorIdx(
+      getMetaclassReg().getRegIdx(),
+      propId,
+    );
     if (funcIdx == null || funcIdx < 0 || funcIdx > _propIdxDigestMD5) {
       return false;
     }
@@ -366,7 +376,8 @@ class T3ObjByteArray extends T3Object {
         }
         break;
       case 4:
-        final val = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+        final val =
+            bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
         if ((fmt & fmtSignedMask) == fmtSigned) {
           // Dart int is 64-bit, so handle 32-bit signed explicitly
           result = val < 0x80000000 ? val : val - 0x100000000;
@@ -568,7 +579,13 @@ class T3ObjByteArray extends T3Object {
   }
 
   @override
-  bool setIndexValQ(T3VM vm, T3Value newContainer, int self, T3Value indexVal, T3Value newVal) {
+  bool setIndexValQ(
+    T3VM vm,
+    T3Value newContainer,
+    int self,
+    T3Value indexVal,
+    T3Value newVal,
+  ) {
     final idx = indexVal.getAsInt();
     if (idx < 1 || idx > _data.length) {
       throw T3VmException(vmErrIndexOutOfRange);
@@ -632,7 +649,11 @@ class T3ObjByteArray extends T3Object {
       return;
     }
 
-    final cnt = ptr[offset] | (ptr[offset + 1] << 8) | (ptr[offset + 2] << 16) | (ptr[offset + 3] << 24);
+    final cnt =
+        ptr[offset] |
+        (ptr[offset + 1] << 8) |
+        (ptr[offset + 2] << 16) |
+        (ptr[offset + 3] << 24);
 
     // Limit to actual available bytes
     final bytesAvail = size - 4;
@@ -745,7 +766,9 @@ class T3MetaclassByteArray extends T3Metaclass {
 
         arr = T3ObjByteArray(cnt);
         if (cnt > 0 && srcIdx <= obj.length) {
-          final copyLen = srcIdx + cnt - 1 <= obj.length ? cnt : obj.length + 1 - srcIdx;
+          final copyLen = srcIdx + cnt - 1 <= obj.length
+              ? cnt
+              : obj.length + 1 - srcIdx;
           arr._data.setRange(0, copyLen, obj._data, srcIdx - 1);
         }
       } else if (obj is T3ObjString) {
@@ -783,7 +806,14 @@ class T3MetaclassByteArray extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     // Check for static packBytes
     final funcIdx = vm.metaTable?.propToVectorIdx(getRegIdx(), prop);
     if (funcIdx == _propIdxPackBytes) {

@@ -188,7 +188,8 @@ class T3ObjLookupTable extends T3Collection {
 
   @override
   void markRefs(T3VM vm, int state) {
-    if (_defaultValue.type == T3DataType.obj && _defaultValue.getAsObj() != null) {
+    if (_defaultValue.type == T3DataType.obj &&
+        _defaultValue.getAsObj() != null) {
       // TODO: Mark ref
     }
     for (final entry in _entries) {
@@ -348,7 +349,10 @@ class T3ObjLookupTable extends T3Collection {
     var newCount = _entries.length + (_entries.length >> 1);
     if (newCount < _entries.length + 16) newCount = _entries.length + 16;
     final oldCount = _entries.length;
-    _entries = List<_LookupEntry>.generate(newCount, (i) => i < oldCount ? _entries[i] : _LookupEntry());
+    _entries = List<_LookupEntry>.generate(
+      newCount,
+      (i) => i < oldCount ? _entries[i] : _LookupEntry(),
+    );
     _firstFreeIdx = oldCount;
     for (var i = oldCount; i < newCount; i++) {
       _entries[i].markFree();
@@ -421,8 +425,18 @@ class T3ObjLookupTable extends T3Collection {
   // -------------------------------------------------------------------------
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
-    final funcIdx = vm.metaTable.propToVectorIdx(metaclassReg.getRegIdx(), propId);
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
+    final funcIdx = vm.metaTable.propToVectorIdx(
+      metaclassReg.getRegIdx(),
+      propId,
+    );
     if (funcIdx != null && funcIdx >= 1 && funcIdx <= _propIdxNthVal) {
       sourceObj[0] = self;
       switch (funcIdx) {
@@ -456,7 +470,14 @@ class T3ObjLookupTable extends T3Collection {
     }
 
     // Check base collection properties
-    if (constGetCollProp(vm, propId, retval, T3Value()..setObj(self), sourceObj, argc)) {
+    if (constGetCollProp(
+      vm,
+      propId,
+      retval,
+      T3Value()..setObj(self),
+      sourceObj,
+      argc,
+    )) {
       return true;
     }
 
@@ -576,7 +597,13 @@ class T3ObjLookupTable extends T3Collection {
   }
 
   @override
-  bool setIndexValQ(T3VM vm, T3Value newContainer, int self, T3Value indexVal, T3Value newVal) {
+  bool setIndexValQ(
+    T3VM vm,
+    T3Value newContainer,
+    int self,
+    T3Value indexVal,
+    T3Value newVal,
+  ) {
     setOrAddEntry(indexVal, newVal);
     newContainer.setObj(self);
     return true;
@@ -591,7 +618,8 @@ class T3ObjLookupTable extends T3Collection {
     var allEqual = true;
     forEach((k, v) {
       final otherIdx = other._findEntry(k);
-      if (otherIdx < 0 || !v.equals(other._entries[otherIdx].val)) allEqual = false;
+      if (otherIdx < 0 || !v.equals(other._entries[otherIdx].val))
+        allEqual = false;
     });
     return allEqual;
   }
@@ -676,7 +704,14 @@ class T3MetaclassLookupTable extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) => false;
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) => false;
 
   @override
   int getSupermeta(T3VM vm, int idx) => invalidObj;
@@ -698,7 +733,8 @@ class T3MetaclassLookupTable extends T3Metaclass {
 /// LookupTable iterator metaclass.
 class T3ObjIterLookupTable extends T3ObjIter {
   /// Metaclass registration.
-  static final T3MetaclassIterLookupTable metaclassReg = T3MetaclassIterLookupTable();
+  static final T3MetaclassIterLookupTable metaclassReg =
+      T3MetaclassIterLookupTable();
 
   @override
   T3Metaclass getMetaclassReg() => metaclassReg;
@@ -720,7 +756,8 @@ class T3ObjIterLookupTable extends T3ObjIter {
   static const int _flagUndo = 0x0001;
 
   /// Create an iterator for a lookup table collection.
-  T3ObjIterLookupTable(T3Value collVal) : _collectionValue = T3Value.copy(collVal);
+  T3ObjIterLookupTable(T3Value collVal)
+    : _collectionValue = T3Value.copy(collVal);
 
   /// Create iterator for a collection and register it.
   static int createForColl(T3VM vm, T3Value coll) {
@@ -731,7 +768,8 @@ class T3ObjIterLookupTable extends T3ObjIter {
   /// Get the lookup table object.
   T3ObjLookupTable? _getLookupTable(T3VM vm) {
     if (_collectionValue.type != T3DataType.obj) return null;
-    return vm.objTable.getObj(_collectionValue.getAsObj()!) as T3ObjLookupTable?;
+    return vm.objTable.getObj(_collectionValue.getAsObj()!)
+        as T3ObjLookupTable?;
   }
 
   /// Find the first valid entry index >= the given index.
@@ -878,7 +916,14 @@ class T3MetaclassIterLookupTable extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     return false;
   }
 

@@ -94,8 +94,14 @@ void main() {
       final id1 = 100;
       final id2 = 101;
 
-      expect(anon1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id1), 0), isTrue);
-      expect(anon1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0), isFalse);
+      expect(
+        anon1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id1), 0),
+        isTrue,
+      );
+      expect(
+        anon1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0),
+        isFalse,
+      );
     });
   });
 }

@@ -70,7 +70,8 @@ class T3ObjAnonFn extends T3ObjVector {
     final funcPtrVal = T3Value();
     vm.stack.pop(funcPtrVal);
 
-    if (funcPtrVal.type != T3DataType.funcPtr && funcPtrVal.type != T3DataType.codeOfs) {
+    if (funcPtrVal.type != T3DataType.funcPtr &&
+        funcPtrVal.type != T3DataType.codeOfs) {
       // Check if it's an invokable object.
       bool invokable = false;
       if (funcPtrVal.type == T3DataType.obj) {
@@ -132,7 +133,14 @@ class T3MetaclassAnonFn extends T3Metaclass {
   T3Metaclass? getSupermetaReg() => T3ObjVector.metaclassReg;
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     return false;
   }
 

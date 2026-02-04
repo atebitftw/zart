@@ -196,7 +196,10 @@ void main() {
       final meta = T3MetaclassTads();
       final vm = T3VM();
 
-      expect(() => meta.createFromStack(vm, null, 0, 0), throwsA(isA<T3VmException>()));
+      expect(
+        () => meta.createFromStack(vm, null, 0, 0),
+        throwsA(isA<T3VmException>()),
+      );
     });
 
     test('callStatProp returns false', () {

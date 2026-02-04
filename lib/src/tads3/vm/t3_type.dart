@@ -492,10 +492,13 @@ class T3Value {
 
       case T3DataType.bifPtr:
       case T3DataType.bifPtrX:
-        return other.type == T3DataType.bifPtr && other._bifSetIdx == _bifSetIdx && other._bifFuncIdx == _bifFuncIdx;
+        return other.type == T3DataType.bifPtr &&
+            other._bifSetIdx == _bifSetIdx &&
+            other._bifFuncIdx == _bifFuncIdx;
 
       case T3DataType.enumValue:
-        return other.type == T3DataType.enumValue && other._enumValue == _enumValue;
+        return other.type == T3DataType.enumValue &&
+            other._enumValue == _enumValue;
 
       case T3DataType.sstring:
         // TODO: Use string comparison when string metaclass is ported
@@ -1004,7 +1007,8 @@ extension T3ValueCopyExt on T3Value {
         return true;
       case T3DataType.obj:
         if (_objValue == other._objValue) return true;
-        if (_objValue == invalidObjectId || other._objValue == invalidObjectId) return false;
+        if (_objValue == invalidObjectId || other._objValue == invalidObjectId)
+          return false;
         final obj = vm.objTable.getObj(_objValue!);
         return obj.equals(vm, _objValue!, other, depth + 1);
       case T3DataType.prop:
@@ -1038,10 +1042,18 @@ extension T3ValueCopyExt on T3Value {
       case T3DataType.empty:
         break;
       case T3DataType.int32:
-        _intValue = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+        _intValue =
+            data[pos] |
+            (data[pos + 1] << 8) |
+            (data[pos + 2] << 16) |
+            (data[pos + 3] << 24);
         break;
       case T3DataType.obj:
-        _objValue = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+        _objValue =
+            data[pos] |
+            (data[pos + 1] << 8) |
+            (data[pos + 2] << 16) |
+            (data[pos + 3] << 24);
         break;
       case T3DataType.prop:
         _propValue = data[pos] | (data[pos + 1] << 8);
@@ -1051,7 +1063,11 @@ extension T3ValueCopyExt on T3Value {
       case T3DataType.list:
       case T3DataType.codeOfs:
       case T3DataType.funcPtr:
-        _ofsValue = data[pos] | (data[pos + 1] << 8) | (data[pos + 2] << 16) | (data[pos + 3] << 24);
+        _ofsValue =
+            data[pos] |
+            (data[pos + 1] << 8) |
+            (data[pos + 2] << 16) |
+            (data[pos + 3] << 24);
         break;
       default:
         // Other types might need specific handling or are not present in constant data

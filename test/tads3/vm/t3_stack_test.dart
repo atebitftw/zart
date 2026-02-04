@@ -92,7 +92,13 @@ void main() {
       // Next push should overflow
       expect(
         () => stack.pushCheck(T3Value()..setInt(99)),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrStackOverflow)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrStackOverflow,
+          ),
+        ),
       );
     });
 
@@ -102,7 +108,13 @@ void main() {
 
       expect(
         () => stack.pushSlotCheck(),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrStackOverflow)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrStackOverflow,
+          ),
+        ),
       );
     });
 
@@ -111,7 +123,13 @@ void main() {
 
       expect(
         () => stack.pushMultipleCheck(11),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrStackOverflow)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrStackOverflow,
+          ),
+        ),
       );
     });
   });
@@ -306,7 +324,13 @@ void main() {
       final stack = T3Stack(10, 5);
       expect(
         () => stack.checkThrow(11),
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrStackOverflow)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrStackOverflow,
+          ),
+        ),
       );
     });
 
@@ -412,7 +436,13 @@ void main() {
 
       expect(
         () => stack.insert(1, 3), // Would need 6 total slots
-        throwsA(isA<T3VmException>().having((e) => e.errorCode, 'errorCode', vmErrStackOverflow)),
+        throwsA(
+          isA<T3VmException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            vmErrStackOverflow,
+          ),
+        ),
       );
     });
   });

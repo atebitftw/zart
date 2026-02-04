@@ -25,9 +25,19 @@ abstract class T3ObjIter extends T3Object {
   static const int propGetCurVal = 5;
 
   @override
-  bool getProp(T3VM vm, int prop, T3Value val, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int prop,
+    T3Value val,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     // Translate the property into a function index via metaclass table
-    final funcIdx = vm.metaTable.propToVectorIdx(metaclassReg.getRegIdx(), prop);
+    final funcIdx = vm.metaTable.propToVectorIdx(
+      metaclassReg.getRegIdx(),
+      prop,
+    );
 
     bool handled = false;
     switch (funcIdx) {
@@ -218,7 +228,8 @@ class T3ObjIterIdx extends T3ObjIter {
   @override
   bool getpGetCurKey(T3VM vm, int self, T3Value retval, int? argc) {
     if (argc != null && argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
-    if (curIndex < firstValid || curIndex > lastValid) throw T3VmException(vmErrOutOfRange);
+    if (curIndex < firstValid || curIndex > lastValid)
+      throw T3VmException(vmErrOutOfRange);
     retval.setInt(curIndex);
     return true;
   }
@@ -226,7 +237,8 @@ class T3ObjIterIdx extends T3ObjIter {
   @override
   bool getpGetCurVal(T3VM vm, int self, T3Value retval, int? argc) {
     if (argc != null && argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
-    if (curIndex < firstValid || curIndex > lastValid) throw T3VmException(vmErrOutOfRange);
+    if (curIndex < firstValid || curIndex > lastValid)
+      throw T3VmException(vmErrOutOfRange);
     _getIndexedVal(vm, curIndex, retval);
     return true;
   }
@@ -242,7 +254,12 @@ class T3ObjIterIdx extends T3ObjIter {
         final objId = collectionValue.getAsObj()!;
         final obj = vm.objTable.getObj(objId);
         if (obj == null) throw T3VmException(vmErrInvalObjType);
-        obj.indexValQ(vm, retval, objId, T3Value(T3DataType.int32)..setInt(idx));
+        obj.indexValQ(
+          vm,
+          retval,
+          objId,
+          T3Value(T3DataType.int32)..setInt(idx),
+        );
         break;
       default:
         throw T3VmException(vmErrCannotIndexType);
@@ -330,7 +347,14 @@ class T3MetaclassIter extends T3Metaclass {
   T3Metaclass? getSupermetaReg() => null;
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     return false;
   }
 
@@ -374,7 +398,14 @@ class T3MetaclassIterIdx extends T3Metaclass {
   T3Metaclass? getSupermetaReg() => T3ObjIter.metaclassReg;
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     return false;
   }
 

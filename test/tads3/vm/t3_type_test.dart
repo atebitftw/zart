@@ -350,7 +350,10 @@ void main() {
       a.setInt(42);
       final b = T3Value();
       b.setInt(42);
-      expect(() => a.equals(b, maxTreeDepthEq + 1), throwsA(isA<T3TypeError>()));
+      expect(
+        () => a.equals(b, maxTreeDepthEq + 1),
+        throwsA(isA<T3TypeError>()),
+      );
     });
   });
 
@@ -392,7 +395,10 @@ void main() {
     test('throws on excessive recursion depth', () {
       final val = T3Value();
       val.setInt(42);
-      expect(() => val.calcHash(maxTreeDepthEq + 1), throwsA(isA<T3TypeError>()));
+      expect(
+        () => val.calcHash(maxTreeDepthEq + 1),
+        throwsA(isA<T3TypeError>()),
+      );
     });
   });
 

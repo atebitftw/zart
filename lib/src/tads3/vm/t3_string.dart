@@ -56,7 +56,14 @@ class T3ObjString extends T3Object {
   }
 
   @override
-  bool getProp(T3VM vm, int propId, T3Value retval, int self, List<int> sourceObj, int? argc) {
+  bool getProp(
+    T3VM vm,
+    int propId,
+    T3Value retval,
+    int self,
+    List<int> sourceObj,
+    int? argc,
+  ) {
     // Dispatch to method based on property ID
     // Property IDs are defined in the function table
     sourceObj[0] = self;
@@ -224,7 +231,9 @@ class T3ObjString extends T3Object {
     // Convert from 1-based to 0-based
     final startIdx = start - 1;
     if (startIdx < 0 || startIdx >= value.length) return '';
-    final endIdx = len != null ? (startIdx + len).clamp(0, value.length) : value.length;
+    final endIdx = len != null
+        ? (startIdx + len).clamp(0, value.length)
+        : value.length;
     return value.substring(startIdx, endIdx);
   }
 
@@ -281,7 +290,14 @@ class T3MetaclassString extends T3Metaclass {
   }
 
   @override
-  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+  bool callStatProp(
+    T3VM vm,
+    T3Value result,
+    Uint8List pc,
+    int pcOffset,
+    int argc,
+    int prop,
+  ) {
     // String has no static properties
     return false;
   }

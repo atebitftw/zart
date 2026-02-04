@@ -67,7 +67,10 @@ void main() {
         vm.stack.pushInt(100);
         vm.stack.pushInt(50);
         vm.stack.pushInt(25);
-        expect(() => T3ObjLookupTable.createFromStack(vm, 3), throwsA(isA<T3VmException>()));
+        expect(
+          () => T3ObjLookupTable.createFromStack(vm, 3),
+          throwsA(isA<T3VmException>()),
+        );
       });
     });
 
@@ -345,7 +348,10 @@ void main() {
         final id1 = vm.objTable.registerObj(table1, false);
         final id2 = vm.objTable.registerObj(table2, false);
 
-        expect(table1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0), isTrue);
+        expect(
+          table1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0),
+          isTrue,
+        );
       });
 
       test('not equals LookupTable with different content', () {
@@ -362,7 +368,10 @@ void main() {
         final id1 = vm.objTable.registerObj(table1, false);
         final id2 = vm.objTable.registerObj(table2, false);
 
-        expect(table1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0), isFalse);
+        expect(
+          table1.equals(vm, id1, T3Value(T3DataType.obj)..setObj(id2), 0),
+          isFalse,
+        );
       });
     });
 
@@ -476,7 +485,8 @@ void main() {
       test('loadFromImage parses format correctly', () {
         // Create image data for a table with 2 buckets, 1 entry
         // entry: key=42, val=100
-        final dataSize = 6 + 2 * 2 + 1 * 12 + 5; // header + buckets + entry + default
+        final dataSize =
+            6 + 2 * 2 + 1 * 12 + 5; // header + buckets + entry + default
         final data = Uint8List(dataSize);
         final view = ByteData.sublistView(data);
 
@@ -661,7 +671,10 @@ void main() {
       iter.getpGetNext(vm, iterId, retval, 0);
       iter.getpGetNext(vm, iterId, retval, 0);
 
-      expect(() => iter.getpGetNext(vm, iterId, retval, 0), throwsA(isA<T3VmException>()));
+      expect(
+        () => iter.getpGetNext(vm, iterId, retval, 0),
+        throwsA(isA<T3VmException>()),
+      );
     });
   });
 

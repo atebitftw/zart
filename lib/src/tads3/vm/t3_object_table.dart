@@ -64,7 +64,9 @@ class T3ObjPageEntry {
   /// An object is saveable if it's not free, not transient, and either
   /// not in the root set or has been modified since loading.
   bool get isSaveable {
-    return !free && !transient && (!inRootSet || (obj?.isChangedSinceLoad() ?? false));
+    return !free &&
+        !transient &&
+        (!inRootSet || (obj?.isChangedSinceLoad() ?? false));
   }
 
   /// Check if the object is persistent (survives save/restore).
@@ -180,7 +182,12 @@ class T3ObjectTable {
   /// [inRootSet] - true if the object is part of the root set
   /// [canHaveRefs] - true if the object can contain references to other objects
   /// [canHaveWeakRefs] - true if the object can contain weak references
-  int allocObj(T3VM vm, bool inRootSet, [bool canHaveRefs = true, bool canHaveWeakRefs = true]) {
+  int allocObj(
+    T3VM vm,
+    bool inRootSet, [
+    bool canHaveRefs = true,
+    bool canHaveWeakRefs = true,
+  ]) {
     // If the free list is empty, allocate a new page
     if (_freeListHead == invalidObj) {
       _allocNewPage();
@@ -225,7 +232,12 @@ class T3ObjectTable {
   ///
   /// Used when loading objects from an image file or restoring from saved state,
   /// since objects must be loaded with their original IDs.
-  void allocObjWithId(int id, bool inRootSet, [bool canHaveRefs = true, bool canHaveWeakRefs = true]) {
+  void allocObjWithId(
+    int id,
+    bool inRootSet, [
+    bool canHaveRefs = true,
+    bool canHaveWeakRefs = true,
+  ]) {
     // Ensure we have enough pages
     while (id >= getMaxUsedObjId()) {
       _allocNewPage();
@@ -262,7 +274,9 @@ class T3ObjectTable {
 
   /// Determine if an object ID refers to a valid object.
   bool isObjIdValid(int id) {
-    return id != invalidObj && id < getMaxUsedObjId() && !(getEntry(id)?.free ?? true);
+    return id != invalidObj &&
+        id < getMaxUsedObjId() &&
+        !(getEntry(id)?.free ?? true);
   }
 
   /// Determine if the given object is transient.
@@ -313,7 +327,11 @@ class T3ObjectTable {
   }
 
   /// Call a callback for each object in the table.
-  void forEach(T3VM vm, void Function(T3VM vm, int objId, dynamic ctx) func, dynamic ctx) {
+  void forEach(
+    T3VM vm,
+    void Function(T3VM vm, int objId, dynamic ctx) func,
+    dynamic ctx,
+  ) {
     for (var pageIdx = 0; pageIdx < _pagesUsed; pageIdx++) {
       final page = _pages[pageIdx];
       for (var entryIdx = 0; entryIdx < pageCount; entryIdx++) {
@@ -356,7 +374,11 @@ class T3ObjectTable {
   /// Allocate a new page of objects.
   void _allocNewPage() {
     // Create a new page
-    final page = List<T3ObjPageEntry>.generate(pageCount, (_) => T3ObjPageEntry(), growable: false);
+    final page = List<T3ObjPageEntry>.generate(
+      pageCount,
+      (_) => T3ObjPageEntry(),
+      growable: false,
+    );
 
     // Add to page table
     _pages.add(page);
@@ -400,7 +422,13 @@ class T3ObjectTable {
   ///
   /// Removes the entry from the free list, marks it as allocated,
   /// and initializes its GC status.
-  void _initEntryForAlloc(int id, T3ObjPageEntry entry, bool inRootSet, bool canHaveRefs, bool canHaveWeakRefs) {
+  void _initEntryForAlloc(
+    int id,
+    T3ObjPageEntry entry,
+    bool inRootSet,
+    bool canHaveRefs,
+    bool canHaveWeakRefs,
+  ) {
     // Mark as allocated
     entry.free = false;
     entry.obj = null; // Will be set by the caller
