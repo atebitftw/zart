@@ -22,6 +22,7 @@
 library;
 
 import 'package:zart/src/tads3/vm/t3_lookup.dart';
+import 'package:zart/src/tads3/vm/t3_bignum.dart';
 import 'package:zart/src/tads3/vm/t3_metaclass_table.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
 import 'package:zart/src/tads3/vm/t3_type.dart';
@@ -219,6 +220,7 @@ class T3Globals extends T3VM {
     metaTable!.registerMetaclass(T3ObjIterIdx.metaclassRegIdx);
     metaTable!.registerMetaclass(T3MetaclassCollection());
     metaTable!.registerMetaclass(T3ObjLookupTable.metaclassReg);
+    metaTable!.registerMetaclass(T3MetaclassBigNumber.instance);
   }
 
   /// Dispose of all resources

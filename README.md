@@ -16,8 +16,8 @@ Enjoy!
 * Plays Inform v6 & v7 games.
 * Plays TADS 3 games.
 * Supports all popular game file formats (.z3, .z5, .z8, .dat, .blorb, .zblorb, .gblorb, .ulx, .t3, etc).
-* Provides a unified API that allows you to build your own player for any platform that Flutter/Dart runs on.
-* Full-features CLI player and Flutter Web Player available.
+* Provides a unified API that allows you to build your own implementation (game player) for any platform that Flutter/Dart runs on.
+* Full-featured CLI player and Flutter Web Player available.
 
 ## Getting Started
 [You Can Read The Full Getting Started Document Here.](https://github.com/atebitftw/zart/blob/main/doc/getting_started.md)

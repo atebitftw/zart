@@ -19,6 +19,9 @@ topics:
   - zmachine
   - interactive-fiction
   - zork
+  - inform-6
+  - inform-7
+  - tads-3
 environment:
   sdk: ^3.10.4
 dependencies:

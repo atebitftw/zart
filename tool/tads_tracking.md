@@ -51,10 +51,10 @@ Complex built-in TADS 3 objects.
 - [x] `vmlookup.cpp` / `vmlookup.h` - LookupTable metaclass (Ported to `t3_lookup.dart`, includes `LookupTableIterator`, verified with 58 unit tests) <!-- id: 211 -->
 - [x] `vmdict.cpp` / `vmdict.h` - Dictionary metaclass (Ported to `t3_dict.dart`, verified with 41 unit tests) <!-- id: 203 -->
 - [x] `vmregex.cpp` / `vmregex.h` - RexGroup metaclass (Ported to `t3_regex.dart` using TADS-to-Dart pattern translator, verified with 59 unit tests) <!-- id: 212 -->
-- [ ] `vmbignum.cpp` / `vmbignum.h` - BigNumber metaclass <!-- id: 205 -->
+- [x] `vmbignum.cpp` / `vmbignum.h` - BigNumber metaclass (Ported to `t3_bignum.dart` with support for all 35 property methods including transcendental functions, verified with unit tests) <!-- id: 205 -->
 - [ ] `vmdate.cpp` / `vmdate.h` - Date metaclass <!-- id: 207 -->
 - [ ] `vmfile.cpp` / `vmfile.h` - File metaclass <!-- id: 209 -->
-- [ ] `vmbytarr.cpp` / `vmbytarr.h` - ByteArray metaclass <!-- id: 206 -->
+- [x] `vmbytarr.cpp` / `vmbytarr.h` - ByteArray metaclass <!-- id: 206 -->
 - [ ] `vmtz.cpp` / `vmtz.h` - TimeZone and TimeZoneData metaclasses <!-- id: 215 -->
 - [ ] `vmgram.cpp` / `vmgram.h` - GrammarProd metaclass <!-- id: 210 -->
 - [ ] `vmdynfunc.cpp` / `vmdynfunc.h` - DynamicFunc metaclass <!-- id: 208 -->
