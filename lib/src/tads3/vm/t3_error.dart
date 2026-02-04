@@ -168,6 +168,8 @@ const int vmErrVmExcCode = 2313;
 const int vmErrExcInStaticInit = 2314;
 const int vmErrIntclsGeneralError = 2315;
 const int vmErrStackOutOfBounds = 2316;
+const int vmErrTzFileOpen = 2317;
+const int vmErrTzFileRead = 2318;
 
 // Debugger interface errors (2391-2396)
 const int vmErrDbgAbort = 2391;
@@ -229,19 +231,13 @@ class T3ErrorParam {
   T3ErrorParam.string(String val) : type = T3ErrorParamType.string, value = val;
 
   /// Create a metaclass parameter
-  T3ErrorParam.metaclass(String val)
-    : type = T3ErrorParamType.metaclass,
-      value = val;
+  T3ErrorParam.metaclass(String val) : type = T3ErrorParamType.metaclass, value = val;
 
   /// Create a function set parameter
-  T3ErrorParam.funcset(String val)
-    : type = T3ErrorParamType.funcset,
-      value = val;
+  T3ErrorParam.funcset(String val) : type = T3ErrorParamType.funcset, value = val;
 
   /// Create a version flag parameter
-  T3ErrorParam.versionFlag()
-    : type = T3ErrorParamType.versionFlag,
-      value = null;
+  T3ErrorParam.versionFlag() : type = T3ErrorParamType.versionFlag, value = null;
 
   /// Get as integer
   int get asInt => value as int;
@@ -274,20 +270,10 @@ class T3VmException implements Exception {
   final String? funcset;
 
   /// Create an exception with no parameters
-  T3VmException(this.errorCode)
-    : parameters = const [],
-      versionFlag = false,
-      metaclass = null,
-      funcset = null;
+  T3VmException(this.errorCode) : parameters = const [], versionFlag = false, metaclass = null, funcset = null;
 
   /// Create an exception with parameters
-  T3VmException.withParams(
-    this.errorCode,
-    this.parameters, {
-    this.versionFlag = false,
-    this.metaclass,
-    this.funcset,
-  });
+  T3VmException.withParams(this.errorCode, this.parameters, {this.versionFlag = false, this.metaclass, this.funcset});
 
   /// Get the number of parameters
   int get paramCount => parameters.length;
@@ -544,11 +530,7 @@ const List<_ErrorMessage> _errorMessages = [
     'saved state file is corrupted (incorrect checksum)',
     "The saved state file's checksum is invalid. This usually indicates that the file has been corrupted (which could be due to a media error, modification by another application, or a file transfer that lost or changed data).",
   ),
-  _ErrorMessage(
-    vmErrNoStrConv,
-    'cannot convert value to string',
-    'This value cannot be converted to a string.',
-  ),
+  _ErrorMessage(vmErrNoStrConv, 'cannot convert value to string', 'This value cannot be converted to a string.'),
   _ErrorMessage(
     vmErrConvBufOvf,
     'string conversion buffer overflow',
@@ -559,16 +541,8 @@ const List<_ErrorMessage> _errorMessages = [
     'invalid datatypes for addition operator',
     'Invalid datatypes for addition operator. The values being added cannot be combined in this manner.',
   ),
-  _ErrorMessage(
-    vmErrNumValReqd,
-    'numeric value required',
-    'Invalid value type - a numeric value is required.',
-  ),
-  _ErrorMessage(
-    vmErrIntValReqd,
-    'integer value required',
-    'Invalid value type - an integer value is required.',
-  ),
+  _ErrorMessage(vmErrNumValReqd, 'numeric value required', 'Invalid value type - a numeric value is required.'),
+  _ErrorMessage(vmErrIntValReqd, 'integer value required', 'Invalid value type - an integer value is required.'),
   _ErrorMessage(
     vmErrNoLogConv,
     'cannot convert value to logical (true/nil)',
@@ -579,36 +553,16 @@ const List<_ErrorMessage> _errorMessages = [
     'invalid datatypes for subtraction operator',
     'Invalid datatypes for subtraction operator. The values used cannot be combined in this manner.',
   ),
-  _ErrorMessage(
-    vmErrDivideByZero,
-    'division by zero',
-    'Arithmetic error - Division by zero.',
-  ),
+  _ErrorMessage(vmErrDivideByZero, 'division by zero', 'Arithmetic error - Division by zero.'),
   _ErrorMessage(
     vmErrInvalidComparison,
     'invalid comparison',
     'Invalid comparison - these values cannot be compared to one another.',
   ),
-  _ErrorMessage(
-    vmErrObjValReqd,
-    'object value required',
-    'An object value is required.',
-  ),
-  _ErrorMessage(
-    vmErrPropptrValReqd,
-    'property pointer required',
-    'A property pointer value is required.',
-  ),
-  _ErrorMessage(
-    vmErrLogValReqd,
-    'logical value required',
-    'A logical (true/nil) value is required.',
-  ),
-  _ErrorMessage(
-    vmErrFuncptrValReqd,
-    'function pointer required',
-    'A function pointer value is required.',
-  ),
+  _ErrorMessage(vmErrObjValReqd, 'object value required', 'An object value is required.'),
+  _ErrorMessage(vmErrPropptrValReqd, 'property pointer required', 'A property pointer value is required.'),
+  _ErrorMessage(vmErrLogValReqd, 'logical value required', 'A logical (true/nil) value is required.'),
+  _ErrorMessage(vmErrFuncptrValReqd, 'function pointer required', 'A function pointer value is required.'),
   _ErrorMessage(
     vmErrCannotIndexType,
     'invalid index operation - this type of value cannot be indexed',
@@ -634,26 +588,14 @@ const List<_ErrorMessage> _errorMessages = [
     'object value required for base class',
     'An object value must be specified for the base class of a dynamic object creation operation. The superclass value is of a non-object type.',
   ),
-  _ErrorMessage(
-    vmErrStringValReqd,
-    'string value required',
-    'A string value is required.',
-  ),
-  _ErrorMessage(
-    vmErrListValReqd,
-    'list value required',
-    'A list value is required.',
-  ),
+  _ErrorMessage(vmErrStringValReqd, 'string value required', 'A string value is required.'),
+  _ErrorMessage(vmErrListValReqd, 'list value required', 'A list value is required.'),
   _ErrorMessage(
     vmErrInvalObjType,
     'invalid object type - cannot convert to required object type',
     'An object is not of the correct type. The object specified cannot be converted to the required object type.',
   ),
-  _ErrorMessage(
-    vmErrNumOverflow,
-    'numeric overflow',
-    'A numeric calculation overflowed the limits of the datatype.',
-  ),
+  _ErrorMessage(vmErrNumOverflow, 'numeric overflow', 'A numeric calculation overflowed the limits of the datatype.'),
   _ErrorMessage(
     vmErrBadTypeMul,
     'invalid datatypes for multiplication operator',
@@ -689,11 +631,7 @@ const List<_ErrorMessage> _errorMessages = [
     'maximum equality test/hash recursion depth exceeded',
     'This equality comparison or hash calculation is too complex and cannot be performed. This usually indicates that a value contains circular references, such as a Vector that contains a reference to itself, or to another Vector that contains a reference to the first one. This type of value cannot be compared for equality or used in a LookupTable.',
   ),
-  _ErrorMessage(
-    vmErrNoIntConv,
-    'cannot convert value to integer',
-    'This value cannot be converted to an integer.',
-  ),
+  _ErrorMessage(vmErrNoIntConv, 'cannot convert value to integer', 'This value cannot be converted to an integer.'),
   _ErrorMessage(
     vmErrBadTypeMod,
     'invalid datatype for modulo operator',
@@ -774,11 +712,7 @@ const List<_ErrorMessage> _errorMessages = [
     "missing named argument '%s'",
     "The named argument '%s' was expected in a function or method call, but it wasn't provided by the caller.",
   ),
-  _ErrorMessage(
-    vmErrBadTypeCall,
-    'invalid type for call',
-    'The value cannot be invoked as a method or function.',
-  ),
+  _ErrorMessage(vmErrBadTypeCall, 'invalid type for call', 'The value cannot be invoked as a method or function.'),
   _ErrorMessage(
     vmErrNilSelf,
     "nil 'self' value is not allowed",
@@ -834,11 +768,7 @@ const List<_ErrorMessage> _errorMessages = [
     'invalid opcode modifier - possible image file corruption',
     'Invalid instruction opcode modifier - the image file might be corrupted.',
   ),
-  _ErrorMessage(
-    vmErrUnhandledExcParam,
-    'Unhandled exception: %s',
-    'Unhandled exception: %s',
-  ),
+  _ErrorMessage(vmErrUnhandledExcParam, 'Unhandled exception: %s', 'Unhandled exception: %s'),
   _ErrorMessage(vmErrVmExcParam, 'VM Error: %s', 'VM Error: %s'),
   _ErrorMessage(vmErrVmExcCode, 'VM Error: code %d', 'VM Error: code %d'),
   _ErrorMessage(
@@ -846,11 +776,7 @@ const List<_ErrorMessage> _errorMessages = [
     'Exception in static initializer for %s.%s: %s',
     'An exception occurred in the static initializer for %s.%s: %s',
   ),
-  _ErrorMessage(
-    vmErrIntclsGeneralError,
-    'intrinsic class exception: %s',
-    'Exception in intrinsic class method: %s',
-  ),
+  _ErrorMessage(vmErrIntclsGeneralError, 'intrinsic class exception: %s', 'Exception in intrinsic class method: %s'),
   _ErrorMessage(
     vmErrStackOutOfBounds,
     'stack access is out of bounds',
@@ -918,8 +844,7 @@ String formatErrorMessage(String template, T3VmException exc) {
 
         case 'd':
           // Signed decimal integer
-          if (param.type == T3ErrorParamType.int ||
-              param.type == T3ErrorParamType.ulong) {
+          if (param.type == T3ErrorParamType.int || param.type == T3ErrorParamType.ulong) {
             result.write(param.asInt.toString());
           } else {
             result.write('?');
@@ -930,8 +855,7 @@ String formatErrorMessage(String template, T3VmException exc) {
 
         case 'u':
           // Unsigned decimal integer
-          if (param.type == T3ErrorParamType.int ||
-              param.type == T3ErrorParamType.ulong) {
+          if (param.type == T3ErrorParamType.int || param.type == T3ErrorParamType.ulong) {
             result.write(param.asInt.toUnsigned(32).toString());
           } else {
             result.write('?');
@@ -942,8 +866,7 @@ String formatErrorMessage(String template, T3VmException exc) {
 
         case 'x':
           // Hexadecimal integer
-          if (param.type == T3ErrorParamType.int ||
-              param.type == T3ErrorParamType.ulong) {
+          if (param.type == T3ErrorParamType.int || param.type == T3ErrorParamType.ulong) {
             result.write(param.asInt.toRadixString(16));
           } else {
             result.write('?');

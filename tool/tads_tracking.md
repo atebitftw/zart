@@ -52,11 +52,11 @@ Complex built-in TADS 3 objects.
 - [x] `vmdict.cpp` / `vmdict.h` - Dictionary metaclass (Ported to `t3_dict.dart`, verified with 41 unit tests) <!-- id: 203 -->
 - [x] `vmregex.cpp` / `vmregex.h` - RexGroup metaclass (Ported to `t3_regex.dart` using TADS-to-Dart pattern translator, verified with 59 unit tests) <!-- id: 212 -->
 - [x] `vmbignum.cpp` / `vmbignum.h` - BigNumber metaclass (Ported to `t3_bignum.dart` with support for all 35 property methods including transcendental functions, verified with unit tests) <!-- id: 205 -->
-- [ ] `vmdate.cpp` / `vmdate.h` - Date metaclass <!-- id: 207 -->
-- [ ] `vmfile.cpp` / `vmfile.h` - File metaclass <!-- id: 209 -->
+- [x] `vmdate.cpp` / `vmdate.h` - Date metaclass <!-- id: 207 -->
+- [x] `vmfile.cpp` / `vmfile.h` - File metaclass <!-- id: 209 -->
 - [x] `vmbytarr.cpp` / `vmbytarr.h` - ByteArray metaclass <!-- id: 206 -->
-- [ ] `vmtz.cpp` / `vmtz.h` - TimeZone and TimeZoneData metaclasses <!-- id: 215 -->
-- [ ] `vmgram.cpp` / `vmgram.h` - GrammarProd metaclass <!-- id: 210 -->
+- [x] `vmtz.cpp` / `vmtz.h` - TimeZone and TimeZoneData metaclasses <!-- id: 215 -->
+- [x] `vmgram.cpp` / `vmgram.h` - GrammarProd metaclass (Ported to `t3_grammar.dart`, verified with unit tests) <!-- id: 210 -->
 - [ ] `vmdynfunc.cpp` / `vmdynfunc.h` - DynamicFunc metaclass <!-- id: 208 -->
 - [ ] `vmundo.cpp` / `vmundo.h` - Undo mechanism <!-- id: 216 -->
 
@@ -84,16 +84,3 @@ Low-level algorithm implementations.
 - [x] `sha2.cpp` / `sha2.h` - SHA-256 implementation <!-- id: 403 -->
 - [x] `md5.cpp` / `md5.h` - MD5 implementation <!-- id: 404 -->
 - [x] `vmcrc.cpp` / `vmcrc.h` - CRC-32 implementation <!-- id: 405 -->
-
-## TADS 3 Compiler (TC)
-Files related to the TADS 3 compiler (low priority for interpreter port).
-
-- [ ] `tcmain.cpp` / `tcmain.h` - Compiler entry point <!-- id: 600 -->
-- [ ] `tcprs.cpp` / `tcprs.h` - Parser implementation <!-- id: 601 -->
-- [ ] `tctok.cpp` / `tctok.h` - Tokenizer implementation <!-- id: 602 -->
-- [ ] `tct3.cpp` / `tct3.h` - T3 code generator <!-- id: 603 -->
-
-## Resource Handling
-Resource compiler tools (low priority).
-
-- [ ] `rcmain.cpp` / `rcmain.h` - Resource compiler entry point <!-- id: 700 -->

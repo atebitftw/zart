@@ -38,6 +38,9 @@ import 'package:zart/src/tads3/vm/t3_tads_object.dart';
 import 'package:zart/src/tads3/vm/t3_anon_fn.dart';
 import 'package:zart/src/tads3/vm/t3_iter.dart';
 import 'package:zart/src/tads3/vm/t3_collection.dart';
+import 'package:zart/src/tads3/vm/t3_date.dart';
+import 'package:zart/src/tads3/vm/t3_tz.dart';
+import 'package:zart/src/tads3/vm/t3_tz_obj.dart';
 
 /// TADS3 VM Global State
 ///
@@ -97,6 +100,9 @@ class T3Globals extends T3VM {
   ///
   /// Manages metaclass registration and dynamic linking.
   T3MetaclassTable? metaTable;
+
+  /// Time zone cache
+  final T3TimeZoneCache tzCache = T3TimeZoneCache();
 
   // TODO: Implement T3Memory (object memory manager)
   // T3Memory? mem;
@@ -212,15 +218,15 @@ class T3Globals extends T3VM {
     metaTable!.registerMetaclass(T3ObjList.metaclassReg);
     metaTable!.registerMetaclass(T3ObjVector.metaclassReg);
     metaTable!.registerMetaclass(T3ObjString.metaclassReg);
-    metaTable!.registerMetaclass(
-      T3MetaclassTads(),
-    ); // TadsObject doesn't have it as static final yet?
+    metaTable!.registerMetaclass(T3MetaclassTads()); // TadsObject doesn't have it as static final yet?
     metaTable!.registerMetaclass(T3ObjAnonFn.metaclassReg);
     metaTable!.registerMetaclass(T3ObjIter.metaclassReg);
     metaTable!.registerMetaclass(T3ObjIterIdx.metaclassRegIdx);
     metaTable!.registerMetaclass(T3MetaclassCollection());
     metaTable!.registerMetaclass(T3ObjLookupTable.metaclassReg);
     metaTable!.registerMetaclass(T3MetaclassBigNumber.instance);
+    metaTable!.registerMetaclass(T3MetaclassDate.instance);
+    metaTable!.registerMetaclass(T3MetaclassTimeZone.instance);
   }
 
   /// Dispose of all resources
