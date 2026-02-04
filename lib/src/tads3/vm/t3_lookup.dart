@@ -16,6 +16,8 @@ import 'dart:typed_data';
 
 import 'package:zart/src/tads3/vm/t3_collection.dart';
 import 'package:zart/src/tads3/vm/t3_error.dart';
+import 'package:zart/src/tads3/vm/t3_iter.dart';
+import 'package:zart/src/tads3/vm/t3_list.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_type.dart';
 
@@ -235,14 +237,36 @@ class T3ObjLookupTable extends T3Collection {
 
   @override
   void newIterator(T3VM vm, T3Value retval, T3Value selfVal) {
-    // TODO: Implement LookupTable iterator
-    retval.setNil();
+    // Create a copy of ourselves for snapshot iteration
+    final copy = _createCopy(vm);
+    final copyVal = T3Value()..setObj(copy);
+    // Create iterator on the copy
+    final iterId = T3ObjIterLookupTable.createForColl(vm, copyVal);
+    retval.setObj(iterId);
   }
 
   @override
   void newLiveIterator(T3VM vm, T3Value retval, T3Value selfVal) {
-    // TODO: Implement LookupTable live iterator
-    retval.setNil();
+    // Create iterator directly on ourselves
+    final iterId = T3ObjIterLookupTable.createForColl(vm, selfVal);
+    retval.setObj(iterId);
+  }
+
+  /// Create a copy of this lookup table.
+  int _createCopy(T3VM vm) {
+    final copy = T3ObjLookupTable(_bucketCount, _entries.length);
+    // Copy all entries
+    for (var i = 0; i < _bucketCount; i++) {
+      copy._buckets[i] = _buckets[i];
+    }
+    for (var i = 0; i < _entries.length; i++) {
+      copy._entries[i].key.copyFrom(_entries[i].key);
+      copy._entries[i].val.copyFrom(_entries[i].val);
+      copy._entries[i].nextIdx = _entries[i].nextIdx;
+    }
+    copy._firstFreeIdx = _firstFreeIdx;
+    copy._defaultValue.copyFrom(_defaultValue);
+    return vm.objTable.registerObj(copy, false);
   }
 
   // -------------------------------------------------------------------------
@@ -489,16 +513,28 @@ class T3ObjLookupTable extends T3Collection {
 
   bool getpKeysToList(T3VM vm, T3Value retval, int argc) {
     if (argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
-    // TODO: Implement list creation
-    retval.setNil();
+    _makeList(vm, retval, storeKeys: true);
     return true;
   }
 
   bool getpValsToList(T3VM vm, T3Value retval, int argc) {
     if (argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
-    // TODO: Implement list creation
-    retval.setNil();
+    _makeList(vm, retval, storeKeys: false);
     return true;
+  }
+
+  /// Build a list of all keys or values in the table.
+  void _makeList(T3VM vm, T3Value retval, {required bool storeKeys}) {
+    // Collect all keys or values
+    final items = <T3Value>[];
+    forEach((key, val) {
+      items.add(T3Value.copy(storeKeys ? key : val));
+    });
+
+    // Create list and register
+    final list = T3ObjList(items);
+    final listId = vm.objTable.registerObj(list, false);
+    retval.setObj(listId);
   }
 
   bool getpGetDefVal(T3VM vm, T3Value retval, int argc) {
@@ -650,6 +686,213 @@ class T3MetaclassLookupTable extends T3Metaclass {
 
   @override
   T3Metaclass? getSupermetaReg() => null;
+
+  @override
+  int getClassObj(T3VM vm) => invalidObj;
+}
+
+// -----------------------------------------------------------------------------
+// LookupTable Iterator
+// -----------------------------------------------------------------------------
+
+/// LookupTable iterator metaclass.
+class T3ObjIterLookupTable extends T3ObjIter {
+  /// Metaclass registration.
+  static final T3MetaclassIterLookupTable metaclassReg = T3MetaclassIterLookupTable();
+
+  @override
+  T3Metaclass getMetaclassReg() => metaclassReg;
+
+  @override
+  bool isOfMetaclass(T3Metaclass meta) {
+    return meta == metaclassReg || super.isOfMetaclass(meta);
+  }
+
+  /// Reference to the lookup table collection.
+  final T3Value _collectionValue;
+
+  /// Current entry index (1-based into entries pool, 0 = before first).
+  int _curIndex = 0;
+
+  /// Flags.
+  int _flags = 0;
+
+  static const int _flagUndo = 0x0001;
+
+  /// Create an iterator for a lookup table collection.
+  T3ObjIterLookupTable(T3Value collVal) : _collectionValue = T3Value.copy(collVal);
+
+  /// Create iterator for a collection and register it.
+  static int createForColl(T3VM vm, T3Value coll) {
+    final iter = T3ObjIterLookupTable(coll);
+    return vm.objTable.registerObj(iter, false);
+  }
+
+  /// Get the lookup table object.
+  T3ObjLookupTable? _getLookupTable(T3VM vm) {
+    if (_collectionValue.type != T3DataType.obj) return null;
+    return vm.objTable.getObj(_collectionValue.getAsObj()!) as T3ObjLookupTable?;
+  }
+
+  /// Find the first valid entry index >= the given index.
+  /// Returns 0 if no valid entry found.
+  int _findFirstValidEntry(T3VM vm, int startIdx) {
+    final ltab = _getLookupTable(vm);
+    if (ltab == null) return 0;
+
+    // Walk through entries pool starting at startIdx (1-based)
+    for (var i = startIdx; i <= ltab._entries.length; i++) {
+      final entry = ltab._entries[i - 1];
+      if (entry.inUse) return i;
+    }
+    return 0;
+  }
+
+  @override
+  bool getpGetNext(T3VM vm, int self, T3Value retval, int? argc) {
+    if (argc != null && argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
+
+    final ltab = _getLookupTable(vm);
+    if (ltab == null) throw T3VmException(vmErrInvalObjType);
+
+    // Find next valid entry after current
+    final nextIdx = _findFirstValidEntry(vm, _curIndex + 1);
+    if (nextIdx == 0) throw T3VmException(vmErrOutOfRange);
+
+    // Get the value
+    retval.copyFrom(ltab._entries[nextIdx - 1].val);
+
+    // Update index
+    _curIndex = nextIdx;
+    return true;
+  }
+
+  @override
+  bool getpIsNextAvail(T3VM vm, int self, T3Value retval, int? argc) {
+    if (argc != null && argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
+
+    final nextIdx = _findFirstValidEntry(vm, _curIndex + 1);
+    retval.setLogical(nextIdx != 0);
+    return true;
+  }
+
+  @override
+  bool getpResetIter(T3VM vm, int self, T3Value retval, int? argc) {
+    if (argc != null && argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
+    _curIndex = 0;
+    retval.setNil();
+    return true;
+  }
+
+  @override
+  bool getpGetCurKey(T3VM vm, int self, T3Value retval, int? argc) {
+    if (argc != null && argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
+
+    final ltab = _getLookupTable(vm);
+    if (ltab == null) throw T3VmException(vmErrInvalObjType);
+
+    if (_curIndex < 1 || _curIndex > ltab._entries.length) {
+      throw T3VmException(vmErrOutOfRange);
+    }
+
+    final entry = ltab._entries[_curIndex - 1];
+    if (!entry.inUse) throw T3VmException(vmErrOutOfRange);
+
+    retval.copyFrom(entry.key);
+    return true;
+  }
+
+  @override
+  bool getpGetCurVal(T3VM vm, int self, T3Value retval, int? argc) {
+    if (argc != null && argc != 0) throw T3VmException(vmErrWrongNumOfArgs);
+
+    final ltab = _getLookupTable(vm);
+    if (ltab == null) throw T3VmException(vmErrInvalObjType);
+
+    if (_curIndex < 1 || _curIndex > ltab._entries.length) {
+      throw T3VmException(vmErrOutOfRange);
+    }
+
+    final entry = ltab._entries[_curIndex - 1];
+    if (!entry.inUse) throw T3VmException(vmErrOutOfRange);
+
+    retval.copyFrom(entry.val);
+    return true;
+  }
+
+  /// Direct iteration for foreach loops.
+  @override
+  bool iterNext(T3VM vm, int self, T3Value val) {
+    final nextIdx = _findFirstValidEntry(vm, _curIndex + 1);
+    if (nextIdx == 0) return false;
+
+    final ltab = _getLookupTable(vm);
+    if (ltab == null) return false;
+
+    val.copyFrom(ltab._entries[nextIdx - 1].val);
+    _curIndex = nextIdx;
+    return true;
+  }
+
+  @override
+  void markRefs(T3VM vm, int state) {
+    if (_collectionValue.type == T3DataType.obj) {
+      vm.objTable.markRefs(_collectionValue.getAsObj()!, state);
+    }
+  }
+
+  @override
+  void loadFromImage(T3VM vm, int self, Uint8List ptr, int offset, int size) {
+    if (size < 9) throw T3VmException(vmErrInvalMetaclassData);
+
+    // Read collection dataholder
+    _collectionValue.readFromBuffer(ptr, offset);
+
+    // Read current index and flags
+    final view = ByteData.sublistView(ptr, offset + 5, offset + 9);
+    _curIndex = view.getUint16(0, Endian.little);
+    _flags = view.getUint16(2, Endian.little);
+  }
+}
+
+/// LookupTable iterator metaclass registration.
+class T3MetaclassIterLookupTable extends T3Metaclass {
+  static const String name = 'lookuptable-iterator/030000';
+
+  @override
+  String getMetaName() => name;
+
+  @override
+  int createFromStack(T3VM vm, Uint8List pc, int pcOffset, int argc) {
+    throw T3VmException(vmErrBadDynamicNew);
+  }
+
+  @override
+  void createForImageLoad(T3VM vm, int id) {
+    vm.objTable.setObj(id, T3ObjIterLookupTable(T3Value(T3DataType.nil)));
+  }
+
+  @override
+  void createForRestore(T3VM vm, int id) {
+    vm.objTable.setObj(id, T3ObjIterLookupTable(T3Value(T3DataType.nil)));
+  }
+
+  @override
+  bool callStatProp(T3VM vm, T3Value result, Uint8List pc, int pcOffset, int argc, int prop) {
+    return false;
+  }
+
+  @override
+  int getSupermeta(T3VM vm, int idx) {
+    if (idx == 0) return T3ObjIter.metaclassReg.getClassObj(vm);
+    return invalidObj;
+  }
+
+  @override
+  bool isMetaInstanceOf(T3VM vm, int obj) => false;
+
+  @override
+  T3Metaclass? getSupermetaReg() => T3ObjIter.metaclassReg;
 
   @override
   int getClassObj(T3VM vm) => invalidObj;

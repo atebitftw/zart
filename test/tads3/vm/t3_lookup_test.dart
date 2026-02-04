@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
+import 'package:zart/src/tads3/vm/t3_iter.dart';
+import 'package:zart/src/tads3/vm/t3_list.dart';
 import 'package:zart/src/tads3/vm/t3_lookup.dart';
 import 'package:zart/src/tads3/vm/t3_object.dart';
 import 'package:zart/src/tads3/vm/t3_object_table.dart';
@@ -521,6 +523,258 @@ void main() {
 
     test('static name constant', () {
       expect(T3MetaclassLookupTable.name, equals('lookuptable/030003'));
+    });
+  });
+
+  group('T3ObjIterLookupTable', () {
+    late MockVM vm;
+    late T3ObjLookupTable table;
+    late int tableId;
+
+    setUp(() {
+      vm = MockVM();
+      table = T3ObjLookupTable(8, 16);
+      tableId = vm.objTable.registerObj(table, false);
+
+      // Add some entries
+      final key1 = T3Value()..setInt(1);
+      final val1 = T3Value()..setSstring(100);
+      table.setOrAddEntry(key1, val1);
+
+      final key2 = T3Value()..setInt(2);
+      final val2 = T3Value()..setSstring(200);
+      table.setOrAddEntry(key2, val2);
+
+      final key3 = T3Value()..setInt(3);
+      final val3 = T3Value()..setSstring(300);
+      table.setOrAddEntry(key3, val3);
+    });
+
+    test('createForColl creates and registers iterator', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId);
+      expect(iter, isA<T3ObjIterLookupTable>());
+    });
+
+    test('isNextAvail returns true when entries exist', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      final retval = T3Value();
+      iter.getpIsNextAvail(vm, iterId, retval, 0);
+      expect(retval.isLogicalTrue, isTrue);
+    });
+
+    test('getNext advances iterator and returns value', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      final retval = T3Value();
+      iter.getpGetNext(vm, iterId, retval, 0);
+      expect(retval.type, equals(T3DataType.sstring));
+    });
+
+    test('getCurKey returns current key after getNext', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      final retval = T3Value();
+      iter.getpGetNext(vm, iterId, retval, 0);
+
+      final keyval = T3Value();
+      iter.getpGetCurKey(vm, iterId, keyval, 0);
+      expect(keyval.type, equals(T3DataType.int32));
+    });
+
+    test('getCurVal returns current value after getNext', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      final retval = T3Value();
+      iter.getpGetNext(vm, iterId, retval, 0);
+
+      final valval = T3Value();
+      iter.getpGetCurVal(vm, iterId, valval, 0);
+      expect(valval.getAsOfs(), equals(retval.getAsOfs()));
+    });
+
+    test('resetIter resets iterator to beginning', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      final retval = T3Value();
+      iter.getpGetNext(vm, iterId, retval, 0);
+      iter.getpGetNext(vm, iterId, retval, 0);
+
+      iter.getpResetIter(vm, iterId, retval, 0);
+
+      // After reset, isNextAvail should still be true
+      iter.getpIsNextAvail(vm, iterId, retval, 0);
+      expect(retval.isLogicalTrue, isTrue);
+    });
+
+    test('iterates through all entries', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      var count = 0;
+      final retval = T3Value();
+      final available = T3Value();
+
+      iter.getpIsNextAvail(vm, iterId, available, 0);
+      while (available.isLogicalTrue) {
+        iter.getpGetNext(vm, iterId, retval, 0);
+        count++;
+        iter.getpIsNextAvail(vm, iterId, available, 0);
+      }
+
+      expect(count, equals(3));
+    });
+
+    test('iterNext works for foreach support', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      var count = 0;
+      final val = T3Value();
+      while (iter.iterNext(vm, iterId, val)) {
+        count++;
+      }
+      expect(count, equals(3));
+    });
+
+    test('throws on getNext when no more entries', () {
+      final collVal = T3Value()..setObj(tableId);
+      final iterId = T3ObjIterLookupTable.createForColl(vm, collVal);
+      final iter = vm.objTable.getObj(iterId) as T3ObjIterLookupTable;
+
+      final retval = T3Value();
+      iter.getpGetNext(vm, iterId, retval, 0);
+      iter.getpGetNext(vm, iterId, retval, 0);
+      iter.getpGetNext(vm, iterId, retval, 0);
+
+      expect(() => iter.getpGetNext(vm, iterId, retval, 0), throwsA(isA<T3VmException>()));
+    });
+  });
+
+  group('newIterator and newLiveIterator', () {
+    late MockVM vm;
+    late T3ObjLookupTable table;
+    late int tableId;
+
+    setUp(() {
+      vm = MockVM();
+      table = T3ObjLookupTable(8, 16);
+      tableId = vm.objTable.registerObj(table, false);
+
+      final key = T3Value()..setInt(42);
+      final val = T3Value()..setInt(100);
+      table.setOrAddEntry(key, val);
+    });
+
+    test('newIterator creates iterator on snapshot copy', () {
+      final selfVal = T3Value()..setObj(tableId);
+      final retval = T3Value();
+      table.newIterator(vm, retval, selfVal);
+
+      expect(retval.type, equals(T3DataType.obj));
+      final iter = vm.objTable.getObj(retval.getAsObj()!);
+      expect(iter, isA<T3ObjIterLookupTable>());
+    });
+
+    test('newLiveIterator creates iterator on original table', () {
+      final selfVal = T3Value()..setObj(tableId);
+      final retval = T3Value();
+      table.newLiveIterator(vm, retval, selfVal);
+
+      expect(retval.type, equals(T3DataType.obj));
+      final iter = vm.objTable.getObj(retval.getAsObj()!);
+      expect(iter, isA<T3ObjIterLookupTable>());
+    });
+  });
+
+  group('keysToList and valsToList', () {
+    late MockVM vm;
+    late T3ObjLookupTable table;
+
+    setUp(() {
+      vm = MockVM();
+      table = T3ObjLookupTable(8, 16);
+
+      final key1 = T3Value()..setInt(1);
+      final val1 = T3Value()..setInt(100);
+      table.setOrAddEntry(key1, val1);
+
+      final key2 = T3Value()..setInt(2);
+      final val2 = T3Value()..setInt(200);
+      table.setOrAddEntry(key2, val2);
+    });
+
+    test('keysToList returns list of all keys', () {
+      final retval = T3Value();
+      table.getpKeysToList(vm, retval, 0);
+
+      expect(retval.type, equals(T3DataType.obj));
+      final list = vm.objTable.getObj(retval.getAsObj()!);
+      expect(list, isA<T3ObjList>());
+      expect((list as T3ObjList).length, equals(2));
+    });
+
+    test('valsToList returns list of all values', () {
+      final retval = T3Value();
+      table.getpValsToList(vm, retval, 0);
+
+      expect(retval.type, equals(T3DataType.obj));
+      final list = vm.objTable.getObj(retval.getAsObj()!);
+      expect(list, isA<T3ObjList>());
+      expect((list as T3ObjList).length, equals(2));
+    });
+
+    test('keysToList contains correct key values', () {
+      final retval = T3Value();
+      table.getpKeysToList(vm, retval, 0);
+
+      final list = vm.objTable.getObj(retval.getAsObj()!) as T3ObjList;
+      final keys = list.elements.map((e) => e.getAsInt()).toSet();
+      expect(keys, containsAll([1, 2]));
+    });
+
+    test('valsToList contains correct value values', () {
+      final retval = T3Value();
+      table.getpValsToList(vm, retval, 0);
+
+      final list = vm.objTable.getObj(retval.getAsObj()!) as T3ObjList;
+      final vals = list.elements.map((e) => e.getAsInt()).toSet();
+      expect(vals, containsAll([100, 200]));
+    });
+
+    test('empty table returns empty list', () {
+      final emptyTable = T3ObjLookupTable(8, 16);
+      final retval = T3Value();
+      emptyTable.getpKeysToList(vm, retval, 0);
+
+      final list = vm.objTable.getObj(retval.getAsObj()!) as T3ObjList;
+      expect(list.length, equals(0));
+    });
+  });
+
+  group('T3MetaclassIterLookupTable', () {
+    test('has correct name', () {
+      final meta = T3MetaclassIterLookupTable();
+      expect(meta.getMetaName(), equals('lookuptable-iterator/030000'));
+    });
+
+    test('getSupermetaReg returns iterator metaclass', () {
+      final meta = T3MetaclassIterLookupTable();
+      expect(meta.getSupermetaReg(), equals(T3ObjIter.metaclassReg));
     });
   });
 }

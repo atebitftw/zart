@@ -48,9 +48,9 @@ Commonly used TADS 3 data types.
 Complex built-in TADS 3 objects.
 
 - [x] `vmstrbuf.cpp` / `vmstrbuf.h` - StringBuffer metaclass (Ported to `t3_strbuf.dart`, verified with unit tests) <!-- id: 213 -->
-- [ ] `vmlookup.cpp` / `vmlookup.h` - LookupTable metaclass <!-- id: 211 -->
-- [ ] `vmdict.cpp` / `vmdict.h` - Dictionary metaclass <!-- id: 203 -->
-- [ ] `vmregex.cpp` / `vmregex.h` - RexGroup metaclass <!-- id: 212 -->
+- [x] `vmlookup.cpp` / `vmlookup.h` - LookupTable metaclass (Ported to `t3_lookup.dart`, includes `LookupTableIterator`, verified with 58 unit tests) <!-- id: 211 -->
+- [x] `vmdict.cpp` / `vmdict.h` - Dictionary metaclass (Ported to `t3_dict.dart`, verified with 41 unit tests) <!-- id: 203 -->
+- [x] `vmregex.cpp` / `vmregex.h` - RexGroup metaclass (Ported to `t3_regex.dart` using TADS-to-Dart pattern translator, verified with 59 unit tests) <!-- id: 212 -->
 - [ ] `vmbignum.cpp` / `vmbignum.h` - BigNumber metaclass <!-- id: 205 -->
 - [ ] `vmdate.cpp` / `vmdate.h` - Date metaclass <!-- id: 207 -->
 - [ ] `vmfile.cpp` / `vmfile.h` - File metaclass <!-- id: 209 -->
